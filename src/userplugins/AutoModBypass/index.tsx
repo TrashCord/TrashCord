@@ -63,7 +63,7 @@ const settings = definePluginSettings({
     textStyle: {
         type: OptionType.SELECT,
         description: "Choose which text style to use",
-        default: "fraktur" as TextStyle,
+        default: "undetected" as TextStyle,
         options: [
             { label: "Fraktur (Gothic)", value: "fraktur", default: true },
             { label: "Zalgo (Cursed)", value: "zalgo" },

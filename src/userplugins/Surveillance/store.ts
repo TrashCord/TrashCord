@@ -54,15 +54,40 @@ const persistNow = async () => {
     await persistEvents();
 };
 
-export async function loadEvents() {
-    if (loaded) return events;
-    if (loading) return loading;
+const trimToLimit = (nextEvents: SurveillanceEvent[], limit?: number) => {
+    if (limit == null) return nextEvents;
+
+    return nextEvents.slice(0, Math.max(MIN_EVENTS, limit));
+};
+
+const applyLimit = async (limit?: number) => {
+    const trimmedEvents = trimToLimit(events, limit);
+    if (trimmedEvents.length === events.length) return;
+
+    events = trimmedEvents;
+    await persistNow();
+    notify();
+};
+
+export async function loadEvents(limit?: number) {
+    if (loaded) {
+        await applyLimit(limit);
+        return events;
+    }
+
+    if (loading) {
+        await loading;
+        await applyLimit(limit);
+        return events;
+    }
 
     loading = DataStore.get<SurveillanceEvent[]>(STORE_KEY)
-        .then(savedEvents => {
-            events = Array.isArray(savedEvents) ? savedEvents : [];
+        .then(async savedEvents => {
+            const saved = Array.isArray(savedEvents) ? savedEvents : [];
+            events = trimToLimit(saved, limit);
             loaded = true;
             notify();
+            if (events.length !== saved.length) await persistEvents();
             return events;
         })
         .catch(error => {
@@ -77,7 +102,7 @@ export async function loadEvents() {
 }
 
 export async function recordEvent(event: SurveillanceEvent, limit: number) {
-    await loadEvents();
+    await loadEvents(limit);
 
     events = [event, ...events].slice(0, Math.max(MIN_EVENTS, limit));
     notify();
@@ -92,7 +117,7 @@ export async function clearEvents() {
 }
 
 export async function trimEvents(limit: number) {
-    await loadEvents();
+    await loadEvents(limit);
     events = events.slice(0, Math.max(MIN_EVENTS, limit));
     await persistNow();
     notify();

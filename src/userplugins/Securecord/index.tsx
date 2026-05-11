@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { definePluginSettings } from "@api/Settings";
-import { sendBotMessage } from "@api/Commands";
-import { addMessagePreSendListener, removeMessagePreSendListener, MessageSendListener } from "@api/MessageEvents";
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { Devs } from "@utils/constants";
+import { sendBotMessage } from "@api/Commands";
+import { addMessagePreSendListener, MessageSendListener, removeMessagePreSendListener } from "@api/MessageEvents";
+import { definePluginSettings } from "@api/Settings";
+import { Logger } from "@utils/Logger";
 import definePlugin, { IconComponent, OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
 
@@ -20,84 +20,104 @@ interface IMessageCreate {
     message: Message;
 }
 
-// Security constants
 const SECURITY_CONSTANTS = {
-    MIN_PASSWORD_LENGTH: 8,
+    DEFAULT_MIN_PASSWORD_LENGTH: 12,
     MAX_PASSWORD_LENGTH: 128,
-    PBKDF2_ITERATIONS: 200000, // Increased iterations for better security
-    SALT_LENGTH: 32, // Longer salt
+    LEGACY_PBKDF2_ITERATIONS: 200000,
+    SALT_LENGTH: 32,
     IV_LENGTH: 12,
+    ITERATION_LENGTH: 4,
+    VERSION_LEGACY: 1,
+    VERSION_CURRENT: 2,
     ENCRYPTION_MARKER_START: "🔒SECURE:",
     ENCRYPTION_MARKER_END: ":ENDSECURE",
-    FAILED_ATTEMPTS_LIMIT: 5,
-    LOCKOUT_DURATION: 300000 // 5 minutes in milliseconds
+    MAX_DISCORD_MESSAGE_LENGTH: 2000,
+    DEFAULT_MAX_PLAINTEXT_BYTES: 1400,
+    MILLISECONDS_PER_MINUTE: 60000,
+    GCM_ADDITIONAL_DATA: "Securecord:v2"
 };
 
-// In-memory security state (not persisted)
+const logger = new Logger("Securecord");
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+const specialCharacterPattern = /[^A-Za-z0-9]/;
+
 let failedAttempts = 0;
 let lockoutEndTime = 0;
 let lastDecryptionAttempt = 0;
+let messageSendListener: MessageSendListener | null = null;
+let autoLockTimer: ReturnType<typeof setTimeout> | null = null;
+let lastActivityChannelId: string | null = null;
 
-// Password strength validator
-function validatePassword(password: string): { isValid: boolean; errors: string[] } {
+function validatePassword(password: string): string[] {
     const errors: string[] = [];
-    
+
     if (!password) {
         errors.push("Password is required");
-        return { isValid: false, errors };
+        return errors;
     }
-    
-    if (password.length < SECURITY_CONSTANTS.MIN_PASSWORD_LENGTH) {
-        errors.push(`Password must be at least ${SECURITY_CONSTANTS.MIN_PASSWORD_LENGTH} characters long`);
+
+    const minLength = settings.store.strictPasswordPolicy
+        ? settings.store.minPasswordLength
+        : 1;
+
+    if (password.length < minLength) {
+        errors.push(`Password must be at least ${minLength} characters long`);
     }
-    
+
     if (password.length > SECURITY_CONSTANTS.MAX_PASSWORD_LENGTH) {
         errors.push(`Password must be no more than ${SECURITY_CONSTANTS.MAX_PASSWORD_LENGTH} characters long`);
     }
-    
+
+    if (!settings.store.strictPasswordPolicy) {
+        return errors;
+    }
+
     if (!/[A-Z]/.test(password)) {
         errors.push("Password must contain at least one uppercase letter");
     }
-    
+
     if (!/[a-z]/.test(password)) {
         errors.push("Password must contain at least one lowercase letter");
     }
-    
+
     if (!/\d/.test(password)) {
         errors.push("Password must contain at least one number");
     }
-    
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+
+    if (!specialCharacterPattern.test(password)) {
         errors.push("Password must contain at least one special character");
     }
-    
-    return { isValid: errors.length === 0, errors };
+
+    return errors;
 }
 
-// Rate limiting check
 function isRateLimited(): boolean {
+    if (!settings.store.maxFailedAttempts || !settings.store.lockoutMinutes) return false;
+
     const now = Date.now();
-    
-    // Check if currently locked out
+    const lockoutDuration = settings.store.lockoutMinutes * SECURITY_CONSTANTS.MILLISECONDS_PER_MINUTE;
+
     if (lockoutEndTime > now) {
         return true;
     }
-    
-    // Reset failed attempts if enough time has passed
-    if (now - lastDecryptionAttempt > SECURITY_CONSTANTS.LOCKOUT_DURATION) {
+
+    if (now - lastDecryptionAttempt > lockoutDuration) {
         failedAttempts = 0;
         lockoutEndTime = 0;
     }
-    
+
     return false;
 }
 
 function recordFailedAttempt(): void {
+    if (!settings.store.maxFailedAttempts || !settings.store.lockoutMinutes) return;
+
     failedAttempts++;
     lastDecryptionAttempt = Date.now();
-    
-    if (failedAttempts >= SECURITY_CONSTANTS.FAILED_ATTEMPTS_LIMIT) {
-        lockoutEndTime = Date.now() + SECURITY_CONSTANTS.LOCKOUT_DURATION;
+
+    if (failedAttempts >= settings.store.maxFailedAttempts) {
+        lockoutEndTime = Date.now() + settings.store.lockoutMinutes * SECURITY_CONSTANTS.MILLISECONDS_PER_MINUTE;
     }
 }
 
@@ -107,192 +127,257 @@ function resetSecurityState(): void {
     lastDecryptionAttempt = 0;
 }
 
-// Enhanced AES-256 encryption functions with better security
-const encryptAES = async (text: string, password: string): Promise<string> => {
-    try {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        
-        // Validate password
-        const validation = validatePassword(password);
-        if (!validation.isValid) {
-            throw new Error(`Password validation failed: ${validation.errors.join(", ")}`);
-        }
-        
-        // Generate longer, more secure salt
-        const salt = crypto.getRandomValues(new Uint8Array(SECURITY_CONSTANTS.SALT_LENGTH));
-        
-        // Derive key using PBKDF2 with increased iterations
-        const keyMaterial = await crypto.subtle.importKey(
-            "raw",
-            encoder.encode(password),
-            { name: "PBKDF2" },
-            false,
-            ["deriveKey"]
-        );
-        
-        const key = await crypto.subtle.deriveKey(
-            {
-                name: "PBKDF2",
-                salt: salt,
-                iterations: SECURITY_CONSTANTS.PBKDF2_ITERATIONS,
-                hash: "SHA-256"
-            },
-            keyMaterial,
-            { name: "AES-GCM", length: 256 },
-            false,
-            ["encrypt"]
-        );
-        
-        const iv = crypto.getRandomValues(new Uint8Array(SECURITY_CONSTANTS.IV_LENGTH));
-        const encrypted = await crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: iv },
-            key,
-            data
-        );
-        
-        // Combine salt, IV and encrypted data with version identifier
-        const version = new Uint8Array([1]); // Version byte for future compatibility
-        const result = new Uint8Array(version.length + salt.length + iv.length + encrypted.byteLength);
-        let offset = 0;
-        
-        result.set(version, offset);
-        offset += version.length;
-        
-        result.set(salt, offset);
-        offset += salt.length;
-        
-        result.set(iv, offset);
-        offset += iv.length;
-        
-        result.set(new Uint8Array(encrypted), offset);
-        
-        // Use URL-safe base64 encoding
-        return btoa(String.fromCharCode(...result))
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=/g, "");
-            
-    } catch (error) {
-        console.error("Encryption error:", error);
-        throw new Error("Message encryption failed");
-    }
-};
-
-const decryptAES = async (encrypted: string, password: string): Promise<string> => {
-    try {
-        // Check rate limiting
-        if (isRateLimited()) {
-            const remainingTime = Math.ceil((lockoutEndTime - Date.now()) / 1000 / 60);
-            throw new Error(`Too many failed attempts. Try again in ${remainingTime} minutes.`);
-        }
-        
-        // Restore URL-safe base64
-        let base64Data = encrypted
-            .replace(/-/g, "+")
-            .replace(/_/g, "/");
-        
-        // Add padding if needed
-        while (base64Data.length % 4 !== 0) {
-            base64Data += "=";
-        }
-        
-        const data = new Uint8Array(atob(base64Data).split("").map(c => c.charCodeAt(0)));
-        
-        // Check minimum length
-        const minRequiredLength = 1 + SECURITY_CONSTANTS.SALT_LENGTH + SECURITY_CONSTANTS.IV_LENGTH;
-        if (data.length < minRequiredLength) {
-            throw new Error("Invalid encrypted data format");
-        }
-        
-        let offset = 0;
-        
-        // Read version
-        const version = data[offset];
-        offset += 1;
-        
-        // Future-proof: handle different versions
-        if (version !== 1) {
-            throw new Error("Unsupported encryption version");
-        }
-        
-        // Read salt
-        const salt = data.slice(offset, offset + SECURITY_CONSTANTS.SALT_LENGTH);
-        offset += SECURITY_CONSTANTS.SALT_LENGTH;
-        
-        // Read IV
-        const iv = data.slice(offset, offset + SECURITY_CONSTANTS.IV_LENGTH);
-        offset += SECURITY_CONSTANTS.IV_LENGTH;
-        
-        // Read encrypted data
-        const encryptedData = data.slice(offset);
-        
-        const encoder = new TextEncoder();
-        const keyMaterial = await crypto.subtle.importKey(
-            "raw",
-            encoder.encode(password),
-            { name: "PBKDF2" },
-            false,
-            ["deriveKey"]
-        );
-        
-        const key = await crypto.subtle.deriveKey(
-            {
-                name: "PBKDF2",
-                salt: salt,
-                iterations: SECURITY_CONSTANTS.PBKDF2_ITERATIONS,
-                hash: "SHA-256"
-            },
-            keyMaterial,
-            { name: "AES-GCM", length: 256 },
-            false,
-            ["decrypt"]
-        );
-        
-        const decrypted = await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: iv },
-            key,
-            encryptedData
-        );
-        
-        const decoder = new TextDecoder();
-        const result = decoder.decode(decrypted);
-        
-        // Reset security state on successful decryption
-        resetSecurityState();
-        
-        return result;
-        
-    } catch (error) {
-        // Record failed attempt
-        recordFailedAttempt();
-        console.error("Decryption error:", error);
-        throw new Error("Message decryption failed");
-    }
-};
-
-// Sanitize sensitive data from logs
-function sanitizeLogData(obj: any): any {
-    if (typeof obj === "string") {
-        return obj.replace(/password/gi, "***").replace(/secret/gi, "***");
-    }
-    
-    if (typeof obj === "object" && obj !== null) {
-        const sanitized: any = {};
-        for (const [key, value] of Object.entries(obj)) {
-            if (typeof key === "string" && /password|secret|token/i.test(key)) {
-                sanitized[key] = "***";
-            } else {
-                sanitized[key] = sanitizeLogData(value);
-            }
-        }
-        return sanitized;
-    }
-    
-    return obj;
+function logInfo(...args: unknown[]) {
+    if (settings.store.enableLogging) logger.info(...args);
 }
 
-// SVG icons for the button
+function logError(...args: unknown[]) {
+    if (settings.store.enableLogging) logger.error(...args);
+}
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function getPbkdf2Iterations(): number {
+    const iterations = Number(settings.store.pbkdf2Iterations);
+    return Number.isFinite(iterations) && iterations > 0
+        ? iterations
+        : SECURITY_CONSTANTS.LEGACY_PBKDF2_ITERATIONS;
+}
+
+function isEncryptedMessage(content: string): boolean {
+    return content.startsWith(SECURITY_CONSTANTS.ENCRYPTION_MARKER_START) &&
+        content.endsWith(SECURITY_CONSTANTS.ENCRYPTION_MARKER_END);
+}
+
+function getEncryptedPart(content: string): string {
+    return content.slice(
+        SECURITY_CONSTANTS.ENCRYPTION_MARKER_START.length,
+        -SECURITY_CONSTANTS.ENCRYPTION_MARKER_END.length
+    );
+}
+
+function bytesToBase64(bytes: Uint8Array, urlSafe: boolean): string {
+    let binary = "";
+
+    for (const byte of bytes) {
+        binary += String.fromCharCode(byte);
+    }
+
+    const base64 = btoa(binary);
+    if (!urlSafe) return base64;
+
+    return base64
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+}
+
+function base64ToBytes(value: string): Uint8Array {
+    let base64 = value.trim().replace(/-/g, "+").replace(/_/g, "/");
+
+    while (base64.length % 4 !== 0) {
+        base64 += "=";
+    }
+
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes;
+}
+
+function writeUint32(value: number): Uint8Array {
+    const bytes = new Uint8Array(SECURITY_CONSTANTS.ITERATION_LENGTH);
+    bytes[0] = value >>> 24;
+    bytes[1] = value >>> 16;
+    bytes[2] = value >>> 8;
+    bytes[3] = value;
+    return bytes;
+}
+
+function readUint32(bytes: Uint8Array, offset: number): number {
+    return (
+        (bytes[offset] << 24) |
+        (bytes[offset + 1] << 16) |
+        (bytes[offset + 2] << 8) |
+        bytes[offset + 3]
+    ) >>> 0;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    return copy.buffer;
+}
+
+async function deriveAESKey(password: string, salt: Uint8Array, iterations: number, usages: KeyUsage[]): Promise<CryptoKey> {
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        toArrayBuffer(encoder.encode(password)),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: toArrayBuffer(salt),
+            iterations,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        usages
+    );
+}
+
+async function encryptAES(text: string, password: string): Promise<string> {
+    const data = encoder.encode(text);
+    const validationErrors = validatePassword(password);
+
+    if (validationErrors.length) {
+        throw new Error(`Password validation failed: ${validationErrors.join(", ")}`);
+    }
+
+    if (settings.store.maxPlaintextBytes > 0 && data.length > settings.store.maxPlaintextBytes) {
+        throw new Error(`Message is too long to encrypt. Limit is ${settings.store.maxPlaintextBytes} bytes.`);
+    }
+
+    const iterations = getPbkdf2Iterations();
+    const salt = crypto.getRandomValues(new Uint8Array(SECURITY_CONSTANTS.SALT_LENGTH));
+    const iv = crypto.getRandomValues(new Uint8Array(SECURITY_CONSTANTS.IV_LENGTH));
+    const key = await deriveAESKey(password, salt, iterations, ["encrypt"]);
+
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: toArrayBuffer(iv),
+            additionalData: toArrayBuffer(encoder.encode(SECURITY_CONSTANTS.GCM_ADDITIONAL_DATA))
+        },
+        key,
+        toArrayBuffer(data)
+    );
+
+    const version = new Uint8Array([SECURITY_CONSTANTS.VERSION_CURRENT]);
+    const iterationBytes = writeUint32(iterations);
+    const encryptedBytes = new Uint8Array(encrypted);
+    const result = new Uint8Array(
+        version.length +
+        iterationBytes.length +
+        salt.length +
+        iv.length +
+        encryptedBytes.length
+    );
+
+    let offset = 0;
+    result.set(version, offset);
+    offset += version.length;
+    result.set(iterationBytes, offset);
+    offset += iterationBytes.length;
+    result.set(salt, offset);
+    offset += salt.length;
+    result.set(iv, offset);
+    offset += iv.length;
+    result.set(encryptedBytes, offset);
+
+    const encryptedMessage = bytesToBase64(result, settings.store.urlSafeBase64);
+    const wrappedMessage = `${SECURITY_CONSTANTS.ENCRYPTION_MARKER_START}${encryptedMessage}${SECURITY_CONSTANTS.ENCRYPTION_MARKER_END}`;
+
+    if (wrappedMessage.length > SECURITY_CONSTANTS.MAX_DISCORD_MESSAGE_LENGTH) {
+        throw new Error("Encrypted message is too long for Discord.");
+    }
+
+    return encryptedMessage;
+}
+
+async function decryptAES(encrypted: string, password: string): Promise<string> {
+    const data = base64ToBytes(encrypted);
+    const minLegacyLength = 1 + SECURITY_CONSTANTS.SALT_LENGTH + SECURITY_CONSTANTS.IV_LENGTH;
+
+    if (data.length < minLegacyLength) {
+        throw new Error("Invalid encrypted data format.");
+    }
+
+    let offset = 0;
+    const version = data[offset];
+    offset += 1;
+
+    let iterations = SECURITY_CONSTANTS.LEGACY_PBKDF2_ITERATIONS;
+    let additionalData: ArrayBuffer | undefined;
+
+    if (version === SECURITY_CONSTANTS.VERSION_CURRENT) {
+        const minCurrentLength = minLegacyLength + SECURITY_CONSTANTS.ITERATION_LENGTH;
+        if (data.length < minCurrentLength) {
+            throw new Error("Invalid encrypted data format.");
+        }
+
+        iterations = readUint32(data, offset);
+        offset += SECURITY_CONSTANTS.ITERATION_LENGTH;
+        additionalData = toArrayBuffer(encoder.encode(SECURITY_CONSTANTS.GCM_ADDITIONAL_DATA));
+    } else if (version !== SECURITY_CONSTANTS.VERSION_LEGACY || !settings.store.acceptLegacyPayloads) {
+        throw new Error("Unsupported encryption version.");
+    }
+
+    if (!iterations || iterations < 1) {
+        throw new Error("Invalid encryption parameters.");
+    }
+
+    const salt = data.slice(offset, offset + SECURITY_CONSTANTS.SALT_LENGTH);
+    offset += SECURITY_CONSTANTS.SALT_LENGTH;
+    const iv = data.slice(offset, offset + SECURITY_CONSTANTS.IV_LENGTH);
+    offset += SECURITY_CONSTANTS.IV_LENGTH;
+    const encryptedData = data.slice(offset);
+    const key = await deriveAESKey(password, salt, iterations, ["decrypt"]);
+    const decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: toArrayBuffer(iv), additionalData },
+        key,
+        toArrayBuffer(encryptedData)
+    );
+
+    resetSecurityState();
+    return decoder.decode(decrypted);
+}
+
+function clearAutoLockTimer() {
+    if (!autoLockTimer) return;
+
+    clearTimeout(autoLockTimer);
+    autoLockTimer = null;
+}
+
+function scheduleAutoLock(channelId?: string) {
+    clearAutoLockTimer();
+
+    if (channelId) lastActivityChannelId = channelId;
+    if (!settings.store.enableEncryption || settings.store.autoLockTimeout <= 0) return;
+
+    autoLockTimer = setTimeout(() => {
+        settings.store.enableEncryption = false;
+        logInfo("Encryption auto locked.");
+
+        if (settings.store.notifyOnAutoLock && lastActivityChannelId) {
+            sendBotMessage(lastActivityChannelId, {
+                content: "🔐 Encryption auto disabled after inactivity."
+            });
+        }
+    }, settings.store.autoLockTimeout * SECURITY_CONSTANTS.MILLISECONDS_PER_MINUTE);
+}
+
+function formatDecryptedMessage(message: Message, decryptedMessage: string) {
+    if (!settings.store.showAuthorInDecryptedMessages) {
+        return `🔐 **Decrypted message**: ${decryptedMessage}`;
+    }
+
+    return `🔐 **Decrypted message from ${message.author.username}**: ${decryptedMessage}`;
+}
+
 const EncryptionEnabledIcon: IconComponent = ({ height = 20, width = 20, className }) => {
     return (
         <svg
@@ -319,28 +404,29 @@ const EncryptionDisabledIcon: IconComponent = ({ height = 20, width = 20, classN
     );
 };
 
-// Chatbar button
 const EncryptionToggleButton: ChatBarButtonFactory = ({ channel, type }) => {
-    const { enableEncryption } = settings.use(["enableEncryption"]);
-    
+    const { enableEncryption } = settings.use();
+
     const validChat = ["normal", "sidebar"].some(x => type.analyticsName === x);
-    
+
     if (!validChat) return null;
-    
+
     return (
         <ChatBarButton
             tooltip={enableEncryption ? "Disable Encryption" : "Enable Encryption"}
             onClick={() => {
                 const newValue = !enableEncryption;
                 settings.store.enableEncryption = newValue;
-                
-                // Show confirmation with security reminder
-                sendBotMessage(
-                    channel?.id ?? "",
-                    {
-                        content: `🔐 Encryption ${newValue ? "enabled" : "disabled"}!\n${newValue ? "⚠️ Remember to share your password securely with trusted contacts only." : ""}`
-                    }
-                );
+                scheduleAutoLock(channel.id);
+
+                if (settings.store.notifyOnToggle) {
+                    sendBotMessage(
+                        channel.id,
+                        {
+                            content: `🔐 Encryption ${newValue ? "enabled" : "disabled"}!${newValue ? "\n⚠️ Share your password only with trusted contacts." : ""}`
+                        }
+                    );
+                }
             }}
         >
             {enableEncryption ? <EncryptionEnabledIcon /> : <EncryptionDisabledIcon />}
@@ -348,53 +434,161 @@ const EncryptionToggleButton: ChatBarButtonFactory = ({ channel, type }) => {
     );
 };
 
-// Plugin settings definition with enhanced security
 const settings = definePluginSettings({
     encryptionPassword: {
         type: OptionType.STRING,
-        description: "AES-256 encryption password (shared with other users)",
+        description: "AES-256 encryption password shared with trusted users.",
         default: "",
         placeholder: "Enter strong shared password...",
         onChange(newValue: string) {
-            // Validate password on change
             if (newValue) {
-                const validation = validatePassword(newValue);
-                if (!validation.isValid) {
-                    console.warn("Password validation failed:", validation.errors);
-                    // Note: We can't prevent the change here, but we warn the user
-                }
+                const errors = validatePassword(newValue);
+                if (errors.length) logInfo("Password validation failed.", errors.join(", "));
             }
+
+            resetSecurityState();
         }
     },
     enableEncryption: {
         type: OptionType.BOOLEAN,
-        description: "Enable/disable message encryption",
+        description: "Encrypt outgoing messages.",
         default: false
+    },
+    autoDecrypt: {
+        type: OptionType.BOOLEAN,
+        description: "Show decrypted Securecord messages automatically.",
+        default: true
+    },
+    strictPasswordPolicy: {
+        type: OptionType.BOOLEAN,
+        description: "Require uppercase, lowercase, number and special character in the password.",
+        default: true
+    },
+    minPasswordLength: {
+        type: OptionType.SLIDER,
+        description: "Minimum password length when strict policy is enabled.",
+        markers: [8, 12, 16, 20, 24, 32],
+        default: SECURITY_CONSTANTS.DEFAULT_MIN_PASSWORD_LENGTH,
+        stickToMarkers: true
+    },
+    pbkdf2Iterations: {
+        type: OptionType.SELECT,
+        description: "PBKDF2 iterations for new encrypted messages.",
+        options: [
+            { label: "Balanced 200k", value: 200000, default: true },
+            { label: "Stronger 310k", value: 310000 },
+            { label: "Very strong 600k", value: 600000 },
+            { label: "Compatibility 100k", value: 100000 }
+        ]
+    },
+    maxPlaintextBytes: {
+        type: OptionType.NUMBER,
+        description: "Maximum plaintext size in bytes before encryption. Use 0 to disable.",
+        default: SECURITY_CONSTANTS.DEFAULT_MAX_PLAINTEXT_BYTES,
+        onChange(newValue: number) {
+            if (newValue < 0) settings.store.maxPlaintextBytes = 0;
+        }
+    },
+    blockUploadsWhileEncrypted: {
+        type: OptionType.BOOLEAN,
+        description: "Block file uploads while encryption is enabled.",
+        default: true
+    },
+    cancelOnEncryptionError: {
+        type: OptionType.BOOLEAN,
+        description: "Block plaintext sending when encryption fails.",
+        default: true
+    },
+    encryptEmptyMessages: {
+        type: OptionType.BOOLEAN,
+        description: "Encrypt blank or whitespace only messages.",
+        default: false
+    },
+    urlSafeBase64: {
+        type: OptionType.BOOLEAN,
+        description: "Use URL-safe base64 for new encrypted payloads.",
+        default: true
+    },
+    acceptLegacyPayloads: {
+        type: OptionType.BOOLEAN,
+        description: "Allow decrypting older Securecord version 1 payloads.",
+        default: true
+    },
+    maxFailedAttempts: {
+        type: OptionType.SLIDER,
+        description: "Failed decrypt attempts before lockout. Use 0 to disable.",
+        markers: [0, 3, 5, 8, 10],
+        default: 5,
+        stickToMarkers: true
+    },
+    lockoutMinutes: {
+        type: OptionType.SLIDER,
+        description: "Minutes to pause decrypt attempts after lockout. Use 0 to disable.",
+        markers: [0, 1, 5, 10, 30],
+        default: 5,
+        stickToMarkers: true
+    },
+    autoLockTimeout: {
+        type: OptionType.SLIDER,
+        description: "Auto-disable encryption after minutes of inactivity. Use 0 to disable.",
+        markers: [0, 5, 15, 30, 60, 240],
+        default: 30,
+        stickToMarkers: true,
+        onChange() {
+            scheduleAutoLock();
+        }
+    },
+    showAuthorInDecryptedMessages: {
+        type: OptionType.BOOLEAN,
+        description: "Include the sender name in decrypted Clyde messages.",
+        default: true
+    },
+    showDecryptErrors: {
+        type: OptionType.BOOLEAN,
+        description: "Show Clyde messages when decryption fails.",
+        default: true
+    },
+    showDetailedDecryptErrors: {
+        type: OptionType.BOOLEAN,
+        description: "Show detailed decrypt errors instead of a generic warning.",
+        default: false
+    },
+    notifyOnToggle: {
+        type: OptionType.BOOLEAN,
+        description: "Show a Clyde message when encryption is toggled.",
+        default: true
+    },
+    notifyOnEncrypt: {
+        type: OptionType.BOOLEAN,
+        description: "Show a Clyde message after encrypting an outgoing message.",
+        default: false
+    },
+    notifyOnEncryptionFailure: {
+        type: OptionType.BOOLEAN,
+        description: "Show a Clyde message when outgoing encryption fails.",
+        default: true
+    },
+    notifyOnAutoLock: {
+        type: OptionType.BOOLEAN,
+        description: "Show a Clyde message when auto lock disables encryption.",
+        default: true
     },
     enableLogging: {
         type: OptionType.BOOLEAN,
-        description: "Enable/disable console logs (for debugging)",
-        default: false // Default to disabled for security
-    },
-    autoLockTimeout: {
-        type: OptionType.NUMBER,
-        description: "Auto-disable encryption after minutes of inactivity (0 to disable)",
-        default: 30,
-        onChange(newValue: number) {
-            if (newValue < 0) settings.store.autoLockTimeout = 0;
-            if (newValue > 1440) settings.store.autoLockTimeout = 1440; // Max 24 hours
-        }
+        description: "Enable debug logs.",
+        default: false
     }
 });
 
 export default definePlugin({
     name: "Securecord",
     description: "AES-256 end-to-end encryption for Discord. Share the same password with other users to communicate securely.",
-    authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Privacy", "Chat"],
     enabledByDefault: false,
+    authors: [{ name: "irritably", id: 928787166916640838n }],
     settings,
     chatBarButton: {
+        icon: EncryptionEnabledIcon,
         render: EncryptionToggleButton
     },
 
@@ -402,148 +596,112 @@ export default definePlugin({
         async MESSAGE_CREATE({ optimistic, type, message, channelId }: IMessageCreate) {
             if (optimistic || type !== "MESSAGE_CREATE") return;
             if (message.state === "SENDING") return;
-            if (!message.content) return;
-            
-            // Check if message is encrypted
-            if (message.content.startsWith(SECURITY_CONSTANTS.ENCRYPTION_MARKER_START) && 
-                message.content.endsWith(SECURITY_CONSTANTS.ENCRYPTION_MARKER_END)) {
-                
-                // Sanitize logging
-                if (settings.store.enableLogging) {
-                    const sanitizedAuthor = sanitizeLogData(message.author?.username);
-                    console.log("Securecord: Received encrypted message from", sanitizedAuthor);
-                }
-                
-                // Check rate limiting before processing
-                if (isRateLimited()) {
-                    const remainingTime = Math.ceil((lockoutEndTime - Date.now()) / 1000 / 60);
+            if (!settings.store.autoDecrypt || !message.content || !isEncryptedMessage(message.content)) return;
+
+            logInfo("Received encrypted message from", message.author.username);
+
+            if (isRateLimited()) {
+                const remainingTime = Math.ceil((lockoutEndTime - Date.now()) / SECURITY_CONSTANTS.MILLISECONDS_PER_MINUTE);
+                if (settings.store.showDecryptErrors) {
                     sendBotMessage(channelId, {
                         content: `🔒 Too many failed decryption attempts. Try again in ${remainingTime} minutes.`
                     });
-                    return;
                 }
-                
-                // Get password from settings
-                const password = settings.store.encryptionPassword;
-                
-                if (!password) {
-                    if (settings.store.enableLogging) {
-                        console.log("Securecord: No password set");
-                    }
-                    return;
-                }
-                
-                try {
-                    // Extract encrypted message (removing markers)
-                    const encryptedPart = message.content.substring(
-                        SECURITY_CONSTANTS.ENCRYPTION_MARKER_START.length, 
-                        message.content.length - SECURITY_CONSTANTS.ENCRYPTION_MARKER_END.length
-                    );
-                    
-                    if (settings.store.enableLogging) {
-                        console.log("Securecord: Processing encrypted message");
-                    }
-                    
-                    // Decode message
-                    const decryptedMessage = await decryptAES(encryptedPart, password);
-                    
-                    if (settings.store.enableLogging) {
-                        console.log("Securecord: Successfully decrypted message");
-                    }
-                    
-                    // Validate decrypted content
-                    if (!decryptedMessage || typeof decryptedMessage !== "string") {
-                        throw new Error("Invalid decrypted content");
-                    }
-                    
-                    // Show decrypted message as bot message (Clyde)
+                return;
+            }
+
+            const password = settings.store.encryptionPassword;
+            if (!password) {
+                logInfo("No password set.");
+                return;
+            }
+
+            try {
+                const decryptedMessage = await decryptAES(getEncryptedPart(message.content), password);
+                sendBotMessage(channelId, {
+                    content: formatDecryptedMessage(message, decryptedMessage)
+                });
+                scheduleAutoLock(channelId);
+                logInfo("Sent decrypted message.");
+            } catch (error) {
+                const errorMessage = getErrorMessage(error);
+                recordFailedAttempt();
+                logError("Decryption error:", errorMessage);
+
+                if (settings.store.showDecryptErrors) {
                     sendBotMessage(channelId, {
-                        content: `🔐 **Decrypted message from ${message.author.username}**: ${decryptedMessage}`
-                    });
-                    
-                    if (settings.store.enableLogging) {
-                        console.log("Securecord: Sent decrypted message");
-                    }
-                } catch (error) {
-                    const errorMessage = (error as Error).message;
-                    
-                    // Log sanitized error
-                    if (settings.store.enableLogging) {
-                        console.error("Securecord decryption error:", sanitizeLogData(errorMessage));
-                    }
-                    
-                    // Show generic error message to user
-                    sendBotMessage(channelId, {
-                        content: `🔒 Decryption failed for message from ${message.author.username}. ${errorMessage.includes("rate limit") ? errorMessage : "Check password or try again later."}`
+                        content: settings.store.showDetailedDecryptErrors
+                            ? `🔒 Decryption failed for message from ${message.author.username}. ${errorMessage}`
+                            : `🔒 Decryption failed for message from ${message.author.username}. Check password or try again later.`
                     });
                 }
-                
-                // Prevent display of original encrypted message
-                return;
-            } else {
-                // Don't log non-encrypted messages
-                return;
             }
         },
     },
 
     start() {
-        // Add listener to encrypt messages before sending
-        const listener: MessageSendListener = async (_, message) => {
-            if (settings.store.enableEncryption && settings.store.encryptionPassword) {
-                // Validate password strength
-                const validation = validatePassword(settings.store.encryptionPassword);
-                if (!validation.isValid) {
-                    sendBotMessage(message.channelId ?? "", {
-                        content: `❌ Weak password detected. Issues: ${validation.errors.join(", ")}`
+        messageSendListener = async (channelId, message, options) => {
+            if (!settings.store.enableEncryption) return;
+            scheduleAutoLock(channelId);
+
+            if (settings.store.blockUploadsWhileEncrypted && options.uploads?.length) {
+                sendBotMessage(channelId, {
+                    content: "❌ File uploads are not encrypted by Securecord and were blocked."
+                });
+                return { cancel: true };
+            }
+
+            if (!message.content || isEncryptedMessage(message.content)) return;
+            if (!settings.store.encryptEmptyMessages && !message.content.trim()) return;
+
+            const password = settings.store.encryptionPassword;
+            if (!password) {
+                if (settings.store.notifyOnEncryptionFailure) {
+                    sendBotMessage(channelId, {
+                        content: "❌ No encryption password set in plugin settings."
                     });
-                    return;
                 }
-                
-                // Encrypt message only if not already encrypted
-                if (!message.content.startsWith(SECURITY_CONSTANTS.ENCRYPTION_MARKER_START) && 
-                    !message.content.endsWith(SECURITY_CONSTANTS.ENCRYPTION_MARKER_END)) {
-                    
-                    // Validate message content
-                    if (!message.content.trim()) {
-                        return; // Don't encrypt empty messages
-                    }
-                    
-                    try {
-                        const encryptedMessage = await encryptAES(message.content, settings.store.encryptionPassword);
-                        // Replace message content with encrypted version
-                        message.content = `${SECURITY_CONSTANTS.ENCRYPTION_MARKER_START}${encryptedMessage}${SECURITY_CONSTANTS.ENCRYPTION_MARKER_END}`;
-                        
-                        if (settings.store.enableLogging) {
-                            console.log("Securecord: Message encrypted successfully");
-                        }
-                    } catch (error) {
-                        console.error("Message encryption error:", error);
-                        // If encryption fails, show error message
-                        sendBotMessage(message.channelId ?? "", {
-                            content: "❌ Message encryption error. Please check your password strength and try again."
-                        });
-                    }
+                return { cancel: settings.store.cancelOnEncryptionError };
+            }
+
+            try {
+                const encryptedMessage = await encryptAES(message.content, password);
+                message.content = `${SECURITY_CONSTANTS.ENCRYPTION_MARKER_START}${encryptedMessage}${SECURITY_CONSTANTS.ENCRYPTION_MARKER_END}`;
+
+                if (settings.store.notifyOnEncrypt) {
+                    sendBotMessage(channelId, {
+                        content: "🔐 Message encrypted."
+                    });
                 }
+
+                logInfo("Message encrypted.");
+            } catch (error) {
+                const errorMessage = getErrorMessage(error);
+                logError("Message encryption error:", errorMessage);
+
+                if (settings.store.notifyOnEncryptionFailure) {
+                    sendBotMessage(channelId, {
+                        content: `❌ Message encryption failed. ${settings.store.cancelOnEncryptionError ? "The plaintext message was not sent." : "Check your password settings."}`
+                    });
+                }
+
+                return { cancel: settings.store.cancelOnEncryptionError };
             }
         };
-        
-        addMessagePreSendListener(listener);
-        // Save listener to remove it later
-        (this as any)._listener = listener;
-        
-        console.log("Securecord: Enhanced security plugin loaded successfully");
+
+        addMessagePreSendListener(messageSendListener);
+        scheduleAutoLock();
+        logInfo("Plugin loaded successfully.");
     },
 
     stop() {
-        // Remove listener when plugin is stopped
-        if ((this as any)._listener) {
-            removeMessagePreSendListener((this as any)._listener);
+        if (messageSendListener) {
+            removeMessagePreSendListener(messageSendListener);
+            messageSendListener = null;
         }
-        
-        // Reset security state
+
+        clearAutoLockTimer();
         resetSecurityState();
-        
-        console.log("Securecord: Plugin stopped and security state reset");
+        logInfo("Plugin stopped and security state reset.");
     }
 });

@@ -6,14 +6,16 @@
 
 /* import "./styles.css"; */
 
+import ErrorBoundary from "@components/ErrorBoundary";
 import { HeadingPrimary, HeadingTertiary } from "@components/Heading";
 import { SettingsTab, wrapTab } from "@components/settings";
 import { copyToClipboard } from "@utils/clipboard";
 import { classNameFactory } from "@utils/css";
 import { classes } from "@utils/misc";
+import { ModalCloseButton, ModalContent, ModalHeader, type ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { ChannelStore, GuildStore, React, Select, TextInput, Toasts, useEffect, useMemo, UserStore, useState, useStateFromStores } from "@webpack/common";
 
-import { addServerTarget, getServerTargets, getTargets, removeServerTarget, removeTarget, setTargets, subscribeServerTargets, subscribeTargets } from "..";
+import { addServerTarget, getServerTargets, getTargets, removeServerTarget, removeTarget, setTargets, settings, subscribeServerTargets, subscribeTargets } from "..";
 import { clearEvents, getEvents, loadEvents, subscribe } from "../store";
 import type { SurveillanceEvent, SurveillanceEventType } from "../types";
 
@@ -95,12 +97,88 @@ const eventMatchesQuery = (event: SurveillanceEvent, query: string) => {
 const formatTime = (timestamp: number) =>
     new Date(timestamp).toLocaleString();
 
+const formatLabel = (label: string) =>
+    label.replace(/[A-Z]/g, match => ` ${match}`).replace(/^./, match => match.toUpperCase());
+
 const toast = (message: string, type: string = Toasts.Type.SUCCESS) =>
     Toasts.show({
         type,
         message,
         id: Toasts.genId(),
     });
+
+function DetailField({ label, value, wide, preserve }: { label: string; value?: string | number | boolean | null; wide?: boolean; preserve?: boolean; }) {
+    if (value == null || value === "") return null;
+
+    const text = String(value);
+
+    return (
+        <div className={classes(cl("modal-field"), wide && cl("modal-wide"))}>
+            <strong>{label}</strong>
+            {preserve ? <pre>{text}</pre> : <span>{text}</span>}
+        </div>
+    );
+}
+
+const EventDetailsModal = ErrorBoundary.wrap(function EventDetailsModal({ event, modalProps }: { event: SurveillanceEvent; modalProps: ModalProps; }) {
+    const channel = event.channelId ? ChannelStore.getChannel(event.channelId) : undefined;
+    const guild = event.guildId ? GuildStore.getGuild(event.guildId) : undefined;
+    const metadata = Object.entries(event.metadata ?? {}).filter(([, value]) => value != null);
+
+    const copyEvent = () => {
+        try {
+            void Promise.resolve(copyToClipboard(JSON.stringify(event, null, 2))).then(
+                () => toast("Event copied."),
+                () => toast("Failed to copy event.", Toasts.Type.FAILURE)
+            );
+        } catch {
+            toast("Failed to copy event.", Toasts.Type.FAILURE);
+        }
+    };
+
+    return (
+        <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
+            <ModalHeader>
+                <HeadingPrimary className={cl("modal-title")}>Event Details</HeadingPrimary>
+                <ModalCloseButton onClick={modalProps.onClose} />
+            </ModalHeader>
+            <ModalContent className={cl("modal-content")}>
+                <div className={cl("modal-grid")}>
+                    <DetailField label="Type" value={typeLabels[event.type]} />
+                    <DetailField label="Time" value={formatTime(event.timestamp)} />
+                    <DetailField label="User" value={event.username} />
+                    <DetailField label="User ID" value={event.userId} />
+                    <DetailField label="Scope" value={event.scope} />
+                    <DetailField label="Server" value={event.guildName ?? guild?.name} />
+                    <DetailField label="Server ID" value={event.guildId} />
+                    <DetailField label="Channel" value={event.channelName ?? channel?.name} />
+                    <DetailField label="Channel ID" value={event.channelId} />
+                    <DetailField label="Details" value={event.details} wide={true} preserve={true} />
+                    <DetailField label="Message Content" value={event.content} wide={true} preserve={true} />
+                    <DetailField label="Before" value={event.before} wide={true} preserve={true} />
+                    <DetailField label="After" value={event.after} wide={true} preserve={true} />
+                </div>
+
+                {metadata.length ? (
+                    <div className={cl("modal-grid")}>
+                        {metadata.map(([key, value]) => (
+                            <DetailField key={key} label={formatLabel(key)} value={value} />
+                        ))}
+                    </div>
+                ) : null}
+
+                <div className={cl("actions")}>
+                    <button className={cl("action")} onClick={copyEvent}>Copy Event JSON</button>
+                </div>
+                <div className={cl("modal-meta")}>Event ID: {event.id}</div>
+            </ModalContent>
+        </ModalRoot>
+    );
+}, { noop: true });
+
+const openEventModal = (event: SurveillanceEvent) => {
+    openModal(modalProps => <EventDetailsModal event={event} modalProps={modalProps} />);
+};
 
 function TargetPill({ userId }: { userId: string; }) {
     const user = UserStore.getUser(userId);
@@ -142,7 +220,7 @@ function EventRow({ event }: { event: SurveillanceEvent; }) {
     ].filter(Boolean).join(" / ");
 
     return (
-        <div className={cl("event-row")}>
+        <button className={cl("event-row")} onClick={() => openEventModal(event)} type="button">
             <div className={classes(cl("event-badge"), cl(`event-${event.type}`))}>
                 {typeLabels[event.type]}
             </div>
@@ -160,7 +238,7 @@ function EventRow({ event }: { event: SurveillanceEvent; }) {
                     </div>
                 ) : null}
             </div>
-        </div>
+        </button>
     );
 }
 
@@ -175,7 +253,7 @@ function SurveillanceTab() {
     const guilds = useStateFromStores([GuildStore], () => GuildStore.getGuildsArray());
 
     useEffect(() => {
-        void loadEvents().then(() => setEvents([...getEvents()]));
+        void loadEvents(settings.store.maxEvents).then(() => setEvents([...getEvents()]));
 
         const unsubscribeEvents = subscribe(() => setEvents([...getEvents()]));
         const unsubscribeTargets = subscribeTargets(() => setLocalTargets([...getTargets()]));
