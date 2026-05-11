@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-export const BRAND_NAME = "Illegalcord";
+export const BRAND_NAME = "TrashCord";
 
 const brandIconSvg = [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">',
