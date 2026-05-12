@@ -23,9 +23,33 @@ const settings = definePluginSettings({
     //     default: true,
     //     restartNeeded: true,
     // },
-    disableQuests: {
+    disableQuestsBar: {
         type: OptionType.BOOLEAN,
         description: "Removes the Quest bar above the user panel - skips rendering entirely, saving CPU and RAM.",
+        default: true,
+        restartNeeded: true,
+    },
+    optimizeTooltip: {
+        type: OptionType.BOOLEAN,
+        description: "Bypasses flushSync in tooltip state updates - prevents forced synchronous re-renders on hover.",
+        default: true,
+        restartNeeded: true,
+    },
+    optimizeEmojiCache: {
+        type: OptionType.BOOLEAN,
+        description: "Caches emoji getters in the emoji store - avoids redundant lookups during emoji rendering.",
+        default: true,
+        restartNeeded: true,
+    },
+    disableSpinner: {
+        type: OptionType.BOOLEAN,
+        description: "Removes the app loading spinner - skips spinner source resolution on startup, saving ~100ms.",
+        default: true,
+        restartNeeded: true,
+    },
+    disableSpriteCanvas: {
+        type: OptionType.BOOLEAN,
+        description: "Removes the sprite canvas used for effects like confetti - saves GPU memory and draw calls.",
         default: true,
         restartNeeded: true,
     },
@@ -58,11 +82,49 @@ export default definePlugin({
         //     replacement: { match: /(\.flush\(\w,\w\),"READY"===\w\)\{).+?;(.+?\)),.+?\}/, replace: (_, a, b) => a + b + "}" },
         // },
         {
-
             find: "--custom-app-panels-height",
-            predicate: () => settings.store.disableQuests,
+            predicate: () => settings.store.disableQuestsBar,
             replacement: {
                 match: /,\(0,\w+\.jsx\)\(\w+\.A,\{\}\)(?=,\(0,\w+\.jsx\)\(\w+(?:\.\w+)?,\{\}\),\(0,\w+\.jsx\)\(\w+\.A,\{section:)/,
+                replace: "",
+            },
+        },
+        {
+            find: "this.state.shouldShowTooltip!==",
+            predicate: () => settings.store.optimizeTooltip,
+            replacement: [
+                {
+                    match: /\w.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\w)\}\)\}\)/,
+                    replace: (_, param) => "this.__open=" + param + ",this.setState({shouldShowTooltip:" + param + "})",
+                },
+                {
+                    match: /if\(this\.state\.shouldShowTooltip!==(\w)\)/,
+                    replace: "if(this.__open!==$1)",
+                },
+            ],
+        },
+        {
+            find: "this.rebuildFavoriteEmojisWithoutFetchingLatest()",
+            predicate: () => settings.store.optimizeEmojiCache,
+            replacement: {
+                match: /(\w)=>\{let \w=(\w)\[null==\w\?(\w)\.kod:\w\];null!=\w&&\((\w)\(\)\.each\(\w\.usableEmojis,(\w)\),\w\(\)\.each\(\w\.emoticons,(\w)\)\)\};/,
+                replace: (_, e, q, k, a, n, r) =>
+                    `${e}=>{const t=${q}[null==${e}?${k}.kod:${e}];const usableEmojis=t?.usableEmojis;const emoticons=t?.emoticons;null!=t&&(${a}().each(usableEmojis,${n}),${a}().each(emoticons,${r}))};`,
+            },
+        },
+        {
+            find: /\w\.\w\.getAppSpinnerSources\(\)/,
+            predicate: () => settings.store.disableSpinner,
+            replacement: {
+                match: /let \w=\w\.\w\.getAppSpinnerSources\(\).+?;(\w\.\w).+?\)\}/,
+                replace: "$1 = () => null;",
+            },
+        },
+        {
+            find: "\"SpriteCanvas-module_spriteCanvasHidden",
+            predicate: () => settings.store.disableSpriteCanvas,
+            replacement: {
+                match: /,\w\.createElement\("canvas",{.+?\)}\)/,
                 replace: "",
             },
         },
