@@ -32,7 +32,7 @@ export default definePluginSettings({
     showQuestsButtonTopBar: {
         type: OptionType.BOOLEAN,
         description: "Whether to show the quests button in the top bar.",
-        default: true,
+        default: false,
         restartNeeded: true,
     },
     showQuestsButtonSettingsBar: {
@@ -44,7 +44,7 @@ export default definePluginSettings({
     showQuestsButtonBadges: {
         type: OptionType.BOOLEAN,
         description: "Whether to show badges on the quests button.",
-        default: true,
+        default: false,
     },
     spoofingSpeedMode: {
         type: OptionType.SELECT,
@@ -59,7 +59,7 @@ export default definePluginSettings({
         type: OptionType.BOOLEAN,
         description:
             "Disable rendering UI buttons/badges for this plugin. Only background logic will run.",
-        default: false,
+        default: true,
     },
     preferredVoiceChannelId: {
         type: OptionType.STRING,
@@ -71,7 +71,7 @@ export default definePluginSettings({
         type: OptionType.BOOLEAN,
         description:
             "Automatically join the configured voice channel when starting a streaming quest.",
-        default: true,
+        default: false,
     },
     autoInviteEnabled: {
         type: OptionType.BOOLEAN,
@@ -96,7 +96,7 @@ export default definePluginSettings({
         type: OptionType.BOOLEAN,
         description:
             "WARNING: Automatically bypass captcha challenges. This may violate Discord ToS and risk account ban. Use at your own risk!",
-        default: false,
+        default: true,
     },
     captchaSolvingService: {
         type: OptionType.SELECT,
