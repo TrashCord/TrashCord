@@ -6,6 +6,7 @@
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import type { Message, User } from "@vencord/discord-types";
@@ -21,6 +22,21 @@ const Native = VencordNative.pluginHelpers.Stalker as PluginNative<typeof import
 
 if (!Native) {
     logger.warn("Stalker native module not available");
+}
+
+function OpenStalkingFolderButton() {
+    return (
+        <Button
+            disabled={!Native?.openStalkerDataDir}
+            onClick={() => void Native?.openStalkerDataDir?.()
+                .then(error => {
+                    if (error) logger.error("Failed to open Stalking folder:", error);
+                })
+                .catch(error => logger.error("Failed to open Stalking folder:", error))}
+        >
+            Open Stalking Folder
+        </Button>
+    );
 }
 
 export interface StalkerLogEntry {
@@ -167,6 +183,12 @@ export const settings = definePluginSettings({
         description: "Enable logging of stalker events to a local file."
     },
 
+    openStalkingFolder: {
+        type: OptionType.COMPONENT,
+        description: "Open the Stalking data folder.",
+        component: OpenStalkingFolderButton,
+    },
+
     logMessages: {
         type: OptionType.BOOLEAN,
         default: false,
@@ -255,12 +277,12 @@ const patchUserContext: NavContextMenuPatchCallback = (children, { user }: UserC
 export default definePlugin({
     name: "Stalker",
     description: "Notifies you whenever a person does something.",
-    tags: ["Friends", "Utility"],
-    enabledByDefault: false,
     authors: [
         { name: "Reycko", id: 1123725368004726794n },
         { name: "irritably", id: 928787166916640838n }
     ],
+    tags: ["Friends", "Utility"],
+    enabledByDefault: false,
 
     contextMenus: {
         "user-context": patchUserContext,
