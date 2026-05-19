@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+/* import "./ytmStyles.css"; */
+
 import { BaseText } from "@components/BaseText";
 import { Flex } from "@components/Flex";
 import { ImageIcon, LinkIcon, OpenExternalIcon } from "@components/Icons";
@@ -51,6 +53,9 @@ function Svg(path: string, label: string) {
     );
 }
 
+// KraXen's icons :yesyes:
+// from https://fonts.google.com/icons?icon.style=Rounded&icon.set=Material+Icons
+// older material icon style, but still really good
 const PlayButton = Svg(
     "M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18c.62-.39.62-1.29 0-1.69L9.54 5.98C8.87 5.55 8 6.03 8 6.82z",
     "play",
@@ -104,14 +109,24 @@ function CopyContextMenu({ name, path }: { name: string; path: string; }) {
                 key={copyId}
                 id={copyId}
                 label={`Copy ${name} Link`}
-                action={() => copyWithToast(`https://music.youtube.com${path}`)}
+                action={() =>
+                    copyWithToast(
+                        /^https?:\/\//i.test(path)
+                            ? path
+                            : `https://music.youtube.com${path}`,
+                    )
+                }
                 icon={LinkIcon}
             />
             <Menu.MenuItem
                 key={openId}
                 id={openId}
                 label={`Open ${name} in YouTube Music`}
-                action={() => YoutubeMusicStore.openExternal(path)}
+                action={() =>
+                    /^https?:\/\//i.test(path)
+                        ? VencordNative.native.openExternal(path)
+                        : YoutubeMusicStore.openExternal(path)
+                }
                 icon={OpenExternalIcon}
             />
         </Menu.Menu>
@@ -149,6 +164,7 @@ function Controls() {
         }
     })();
 
+    // the 1 is using position absolute so it does not make the button jump around
     return (
         <Flex className={cl("button-row")} style={{ gap: 0 }}>
             <Button
@@ -278,10 +294,18 @@ function AlbumContextMenu({ track }: { track: Song; }) {
             }
             aria-label="YouTube Music Album Menu"
         >
+            {/* <Menu.MenuItem
+                key="open-album"
+                id="open-album"
+                label="Open Album"
+                action={() => YoutubeMusicStore.openExternal(`/album/${track?.album}`)}
+                icon={OpenExternalIcon}
+            /> */}
             <Menu.MenuItem
                 key="view-cover"
                 id="view-cover"
                 label="View Album Cover"
+                // trolley
                 action={() =>
                     track?.imageSrc && openImageModal({ url: track.imageSrc })
                 }
@@ -315,16 +339,22 @@ function AlbumContextMenu({ track }: { track: Song; }) {
 
 function makeLinkProps(name: string, condition: unknown, path: string) {
     if (!condition) return {};
+    const isAbsoluteUrl = /^https?:\/\//i.test(path);
 
     return {
         role: "link",
-        onClick: () => YoutubeMusicStore.openExternal(path),
+        onClick: () =>
+            isAbsoluteUrl
+                ? VencordNative.native.openExternal(path)
+                : YoutubeMusicStore.openExternal(path),
         onContextMenu: makeContextMenu(name, path),
     } satisfies React.HTMLAttributes<HTMLElement>;
 }
 
 function Info({ track }: { track: NonNullable<Song>; }) {
     const img = track?.imageSrc;
+    const artistLink =
+        track.artistUrl ?? `/search?q=${encodeURIComponent(track.artist)}`;
 
     const [coverExpanded, setCoverExpanded] = useState(false);
 
@@ -374,6 +404,11 @@ function Info({ track }: { track: NonNullable<Song>; }) {
                             className={cl("artist")}
                             style={{ fontSize: "inherit" }}
                             title={track.artist}
+                            {...makeLinkProps(
+                                "Artist",
+                                track.artist,
+                                artistLink,
+                            )}
                         >
                             {track.artist}
                         </span>

@@ -18,6 +18,10 @@ const formatTime = (time: number) => {
 };
 
 function ModalHeaderContent({ track }: { track: Song; }) {
+    const artistUrl =
+        track.artistUrl ??
+        `https://music.youtube.com/search?q=${encodeURIComponent(track.artist)}`;
+
     return (
         <ModalHeader>
             <div className={cl("header-content")}>
@@ -30,7 +34,19 @@ function ModalHeaderContent({ track }: { track: Song; }) {
                 )}
                 <div>
                     <BaseText size="sm" weight="semibold">{track.title}</BaseText>
-                    <BaseText size="sm">by {track.artist}</BaseText>
+                    <BaseText size="sm">
+                        by {artistUrl
+                            ? (
+                                <span
+                                    role="link"
+                                    style={{ cursor: "pointer" }}
+                                    onClick={() => window.open(artistUrl, "_blank")}
+                                >
+                                    {track.artist}
+                                </span>
+                            )
+                            : track.artist}
+                    </BaseText>
                     {track.album && <BaseText size="sm">on {track.album}</BaseText>}
                 </div>
             </div>

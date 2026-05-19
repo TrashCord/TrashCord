@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+/* import "../styles.css"; */
+
 import { BaseText } from "@components/BaseText";
 import { openModal } from "@utils/modal";
 import {

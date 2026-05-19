@@ -18,9 +18,9 @@ const DEFAULT_CONCURRENT_LOADS = 6;
 const DEFAULT_BACKGROUND_PRELOADS = 3;
 const DEFAULT_BACKGROUND_PRELOAD_LIMIT = 250;
 const DEFAULT_RETRY_COUNT = 2;
-const LOAD_SLOT_TIMEOUT_MS = 12000;
+const LOAD_SLOT_TIMEOUT_MS = 6000;
 const RETRY_DELAY_MS = 650;
-const STATS_REFRESH_MS = 1000;
+const STATS_REFRESH_MS = 2000;
 const TRANSPARENT_IMAGE_SRC = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 const RETRY_PARAM = "fast_gif_retry";
 const GIF_EXTENSION_RE = /\.gif(?:$|[?#])/i;
@@ -35,7 +35,7 @@ interface FastGifStats {
     hoverLoads: number;
     loadedPreviews: number;
     originalFallbacks: number;
-    preloadLimitSkips: number;
+
     retryAttempts: number;
     seenPreviews: number;
 }
@@ -79,6 +79,7 @@ const loadedPreviewUrls = new Set<string>();
 const previewLoadListeners = new Map<string, Set<() => void>>();
 const backgroundPreloadQueued = new Set<string>();
 const backgroundPreloadQueue: string[] = [];
+let backgroundPreloadQueueIndex = 0;
 const backgroundPreloadImages = new Set<HTMLImageElement>();
 const loadQueue: LoadQueueEntry[] = [];
 const seenOriginalSrcs = new Set<string>();
@@ -90,7 +91,7 @@ const stats: FastGifStats = {
     hoverLoads: 0,
     loadedPreviews: 0,
     originalFallbacks: 0,
-    preloadLimitSkips: 0,
+
     retryAttempts: 0,
     seenPreviews: 0
 };
@@ -104,7 +105,7 @@ const statItems = [
     { label: "Background queued", value: "backgroundQueued" },
     { label: "Background loaded", value: "backgroundLoaded" },
     { label: "Background failed", value: "backgroundFailed" },
-    { label: "Preload limit skips", value: "preloadLimitSkips" },
+
     { label: "Ready cache", value: "readyCacheSize" },
     { label: "Active visible", value: "activeVisibleLoads" },
     { label: "Queued visible", value: "queuedVisibleLoads" },
@@ -121,6 +122,7 @@ function clearCaches() {
     loadedPreviewUrls.clear();
     backgroundPreloadQueued.clear();
     backgroundPreloadQueue.length = 0;
+    backgroundPreloadQueueIndex = 0;
 }
 
 function bumpStat(stat: keyof FastGifStats, by = 1) {
@@ -132,6 +134,11 @@ function recordSeenPreview(src: string) {
 
     seenOriginalSrcs.add(src);
     bumpStat("seenPreviews");
+
+    if (seenOriginalSrcs.size > PREVIEW_CACHE_LIMIT) {
+        const oldest = seenOriginalSrcs.values().next().value;
+        if (oldest) seenOriginalSrcs.delete(oldest);
+    }
 }
 
 function resetStats() {
@@ -245,6 +252,13 @@ export default definePlugin({
         }
 
         loadQueue.length = 0;
+
+        for (const img of backgroundPreloadImages) {
+            img.onload = null;
+            img.onerror = null;
+            img.src = "";
+        }
+
         backgroundPreloadImages.clear();
     },
 
@@ -263,8 +277,7 @@ export default definePlugin({
             if (!src) continue;
 
             if (limit > 0 && preloaded >= limit) {
-                bumpStat("preloadLimitSkips");
-                continue;
+                break;
             }
 
             queueBackgroundPreload(getPreloadSrc(src));
@@ -398,7 +411,7 @@ function OptimizedGifImage({ element }: { element: GifReactElement; }) {
     useEffect(() => {
         setCanLoad(false);
 
-        if (settings.store.rememberLoadedPreviews && loadedPreviewUrls.has(baseSrc)) {
+        if (loadedPreviewUrls.has(baseSrc)) {
             bumpStat("cacheHits");
             setCanLoad(true);
             return () => releaseRef.current?.();
@@ -615,8 +628,12 @@ function queueBackgroundPreload(src: string) {
 
 function pumpBackgroundPreloads() {
     while (activeBackgroundPreloads < getMaxBackgroundPreloads()) {
-        const src = backgroundPreloadQueue.shift();
-        if (!src) return;
+        if (backgroundPreloadQueueIndex >= backgroundPreloadQueue.length) return;
+        const src = backgroundPreloadQueue[backgroundPreloadQueueIndex++];
+        if (backgroundPreloadQueueIndex > 200) {
+            backgroundPreloadQueue.splice(0, backgroundPreloadQueueIndex);
+            backgroundPreloadQueueIndex = 0;
+        }
         preloadImage(src);
     }
 }
@@ -659,7 +676,11 @@ function getPreloadSrc(src: string) {
 function getPreviewSrc(src: string, mode = getPreviewMode()) {
     const cacheKey = `${mode}:${src}`;
     const cached = previewUrlCache.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+        previewUrlCache.delete(cacheKey);
+        previewUrlCache.set(cacheKey, cached);
+        return cached;
+    }
 
     const previewSrc = makePreviewSrc(src, mode);
     previewUrlCache.set(cacheKey, previewSrc);

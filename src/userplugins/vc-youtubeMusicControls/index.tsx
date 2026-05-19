@@ -10,29 +10,27 @@ import definePlugin from "@utils/types";
 
 import { YoutubeMusicLyrics } from "./lyrics/components/lyrics";
 import { YtmPlayer } from "./PlayerComponent";
-import { settings } from "./settings";
+import { settings, toggleHoverControls } from "./settings";
 
 import ytmStyles from "./ytmStyles.css?managed";
 import lyricsStyles from "./lyrics/styles.css?managed";
-import hoverStyles from "./hoverOnly.css?managed";
-
-export function toggleHoverControls(enabled: boolean) {
-    if (enabled) hoverStyles.load();
-    else hoverStyles.unload();
-}
+/* import hoverStyles from "./hoverOnly.css?managed"; */
 
 export default definePlugin({
     name: "YoutubeMusicControls",
     description: "YouTube Music Controls and Lyrics",
     authors: [Devs.Ven, Devs.afn, Devs.KraXen72, Devs.Av32000, Devs.nin0dev, Devs.Joona],
-    tags: ["Youtube", "YoutubeMusic", "YoutubeMusicControls"],
+    enabledByDefault: false,
+    tags: ["Media", "Utility", "Activity", "Youtube", "YoutubeMusic", "YoutubeMusicControls"],
+    managedStyle: [ytmStyles, lyricsStyles], 
     settings,
-
     patches: [
         {
             find: ".DISPLAY_NAME_STYLES_COACHMARK)",
             replacement: {
+                // react.jsx)(AccountPanel or $self.PanelWrapper, { ..., showTaglessAccountPanel: blah })
                 match: /(?<=\i\.jsxs?\)\()(\i(?:\.\i)?),{(?=[^}]*?userTag:\i,occluded:)/,
+                // react.jsx(WrapperComponent, { VencordOriginal: AccountPanel/PanelWrapper, ...
                 replace: "$self.PanelWrapper,{VencordOriginal:$1,",
             },
         },
@@ -72,14 +70,6 @@ export default definePlugin({
     },
 
     async start() {
-        ytmStyles.load();
-        lyricsStyles.load();
         toggleHoverControls(settings.store.hoverControls);
-    },
-
-    stop() {
-        ytmStyles.unload();
-        lyricsStyles.unload();
-        hoverStyles.unload();
     },
 });
