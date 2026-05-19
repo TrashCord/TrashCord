@@ -38,9 +38,9 @@ interface IPInfo {
 const OSINT_TOOLS = [
     { id: "see-know", name: "See-Know", url: "https://see-know.eu/", description: "" },
     { id: "epieos", name: "Epieos", url: "https://epieos.com/", description: "" },
-    { id: "osintx", name: "Osintx_", url: "https://www.osintx.io/", description: "" },    
+    { id: "osintx", name: "Osintx_", url: "https://www.osintx.io/", description: "" },
     { id: "socialeye", name: "SocialEye", url: "https://socialeye.net/", description: "" },
-    { id: "cloudsint", name: "Cloudsint", url: "https://cloudsint.net/", description: "" },    
+    { id: "cloudsint", name: "Cloudsint", url: "https://cloudsint.net/", description: "" },
     { id: "proximity", name: "Proximity OSINT", url: "https://www.proximityosint.com/", description: "" },
     { id: "deadeye", name: "DeadEye", url: "https://deadeye.cc/", description: "" },
     { id: "indicia", name: "Indicia", url: "https://indicia.app/", description: "" },
@@ -329,9 +329,9 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
 export default definePlugin({
     name: "OSINTToolkit",
     description: "OSINT - Domain age lookup, IP information, and username search",
+    authors: [{ name: "Irritably", id: 928787166916640838n }],
     tags: ["Developers", "Utility"],
     enabledByDefault: false,
-    authors: [{ name: "Irritably", id: 928787166916640838n }],
     settings,
 
     contextMenus: {
