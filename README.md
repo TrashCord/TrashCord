@@ -1,7 +1,6 @@
 # [<img src="https://github.com/zFrxncesck1/zFrxncesck1/blob/main/host/icons/TrashCord_icon.png" width="40" align="left" alt="TrashCord">](https://github.com/zFrxncesck1/TrashCord) TrashCord
 
 [![Equibop](https://img.shields.io/badge/TrashCordInstaller-grey?style=flat)](https://github.com/zFrxncesck1/TrashCordInstaller)
-[![Tests](https://github.com/zFrxncesck1/TrashCord/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/zFrxncesck1/TrashCord/actions/workflows/test.yml)
 [![My Discord](https://img.shields.io/discord/981560666915745842?color=768AD4&label=Discord&logo=discord&logoColor=white)](https://discord.gg/WhEJFWxNnX)
 
 **TrashCord** is an underground fork of Equicord & Vencord, built for those who create without limits.  
