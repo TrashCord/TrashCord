@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import managedStyle from "./styles.css?managed";
+
 import type { MessageObject, MessageOptions } from "@api/MessageEvents";
 import { ClockIcon } from "@components/Icons";
 import SettingsPlugin from "@plugins/_core/settings";
