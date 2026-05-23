@@ -102,7 +102,7 @@ export default definePlugin({
     description: "Temporarily hide messages and DMs until you restart.",
     dependencies: ["MessagePopoverAPI"],
     tags: ["Chat", "Utility"],
-    authors: [EquicordDevs.Yash],
+    authors: [EquicordDevs.yash],
     patches: [
         {
             find: '"dm-quick-launcher"===',
