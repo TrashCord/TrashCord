@@ -6,77 +6,82 @@
 
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { UserStore, FluxDispatcher } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, IconUtils, UserStore } from "@webpack/common";
+
+const OVERLAY_ID = "vcl-overlay";
+const LOCKED_EVENT = "vencord-discordlock-locked";
+const UNLOCKED_EVENT = "vencord-discordlock-unlocked";
 
 const settings = definePluginSettings({
     password: {
-        type:          OptionType.STRING,
-        description:   "Unlock password",
-        default:       "1337",
+        type: OptionType.STRING,
+        description: "Unlock password",
+        default: "1337",
         restartNeeded: false,
     },
     autoLockMinutes: {
-        type:          OptionType.NUMBER,
-        description:   "Auto-lock after N minutes of inactivity (0 = disabled)",
-        default:       5,
+        type: OptionType.NUMBER,
+        description: "Auto-lock after N minutes of inactivity (0 = disabled)",
+        default: 5,
         restartNeeded: false,
     },
     blurAmount: {
-        type:          OptionType.SLIDER,
-        description:   "Blur intensity",
-        default:       18,
-        markers:       [4, 8, 12, 16, 20, 24, 28],
+        type: OptionType.SLIDER,
+        description: "Blur intensity",
+        default: 18,
+        markers: [4, 8, 12, 16, 20, 24, 28],
         restartNeeded: false,
     },
     hint: {
-        type:          OptionType.STRING,
-        description:   "Optional password hint shown on lock screen",
-        default:       "",
+        type: OptionType.STRING,
+        description: "Optional password hint shown on lock screen",
+        default: "",
         restartNeeded: false,
     },
     lockedGuilds: {
-        type:          OptionType.STRING,
-        description:   "Lock when entering these servers — comma-separated server IDs",
-        default:       "",
+        type: OptionType.STRING,
+        description: "Lock when entering these servers — comma-separated server IDs",
+        default: "",
         restartNeeded: false,
     },
     lockedChannels: {
-        type:          OptionType.STRING,
-        description:   "Lock when entering these channels — comma-separated channel IDs",
-        default:       "",
+        type: OptionType.STRING,
+        description: "Lock when entering these channels — comma-separated channel IDs",
+        default: "",
         restartNeeded: false,
     },
     lockedUsers: {
-        type:          OptionType.STRING,
-        description:   "Lock when opening DMs with these users — comma-separated user IDs",
-        default:       "",
+        type: OptionType.STRING,
+        description: "Lock when opening DMs with these users — comma-separated user IDs",
+        default: "",
         restartNeeded: false,
     },
     lockOncePerGuild: {
-        type:          OptionType.BOOLEAN,
-        description:   "Ask for password only once per session when entering a locked server (not on every channel switch)",
-        default:       true,
+        type: OptionType.BOOLEAN,
+        description: "Ask for password only once per session when entering a locked server (not on every channel switch)",
+        default: true,
         restartNeeded: false,
     },
 });
 
 // ─── State ────────────────────────────────────────────────────────────
 
-let overlay:       HTMLDivElement | null                = null;
-let domObserver:   MutationObserver | null              = null;
-let keyGuard:      ((e: KeyboardEvent) => void) | null  = null;
-let focusGuard:    ((e: FocusEvent)   => void) | null   = null;
+let overlay: HTMLDivElement | null = null;
+let domObserver: MutationObserver | null = null;
+let keyGuard: ((e: KeyboardEvent) => void) | null = null;
+let focusGuard: ((e: FocusEvent) => void) | null = null;
 let inactiveTimer: ReturnType<typeof setTimeout> | null = null;
+let loadLockListener: (() => void) | null = null;
 
 // tracks what's already been unlocked this session
-const unlockedGuilds   = new Set<string>();
+const unlockedGuilds = new Set<string>();
 const unlockedChannels = new Set<string>();
-const unlockedUsers    = new Set<string>();
+const unlockedUsers = new Set<string>();
 
 // what triggered the current lock (so we can mark it unlocked after)
-let pendingGuildId:   string | null = null;
+let pendingGuildId: string | null = null;
 let pendingChannelId: string | null = null;
-let pendingUserId:    string | null = null;
+let pendingUserId: string | null = null;
 
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"] as const;
 
@@ -111,28 +116,47 @@ function lockFull() {
 
 function lock() {
     unbindActivity();
-    if (!document.getElementById("vcl-overlay")) createOverlay();
+    setLockState(true);
+    if (!document.getElementById(OVERLAY_ID)) createOverlay();
+    else bringOverlayToFront();
 }
 
 function unlock() {
     domObserver?.disconnect();
     domObserver = null;
 
-    if (keyGuard)   { document.removeEventListener("keydown", keyGuard,   true); keyGuard   = null; }
+    if (keyGuard) { document.removeEventListener("keydown", keyGuard, true); keyGuard = null; }
     if (focusGuard) { document.removeEventListener("focusin", focusGuard, true); focusGuard = null; }
 
     // mark whatever triggered this lock as unlocked for the session
-    if (pendingGuildId)   { unlockedGuilds.add(pendingGuildId);     pendingGuildId   = null; }
+    if (pendingGuildId) { unlockedGuilds.add(pendingGuildId); pendingGuildId = null; }
     if (pendingChannelId) { unlockedChannels.add(pendingChannelId); pendingChannelId = null; }
-    if (pendingUserId)    { unlockedUsers.add(pendingUserId);       pendingUserId    = null; }
+    if (pendingUserId) { unlockedUsers.add(pendingUserId); pendingUserId = null; }
 
     if (overlay) {
         overlay.style.transition = "opacity 0.28s ease";
-        overlay.style.opacity    = "0";
-        setTimeout(() => { overlay?.remove(); overlay = null; }, 300);
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+            overlay?.remove();
+            overlay = null;
+            setLockState(false);
+        }, 300);
+    } else {
+        setLockState(false);
     }
 
     bindActivity();
+}
+
+function setLockState(locked: boolean) {
+    if (locked) {
+        document.documentElement.dataset.discordLockActive = "true";
+        window.dispatchEvent(new CustomEvent(LOCKED_EVENT));
+        return;
+    }
+
+    delete document.documentElement.dataset.discordLockActive;
+    window.dispatchEvent(new CustomEvent(UNLOCKED_EVENT));
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -166,33 +190,62 @@ function onChannelSelect({ guildId, channelId }: { guildId?: string; channelId?:
 
     // DM lock
     if (!guildId && channelId) {
-        try {
-            const { ChannelStore } = require("@webpack/common") as any;
-            const channel          = ChannelStore?.getChannel?.(channelId);
+        const channel = ChannelStore.getChannel(channelId);
 
-            if (channel?.isDM?.() || channel?.isGroupDM?.()) {
-                const recipientId = channel.recipients?.[0];
-                if (recipientId && parseIds(settings.store.lockedUsers).has(recipientId)) {
-                    if (once && unlockedUsers.has(recipientId)) return;
-                    pendingUserId = recipientId;
-                    lock();
-                }
+        if (channel?.isDM?.() || channel?.isGroupDM?.()) {
+            const recipientId = channel.recipients?.[0];
+            if (recipientId && parseIds(settings.store.lockedUsers).has(recipientId)) {
+                if (once && unlockedUsers.has(recipientId)) return;
+                pendingUserId = recipientId;
+                lock();
             }
-        } catch { /* ChannelStore not ready */ }
+        }
     }
 }
 
 // ─── User ─────────────────────────────────────────────────────────────
 
 function getUserAssets() {
-    const user = UserStore?.getCurrentUser?.() as any;
+    const user = UserStore.getCurrentUser();
     if (!user) return { avatarUrl: "", username: "User" };
 
-    const avatarUrl = user.avatar
-        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=128`
-        : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(user.id) % 6n)}.png`;
+    const avatarUrl = IconUtils.getUserAvatarURL(user, false, 128);
 
     return { avatarUrl, username: user.globalName || user.username || "User" };
+}
+
+function escapeHtml(text: string) {
+    return text.replace(/[&<>"']/g, char => {
+        switch (char) {
+            case "&":
+                return "&amp;";
+            case "<":
+                return "&lt;";
+            case ">":
+                return "&gt;";
+            case "\"":
+                return "&quot;";
+            default:
+                return "&#39;";
+        }
+    });
+}
+
+function focusInput() {
+    const input = overlay?.querySelector<HTMLInputElement>("#vcl-input");
+    if (!input) return;
+
+    requestAnimationFrame(() => input.focus());
+}
+
+function bringOverlayToFront() {
+    if (!overlay) return;
+
+    if (overlay.parentElement !== document.body || document.body.lastElementChild !== overlay) {
+        document.body.appendChild(overlay);
+    }
+
+    focusInput();
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────
@@ -200,19 +253,21 @@ function getUserAssets() {
 function injectStyles(blur: number) {
     document.getElementById("vcl-styles")?.remove();
 
-    const fa  = document.createElement("link");
-    fa.id     = "vcl-fa";
-    fa.rel    = "stylesheet";
-    fa.href   = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css";
+    const fa = document.createElement("link");
+    fa.id = "vcl-fa";
+    fa.rel = "stylesheet";
+    fa.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css";
     if (!document.getElementById("vcl-fa")) document.head.appendChild(fa);
 
-    const st      = document.createElement("style");
-    st.id         = "vcl-styles";
+    const st = document.createElement("style");
+    st.id = "vcl-styles";
     st.textContent = `
         #vcl-overlay {
             position:                fixed;
             inset:                   0;
             z-index:                 2147483647;
+            pointer-events:          auto;
+            isolation:               isolate;
             display:                 flex;
             flex-direction:          column;
             align-items:             center;
@@ -361,12 +416,12 @@ function createOverlay() {
     const { avatarUrl, username } = getUserAssets();
     const hint = settings.store.hint?.trim();
 
-    overlay    = document.createElement("div");
-    overlay.id = "vcl-overlay";
+    overlay = document.createElement("div");
+    overlay.id = OVERLAY_ID;
 
     overlay.innerHTML = `
-        <div id="vcl-avatar" style="background-image:url('${avatarUrl}')"></div>
-        <p id="vcl-username">${username}</p>
+        <div id="vcl-avatar" style="background-image:url('${escapeHtml(avatarUrl)}')"></div>
+        <p id="vcl-username">${escapeHtml(username)}</p>
         <p id="vcl-sub">Enter password to unlock</p>
 
         <div id="vcl-input-wrap">
@@ -380,17 +435,17 @@ function createOverlay() {
             <span id="vcl-error-msg"></span>
         </div>
 
-        ${hint ? `<p id="vcl-hint"><i class="fa-regular fa-lightbulb"></i> ${hint}</p>` : ""}
+        ${hint ? `<p id="vcl-hint"><i class="fa-regular fa-lightbulb"></i> ${escapeHtml(hint)}</p>` : ""}
     `;
 
     document.body.appendChild(overlay);
 
-    const input     = overlay.querySelector<HTMLInputElement>("#vcl-input")!;
+    const input = overlay.querySelector<HTMLInputElement>("#vcl-input")!;
     const submitBtn = overlay.querySelector<HTMLButtonElement>("#vcl-submit")!;
-    const errorBox  = overlay.querySelector<HTMLDivElement>("#vcl-error")!;
-    const errorMsg  = overlay.querySelector<HTMLSpanElement>("#vcl-error-msg")!;
+    const errorBox = overlay.querySelector<HTMLDivElement>("#vcl-error")!;
+    const errorMsg = overlay.querySelector<HTMLSpanElement>("#vcl-error-msg")!;
 
-    let attempts  = 0;
+    let attempts = 0;
     let lockUntil = 0;
 
     function showError(msg: string) {
@@ -416,7 +471,7 @@ function createOverlay() {
         attempts++;
         if (attempts >= 5) {
             lockUntil = Date.now() + 15_000;
-            attempts  = 0;
+            attempts = 0;
             showError("Too many attempts — locked for 15s");
         } else {
             showError(`Wrong password  (${attempts} / 5)`);
@@ -433,29 +488,32 @@ function createOverlay() {
         if (e.target === input) return;
         const blocked =
             e.key === "F12" ||
-            (e.ctrlKey && e.shiftKey && ["I","J","C","K"].includes(e.key)) ||
+            (e.ctrlKey && e.shiftKey && ["I", "J", "C", "K"].includes(e.key)) ||
             (e.ctrlKey && e.key === "U");
         if (blocked) { e.preventDefault(); e.stopImmediatePropagation(); }
     };
     document.addEventListener("keydown", keyGuard, true);
 
     focusGuard = (e: FocusEvent) => {
-        if (!overlay || e.target === input) return;
+        if (!overlay || overlay.contains(e.target as Node)) return;
         e.stopImmediatePropagation();
-        requestAnimationFrame(() => input.focus());
+        focusInput();
     };
     document.addEventListener("focusin", focusGuard, true);
 
     overlay.addEventListener("contextmenu", e => { if (e.target !== input) e.preventDefault(); });
-    overlay.addEventListener("mousedown",   e => { if (e.target === overlay) { e.preventDefault(); input.focus(); } });
+    overlay.addEventListener("mousedown", e => { if (e.target === overlay) { e.preventDefault(); input.focus(); } });
 
-    setTimeout(() => input.focus(), 140);
+    setTimeout(focusInput, 140);
 
     domObserver = new MutationObserver(() => {
-        if (!document.getElementById("vcl-overlay") && overlay) {
+        if (!document.getElementById(OVERLAY_ID) && overlay) {
             document.body.appendChild(overlay);
-            requestAnimationFrame(() => input.focus());
+            focusInput();
+            return;
         }
+
+        bringOverlayToFront();
     });
     domObserver.observe(document.body, { childList: true });
 }
@@ -463,7 +521,7 @@ function createOverlay() {
 // ─── Plugin ───────────────────────────────────────────────────────────
 
 export default definePlugin({
-    name:        "DiscordLock",
+    name: "DiscordLock",
     description: "Locks Discord on startup, on inactivity, and on specified servers/channels/DMs.",
     authors:     [{ name: "vejcowski", id: 1375544683908042862n }],
     tags: ["Privacy", "Utility"],
@@ -473,21 +531,30 @@ export default definePlugin({
     start() {
         FluxDispatcher.subscribe("CHANNEL_SELECT", onChannelSelect);
         if (document.readyState === "complete") lockFull();
-        else window.addEventListener("load", lockFull, { once: true });
+        else {
+            loadLockListener = lockFull;
+            window.addEventListener("load", loadLockListener, { once: true });
+        }
     },
 
     stop() {
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", onChannelSelect);
         unbindActivity();
 
+        if (loadLockListener) {
+            window.removeEventListener("load", loadLockListener);
+            loadLockListener = null;
+        }
+
         domObserver?.disconnect();
         domObserver = null;
 
-        if (keyGuard)   { document.removeEventListener("keydown", keyGuard,   true); keyGuard   = null; }
+        if (keyGuard) { document.removeEventListener("keydown", keyGuard, true); keyGuard = null; }
         if (focusGuard) { document.removeEventListener("focusin", focusGuard, true); focusGuard = null; }
 
         overlay?.remove();
         overlay = null;
+        setLockState(false);
 
         document.getElementById("vcl-styles")?.remove();
         document.getElementById("vcl-fa")?.remove();
