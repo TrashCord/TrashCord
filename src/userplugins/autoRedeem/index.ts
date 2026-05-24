@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
 import { LogIcon } from "@components/Icons";
 import SettingsPlugin from "@plugins/_core/settings";
@@ -12,9 +13,9 @@ import { Logger } from "@utils/Logger";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
+import { NavigationRouter, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
 
-import { addLog, type RedeemType } from "./store";
+import { addLog, loadLogs, type RedeemType } from "./store";
 
 const logger = new Logger("AutoRedeem");
 
@@ -25,6 +26,7 @@ interface IMessageCreate {
     type: "MESSAGE_CREATE";
     optimistic: boolean;
     channelId: string;
+    guildId: string;
     message: Message;
 }
 
@@ -46,6 +48,16 @@ const settings = definePluginSettings({
         description: "Ignore gifts sent by bots",
         default: false,
     },
+    notifyOnRedeem: {
+        type: OptionType.BOOLEAN,
+        description: "Show a desktop notification when successfully redeeming a gift",
+        default: true,
+    },
+    notifyOnFail: {
+        type: OptionType.BOOLEAN,
+        description: "Show a desktop notification when failing to redeem a gift",
+        default: true,
+    },
 });
 
 export default definePlugin({
@@ -57,6 +69,7 @@ export default definePlugin({
     settings,
 
     start() {
+        loadLogs();
         if (!SettingsPlugin.customEntries.some(e => e.key === SETTINGS_KEY)) {
             SettingsPlugin.customEntries.push({
                 key: SETTINGS_KEY,
@@ -72,29 +85,50 @@ export default definePlugin({
     },
 
     flux: {
-        async MESSAGE_CREATE({ optimistic, type, message }: IMessageCreate) {
+        MESSAGE_CREATE({ optimistic, type, message, guildId }: IMessageCreate) {
             if (optimistic || type !== "MESSAGE_CREATE") return;
             if (message.state === "SENDING") return;
             if (settings.store.ignoreBots && message.author?.bot) return;
             if (settings.store.ignoreSelf && message.author?.id === UserStore.getCurrentUser()?.id) return;
 
             const codes = [...message.content.matchAll(GIFT_REGEX)].map(m => m[1]);
+            if (!codes.length) return;
+
             for (const code of codes) {
-                try {
-                    const { body } = await RestAPI.post({
-                        url: `/entitlements/gift-codes/${code}/redeem`,
-                        body: { channel_id: null },
-                    });
+                RestAPI.post({
+                    url: `/entitlements/gift-codes/${code}/redeem`,
+                    body: { channel_id: null },
+                }).then(({ body }) => {
                     const giftType = classifyGift(body);
-                    await addLog({ code, status: "success", type: giftType, channelId: message.channel_id, messageId: message.id });
+                    addLog({ code, status: "success", type: giftType, channelId: message.channel_id, messageId: message.id });
                     showToast(`Redeemed gift: ${code}`, Toasts.Type.SUCCESS);
                     logger.info(`Redeemed gift code: ${code}`);
-                } catch (e: any) {
+                    if (settings.store.notifyOnRedeem) {
+                        const user = UserStore.getCurrentUser();
+                        showNotification({
+                            title: "Gift Redeemed! 🎉",
+                            body: `Successfully redeemed: ${code}`,
+                            color: "#57F287",
+                            icon: user?.getAvatarURL(),
+                            onClick: () => NavigationRouter.transitionTo(`/channels/${guildId ?? "@me"}/${message.channel_id}/${message.id}`),
+                        });
+                    }
+                }).catch((e: any) => {
                     const msg = e?.body?.message ?? "Unknown error";
-                    await addLog({ code, status: "failed", type: "other", error: msg, channelId: message.channel_id, messageId: message.id });
+                    addLog({ code, status: "failed", type: "other", error: msg, channelId: message.channel_id, messageId: message.id });
                     showToast(`Failed to redeem ${code}: ${msg}`, Toasts.Type.FAILURE);
                     logger.warn(`Failed to redeem ${code}:`, msg);
-                }
+                    if (settings.store.notifyOnFail) {
+                        const user = UserStore.getCurrentUser();
+                        showNotification({
+                            title: "Redeem Failed ❌",
+                            body: `${code}: ${msg}`,
+                            color: "#ED4245",
+                            icon: user?.getAvatarURL(),
+                            onClick: () => NavigationRouter.transitionTo(`/channels/${guildId ?? "@me"}/${message.channel_id}/${message.id}`),
+                        });
+                    }
+                });
             }
         },
     },

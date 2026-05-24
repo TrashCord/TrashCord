@@ -43,11 +43,10 @@ export async function loadLogs() {
     return logs;
 }
 
-export async function addLog(entry: Omit<RedeemLog, "id" | "timestamp">) {
-    await loadLogs();
+export function addLog(entry: Omit<RedeemLog, "id" | "timestamp">) {
     logs = [{ ...entry, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, timestamp: Date.now() }, ...logs];
     notify();
-    await DataStore.set(STORE_KEY, logs);
+    DataStore.set(STORE_KEY, logs);
 }
 
 export async function clearLogs() {
