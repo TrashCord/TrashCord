@@ -64,14 +64,15 @@ export default definePlugin({
         },
     ],
     tags: ["Chat", "Utility"],
+    enabledByDefault: false,
 
     patches: [
         // When Discord's returning the messages from somewhere, we wrap it in our custom function.
         {
             find: ",showNewMessagesBar:!",
             replacement: {
-                match: /(\i)=\(0,(\i)\.(\i)\)\(\{messages:(\i)/,
-                replace: "$1=(0,$2.$3)({messages:$self.reorder($4)",
+                match: /let (\i),(\i)=\(0,(\i)\.bG\)\(\[(\i)\.A\],\(\)=>(\i)\.A\.getMessages\((\i)\.id\),\[(\i)\.id\]\)/,
+                replace: "let $1,$2=$self.reorder((0,$3.bG)([$4.A],()=>$5.A.getMessages($6.id),[$7.id]))",
             },
         },
     ],
