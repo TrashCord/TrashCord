@@ -9,7 +9,6 @@ import { definePluginSettings } from "@api/Settings";
 import { Link } from "@components/Link";
 import definePlugin, { OptionType } from "@utils/types";
 import { showToast, Toasts } from "@webpack/common";
-import { findByCode } from "@webpack";
 
 const LOCAL_FAVS_KEY = "UnlimitedFavoriteGIFs_localFavs";
 
@@ -67,38 +66,6 @@ const settings = definePluginSettings({
     }
 });
 
-// Patch the addFavoriteGif function directly at runtime
-function applyRuntimePatch() {
-    try {
-        const wreq = (window as any).Vencord?.Webpack?.wreq;
-        if (!wreq?.m) return false;
-
-        for (const key of Object.keys(wreq.m)) {
-            const src = wreq.m[key].toString();
-            if (!src.includes("+XYXtZ") || !src.includes("762880")) continue;
-
-            const patched = src.replace(/\.toBinary\(t\)\.length>\d+/, ".toBinary(t).length>Number.MAX_SAFE_INTEGER");
-            if (patched === src) continue;
-
-            // Re-evaluate the module with the patch applied
-            const newFn = new Function("e", "t", "n", patched.slice(patched.indexOf("{") + 1, -1));
-            wreq.m[key] = newFn;
-
-            // Re-execute the module so exports are updated
-            delete wreq.c[key];
-            wreq(key);
-
-            log("Runtime patch applied to module", key);
-            return true;
-        }
-        log("Module not found for runtime patch");
-        return false;
-    } catch (e) {
-        warn("Runtime patch failed:", e);
-        return false;
-    }
-}
-
 export default definePlugin({
     name: "UnlimitedFavoriteGIFs",
     description: "Bypasses the native GIF favorites size limit, allowing you to save unlimited GIFs.",
@@ -132,8 +99,7 @@ export default definePlugin({
 
     patches: [
         {
-            find: '"+XYXtZ"',
-            all: true,
+            find: "a.uz.toBinary(t).length>",
             replacement: {
                 match: /\.toBinary\(t\)\.length>\d+/,
                 replace: ".toBinary(t).length>Number.MAX_SAFE_INTEGER",
@@ -144,12 +110,6 @@ export default definePlugin({
     async start() {
         log("Plugin started.");
         log(`Local favs in DataStore: ${(await getLocalFavs()).length}`);
-        const patched = applyRuntimePatch();
-        if (patched) {
-            log("Runtime patch successful!");
-        } else {
-            warn("Runtime patch failed, relying on webpack patch only.");
-        }
     },
 
     stop() {
