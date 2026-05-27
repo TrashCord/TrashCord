@@ -167,7 +167,7 @@ const AutoCorrectChatBarButton: ChatBarButtonFactory = ({ type }) => {
 
 export default definePlugin({
     name: "AutoCorrectNC",
-    description: "Automatically corrects spelling and grammar before sending. Requires a free Groq API key configured in TrashCordAI.",
+    description: "Automatically corrects spelling and grammar before sending. Requires a free Groq API key configured in TestCordAI.",
     authors: [{ name: "Nightcord", id: 0n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
