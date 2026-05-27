@@ -225,7 +225,7 @@ function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "
     const labels: Record<typeof key, string> = {
         antiDisconnect:   "AntiDisconnect",
         antiMove:         "AntiMove",
-        antiNickChanger:  "AntiNickChanger (Test)",
+        antiNickChanger:  "AntiNickChanger",
         antiMuteServer:   "AntiMuteServer (Perms)",
         antiDeafenServer: "AntiDeafenServer (Perms)",
     };
@@ -250,7 +250,7 @@ const RtcChannelContext: NavContextMenuPatchCallback = children => {
             />
             <Menu.MenuCheckboxItem
                 id="anti-nickname-toggle"
-                label="AntiNickChanger (Test)"
+                label="AntiNickChanger"
                 checked={settings.store.antiNickChanger}
                 action={() => toggleSetting("antiNickChanger")}
             />
