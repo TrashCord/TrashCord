@@ -61,14 +61,35 @@ const settings = definePluginSettings({
     notifyOnFail: {
         type: OptionType.BOOLEAN,
         description: "Show a desktop notification when failing to redeem a gift",
-        default: false,
+        default: true,
     },
 });
 
 // --- Queue / state ----------------------------------------------------------
 
-// Codes we have already seen (success, fail, or in-flight) so we never retry.
+// Bounded LRU of codes we've already seen, so we never retry within the same
+// session but also don't leak unbounded memory across long uptimes.
+const SEEN_CAP = 5000;
 const seen = new Set<string>();
+function markSeen(code: string) {
+    if (seen.has(code)) {
+        // Re-insert for LRU ordering (Set preserves insertion order)
+        seen.delete(code);
+        seen.add(code);
+        return;
+    }
+    seen.add(code);
+    if (seen.size > SEEN_CAP) {
+        // Evict oldest ~10% to amortize the cost
+        const toEvict = Math.floor(SEEN_CAP * 0.1);
+        let i = 0;
+        for (const k of seen) {
+            if (i++ >= toEvict) break;
+            seen.delete(k);
+        }
+    }
+}
+
 // Codes currently waiting in the serial queue.
 const queue: QueueItem[] = [];
 let processing = false;
@@ -240,6 +261,11 @@ export default definePlugin({
 
     stop() {
         removeFromArray(SettingsPlugin.customEntries, e => e.key === SETTINGS_KEY);
+        // Drop pending work so a disabled plugin can't resume on next start.
+        queue.length = 0;
+        processing = false;
+        captchaPaused = false;
+        pauseToastShown = false;
     },
 
     flux: {
@@ -256,7 +282,7 @@ export default definePlugin({
 
             for (const code of codes) {
                 if (seen.has(code)) continue;
-                seen.add(code);
+                markSeen(code);
                 queue.push({
                     code,
                     channelId: message.channel_id,

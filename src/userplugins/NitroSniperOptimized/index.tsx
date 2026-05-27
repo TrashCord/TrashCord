@@ -89,7 +89,19 @@ interface QueueEntry {
 let startTime = 0;
 let processing = false;
 let captchaPaused = false;
-let seen = new Set<string>();
+let pauseToastShown = false;
+const SEEN_CAP = 5000;
+const seen = new Set<string>();
+
+function markSeen(code: string) {
+    if (seen.has(code)) { seen.delete(code); seen.add(code); return; }
+    seen.add(code);
+    if (seen.size > SEEN_CAP) {
+        const toEvict = Math.floor(SEEN_CAP * 0.1);
+        let i = 0;
+        for (const k of seen) { if (i++ >= toEvict) break; seen.delete(k); }
+    }
+}
 let queue: QueueEntry[] = [];
 let attempts = 0;
 let successes = 0;
@@ -145,6 +157,8 @@ function notifyFail(code: string, reason: string) {
 function pauseSniper(reason: string) {
     captchaPaused = true;
     queue.length = 0;
+    if (pauseToastShown) return;
+    pauseToastShown = true;
     Toasts.show({ message: `NitroSniper paused: ${reason}`, id: Toasts.genId(), type: Toasts.Type.FAILURE });
 }
 
@@ -218,10 +232,7 @@ async function processQueue() {
 export default definePlugin({
     name: "NitroSniperOptimized",
     description: "Advanced Nitro sniper with adaptive logic and full control. ⚠️ Use at your own risk.",
-    authors: [
-        { name: "neoarz", id: 123456789012345678n },
-        { name: "zFrxncesck1", id: 456195985404592149n }
-    ],
+    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Utility", "Fun", "Chat", "Nitro"],
     enabledByDefault: false,
     settings,
@@ -231,7 +242,14 @@ export default definePlugin({
         queue.length = 0;
         seen.clear();
         attempts = successes = 0;
-        processing = captchaPaused = false;
+        processing = captchaPaused = pauseToastShown = false;
+    },
+
+    stop() {
+        queue.length = 0;
+        processing = false;
+        captchaPaused = false;
+        pauseToastShown = false;
     },
 
     flux: {
@@ -255,7 +273,7 @@ export default definePlugin({
 
             for (const code of codes) {
                 if (settings.store.antiDuplicate && seen.has(code)) continue;
-                seen.add(code);
+                markSeen(code);
                 queue.push({ code, channelId: message.channel_id, messageId: message.id, guildId: message.guild_id });
             }
             void processQueue();

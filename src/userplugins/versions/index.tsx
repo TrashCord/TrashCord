@@ -15,7 +15,6 @@ export default definePlugin({
     authors: [Devs.x2b],
     tags: ["Developers", "Utility"],
     enabledByDefault: false,
-
     patches: [
         {
             find: ".versionHash",
