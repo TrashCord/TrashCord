@@ -61,6 +61,8 @@ let retryCount = 0;
 let rejoinTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRejoining = false;
 
+const resettingNickGuilds = new Set<string>();
+
 function SectionSeparator(title: string) {
     return (
         <>
@@ -72,6 +74,7 @@ function SectionSeparator(title: string) {
 }
 
 const settings = definePluginSettings({
+
     antiDisconnectHeader: {
         type: OptionType.COMPONENT,
         component: () => SectionSeparator("AntiDisconnect"),
@@ -117,6 +120,15 @@ const settings = definePluginSettings({
     antiDeafenServer: {
         type: OptionType.BOOLEAN,
         description: "Automatically undeafen yourself if server-deafened by someone else (requires DEAFEN_MEMBERS permission).",
+        default: false,
+    },
+    antiNicknameHeader: {
+        type: OptionType.COMPONENT,
+        component: () => SectionSeparator("AntiNickname"),
+    },
+    antiNickname: {
+        type: OptionType.BOOLEAN,
+        description: "Automatically reset any nickname forcefully assigned to you in a server.",
         default: false,
     },
     notificationsHeader: {
@@ -170,6 +182,38 @@ function scheduleRejoin(channelId: string) {
     }, delay);
 }
 
+async function resetNick(guildId: string, forcedNick: string) {
+    if (resettingNickGuilds.has(guildId)) return;
+    resettingNickGuilds.add(guildId);
+
+    try {
+
+        try {
+            await RestAPI.patch({
+                url: `/users/@me/guilds/${guildId}/profile`,
+                body: { nick: null },
+            });
+            toast(`AntiNickname: nickname "${forcedNick}" removed.`, Toasts.Type.SUCCESS);
+            return;
+        } catch {
+
+        }
+
+
+        await RestAPI.patch({
+            url: `/guilds/${guildId}/members/@me`,
+            body: { nick: "" },
+        });
+        toast(`AntiNickname: nickname "${forcedNick}" removed.`, Toasts.Type.SUCCESS);
+    } catch (err: any) {
+        console.warn(`[Untouchable/AntiNickname] Failed to reset nickname on ${guildId}:`, err);
+        toast(`AntiNickname: failed to reset nickname (${err?.status ?? "?"}).`, Toasts.Type.FAILURE);
+    } finally {
+
+        setTimeout(() => resettingNickGuilds.delete(guildId), 2000);
+    }
+}
+
 async function patchMember(userId: string, guildId: string, body: object) {
     await RestAPI.patch({
         url: Constants.Endpoints.GUILD_MEMBER(guildId, userId),
@@ -177,13 +221,14 @@ async function patchMember(userId: string, guildId: string, body: object) {
     });
 }
 
-function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "antiDeafenServer") {
+function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "antiDeafenServer" | "antiNickname") {
     (settings.store[key] as boolean) = !settings.store[key];
     const labels: Record<typeof key, string> = {
-        antiDisconnect: "AntiDisconnect",
-        antiMove: "AntiMove",
-        antiMuteServer: "AntiMuteServer (Perms)",
+        antiDisconnect:   "AntiDisconnect",
+        antiMove:         "AntiMove",
+        antiMuteServer:   "AntiMuteServer (Perms)",
         antiDeafenServer: "AntiDeafenServer (Perms)",
+        antiNickname:     "AntiNickname",
     };
     const on = settings.store[key] as boolean;
     toast(`${labels[key]} ${on ? "- Enabled" : "- Disabled"}`, on ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE);
@@ -203,6 +248,12 @@ const RtcChannelContext: NavContextMenuPatchCallback = children => {
                 label="AntiMove"
                 checked={settings.store.antiMove}
                 action={() => toggleSetting("antiMove")}
+            />
+            <Menu.MenuCheckboxItem
+                id="anti-nickname-toggle"
+                label="AntiNickname"
+                checked={settings.store.antiNickname}
+                action={() => toggleSetting("antiNickname")}
             />
             <Menu.MenuCheckboxItem
                 id="anti-mute-toggle"
@@ -229,7 +280,7 @@ function resetState() {
 
 export default definePlugin({
     name: "Untouchable",
-    description: "Keeps you in control of your voice presence. Rejoins if disconnected, blocks moves, and auto-unmutes/undeafens if server-moderated.",
+    description: "Keeps you in control of your voice presence and identity. Rejoins if disconnected, blocks moves, auto-unmutes/undeafens, and resets forced nicknames.",
     authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Privacy", "Utility", "Fun", "Bypass", "Auto"],
     enabledByDefault: false,
@@ -299,7 +350,7 @@ export default definePlugin({
                                 await patchMember(myUserId!, guildId, { mute: false });
                                 toast("AntiMute: Server mute removed.", Toasts.Type.SUCCESS);
                             } catch {
-                                try { VoiceActions.toggleSelfMute(); } catch { /* noop */ }
+                                try { VoiceActions.toggleSelfMute(); } catch {  }
                             }
                         }, 100);
                     }
@@ -312,12 +363,26 @@ export default definePlugin({
                                 await patchMember(myUserId!, guildId, { deaf: false });
                                 toast("AntiDeafen: Server deafen removed.", Toasts.Type.SUCCESS);
                             } catch {
-                                try { VoiceActions.toggleSelfDeaf(); } catch { /* noop */ }
+                                try { VoiceActions.toggleSelfDeaf(); } catch {  }
                             }
                         }, 100);
                     }
                 }
             }
+        },
+
+        GUILD_MEMBER_UPDATE({ guildId, user, nick }: {
+            guildId: string;
+            user: { id: string; };
+            nick: string | null;
+        }) {
+            if (!settings.store.antiNickname) return;
+            const currentUser = UserStore.getCurrentUser();
+            if (!currentUser || user.id !== currentUser.id) return;
+
+            if (!nick) return;
+
+            setTimeout(() => resetNick(guildId, nick), 300);
         },
     },
 
@@ -333,6 +398,7 @@ export default definePlugin({
             originalSelectVoiceChannel = null;
         }
         resetState();
+        resettingNickGuilds.clear();
         myUserId = null;
     },
 });
