@@ -30,7 +30,7 @@ const settings = definePluginSettings({
     disableSpringAnimations: {
         type: OptionType.BOOLEAN,
         description: "Skip all react-spring animations across the client. Major responsiveness boost on low-end machines.",
-        default: false
+        default: true
     },
     animationFrameReduction: {
         type: OptionType.SLIDER,
@@ -60,7 +60,7 @@ const settings = definePluginSettings({
     forceLowImageQuality: {
         type: OptionType.BOOLEAN,
         description: "Rewrite Discord CDN image URLs to request smaller sizes. Saves bandwidth and decode cost.",
-        default: false
+        default: true
     },
     pauseOffscreenMedia: {
         type: OptionType.BOOLEAN,
@@ -122,7 +122,7 @@ const settings = definePluginSettings({
     killBackdropBlur: {
         type: OptionType.BOOLEAN,
         description: "Strip backdrop-filter blur effects (popouts, modals, overlays). Massive GPU win on integrated graphics.",
-        default: false
+        default: true
     },
     forcePassiveListeners: {
         type: OptionType.BOOLEAN,
@@ -137,7 +137,7 @@ const settings = definePluginSettings({
     freezeGifsUntilHover: {
         type: OptionType.BOOLEAN,
         description: "Pause animated GIFs and stickers until you hover them. Cuts decode CPU dramatically in active channels. Memory-bounded.",
-        default: false
+        default: true
     },
     throttleResizeObservers: {
         type: OptionType.BOOLEAN,
@@ -148,7 +148,7 @@ const settings = definePluginSettings({
     reduceMotion: {
         type: OptionType.BOOLEAN,
         description: "Apply prefers-reduced-motion globally. Disables transitions and CSS animations.",
-        default: false
+        default: true
     },
     killWillChange: {
         type: OptionType.BOOLEAN,
