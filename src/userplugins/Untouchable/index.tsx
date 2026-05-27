@@ -12,6 +12,7 @@ import { findByPropsLazy } from "@webpack";
 import {
     ChannelStore,
     Constants,
+    GuildMemberStore,
     Menu,
     PermissionsBits,
     PermissionStore,
@@ -27,6 +28,7 @@ const ChannelActionsRaw: { selectVoiceChannel: (channelId: string) => void } =
 const VoiceActions = findByPropsLazy("toggleSelfMute");
 
 let originalSelectVoiceChannel: ((channelId: string) => void) | null = null;
+let originalPatch: ((options: any) => Promise<any>) | null = null;
 let calledByPlugin = false;
 
 function patchedSelectVoiceChannel(channelId: string) {
@@ -61,6 +63,8 @@ let retryCount = 0;
 let rejoinTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRejoining = false;
 
+const savedNicks = new Map<string, string | null>();
+const selfChangingNickGuilds = new Set<string>();
 const resettingNickGuilds = new Set<string>();
 
 function SectionSeparator(title: string) {
@@ -74,7 +78,6 @@ function SectionSeparator(title: string) {
 }
 
 const settings = definePluginSettings({
-
     antiDisconnectHeader: {
         type: OptionType.COMPONENT,
         component: () => SectionSeparator("AntiDisconnect"),
@@ -108,6 +111,15 @@ const settings = definePluginSettings({
         description: "Prevent others from moving you to a different voice channel.",
         default: false,
     },
+    antiNicknameHeader: {
+        type: OptionType.COMPONENT,
+        component: () => SectionSeparator("AntiNickname"),
+    },
+    antiNickname: {
+        type: OptionType.BOOLEAN,
+        description: "Restore your nickname if someone else changes it. Your own nick changes are respected.",
+        default: false,
+    },
     antiMuteDeafenServerHeader: {
         type: OptionType.COMPONENT,
         component: () => SectionSeparator("Anti Mute & Deafen Server"),
@@ -120,15 +132,6 @@ const settings = definePluginSettings({
     antiDeafenServer: {
         type: OptionType.BOOLEAN,
         description: "Automatically undeafen yourself if server-deafened by someone else (requires DEAFEN_MEMBERS permission).",
-        default: false,
-    },
-    antiNicknameHeader: {
-        type: OptionType.COMPONENT,
-        component: () => SectionSeparator("AntiNickname"),
-    },
-    antiNickname: {
-        type: OptionType.BOOLEAN,
-        description: "Automatically reset any nickname forcefully assigned to you in a server.",
         default: false,
     },
     notificationsHeader: {
@@ -182,34 +185,30 @@ function scheduleRejoin(channelId: string) {
     }, delay);
 }
 
-async function resetNick(guildId: string, forcedNick: string) {
+async function restoreNick(guildId: string, forcedNick: string) {
     if (resettingNickGuilds.has(guildId)) return;
     resettingNickGuilds.add(guildId);
 
-    try {
+    const target = savedNicks.get(guildId) ?? null;
 
+    try {
         try {
             await RestAPI.patch({
                 url: `/users/@me/guilds/${guildId}/profile`,
-                body: { nick: null },
+                body: { nick: target },
             });
-            toast(`AntiNickname: nickname "${forcedNick}" removed.`, Toasts.Type.SUCCESS);
+            toast(`AntiNickname: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
             return;
-        } catch {
-
-        }
-
+        } catch {}
 
         await RestAPI.patch({
             url: `/guilds/${guildId}/members/@me`,
-            body: { nick: "" },
+            body: { nick: target ?? "" },
         });
-        toast(`AntiNickname: nickname "${forcedNick}" removed.`, Toasts.Type.SUCCESS);
+        toast(`AntiNickname: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
     } catch (err: any) {
-        console.warn(`[Untouchable/AntiNickname] Failed to reset nickname on ${guildId}:`, err);
-        toast(`AntiNickname: failed to reset nickname (${err?.status ?? "?"}).`, Toasts.Type.FAILURE);
+        toast(`AntiNickname: failed to restore nickname (${err?.status ?? "?"}).`, Toasts.Type.FAILURE);
     } finally {
-
         setTimeout(() => resettingNickGuilds.delete(guildId), 2000);
     }
 }
@@ -226,9 +225,9 @@ function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "
     const labels: Record<typeof key, string> = {
         antiDisconnect:   "AntiDisconnect",
         antiMove:         "AntiMove",
+        antiNickname:     "AntiNickname",
         antiMuteServer:   "AntiMuteServer (Perms)",
         antiDeafenServer: "AntiDeafenServer (Perms)",
-        antiNickname:     "AntiNickname",
     };
     const on = settings.store[key] as boolean;
     toast(`${labels[key]} ${on ? "- Enabled" : "- Disabled"}`, on ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE);
@@ -280,7 +279,7 @@ function resetState() {
 
 export default definePlugin({
     name: "Untouchable",
-    description: "Keeps you in control of your voice presence and identity. Rejoins if disconnected, blocks moves, auto-unmutes/undeafens, and resets forced nicknames.",
+    description: "Keeps you in control of your voice presence and identity. Rejoins if disconnected, blocks moves, auto-unmutes/undeafens, and restores your nickname if someone else changes it.",
     authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Privacy", "Utility", "Fun", "Bypass", "Auto"],
     enabledByDefault: false,
@@ -350,7 +349,7 @@ export default definePlugin({
                                 await patchMember(myUserId!, guildId, { mute: false });
                                 toast("AntiMute: Server mute removed.", Toasts.Type.SUCCESS);
                             } catch {
-                                try { VoiceActions.toggleSelfMute(); } catch {  }
+                                try { VoiceActions.toggleSelfMute(); } catch {}
                             }
                         }, 100);
                     }
@@ -363,7 +362,7 @@ export default definePlugin({
                                 await patchMember(myUserId!, guildId, { deaf: false });
                                 toast("AntiDeafen: Server deafen removed.", Toasts.Type.SUCCESS);
                             } catch {
-                                try { VoiceActions.toggleSelfDeaf(); } catch {  }
+                                try { VoiceActions.toggleSelfDeaf(); } catch {}
                             }
                         }, 100);
                     }
@@ -380,16 +379,53 @@ export default definePlugin({
             const currentUser = UserStore.getCurrentUser();
             if (!currentUser || user.id !== currentUser.id) return;
 
-            if (!nick) return;
+            if (selfChangingNickGuilds.has(guildId)) {
+                savedNicks.set(guildId, nick);
+                selfChangingNickGuilds.delete(guildId);
+                return;
+            }
 
-            setTimeout(() => resetNick(guildId, nick), 300);
+            const savedNick = savedNicks.has(guildId) ? savedNicks.get(guildId)! : null;
+            if (nick === savedNick) return;
+
+            setTimeout(() => restoreNick(guildId, nick ?? ""), 300);
         },
     },
 
     start() {
         myUserId = UserStore.getCurrentUser()?.id ?? null;
+
         originalSelectVoiceChannel = ChannelActionsRaw.selectVoiceChannel.bind(ChannelActionsRaw);
         ChannelActionsRaw.selectVoiceChannel = patchedSelectVoiceChannel;
+
+        originalPatch = RestAPI.patch.bind(RestAPI);
+        RestAPI.patch = (options: any) => {
+            const url: string = options?.url ?? "";
+            const body = options?.body ?? {};
+            const isNickEndpoint =
+                /^\/users\/@me\/guilds\/(\w+)\/profile$/.test(url) ||
+                /^\/guilds\/(\w+)\/members\/@me$/.test(url);
+
+            if (isNickEndpoint && "nick" in body) {
+                const match = url.match(/\/guilds\/(\w+)/);
+                if (match) {
+                    const guildId = match[1];
+                    selfChangingNickGuilds.add(guildId);
+                    savedNicks.set(guildId, body.nick ?? null);
+                    setTimeout(() => selfChangingNickGuilds.delete(guildId), 3000);
+                }
+            }
+
+            return originalPatch!(options);
+        };
+
+        if (myUserId) {
+            const guilds = Object.keys((GuildMemberStore as any).getMembers?.() ?? {});
+            for (const guildId of guilds) {
+                const member = GuildMemberStore.getMember(guildId, myUserId);
+                if (member) savedNicks.set(guildId, member.nick ?? null);
+            }
+        }
     },
 
     stop() {
@@ -397,8 +433,14 @@ export default definePlugin({
             ChannelActionsRaw.selectVoiceChannel = originalSelectVoiceChannel;
             originalSelectVoiceChannel = null;
         }
+        if (originalPatch) {
+            RestAPI.patch = originalPatch;
+            originalPatch = null;
+        }
         resetState();
         resettingNickGuilds.clear();
+        selfChangingNickGuilds.clear();
+        savedNicks.clear();
         myUserId = null;
     },
 });
