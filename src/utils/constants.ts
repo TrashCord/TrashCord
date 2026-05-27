@@ -1280,11 +1280,13 @@ export const EquicordDevs = Object.freeze({
     },
     irritably: {
         name: "irritably",
-        id: 928787166916640838n
+        id: 928787166916640838n,
+        github: "ImHisako"
     },
     zfrancesck1: {
         name: "zfrancesck1",
-        id: 456195985404592149n
+        id: 456195985404592149n,
+        github: "zfrxncesck1"
     },
     Leon135: {
         name: "Leon135",
@@ -1352,6 +1354,134 @@ export const EquicordDevs = Object.freeze({
     },
 } satisfies Record<string, Dev>);
 
+export const TrashCordDevs = /* #__PURE__*/ Object.freeze({
+    zfrancesck1: {
+        name: "zfrancesck1",
+        id: 456195985404592149n,
+        github: "zfrxncesck1"
+    },
+    d3ad_d3sc3nt: {
+        name: "d3ad_d3sc3nt",
+        id: 964276977307631628n,
+        github: "d3ad-d3sc3nt"
+    },
+    deon7777: {
+        name: "deon7777",
+        id: 834832117283422208n
+    }
+} satisfies Record<string, Dev>);
+
+export const IllegalcordDevs = /* #__PURE__*/ Object.freeze({
+    irritably: {
+        name: "irritably",
+        id: 928787166916640838n,
+        github: "ImHisako"
+    }
+} satisfies Record<string, Dev>);
+
+export const TestcordDevs = /* #__PURE__*/ Object.freeze({
+    sirphantom89: {
+        name: "SirPhantom89",
+        id: 1464279455844274188n,
+    },
+    x2b: {
+        name: "x2b",
+        id: 996137713432530976n,
+        github: "x2b1"
+    },
+    x2b2: {
+        name: "0gfm",
+        id: 209389868080562176n
+    },
+    deracul: {
+        name: "deracul",
+        id: 1454268753629024529n
+    },
+    Benjii: {
+        name: "Benjii",
+        id: 463702169443368970n
+    },
+    babystarsz: {
+        name: "babystarsz",
+        id: 1455985625441501209n
+    },
+    vampireslover: {
+        name: "vampireslover",
+        id: 1455033270709256284n
+    },
+    czox: {
+        name: "czokapika",
+        id: 484404620580618250n
+    },
+    dxrx99: {
+        name: "SirPhantom89",
+        id: 1464279455844274188n, // this vro got hacked so i need to change there his id to the new acc and also add a new record with his new name js so 2 plugins wont break.
+        github: "DxRx99"
+    },
+    SirPhantom89: {
+        name: "SirPhantom89",
+        id: 1464279455844274188n,
+        github: "DxRx99"
+    },
+    omaw: {
+        name: "oma",
+        id: 1155026301791514655n
+    },
+    nnenaza: {
+        name: "kiara",
+        id: 1501441039418785933n,
+        github: "Mixiruri"
+    },
+    neoarz: {
+        name: "neoarz",
+        id: 1485706082080002140n
+    },
+    milo: {
+        name: "milo",
+        id: 1162512757220986941n
+    },
+    xxx: {
+        name: "xxx",
+        id: 1491847142367822026n
+    },
+    dot: {
+        name: "dot",
+        id: 1400610916285812776n
+    },
+    hyyven: {
+        name: "hyyven",
+        id: 449282863582412850n
+    }
+} satisfies Record<string, Dev>);
+
+// Nightcord plugin authors / placeholders for nightcord-fork-only devs
+export const NightcordDevs = /* #__PURE__*/ Object.freeze({
+    Nightcord: {
+        name: "Nightcord",
+        id: 0n
+    },
+    coll: {
+        name: "coll",
+        id: 0n
+    },
+    viciouscal: {
+        name: "viciouscal",
+        id: 0n
+    },
+    Unknown: {
+        name: "Unknown",
+        id: 0n
+    },
+    mushzi: {
+        name: "mushzi",
+        id: 449282863582412850n
+    },
+    Trigger: {
+        name: "Trigger",
+        id: 0n
+    }
+} satisfies Record<string, Dev>);
+
 // iife so #__PURE__ works correctly
 export const VencordDevsById = /* #__PURE__*/ (() =>
     Object.freeze(Object.fromEntries(
@@ -1364,6 +1494,38 @@ export const VencordDevsById = /* #__PURE__*/ (() =>
 export const EquicordDevsById = /* #__PURE__*/ (() =>
     Object.freeze(Object.fromEntries(
         Object.entries(EquicordDevs)
+            .filter(d => d[1].id !== 0n)
+            .map(([_, v]) => [v.id, v] as const)
+    ))
+)() as Record<string, Dev>;
+
+export const TrashCordDevsById = /* #__PURE__*/ (() =>
+    Object.freeze(Object.fromEntries(
+        Object.entries(TrashCordDevs)
+            .filter(d => d[1].id !== 0n)
+            .map(([_, v]) => [v.id, v] as const)
+    ))
+)() as Record<string, Dev>;
+
+export const IllegalcordDevsById = /* #__PURE__*/ (() =>
+    Object.freeze(Object.fromEntries(
+        Object.entries(IllegalcordDevs)
+            .filter(d => d[1].id !== 0n)
+            .map(([_, v]) => [v.id, v] as const)
+    ))
+)() as Record<string, Dev>;
+
+export const TestcordDevsById = /* #__PURE__*/ (() =>
+    Object.freeze(Object.fromEntries(
+        Object.entries(TestcordDevs)
+            .filter(d => d[1].id !== 0n)
+            .map(([_, v]) => [v.id, v] as const)
+    ))
+)() as Record<string, Dev>;
+
+export const NightcordDevsById = /* #__PURE__*/ (() =>
+    Object.freeze(Object.fromEntries(
+        Object.entries(NightcordDevs)
             .filter(d => d[1].id !== 0n)
             .map(([_, v]) => [v.id, v] as const)
     ))
