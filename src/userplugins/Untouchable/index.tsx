@@ -66,6 +66,7 @@ let isRejoining = false;
 const savedNicks = new Map<string, string | null>();
 const selfChangingNickGuilds = new Set<string>();
 const resettingNickGuilds = new Set<string>();
+const nickDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function SectionSeparator(title: string) {
     return (
@@ -197,7 +198,7 @@ async function restoreNick(guildId: string, forcedNick: string) {
                 url: `/users/@me/guilds/${guildId}/profile`,
                 body: { nick: target },
             });
-            toast(`AntiNickname: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
+            toast(`NickGuard: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
             return;
         } catch {}
 
@@ -205,11 +206,10 @@ async function restoreNick(guildId: string, forcedNick: string) {
             url: `/guilds/${guildId}/members/@me`,
             body: { nick: target ?? "" },
         });
-        toast(`AntiNickname: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
-    } catch (err: any) {
-        toast(`AntiNickname: failed to restore nickname (${err?.status ?? "?"}).`, Toasts.Type.FAILURE);
+        toast(`NickGuard: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
+    } catch {
     } finally {
-        setTimeout(() => resettingNickGuilds.delete(guildId), 2000);
+        setTimeout(() => resettingNickGuilds.delete(guildId), 5000);
     }
 }
 
@@ -225,7 +225,7 @@ function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "
     const labels: Record<typeof key, string> = {
         antiDisconnect:   "AntiDisconnect",
         antiMove:         "AntiMove",
-        antiNickname:     "AntiNickname",
+        antiNickname:     "NickGuard (Test)",
         antiMuteServer:   "AntiMuteServer (Perms)",
         antiDeafenServer: "AntiDeafenServer (Perms)",
     };
@@ -250,7 +250,7 @@ const RtcChannelContext: NavContextMenuPatchCallback = children => {
             />
             <Menu.MenuCheckboxItem
                 id="anti-nickname-toggle"
-                label="AntiNickname"
+                label="NickGuard (Test)"
                 checked={settings.store.antiNickname}
                 action={() => toggleSetting("antiNickname")}
             />
@@ -388,7 +388,17 @@ export default definePlugin({
             const savedNick = savedNicks.has(guildId) ? savedNicks.get(guildId)! : null;
             if (nick === savedNick) return;
 
-            setTimeout(() => restoreNick(guildId, nick ?? ""), 300);
+            if (nickDebounceTimers.has(guildId)) {
+                clearTimeout(nickDebounceTimers.get(guildId)!);
+            }
+
+            const timer = setTimeout(() => {
+                nickDebounceTimers.delete(guildId);
+                if (!resettingNickGuilds.has(guildId))
+                    restoreNick(guildId, nick ?? "");
+            }, 2000);
+
+            nickDebounceTimers.set(guildId, timer);
         },
     },
 
