@@ -112,11 +112,11 @@ const settings = definePluginSettings({
         description: "Prevent others from moving you to a different voice channel.",
         default: false,
     },
-    antiNicknameHeader: {
+    antiNickChangerHeader: {
         type: OptionType.COMPONENT,
-        component: () => SectionSeparator("AntiNickname"),
+        component: () => SectionSeparator("AntiNickChanger"),
     },
-    antiNickname: {
+    antiNickChanger: {
         type: OptionType.BOOLEAN,
         description: "Restore your nickname if someone else changes it. Your own nick changes are respected.",
         default: false,
@@ -198,7 +198,7 @@ async function restoreNick(guildId: string, forcedNick: string) {
                 url: `/users/@me/guilds/${guildId}/profile`,
                 body: { nick: target },
             });
-            toast(`NickGuard: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
+            toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
             return;
         } catch {}
 
@@ -206,7 +206,7 @@ async function restoreNick(guildId: string, forcedNick: string) {
             url: `/guilds/${guildId}/members/@me`,
             body: { nick: target ?? "" },
         });
-        toast(`NickGuard: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
+        toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
     } catch {
     } finally {
         setTimeout(() => resettingNickGuilds.delete(guildId), 5000);
@@ -220,12 +220,12 @@ async function patchMember(userId: string, guildId: string, body: object) {
     });
 }
 
-function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "antiDeafenServer" | "antiNickname") {
+function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "antiDeafenServer" | "antiNickChanger") {
     (settings.store[key] as boolean) = !settings.store[key];
     const labels: Record<typeof key, string> = {
         antiDisconnect:   "AntiDisconnect",
         antiMove:         "AntiMove",
-        antiNickname:     "NickGuard (Test)",
+        antiNickChanger:  "AntiNickChanger (Test)",
         antiMuteServer:   "AntiMuteServer (Perms)",
         antiDeafenServer: "AntiDeafenServer (Perms)",
     };
@@ -250,9 +250,9 @@ const RtcChannelContext: NavContextMenuPatchCallback = children => {
             />
             <Menu.MenuCheckboxItem
                 id="anti-nickname-toggle"
-                label="NickGuard (Test)"
-                checked={settings.store.antiNickname}
-                action={() => toggleSetting("antiNickname")}
+                label="AntiNickChanger (Test)"
+                checked={settings.store.antiNickChanger}
+                action={() => toggleSetting("antiNickChanger")}
             />
             <Menu.MenuCheckboxItem
                 id="anti-mute-toggle"
@@ -375,7 +375,7 @@ export default definePlugin({
             user: { id: string; };
             nick: string | null;
         }) {
-            if (!settings.store.antiNickname) return;
+            if (!settings.store.antiNickChanger) return;
             const currentUser = UserStore.getCurrentUser();
             if (!currentUser || user.id !== currentUser.id) return;
 
