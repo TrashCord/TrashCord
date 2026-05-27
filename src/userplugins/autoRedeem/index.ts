@@ -61,7 +61,7 @@ const settings = definePluginSettings({
     notifyOnFail: {
         type: OptionType.BOOLEAN,
         description: "Show a desktop notification when failing to redeem a gift",
-        default: true,
+        default: false,
     },
 });
 
