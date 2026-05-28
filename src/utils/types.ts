@@ -73,38 +73,38 @@ export const PluginTags = [
     "Voice",
     "betterdiscord",
     "bd",
-    "loader"
-    "Notification"
-    "Quests"
-    "Nitro"
-    "Bypass"
-    "Auto"
-    "Server"
-    "Mute"
-    "Utils"
-    "Workspace"
-    "Tiling"
-    "Layout"
-    "Productivity"
-    "Hide"
-    "Block"
-    "Soap"
-    "Language"
-    "Spam"
-    "Security"
-    "Youtube"
-    "ActivityIcons"
-    "ShowAllActivities"
-    "Screen"
-    "Alert"
-    "Recording"
-    "Junk"
-    "Bloat"
-    "Debloat"
-    "Shop"
-    "Gift"
-    "Ad"
-    "Advertisement"
+    "loader",
+    "Notification",
+    "Quests",
+    "Nitro",
+    "Bypass",
+    "Auto",
+    "Server",
+    "Mute",
+    "Utils",
+    "Workspace",
+    "Tiling",
+    "Layout",
+    "Productivity",
+    "Hide",
+    "Block",
+    "Soap",
+    "Language",
+    "Spam",
+    "Security",
+    "Youtube",
+    "ActivityIcons",
+    "ShowAllActivities",
+    "Screen",
+    "Alert",
+    "Recording",
+    "Junk",
+    "Bloat",
+    "Debloat",
+    "Shop",
+    "Gift",
+    "Ad",
+    "Advertisement",
     "Adblock"
 ] as const;
 
