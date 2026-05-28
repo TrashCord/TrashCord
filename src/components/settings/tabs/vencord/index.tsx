@@ -40,7 +40,7 @@ const VENNIE_DONATOR_IMAGE = "https://raw.githubusercontent.com/zFrxncesck1/zFrx
 const COZY_CONTRIB_IMAGE = "https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/main/host/icons/TrashCord_icon.png";
 
 const DONOR_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?size=2048";
-const CONTRIB_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?size=2048";
+const CONTRIB_BACKGROUND_IMAGE = "https://i.ibb.co/pGrJ0kk/314df291621d8186327ac9a67ae87311.jpg?size=2048";
 
 const cl = classNameFactory("vc-vencord-tab-");
 
