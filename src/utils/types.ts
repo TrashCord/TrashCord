@@ -62,13 +62,50 @@ export const PluginTags = [
     "Media",
     "Notifications",
     "Organisation",
+    "Performance",
     "Privacy",
     "Reactions",
     "Roles",
     "Servers",
     "Shortcuts",
+    "MemberList",
     "Utility",
-    "Voice"
+    "Voice",
+    "betterdiscord",
+    "bd",
+    "loader"
+    "Notification"
+    "Quests"
+    "Nitro"
+    "Bypass"
+    "Auto"
+    "Server"
+    "Mute"
+    "Utils"
+    "Workspace"
+    "Tiling"
+    "Layout"
+    "Productivity"
+    "Hide"
+    "Block"
+    "Soap"
+    "Language"
+    "Spam"
+    "Security"
+    "Youtube"
+    "ActivityIcons"
+    "ShowAllActivities"
+    "Screen"
+    "Alert"
+    "Recording"
+    "Junk"
+    "Bloat"
+    "Debloat"
+    "Shop"
+    "Gift"
+    "Ad"
+    "Advertisement"
+    "Adblock"
 ] as const;
 
 export type PluginTag = typeof PluginTags[number];
