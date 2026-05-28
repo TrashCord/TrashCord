@@ -71,19 +71,19 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Prevents the camera from being mirrored on your screen",
         restartNeeded: true,
-        default: false,
+        default: true,
     },
     removeActivitySection: {
         type: OptionType.BOOLEAN,
         description: "Removes the activity section above member list",
         restartNeeded: true,
-        default: false,
+        default: true,
     },
     showYourOwnActivityButtons: {
         type: OptionType.BOOLEAN,
         description: "Discord hides your own activity buttons for some reason",
         restartNeeded: true,
-        default: false,
+        default: true,
     },
     refreshSlashCommands: {
         type: OptionType.BOOLEAN,
@@ -106,25 +106,25 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Adds back the Download button at the top right corner of files",
         restartNeeded: true,
-        default: false
+        default: true
     },
     noBulletPoints: {
         type: OptionType.BOOLEAN,
         description: "Stops you from typing markdown bullet points (stinky)",
         restartNeeded: true,
-        default: false
+        default: true
     },
     noModalAnimation: {
         type: OptionType.BOOLEAN,
         description: "Remove the 300ms long animation when opening or closing modals",
         restartNeeded: true,
-        default: false
+        default: true
     },
     disableAdoptTagPrompt: {
         type: OptionType.BOOLEAN,
         description: "Disable the prompt to adopt tags",
         restartNeeded: true,
-        default: false,
+        default: true,
     },
     jsonGateway: {
         type: OptionType.BOOLEAN,
@@ -136,7 +136,7 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Hide voice indicator in server list when only active channels are muted",
         restartNeeded: true,
-        default: false,
+        default: true,
     }
 });
 
