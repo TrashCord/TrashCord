@@ -16,11 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { PluginInfo } from "@plugins/betterScreenshare.desktop/constants";
-import { logger } from "@plugins/betterScreenshare.desktop/logger";
-import { screenshareAudioStore } from "@plugins/betterScreenshare.desktop/stores/screenshareAudioStore";
-import { Emitter, MediaEngineStore, patchConnectionAudioTransportOptions, Patcher, types } from "@plugins/philsPluginLibrary";
 import { UserStore } from "@webpack/common";
+
+import { PluginInfo } from "../../betterScreenshare.desktop/constants";
+import { logger } from "../../betterScreenshare.desktop/logger";
+import { screenshareAudioStore } from "../../betterScreenshare.desktop/stores/screenshareAudioStore";
+import { Emitter, MediaEngineStore, patchConnectionAudioTransportOptions, Patcher, types } from "../../philsPluginLibrary";
 
 export class ScreenshareAudioPatcher extends Patcher {
     private mediaEngineStore: types.MediaEngineStore;
@@ -28,6 +29,7 @@ export class ScreenshareAudioPatcher extends Patcher {
     public connection?: types.Connection;
 
     public oldSetTransportOptions: (...args: any[]) => void;
+    public oldSetVoiceBitRate: types.Connection["setVoiceBitRate"];
     public forceUpdateTransportationOptions: () => void;
 
     constructor() {
@@ -37,6 +39,7 @@ export class ScreenshareAudioPatcher extends Patcher {
 
         this.forceUpdateTransportationOptions = () => void 0;
         this.oldSetTransportOptions = () => void 0;
+        this.oldSetVoiceBitRate = () => void 0;
     }
 
     public patch(): this {
@@ -47,38 +50,70 @@ export class ScreenshareAudioPatcher extends Patcher {
         const connectionEventFunction =
             (connection: types.Connection) => {
                 if (connection.context !== "stream" || connection.streamUserId !== UserStore.getCurrentUser().id) return;
+                if (this.connection === connection) return;
 
                 this.connection = connection;
 
                 const {
                     forceUpdateTransportationOptions: forceUpdateTransportationOptionsAudio,
-                    oldSetTransportOptions: oldSetTransportOptionsAudio
+                    oldSetTransportOptions: oldSetTransportOptionsAudio,
+                    oldSetVoiceBitRate
                 } = patchConnectionAudioTransportOptions(connection, get, logger);
 
                 this.forceUpdateTransportationOptions = forceUpdateTransportationOptionsAudio;
                 this.oldSetTransportOptions = oldSetTransportOptionsAudio;
+                this.oldSetVoiceBitRate = oldSetVoiceBitRate;
 
-                Emitter.addListener(connection.emitter, "on", "connected", () => {
+                const restoreConnection = () => {
+                    connection.conn.setTransportOptions = oldSetTransportOptionsAudio;
+                    connection.setVoiceBitRate = oldSetVoiceBitRate;
+                };
+                let didCleanupConnection = false;
+                let removeConnectedListener: () => void = () => void 0;
+                let removeDestroyListener: () => void = () => void 0;
+                const cleanupConnection = () => {
+                    if (didCleanupConnection) return;
+                    didCleanupConnection = true;
+                    restoreConnection();
+                    removeConnectedListener();
+                    removeDestroyListener();
+                    this.unpatchFunctions = this.unpatchFunctions.filter(fn => fn !== cleanupConnection);
+                };
+                this.unpatchFunctions.push(cleanupConnection);
+
+                removeConnectedListener = Emitter.addListener(connection.emitter, "on", "connected", () => {
                     this.forceUpdateTransportationOptions();
-                });
+                }, PluginInfo.PLUGIN_NAME);
 
-                Emitter.addListener(connection.emitter, "on", "destroy", () => {
+                removeDestroyListener = Emitter.addListener(connection.emitter, "on", "destroy", () => {
+                    cleanupConnection();
+                    if (this.connection === connection)
+                        this.connection = undefined;
+
                     this.forceUpdateTransportationOptions = () => void 0;
-                });
+                    this.oldSetTransportOptions = () => void 0;
+                    this.oldSetVoiceBitRate = () => void 0;
+                }, PluginInfo.PLUGIN_NAME);
             };
 
-        Emitter.addListener(
+        this.unpatchFunctions.push(Emitter.addListener(
             this.mediaEngine.emitter,
             "on",
             "connection",
             connectionEventFunction,
             PluginInfo.PLUGIN_NAME
-        );
+        ));
 
         return this;
     }
 
     public unpatch(): this {
-        return this._unpatch();
+        this._unpatch();
+        this.connection = undefined;
+        this.forceUpdateTransportationOptions = () => void 0;
+        this.oldSetTransportOptions = () => void 0;
+        this.oldSetVoiceBitRate = () => void 0;
+
+        return this;
     }
 }

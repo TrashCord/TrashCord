@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MicrophoneProfile, MicrophoneStore } from "@plugins/betterMicrophone.desktop/stores";
-import { ProfilableStore, replaceObjectValuesIfExist, types } from "@plugins/philsPluginLibrary";
 import { Logger } from "@utils/Logger";
 import { lodash } from "@webpack/common";
+
+import { MicrophoneProfile, MicrophoneStore } from "../../betterMicrophone.desktop/stores";
+import { ProfilableStore, replaceObjectValuesIfExist, types } from "../../philsPluginLibrary";
 
 export function getDefaultAudioTransportationOptions(connection: types.Connection) {
     return {
@@ -62,12 +63,20 @@ export function getReplaceableAudioTransportationOptions(connection: types.Conne
     };
 }
 
+function getVoiceBitRate(target: number, get: ProfilableStore<MicrophoneStore, MicrophoneProfile>["get"]) {
+    const { currentProfile } = get();
+    const { voiceBitrate, voiceBitrateEnabled } = currentProfile;
+
+    return voiceBitrateEnabled && voiceBitrate ? voiceBitrate * 1000 : target;
+}
+
 export function patchConnectionAudioTransportOptions(
     connection: types.Connection,
     get: ProfilableStore<MicrophoneStore, MicrophoneProfile>["get"],
     logger?: Logger
 ) {
     const oldSetTransportOptions = connection.conn.setTransportOptions;
+    const oldSetVoiceBitRate = connection.setVoiceBitRate;
 
     connection.conn.setTransportOptions = function (this: any, options: Record<string, any>) {
         replaceObjectValuesIfExist(options, getReplaceableAudioTransportationOptions(connection, get));
@@ -75,13 +84,23 @@ export function patchConnectionAudioTransportOptions(
         return Reflect.apply(oldSetTransportOptions, this, [options]);
     };
 
+    connection.setVoiceBitRate = function (target: number) {
+        const voiceBitRate = getVoiceBitRate(target, get);
+
+        logger?.info("Overridden Voice Bitrate", voiceBitRate);
+
+        return Reflect.apply(oldSetVoiceBitRate, this, [voiceBitRate]);
+    };
+
     const forceUpdateTransportationOptions = () => {
         const transportOptions = lodash.merge({ ...getDefaultAudioTransportationOptions(connection) }, getReplaceableAudioTransportationOptions(connection, get));
+        const voiceBitRate = getVoiceBitRate(transportOptions.encodingVoiceBitRate ?? 64000, get);
 
         logger?.info("Overridden Transport Options", transportOptions);
 
-        oldSetTransportOptions(transportOptions);
+        Reflect.apply(oldSetTransportOptions, connection.conn, [transportOptions]);
+        Reflect.apply(oldSetVoiceBitRate, connection, [voiceBitRate]);
     };
 
-    return { oldSetTransportOptions, forceUpdateTransportationOptions };
+    return { oldSetTransportOptions, oldSetVoiceBitRate, forceUpdateTransportationOptions };
 }

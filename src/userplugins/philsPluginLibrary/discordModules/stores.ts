@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as types from "@plugins/philsPluginLibrary/types";
+import * as types from "../../philsPluginLibrary/types";
 import { findStoreLazy } from "@webpack";
 
-export const MediaEngineStore: types.MediaEngineStore = findStoreLazy("MediaEngineStore");
+export const MediaEngineStore = findStoreLazy("MediaEngineStore");

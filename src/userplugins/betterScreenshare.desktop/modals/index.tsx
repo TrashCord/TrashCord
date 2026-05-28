@@ -28,7 +28,10 @@ const onScreenshareModalDone = () => {
 
     if (screensharePatcher) {
         screensharePatcher.forceUpdateTransportationOptions();
-        screensharePatcher.forceUpdateDesktopSourceOptions();
+        if (screensharePatcher.hasActiveDesktopSource()) {
+            screensharePatcher.forceUpdateDesktopEncodingOptions();
+            screensharePatcher.forceUpdateDesktopSourceOptions();
+        }
     }
     if (screenshareAudioPatcher)
         screenshareAudioPatcher.forceUpdateTransportationOptions();

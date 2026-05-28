@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ScreenshareProfile, ScreenshareStore } from "@plugins/betterScreenshare.desktop/stores";
-import { ProfilableStore, replaceObjectValuesIfExist, types, utils } from "@plugins/philsPluginLibrary";
 import { Logger } from "@utils/Logger";
 import { lodash } from "@webpack/common";
 
+import { ScreenshareProfile, ScreenshareStore } from "../../betterScreenshare.desktop/stores";
+import { ProfilableStore, replaceObjectValuesIfExist, types, utils } from "../../philsPluginLibrary";
 
 export function getDefaultVideoTransportationOptions(connection: types.Connection) {
     return {
@@ -176,10 +176,28 @@ export function getReplaceableVideoTransportationOptions(connection: types.Conne
 export function getReplaceableVideoDesktopSourceOptions(get: ProfilableStore<ScreenshareStore, ScreenshareProfile>["get"]) {
     const { currentProfile } = get();
     const {
+        framerate,
+        framerateEnabled,
+        height,
         hdrEnabled,
+        resolutionEnabled,
+        width,
     } = currentProfile;
 
     return {
+        ...((resolutionEnabled && width && height)
+            ? {
+                height,
+                width,
+            }
+            : {}
+        ),
+        ...(framerateEnabled && framerate
+            ? {
+                fps: framerate
+            }
+            : {}
+        ),
         ...(hdrEnabled
             ? {
                 hdrCaptureMode: "always"
@@ -210,12 +228,27 @@ export function patchConnectionVideoSetDesktopSourceWithOptions(
 
         logger?.info("Force Updated Desktop Source Options", desktopSourceOptions);
 
-        oldSetDesktopSourceWithOptions(desktopSourceOptions);
+        Reflect.apply(oldSetDesktopSourceWithOptions, connection.conn, [desktopSourceOptions]);
     };
 
     return {
         oldSetDesktopSourceWithOptions,
         forceUpdateDesktopSourceOptions
+    };
+}
+
+function getDesktopEncodingOptions(
+    width: number,
+    height: number,
+    framerate: number,
+    get: ProfilableStore<ScreenshareStore, ScreenshareProfile>["get"]
+) {
+    const { currentProfile } = get();
+
+    return {
+        width: currentProfile.resolutionEnabled && currentProfile.width ? currentProfile.width : width,
+        height: currentProfile.resolutionEnabled && currentProfile.height ? currentProfile.height : height,
+        framerate: currentProfile.framerateEnabled && currentProfile.framerate ? currentProfile.framerate : framerate,
     };
 }
 
@@ -225,6 +258,8 @@ export function patchConnectionVideoTransportOptions(
     logger?: Logger
 ) {
     const oldSetTransportOptions = connection.conn.setTransportOptions;
+    const oldSetDesktopEncodingOptions = connection.setDesktopEncodingOptions;
+    const oldOnDesktopEncodingOptionsSet = connection.onDesktopEncodingOptionsSet ?? (() => void 0);
     const oldGetQuality = connection.videoQualityManager.getQuality;
 
     connection.videoQualityManager.getQuality = function (src) {
@@ -233,10 +268,10 @@ export function patchConnectionVideoTransportOptions(
 
         const quality = oldGetQuality.call(this, src);
 
-        if (videoBitrateEnabled) {
-            quality.bitrateMax = Math.round(videoBitrate! * 1000);
-            quality.bitrateMin = Math.round(videoBitrate! * 1000);
-            quality.bitrateTarget = Math.round(videoBitrate! * 1000);
+        if (videoBitrateEnabled && videoBitrate) {
+            quality.bitrateMax = Math.round(videoBitrate * 1000);
+            quality.bitrateMin = Math.round(videoBitrate * 1000);
+            quality.bitrateTarget = Math.round(videoBitrate * 1000);
         }
 
         quality.localWant = 100;
@@ -266,16 +301,64 @@ export function patchConnectionVideoTransportOptions(
         return Reflect.apply(oldSetTransportOptions, this, [options]);
     };
 
+    connection.setDesktopEncodingOptions = function (width: number, height: number, framerate: number) {
+        const desktopEncodingOptions = getDesktopEncodingOptions(width, height, framerate, get);
+
+        logger?.info("Overridden Desktop Encoding Options", desktopEncodingOptions);
+
+        return Reflect.apply(oldSetDesktopEncodingOptions, this, [
+            desktopEncodingOptions.width,
+            desktopEncodingOptions.height,
+            desktopEncodingOptions.framerate
+        ]);
+    };
+
+    connection.onDesktopEncodingOptionsSet = function (width: number, height: number, framerate: number) {
+        const desktopEncodingOptions = getDesktopEncodingOptions(width, height, framerate, get);
+
+        return Reflect.apply(oldOnDesktopEncodingOptionsSet, this, [
+            desktopEncodingOptions.width,
+            desktopEncodingOptions.height,
+            desktopEncodingOptions.framerate
+        ]);
+    };
+
     const forceUpdateTransportationOptions = () => {
         const transportOptions = lodash.merge({ ...getDefaultVideoTransportationOptions(connection) }, getReplaceableVideoTransportationOptions(connection, get));
 
         logger?.info("Force Updated Transport Options", transportOptions);
 
-        oldSetTransportOptions(transportOptions);
+        Reflect.apply(oldSetTransportOptions, connection.conn, [transportOptions]);
+    };
+
+    const forceUpdateDesktopEncodingOptions = () => {
+        if (connection.destroyed || connection.connectionState !== "CONNECTED" || !connection.hasDesktopSource()) return;
+
+        const { capture } = connection.applyQualityConstraints({}).quality;
+        const desktopEncodingOptions = getDesktopEncodingOptions(
+            capture.width,
+            capture.height,
+            capture.framerate,
+            get
+        );
+
+        if (!desktopEncodingOptions.width || !desktopEncodingOptions.height || !desktopEncodingOptions.framerate) return;
+
+        logger?.info("Force Updated Desktop Encoding Options", desktopEncodingOptions);
+
+        Reflect.apply(oldSetDesktopEncodingOptions, connection, [
+            desktopEncodingOptions.width,
+            desktopEncodingOptions.height,
+            desktopEncodingOptions.framerate
+        ]);
     };
 
     return {
+        oldGetQuality,
+        oldOnDesktopEncodingOptionsSet,
+        oldSetDesktopEncodingOptions,
         oldSetTransportOptions,
+        forceUpdateDesktopEncodingOptions,
         forceUpdateTransportationOptions,
     };
 }

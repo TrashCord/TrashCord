@@ -16,17 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
-import { PluginInfo } from "@plugins/betterMicrophone.desktop/constants";
-import { openMicrophoneSettingsModal } from "@plugins/betterMicrophone.desktop/modals";
-import { MicrophonePatcher } from "@plugins/betterMicrophone.desktop/patchers";
-import { initMicrophoneStore } from "@plugins/betterMicrophone.desktop/stores";
-import { Emitter, MicrophoneSettingsIcon } from "@plugins/philsPluginLibrary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Menu } from "@webpack/common";
+
+import { PluginInfo } from "../betterMicrophone.desktop/constants";
+import { openMicrophoneSettingsModal } from "../betterMicrophone.desktop/modals";
+import { MicrophonePatcher } from "../betterMicrophone.desktop/patchers";
+import { initMicrophoneStore } from "../betterMicrophone.desktop/stores";
+import { Emitter, MicrophoneSettingsIcon } from "../philsPluginLibrary";
 
 const Button = findComponentByCodeLazy(".NONE,disabled:", ".PANEL_BUTTON");
 
@@ -35,7 +34,7 @@ function micSettingsButton() {
     if (hideSettingsIcon) return null;
     return (
         <Button
-            tooltipText="Change Screenshare Settings"
+            tooltipText="Change microphone settings"
             icon={MicrophoneSettingsIcon}
             role="button"
             onClick={openMicrophoneSettingsModal}
@@ -43,21 +42,10 @@ function micSettingsButton() {
     );
 }
 
-const microphoneContextMenuPatch: NavContextMenuPatchCallback = (children) => {
-    children.push(
-        <Menu.MenuSeparator />,
-        <Menu.MenuItem
-            id="better-microphone-open-settings"
-            label="Microphone Plugin Settings"
-            action={openMicrophoneSettingsModal}
-        />
-    );
-};
-
 const settings = definePluginSettings({
     hideSettingsIcon: {
         type: OptionType.BOOLEAN,
-        description: "Hide the settings icon",
+        description: "Hide the settings icon.",
         default: true,
     }
 });
@@ -65,7 +53,7 @@ const settings = definePluginSettings({
 export default definePlugin({
     name: "BetterMicrophone",
     description: "This plugin allows you to further customize your microphone.",
-    authors: [Devs.philhk],
+    authors: [Devs.phil],
     tags: ["Voice", "Customisation"],
     enabledByDefault: false,
     dependencies: ["PhilsPluginLibrary"],
@@ -81,15 +69,13 @@ export default definePlugin({
     settings: settings,
     start(): void {
         initMicrophoneStore();
-        this.microphonePatcher = new MicrophonePatcher().patch();
 
-        addContextMenuPatch("audio-device-context", microphoneContextMenuPatch);
+        this.microphonePatcher = new MicrophonePatcher().patch();
     },
     stop(): void {
         this.microphonePatcher?.unpatch();
-        Emitter.removeAllListeners(PluginInfo.PLUGIN_NAME);
 
-        removeContextMenuPatch("audio-device-context", microphoneContextMenuPatch);
+        Emitter.removeAllListeners(PluginInfo.PLUGIN_NAME);
     },
     toolboxActions: {
         "Open Microphone Settings": openMicrophoneSettingsModal

@@ -19,11 +19,11 @@
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 
-
 const plugin = definePlugin({
     name: "PhilsPluginLibrary",
     description: "A library for phil's plugins",
-    authors: [Devs.philhk],
+    authors: [Devs.phil],
+    tags: ["Utility", "Voice"],
     patches: [
         {
             find: "Unknown frame rate",
@@ -40,7 +40,6 @@ const plugin = definePlugin({
         }
     ]
 });
-
 
 export default plugin;
 
