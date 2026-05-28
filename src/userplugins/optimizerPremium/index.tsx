@@ -7,6 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
+import { disableCacheLimits, resetCacheLimits } from "@utils/cacheLimits";
 import definePlugin, { OptionType } from "@utils/types";
 import { findAll } from "@webpack";
 
@@ -25,7 +26,7 @@ const settings = definePluginSettings({
         description: "Delay in ms applied to throttled DOM updates. Higher delays free more CPU but make those UI bits update slower.",
         markers: [25, 50, 100, 150, 250, 500],
         default: 100,
-        stickToMarkers: false
+        stickToMarkers: true
     },
     disableSpringAnimations: {
         type: OptionType.BOOLEAN,
@@ -48,14 +49,14 @@ const settings = definePluginSettings({
         description: "How long, in minutes, the network cache keeps entries before evicting them.",
         markers: [1, 5, 10, 15, 30, 60],
         default: 5,
-        stickToMarkers: false
+        stickToMarkers: true
     },
     networkCacheMaxEntries: {
         type: OptionType.SLIDER,
         description: "Hard cap on cached image entries. Oldest entries are evicted first when exceeded.",
         markers: [50, 100, 200, 500, 1000],
         default: 200,
-        stickToMarkers: false
+        stickToMarkers: true
     },
     forceLowImageQuality: {
         type: OptionType.BOOLEAN,
@@ -169,6 +170,11 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Log optimization activity to the console. Disable for production.",
         default: false
+    },
+    cacheLimitsEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Cap internal plugin caches (diffs, translations, ZIP previews, logged messages, voice stats) to prevent unbounded memory growth. Disable if you have RAM to spare and want maximum cache hit rate.",
+        default: true
     }
 });
 
@@ -187,7 +193,6 @@ export default definePlugin({
     description: "Combined performance suite: tooltip/emoji/spinner/confetti/gateway patches, bounded image cache, react-spring skip, offscreen media pause, safe DOM throttling, lazy images.",
     authors: [Devs.x2b],
     tags: ["Utility", "Developers"],
-    enabledByDefault: false,
     settings,
 
     patches: [
@@ -247,7 +252,6 @@ export default definePlugin({
         }
     ],
 
-    // ---- Runtime state (cleaned up in stop()) ----
     originals: {} as {
         rAF?: typeof window.requestAnimationFrame;
         cAF?: typeof window.cancelAnimationFrame;
@@ -291,6 +295,14 @@ export default definePlugin({
         if (settings.store.lazyEmbedImages) this.installLazyImages();
         this.installExtraCSS();
 
+        if (settings.store.cacheLimitsEnabled) {
+            resetCacheLimits();
+            if (settings.store.verboseLogging) logger.info("Plugin cache limits active");
+        } else {
+            disableCacheLimits();
+            if (settings.store.verboseLogging) logger.info("Plugin cache limits disabled");
+        }
+
         if (settings.store.verboseLogging) logger.info("Started");
     },
 
@@ -313,11 +325,10 @@ export default definePlugin({
 
         this.networkCache.clear();
         this.networkCacheOrder.length = 0;
+
+        resetCacheLimits();
     },
 
-    // ---------------------------------------------------------------------
-    // DOM throttle — observer-based, doesn't touch appendChild
-    // ---------------------------------------------------------------------
     installDomThrottle() {
         const delay = settings.store.domThrottleDelay;
         const matches = (el: Element): boolean => {
@@ -358,9 +369,6 @@ export default definePlugin({
         this.domThrottleTimers.clear();
     },
 
-    // ---------------------------------------------------------------------
-    // rAF reduction with proper cancelAnimationFrame support
-    // ---------------------------------------------------------------------
     installRafReduction() {
         const original = window.requestAnimationFrame.bind(window);
         const originalCancel = window.cancelAnimationFrame.bind(window);
@@ -410,9 +418,6 @@ export default definePlugin({
         this.rafFakeHandles.clear();
     },
 
-    // ---------------------------------------------------------------------
-    // Network layer with LRU cap
-    // ---------------------------------------------------------------------
     installNetworkLayer() {
         const originalFetch = window.fetch.bind(window);
         this.originals.fetch = window.fetch;
@@ -509,9 +514,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // Spring skip — cache findAll result
-    // ---------------------------------------------------------------------
     installSpringSkip() {
         if (this.springs.length === 0) {
             const mods = findAll(mod => {
@@ -529,12 +531,11 @@ export default definePlugin({
         for (const spring of this.springs) {
             spring.Globals?.assign?.({ skipAnimation: false });
         }
-        // Keep `springs` cached for next start()
+        // Drop module refs so they don't pin webpack chunks in memory when the
+        // plugin is disabled. Next start() will repopulate via findAll().
+        this.springs = [];
     },
 
-    // ---------------------------------------------------------------------
-    // Memory manager — guarded, no fake gc() spam
-    // ---------------------------------------------------------------------
     installMemoryManager() {
         const intervalMs = settings.store.memoryCheckSeconds * 1000;
         const perf = performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number; }; };
@@ -578,9 +579,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // Offscreen media pause
-    // ---------------------------------------------------------------------
     installOffscreenMediaPause() {
         if (typeof IntersectionObserver === "undefined") return;
         const paused = this.pausedMedia;
@@ -633,9 +631,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // CSS optimizations — scoped selectors only
-    // ---------------------------------------------------------------------
     installCSSOptimizations() {
         const rules: string[] = [];
         if (settings.store.virtualizeMessages) {
@@ -662,9 +657,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // Passive listeners — preserve removeEventListener compatibility
-    // ---------------------------------------------------------------------
     installPassiveListeners() {
         const PASSIVE_EVENTS = new Set(["wheel", "mousewheel", "touchstart", "touchmove", "touchend"]);
         const originalAdd = EventTarget.prototype.addEventListener;
@@ -698,9 +690,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // Console suppression
-    // ---------------------------------------------------------------------
     installConsoleSuppression() {
         this.originals.console = {
             log: console.log,
@@ -722,9 +711,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // ResizeObserver throttle — preserve instanceof via prototype chain
-    // ---------------------------------------------------------------------
     installResizeObserverThrottle() {
         if (typeof ResizeObserver === "undefined") return;
         const Native = ResizeObserver;
@@ -779,9 +765,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // GIF freezer — memory-bounded. Uses one shared canvas, no per-image data URLs.
-    // ---------------------------------------------------------------------
     installGifFreezer() {
         const sharedCanvas = document.createElement("canvas");
         const ctx = sharedCanvas.getContext("2d");
@@ -868,9 +851,6 @@ export default definePlugin({
         });
     },
 
-    // ---------------------------------------------------------------------
-    // Lazy images
-    // ---------------------------------------------------------------------
     installLazyImages() {
         const apply = (img: HTMLImageElement) => {
             if (img.dataset.opLazy === "1") return;
@@ -897,9 +877,6 @@ export default definePlugin({
         }
     },
 
-    // ---------------------------------------------------------------------
-    // Extra CSS — kept narrow to avoid universal-selector cost
-    // ---------------------------------------------------------------------
     installExtraCSS() {
         const rules: string[] = [];
 

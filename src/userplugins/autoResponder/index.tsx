@@ -313,9 +313,8 @@ export default definePlugin({
             addHeaderBarButton("AutoResponder", () => (
                 <HeaderBarButton
                     icon={KeyboardIcon}
-                    tooltip="AutoResponder"
-                    onClick={() => { settings.store.isActive = !settings.store.isActive; }}
-                />
+                    icon={() => <KeyboardIcon enabled={settings.store.isActive} />}
+                    tooltip={`AutoResponder: ${settings.store.isActive ? "ON" : "OFF"}`}                />
             ), 5);
         }
     },

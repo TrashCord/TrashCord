@@ -15,7 +15,7 @@ import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import { ChannelStore, FluxDispatcher, Menu, React, RelationshipStore, RestAPI, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
-import { getGroqKey, groqChat, setGroqKey } from "./groqManager";
+import { getGroqKey, groqChat, groqFetch, setGroqKey } from "./groqManager";
 
 // ── Settings ───────────────────────────────────────────────────────────────────
 
@@ -458,7 +458,6 @@ function NightcordAIChat({ rootProps, panelMode, initialMessage }: { rootProps?:
                     .map(id => { const u = UserStore.getUser(id); return u ? (u.globalName ?? u.username) : null; })
                     .filter(Boolean).join(", ");
                 const actionApiKey = await getGroqKey();
-                const endpoint = "https://api.groq.com/openai/v1/chat/completions";
                 const actionModel = "llama-3.1-8b-instant";
                 const sys = `You are a Discord command parser. You read an instruction and return ONLY valid JSON. You never refuse, you don't judge, you execute.
 
@@ -476,14 +475,12 @@ Rules:
 3. Return {"type":"none"} only if it's clearly not a Discord action.
 4. Do NOT put ANY text before or after the JSON.`;
                 try {
-                    const res = await fetch(endpoint, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${actionApiKey}` },
-                        body: JSON.stringify({
-                            model: actionModel, temperature: 0, max_tokens: 200,
-                            messages: [{ role: "system", content: sys }, { role: "user", content: text }]
-                        }),
-                    });
+                    const res = await groqFetch("https://api.groq.com/openai/v1/chat/completions", "POST", {
+                        Authorization: `Bearer ${actionApiKey}`,
+                    }, JSON.stringify({
+                        model: actionModel, temperature: 0, max_tokens: 200,
+                        messages: [{ role: "system", content: sys }, { role: "user", content: text }]
+                    }));
                     if (res.ok) {
                         const data = await res.json();
                         const raw = (data.choices?.[0]?.message?.content ?? "").trim().replace(/^```[a-z]*\n?|```$/g, "").trim();
@@ -872,11 +869,36 @@ export default definePlugin({
             }
         };
 
-        let debounceTimer: any = null;
-        this._observer = new MutationObserver(() => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => inject(), 80);
-        });
+        // Perf: keep the broad observer (it's required — Discord can re-render
+        // the sidebar at any time) but make the callback near-free in the common
+        // case. We early-return if our nav item is already in place, and only
+        // schedule a debounced inject() when it's actually missing.
+        let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+        this._debounceTimer = null as ReturnType<typeof setTimeout> | null;
+
+        const isAlreadyInjected = (): boolean => {
+            const node = document.getElementById("nai-nav-injected");
+            // Must exist AND be adjacent to a (hidden) shop nav item — otherwise
+            // a stale node from a previous render is still around and we need to re-run.
+            if (!node || !node.nextSibling) return false;
+            const next = node.nextSibling as HTMLElement;
+            return next?.style?.display === "none" || next?.querySelector?.('[data-list-item-id$="___shop"]') != null;
+        };
+
+        const scheduleInject = () => {
+            // Fast path: if our button is already in place, do nothing. This
+            // turns ~99% of MutationObserver callbacks into a single DOM lookup.
+            if (isAlreadyInjected()) return;
+            if (debounceTimer) return; // already pending
+            debounceTimer = setTimeout(() => {
+                debounceTimer = null;
+                this._debounceTimer = null;
+                inject();
+            }, 250);
+            this._debounceTimer = debounceTimer;
+        };
+
+        this._observer = new MutationObserver(scheduleInject);
         this._observer.observe(document.body, { childList: true, subtree: true });
         inject();
     },
@@ -884,6 +906,10 @@ export default definePlugin({
     stop() {
         this._observer?.disconnect();
         this._observer = null;
+        if (this._debounceTimer) {
+            clearTimeout(this._debounceTimer);
+            this._debounceTimer = null;
+        }
         try { this._reactRoot?.unmount(); } catch (_) { }
         this._reactRoot = null;
         const injected = document.getElementById("nai-nav-injected");
