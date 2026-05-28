@@ -18,7 +18,7 @@ import {
 } from "@webpack/common";
 import definePlugin, { OptionType } from "@utils/types";
 import { User, VoiceState } from "@vencord/discord-types";
-import { TestcordDevs } from "@utils/constants";
+import { Devs } from "@utils/constants";
 
 type TLeashedUserInfo = {
     userId: string;
@@ -134,7 +134,7 @@ export default definePlugin({
     name: "Leash",
     description:
         "Leashes a user to you by automatically moving them to the voice channel you go to",
-    authors: [TestcordDevs.x2b],
+    authors: [Devs.x2b],
     tags: ["Utility"],
     enabledByDefault: false,
     settings,
