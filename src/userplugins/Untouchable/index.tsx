@@ -280,7 +280,7 @@ function resetState() {
 export default definePlugin({
     name: "Untouchable",
     description: "Keeps you in control of your voice presence and identity. Rejoins if disconnected, blocks moves, auto-unmutes/undeafens, and restores your nickname if someone else changes it.",
-    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Privacy", "Utility", "Fun", "Bypass", "Auto"],
     enabledByDefault: false,
 

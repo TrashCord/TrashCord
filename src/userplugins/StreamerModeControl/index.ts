@@ -84,7 +84,7 @@ const settings = definePluginSettings({
 export default definePlugin({
     name: "StreamerModeControl",
     description: "Control all Streamer Mode options directly from plugin settings",
-    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Privacy"],
     enabledByDefault: false,
     settings,

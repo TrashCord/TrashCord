@@ -218,7 +218,7 @@ const makeContextMenuPatch: (withIcon: boolean) => NavContextMenuPatchCallback =
 export default definePlugin({
     name: "AutoServerNotifications",
     description: "Apply custom notification settings to all servers, with auto-apply on join and a right-click context menu.",
-    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Servers", "Notification", "Mute", "Notifications", "Server", "Auto"],
     enabledByDefault: false,
     settings,
