@@ -64,6 +64,10 @@ export const CspPolicies: PolicyMap = {
     "dearrow-thumb.ajay.app": ImageSrc, // Dearrow Thumbnail CDN
     "usrbg.is-hardly.online": ImageSrc, // USRBG API
     "icons.duckduckgo.com": ImageSrc, // DuckDuckGo Favicon API (Reverse Image Search)
+
+    // AI APIs — used by TrashCord plugins (NightcordAI, ChatGPT, AutoCorrect, VoiceDictation, TriviaAI, etc.)
+    "api.groq.com": ConnectSrc,
+    "api.openai.com": ConnectSrc,
 };
 
 const findHeader = (headers: PolicyMap, headerName: Lowercase<string>) => {
