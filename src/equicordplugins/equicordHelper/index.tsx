@@ -83,7 +83,7 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Discord hides your own activity buttons for some reason",
         restartNeeded: true,
-        default: true,
+        default: false,
     },
     refreshSlashCommands: {
         type: OptionType.BOOLEAN,
