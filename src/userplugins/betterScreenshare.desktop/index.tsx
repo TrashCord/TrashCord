@@ -513,47 +513,60 @@ const BetterScreenshare = definePlugin({
 
         let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 
-        const extractUserIdFromAvatar = (url: string): string | null => {
-            const match = url.match(/\/avatars\/(\d+)\//);
-            return match ? match[1] : null;
+        const getCurrentUserId = (): string | null => {
+            const user = UserStore.getCurrentUser();
+            return user?.id ?? null;
         };
 
-        const updateMainStreamQuality = () => {
-            const currentUser = UserStore.getCurrentUser();
-            if (!currentUser) return;
-
-            const topBar = document.querySelector('.topControls_bfe55a, [class*="topControls_"]');
-            if (!topBar) return;
-
-            const ownerAvatar = topBar.querySelector('img[class*="avatar__"], div[class*="avatar__"] > img');
-            if (!ownerAvatar || !(ownerAvatar instanceof HTMLImageElement)) return;
-
-            const ownerId = extractUserIdFromAvatar(ownerAvatar.src);
-            if (!ownerId || ownerId !== currentUser.id) return;
-
-            const qualityContainer = topBar.querySelector('[class*="streamQualityIndicator__"]');
-            if (!qualityContainer) return;
-
-            const resolutionSpan = qualityContainer.querySelector('[class*="qualityResolution__"]');
-            const fpsSpan = resolutionSpan?.nextElementSibling;
-            if (!resolutionSpan || !fpsSpan) return;
+        const updateMyStreamQuality = () => {
+            const currentUserId = getCurrentUserId();
+            if (!currentUserId) return;
 
             const { currentProfile } = screenshareStore.get();
             const { resolutionEnabled, height, framerateEnabled, framerate } = currentProfile;
 
-            let newResolution = resolutionSpan.textContent || "720p";
-            let newFps = (fpsSpan.textContent || "30 FPS").replace(" FPS", "");
-
+            let newResolution = "";
+            let newFps = "";
             if (resolutionEnabled && height) newResolution = `${height}p`;
             if (framerateEnabled && framerate) newFps = `${framerate}`;
 
-            if (resolutionSpan.textContent !== newResolution) resolutionSpan.textContent = newResolution;
-            if (fpsSpan.textContent !== `${newFps} FPS`) fpsSpan.textContent = `${newFps} FPS`;
+            const topBar = document.querySelector('[class*="topControls_"], [class*="controlSection_"]');
+            if (topBar) {
+                const avatarImg = topBar.querySelector('img[class*="avatar__"]');
+                if (avatarImg && avatarImg instanceof HTMLImageElement) {
+                    const userId = avatarImg.src.match(/\/avatars\/(\d+)\//)?.[1];
+                    if (userId === currentUserId) {
+                        const qualityContainer = topBar.querySelector('[class*="streamQualityIndicator__"]');
+                        if (qualityContainer) {
+                            const resolutionSpan = qualityContainer.querySelector('[class*="qualityResolution__"]');
+                            const fpsSpan = resolutionSpan?.nextElementSibling;
+                            if (resolutionSpan && fpsSpan) {
+                                if (newResolution && resolutionSpan.textContent !== newResolution) resolutionSpan.textContent = newResolution;
+                                if (newFps && fpsSpan.textContent !== `${newFps} FPS`) fpsSpan.textContent = `${newFps} FPS`;
+                            }
+                        }
+                    }
+                }
+            }
+
+            const myTiles = document.querySelectorAll(`[data-selenium-video-tile="${currentUserId}"]`);
+            for (const tile of myTiles) {
+                const video = tile.querySelector('video');
+                if (!video || video.paused || video.readyState < 2) continue;
+                const qualityContainer = tile.querySelector('[class*="streamQualityIndicator__"]');
+                if (!qualityContainer) continue;
+                const resolutionSpan = qualityContainer.querySelector('[class*="qualityResolution__"]');
+                const fpsSpan = resolutionSpan?.nextElementSibling;
+                if (resolutionSpan && fpsSpan) {
+                    if (newResolution && resolutionSpan.textContent !== newResolution) resolutionSpan.textContent = newResolution;
+                    if (newFps && fpsSpan.textContent !== `${newFps} FPS`) fpsSpan.textContent = `${newFps} FPS`;
+                }
+            }
         };
 
         const debouncedUpdate = () => {
             if (updateTimeout) clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(updateMainStreamQuality, 50);
+            updateTimeout = setTimeout(updateMyStreamQuality, 100);
         };
 
         this.qualityObserver = new MutationObserver(debouncedUpdate);
@@ -561,10 +574,10 @@ const BetterScreenshare = definePlugin({
             subtree: true,
             childList: true,
             attributes: true,
-            attributeFilter: ['class', 'src']
+            attributeFilter: ['class', 'src', 'data-selenium-video-tile']
         });
 
-        updateMainStreamQuality();
+        updateMyStreamQuality();
     },
     stop(): void {
         this.unpatchChannelRTCStore?.();
