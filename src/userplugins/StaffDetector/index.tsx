@@ -663,8 +663,8 @@ export default definePlugin({
     name: "StaffDetector",
     description: "Alerts (toast/notification + sound) when staff join or leave your VC.",
     authors: [
-        { name: "Irritably", id: 928787166916640838n },
-        { name: "zFrxncesck1", id: 456195985404592149n },
+        { name: "irritably", id: 928787166916640838n },
+        { name: "zfrancesck1", id: 456195985404592149n },
     ],
     tags: ["Servers", "Utility"],
     enabledByDefault: false,

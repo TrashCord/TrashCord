@@ -232,7 +232,7 @@ async function processQueue() {
 export default definePlugin({
     name: "NitroSniperOptimized",
     description: "Advanced Nitro sniper with adaptive logic and full control. ⚠️ Use at your own risk.",
-    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Utility", "Fun", "Chat", "Nitro"],
     enabledByDefault: false,
     settings,

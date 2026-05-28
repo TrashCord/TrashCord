@@ -98,7 +98,7 @@ async function startSpam() {
 export default definePlugin({
     name: "ScreenshareSpammer",
     description: "Spam Screenshare Start/Stop in VC",
-    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Fun", "Spam", "Shortcuts"],
     enabledByDefault: false,
     settings,

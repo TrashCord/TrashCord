@@ -3,7 +3,7 @@ import definePlugin from "@utils/types";
 export default definePlugin({
     name: "HideFormFullscreen",
     description: "Hides the chat input during fullscreen DM calls",
-    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Appearance", "Utility"],
     enabledByDefault: false,
     start() {

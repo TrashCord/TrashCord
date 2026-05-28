@@ -29,7 +29,7 @@ const settings = definePluginSettings({
         default: true,
         restartNeeded: true,
     },
-    optimizeTooltip: {
+    optimizeTooltips: {
         type: OptionType.BOOLEAN,
         description: "Bypasses flushSync in tooltip state updates - prevents forced synchronous re-renders on hover.",
         default: true,
@@ -41,7 +41,7 @@ const settings = definePluginSettings({
         default: true,
         restartNeeded: true,
     },
-    disableSpinner: {
+    killLoadingSpinner: {
         type: OptionType.BOOLEAN,
         description: "Removes the app loading spinner - skips spinner source resolution on startup, saving ~100ms.",
         default: true,
@@ -60,7 +60,7 @@ export default definePlugin({
     description: "Collection of small performance improvements",
     authors: [
         { id: 579731384868798464n, name: "void" },
-        { id: 456195985404592149n, name: "zFrxncesck1" },
+        { id: 456195985404592149n, name: "zfrancesck1" },
     ],
     tags: ["Developers", "Utility"],
     enabledByDefault: false,
@@ -91,14 +91,14 @@ export default definePlugin({
         },
         {
             find: "this.state.shouldShowTooltip!==",
-            predicate: () => settings.store.optimizeTooltip,
+            predicate: () => settings.store.optimizeTooltips,
             replacement: [
                 {
-                    match: /\w.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\w)\}\)\}\)/,
-                    replace: (_, param) => "this.__open=" + param + ",this.setState({shouldShowTooltip:" + param + "})",
+                    match: /\i.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\i)\}\)\}\)/,
+                    replace: (_m, p) => `this.__open=${p},this.setState({shouldShowTooltip:${p}})`,
                 },
                 {
-                    match: /if\(this\.state\.shouldShowTooltip!==(\w)\)/,
+                    match: /if\(this\.state\.shouldShowTooltip!==(\i)\)/,
                     replace: "if(this.__open!==$1)",
                 },
             ],
@@ -106,18 +106,25 @@ export default definePlugin({
         {
             find: "this.rebuildFavoriteEmojisWithoutFetchingLatest()",
             predicate: () => settings.store.optimizeEmojiCache,
-            replacement: {
-                match: /(\w)=>\{let \w=(\w)\[null==\w\?(\w)\.kod:\w\];null!=\w&&\((\w)\(\)\.each\(\w\.usableEmojis,(\w)\),\w\(\)\.each\(\w\.emoticons,(\w)\)\)\};/,
-                replace: (_, e, q, k, a, n, r) =>
-                    `${e}=>{const t=${q}[null==${e}?${k}.kod:${e}];const usableEmojis=t?.usableEmojis;const emoticons=t?.emoticons;null!=t&&(${a}().each(usableEmojis,${n}),${a}().each(emoticons,${r}))};`,
-            },
+            replacement: [
+                {
+                    match: /(\i)=>\{let \i=(\i)\[null==\i\?(\i)\.kod:\i\];null!=\i&&\((\i)\(\)\.each\(\i\.usableEmojis,(\i)\),\i\(\)\.each\(\i\.emoticons,(\i)\)\)\};/,
+                    replace: (_m, e, q, k, a, n, r) =>
+                        `${e}=>{` +
+                        `const t=${q}[null==${e}?${k}.kod:${e}];` +
+                        "const usableEmojis=t?.usableEmojis;" +
+                        "const emoticons=t?.emoticons;" +
+                        `null!=t&&(${a}().each(usableEmojis,${n}),${a}().each(emoticons,${r}))` +
+                        "};",
+                },
+            ],
         },
         {
-            find: /\w\.\w\.getAppSpinnerSources\(\)/,
-            predicate: () => settings.store.disableSpinner,
+            find: /\i\.\i\.getAppSpinnerSources\(\)/,
+            predicate: () => settings.store.killLoadingSpinner,
             replacement: {
-                match: /let \w=\w\.\w\.getAppSpinnerSources\(\).+?;(\w\.\w).+?\)\}/,
-                replace: "$1 = () => null;",
+                match: /let \i=\i\.\i\.getAppSpinnerSources\(\).+?;(\i\.\i).+?\)\}/,
+                replace: "$1=()=>null;",
             },
         },
         {

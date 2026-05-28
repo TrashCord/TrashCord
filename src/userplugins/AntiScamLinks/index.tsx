@@ -106,8 +106,8 @@ export default definePlugin({
     name: "AntiScamLinks",
     description: "Warns you before opening scam or phishing links detected in Discord messages.",
     authors: [
-        { name: "Irritably", id: 928787166916640838n },
-        { name: "zFrxncesck1", id: 456195985404592149n },
+        { name: "irritably", id: 928787166916640838n },
+        { name: "zfrancesck1", id: 456195985404592149n },
     ],
     tags: ["Privacy", "Chat"],
     enabledByDefault: false,

@@ -961,7 +961,7 @@ function AvatarRotatorModal({ modalProps, onToggle }: { modalProps: any; onToggl
                     </div>
                     <div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>Avatar Rotator</div>
-                        <div style={{ fontSize: 11, color: C.sub }}>{list.length} total · {activeCount} active · by zFrxncesck1</div>
+                        <div style={{ fontSize: 11, color: C.sub }}>{list.length} total · {activeCount} active · by zfrancesck1</div>
                     </div>
                     <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: running ? `${C.green}22` : "rgba(255,255,255,.08)", color: running ? C.green : C.sub, border: `1px solid ${running ? C.green + "44" : "rgba(255,255,255,.12)"}` }}>
                         {running ? "● RUNNING" : "○ STOPPED"}
@@ -1154,7 +1154,7 @@ function ARUserAreaButton() {
 export default definePlugin({
     name:         "AvatarRotator",
     description:  "Cycles your Discord avatar through a list at a set interval. Random or sequential. Supports jpg/jpeg/jfif/png/gif/webp/avif. Nitro check auto-skips GIFs when no Nitro (re-includes on detection). GIF-aware crop with frame-by-frame processing. Extension filter, crop editor, drag to reorder, rename, import/export. Auto-saved to DataStore.",
-    authors:      [{ name: "zFrxncesck1", id: 456195985404592149n }],
+    authors:      [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: false,
     settings,

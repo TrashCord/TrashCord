@@ -54,7 +54,7 @@ let preEditListener: MessageEditListener | null = null;
 export default definePlugin({
     name: "ZeroWidthSanitizer",
     description: "Removes invisible zero-width characters from messages to prevent fingerprinting and tracking",
-    authors: [{ name: "Irritably", id: 928787166916640838n }],
+    authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
     settings,

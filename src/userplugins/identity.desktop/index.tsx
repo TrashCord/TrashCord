@@ -172,7 +172,7 @@ export default definePlugin({
     description: "Allows you to edit your profile to a random fake person with the click of a button",
     authors: [
         { name: "x2b", id: 0n },
-        { name: "zFrxncesck1", id: 456195985404592149n },
+        { name: "zfrancesck1", id: 456195985404592149n },
     ],
     tags: ["Privacy", "Utility"],
     enabledByDefault: false,
