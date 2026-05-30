@@ -457,20 +457,6 @@ const BetterScreenshare = definePlugin({
             }
         },
         {
-            find: "#{intl::STREAM_FPS_OPTION}",
-            all: true,
-            replacement: [
-                {
-                    match: /guildPremiumTier:\i\.\i\.TIER_\d,?/g,
-                    replace: ""
-                },
-                {
-                    match: /\[\{.{0,25}\i\.\i\.FPS_15.{0,900}\}\]/,
-                    replace: "$self.patchStreamFramerates($&)"
-                }
-            ]
-        },
-        {
             find: "this.getDefaultGoliveQuality()",
             replacement: [
                 {
@@ -516,13 +502,6 @@ const BetterScreenshare = definePlugin({
         const getCurrentUserId = (): string | null => {
             const user = UserStore.getCurrentUser();
             return user?.id ?? null;
-        };
-
-        const extractUserIdFromAriaLabel = (ariaLabel: string): string | null => {
-            const parts = ariaLabel.split(',').map(s => s.trim());
-            const lastPart = parts[parts.length - 1];
-            const cleanName = lastPart.replace(/^\./, '');
-            return null;
         };
 
         const updateMyStreamQuality = () => {
