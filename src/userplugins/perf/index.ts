@@ -92,39 +92,31 @@ export default definePlugin({
         {
             find: "this.state.shouldShowTooltip!==",
             predicate: () => settings.store.optimizeTooltips,
-            replacement: [
-                {
-                    match: /\i.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\i)\}\)\}\)/,
-                    replace: (_m, p) => `this.__open=${p},this.setState({shouldShowTooltip:${p}})`,
-                },
-                {
-                    match: /if\(this\.state\.shouldShowTooltip!==(\i)\)/,
-                    replace: "if(this.__open!==$1)",
-                },
-            ],
+            replacement: {
+                match: /\w+\.flushSync\(\(\)=>\{(this\.setState\(\{shouldShowTooltip:\w+\}\))\}\)/,
+                replace: "$1",
+            },
         },
         {
             find: "this.rebuildFavoriteEmojisWithoutFetchingLatest()",
             predicate: () => settings.store.optimizeEmojiCache,
-            replacement: [
-                {
-                    match: /(\i)=>\{let \i=(\i)\[null==\i\?(\i)\.kod:\i\];null!=\i&&\((\i)\(\)\.each\(\i\.usableEmojis,(\i)\),\i\(\)\.each\(\i\.emoticons,(\i)\)\)\};/,
-                    replace: (_m, e, q, k, a, n, r) =>
-                        `${e}=>{` +
-                        `const t=${q}[null==${e}?${k}.kod:${e}];` +
-                        "const usableEmojis=t?.usableEmojis;" +
-                        "const emoticons=t?.emoticons;" +
-                        `null!=t&&(${a}().each(usableEmojis,${n}),${a}().each(emoticons,${r}))` +
-                        "};",
-                },
-            ],
+            replacement: {
+                match: /(\w+)=(\w+)=>\{let (\w+)=(\w+)\[null==\2\?([^:]+):\2\];null!=\3&&\((\w+)\(\)\.each\(\3\.usableEmojis,(\w+)\),\6\(\)\.each\(\3\.emoticons,(\w+)\)\)\}/,
+                replace: (_, o, e, t, cache, key, each, r, s) =>
+                    `${o}=${e}=>{` +
+                    `const ${t}=${cache}[null==${e}?${key}:${e}];` +
+                    `const _u=${t}?.usableEmojis;` +
+                    `const _em=${t}?.emoticons;` +
+                    `null!=${t}&&(${each}().each(_u,${r}),${each}().each(_em,${s}))` +
+                    `}`,
+            },
         },
         {
-            find: /\i\.\i\.getAppSpinnerSources\(\)/,
+            find: "getAppSpinnerSources",
             predicate: () => settings.store.killLoadingSpinner,
             replacement: {
-                match: /let \i=\i\.\i\.getAppSpinnerSources\(\).+?;(\i\.\i).+?\)\}/,
-                replace: "$1=()=>null;",
+                match: /let (\w+)=\w+\.\w+\.getAppSpinnerSources\(\),(\w+)=null!=\1\?\w+\(\1\):null/,
+                replace: (_, src, spinner) => `let ${src}=null,${spinner}=null`,
             },
         },
         {
