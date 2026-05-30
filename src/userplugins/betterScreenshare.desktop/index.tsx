@@ -518,6 +518,13 @@ const BetterScreenshare = definePlugin({
             return user?.id ?? null;
         };
 
+        const extractUserIdFromAriaLabel = (ariaLabel: string): string | null => {
+            const parts = ariaLabel.split(',').map(s => s.trim());
+            const lastPart = parts[parts.length - 1];
+            const cleanName = lastPart.replace(/^\./, '');
+            return null;
+        };
+
         const updateMyStreamQuality = () => {
             const currentUserId = getCurrentUserId();
             if (!currentUserId) return;
@@ -551,8 +558,6 @@ const BetterScreenshare = definePlugin({
 
             const myTiles = document.querySelectorAll(`[data-selenium-video-tile="${currentUserId}"]`);
             for (const tile of myTiles) {
-                const video = tile.querySelector('video');
-                if (!video || video.paused || video.readyState < 2) continue;
                 const qualityContainer = tile.querySelector('[class*="streamQualityIndicator__"]');
                 if (!qualityContainer) continue;
                 const resolutionSpan = qualityContainer.querySelector('[class*="qualityResolution__"]');
