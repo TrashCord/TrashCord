@@ -50,8 +50,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
         description: "Hide the Nitro and Shop pages in DMs",
         patches: [
             {
-                // Old: \i\.\i\.APPLICATION_STORE — \i doesn't match real minified names like C.BVt
-                // New: \w+\.\w+ matches any X.Y prefix
                 find: "hasLibraryApplication()&&",
                 replacement: [
                     {
@@ -65,7 +63,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
                 ]
             },
             {
-                // PRIVATE_CHANNELS_A11Y_LABEL string no longer present in bundle — patch removed
                 find: "#{intl::PRIVATE_CHANNELS_A11Y_LABEL}",
                 noWarn: true,
                 replacement: [
@@ -85,8 +82,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     profileEditorShopUpsell: {
         description: "Hide the collectibles upsell banner in the Profiles settings",
         patches: {
-            // Old match: COLLECTIBLES_PROFILE_SETTINGS_UPSELL).{0,300}?return — no longer has return after
-            // New: insert return null before the destructuring let at top of component
             find: "COLLECTIBLES_PROFILE_SETTINGS_UPSELL,",
             replacement: {
                 match: /(?=let \w+,\w+,\w+,\w+,\{analyticsLocations:\w+\}=\(0,\S+\)\(\S+\.COLLECTIBLES_PROFILE_SETTINGS_UPSELL\))/,
@@ -96,7 +91,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     updateReadyButton: {
-        // case"UPDATE_DOWNLOADED": no longer present in bundle — patch removed
         description: "Hide the Update Ready! button",
         patches: {
             find: 'case"UPDATE_DOWNLOADED":',
@@ -110,7 +104,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     familyCenterInSettings: {
-        // USER_SETTINGS_MERCH_LINK_CONFIRMED no longer present in bundle — patch removed
         description: "Hide the Family Center page in settings. Does not hide the tab in DMs",
         patches: [
             {
@@ -124,7 +117,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
         ]
     },
     merchandiseLink: {
-        // USER_SETTINGS_MERCH_LINK_CONFIRMED no longer present in bundle — patch removed
         description: "Hide the Merch button inside settings",
         patches: {
             find: ".USER_SETTINGS_MERCH_LINK_CONFIRMED)",
@@ -136,7 +128,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
         }
     },
     socialLinks: {
-        // USER_SETTINGS_MERCH_LINK_CONFIRMED no longer present in bundle — patch removed
         description: "Hide the links to Discord's Social Media profiles",
         patches: {
             find: ".USER_SETTINGS_MERCH_LINK_CONFIRMED)",
@@ -148,7 +139,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
         }
     },
     paymentSettings: {
-        // BILLING_SETTINGS is now only used in a marketing banner, not in a removable section array
         description: "Hide the Payment Settings section. May cause side effects.",
         patches: [
             {
@@ -166,8 +156,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     downloadApps: {
         description: "Hide the Download Apps button in the sidebar",
         patches: {
-            // Old: (function\s\i\(\){) — function name was anonymous \i, now has real minified name
-            // New: function \w+(){} matches any named function
             find: "app-download-button",
             replacement: {
                 match: /function (\w+)\(\)\{(?=.{0,200}?id:"app-download-button")/,
@@ -179,8 +167,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     contentInventory: {
         description: "Hide the Activity Feed in the members list",
         patches: {
-            // Old: inserted return false before let — structure changed, now inside bG callback
-            // New: return early inside the bG callback before getMemberCount
             find: /hasFeature\(\i\.\i\.ACTIVITY_FEED_ENABLED_BY_USER\)/,
             replacement: {
                 match: /(?<=\(\)=>\{)if\(null==\w+\)return;/,
@@ -191,7 +177,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     activeNow: {
-        // nowPlayingColumn no longer present in bundle — patch removed
         description: "Hide the Active Now sidebar in the Friends page",
         patches: {
             find: ".nowPlayingColumn,",
@@ -205,7 +190,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     transferToConsole: {
-        // "transfer-".concat no longer present in bundle — patch removed
         description: "Hide the transfer to console button",
         patches: {
             find: '"transfer-".concat',
@@ -218,7 +202,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     textChannelActivityNameHeader: {
-        // activityPanelContainer no longer present in bundle — patch removed
         description: "Hide the activity name above expanded activities in text channels",
         patches: {
             find: ".activityPanelContainer,",
@@ -244,8 +227,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     clippingEnabledToast: {
         description: "Hide the clipping enabled; your voice may be recorded warning when joining a voice channel, without disabling your voice from being clipped",
         patches: {
-            // Old: maybeShowClipsWarning(\i){ — method no longer standalone, logic is now inline
-            // New: block the dispatch directly by short-circuiting the &&( branch
             find: '"CLIPS_SHOW_CALL_WARNING"',
             replacement: {
                 match: /&&\([\w$.]+\.dispatch\(\{type:"CLIPS_SHOW_CALL_WARNING"/,
@@ -267,12 +248,10 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     editChannelButton: {
         description: "Hide the Edit Channel button on channels in the sidebar",
         patches: {
-            // Old: (?<=function \i\(\i\)\{)(?=let\{channel:\i,disableManageChannels)
-            // New: there's now "let t," before the destructuring inside the memo function
             find: 'tutorialId:"instant-invite",',
             replacement: {
                 match: /(?<=function\(\w\)\{)let \w,\{channel:/,
-                replace: "return null;let x,{channel:"
+                replace: "return null;$&"
             }
         },
         default: false
@@ -281,9 +260,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     boostProgressBar: {
         description: "Hide the Server Boost progress bar in all servers",
         patches: {
-            // Old: \i\.push(\i\.\i\.GUILD_PREMIUM_PROGRESS_BAR) — push pattern no longer exists
-            // New: the check is now inside a hasDivider helper — force the GUILD_PREMIUM_PROGRESS_BAR
-            // row check to always be false so the section is treated as empty/hidden
             find: ".premiumProgressBarEnabled&&",
             replacement: {
                 match: /1===(\w+)\.length&&\1\[0\]===(\w+\.\w+\.GUILD_PREMIUM_PROGRESS_BAR)/,
@@ -293,7 +269,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     newMemberBadge: {
-        // newMemberBadge}, no longer present in bundle — patch removed
         description: "Hide the new member badge",
         patches: {
             find: ".newMemberBadge},",
@@ -318,7 +293,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     questsActiveNow: {
-        // quest: prop no longer present in the NOW_PLAYING_CARD_HOVERED component — Discord removed it
         description: "Hide the Quest promotions in the Active Now sidebar",
         patches: {
             find: 'NOW_PLAYING_CARD_HOVERED,{',
@@ -333,8 +307,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     supportLink: {
         description: "Hide the link to Discord support in the top right",
         patches: {
-            // Old: (?<=function \i\(\i\){)(?=let\{) — component now returns Anchor directly, no let destructuring
-            // New: insert return null before the Anchor return
             find: "HELP_CLICKED,{highlighted",
             replacement: {
                 match: /(?=return\(0,\w+\.jsx\)\(\w+\.\w+,\{href:\w+\.\w+,target:"_blank")/,
@@ -347,8 +319,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     quickSwitcherButton: {
         description: "Hide the Find or start a new conversation button",
         patches: {
-            // Old: \(0,\i\.jsx\)\(\i\.\i,{.{0,50}?tutorialId:"direct-messages",.{0,600}?\}\)\}\)\}\),
-            // New: component name contains $ (e.g. T$.A), use \S+ instead of \i
             find: 'tutorialId:"direct-messages",',
             replacement: {
                 match: /\(0,\S+\.jsx\)\(\S+,\{childRef:\w+,tutorialId:"direct-messages",.+?\}\),/,
@@ -371,7 +341,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
     },
 
     voiceGradientBackground: {
-        // gradientBackground,children:[(0 no longer present in bundle — patch removed
         description: "Hide the gradient backgrounds in voice channels",
         patches: {
             find: '.gradientBackground,children:\[\(0',
