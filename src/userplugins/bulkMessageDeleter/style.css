@@ -8,7 +8,7 @@
 [class*="messageContent-"] { overflow: visible !important; position: relative; }
 
 [data-bmd-sel="1"] {
-    background: color-mix(in srgb, var(--brand-500) 12%, transparent) !important;
+    background: color-mix(in srgb, #ff0000 12%, transparent) !important;
     border-radius: 4px;
 }
 
@@ -17,7 +17,7 @@
     position: absolute;
     left: 0; top: 0; bottom: 0;
     width: 3px;
-    background: var(--brand-500);
+    background: #ff0000 !important;
     border-radius: 0 3px 3px 0;
     z-index: 1;
 }
