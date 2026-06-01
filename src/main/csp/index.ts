@@ -69,7 +69,7 @@ export const CspPolicies: PolicyMap = {
     "api.groq.com": ConnectSrc,
     "api.openai.com": ConnectSrc,
     // HCaptcha
-    "*.hcaptcha.com": CSPSrc,
+    "*.hcaptcha.com": [...CSPSrc, "script-src"],
 };
 
 const findHeader = (headers: PolicyMap, headerName: Lowercase<string>) => {
