@@ -68,6 +68,8 @@ export const CspPolicies: PolicyMap = {
     // AI APIs — used by TrashCord plugins (NightcordAI, ChatGPT, AutoCorrect, VoiceDictation, TriviaAI, etc.)
     "api.groq.com": ConnectSrc,
     "api.openai.com": ConnectSrc,
+    // HCaptcha
+    "*.hcaptcha.com": CSPSrc,
 };
 
 const findHeader = (headers: PolicyMap, headerName: Lowercase<string>) => {
