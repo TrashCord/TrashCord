@@ -1,6 +1,6 @@
 /*
- * Equicord, a Discord client mod
- * Copyright (c) 2024 Vendicated and contributors
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
@@ -16,6 +16,7 @@
  */
 
 import { DataStore } from "@api/index";
+
 import type { NativeGroqResponse } from "./native";
 
 // ── Native IPC fetch (bypasses CORS in Electron) ─────────────────────────────
@@ -54,10 +55,10 @@ const DS_API_KEY = "groq-shared-api-key";
 
 // Models in fallback order (separate limits on Groq)
 const GROQ_MODELS = [
-    "llama-3.3-70b-versatile",    // The best — RPM quota: 30/min
-    "llama3-70b-8192",            // Old stable performer
-    "llama-3.1-8b-instant",       // Fast — RPM quota: 30/min SEPARATE
-    "gemma2-9b-it",               // Fallback — RPM quota: 30/min SEPARATE
+    "llama-3.3-70b-versatile", // The best — RPM quota: 30/min
+    "llama3-70b-8192", // Old stable performer
+    "llama-3.1-8b-instant", // Fast — RPM quota: 30/min SEPARATE
+    "gemma2-9b-it", // Fallback — RPM quota: 30/min SEPARATE
 ];
 
 // Index of the currently used model (in memory only)

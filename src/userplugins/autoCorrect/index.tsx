@@ -1,18 +1,17 @@
 /*
- * Equicord, a Discord client mod
- * Copyright (c) 2024 Vendicated and contributors
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { addHeaderBarButton, removeHeaderBarButton, HeaderBarButton } from "@api/HeaderBar";
+import { addHeaderBarButton, HeaderBarButton, removeHeaderBarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
+import { showApiKeyWarning } from "@utils/apiKeyWarning";
 import definePlugin, { OptionType } from "@utils/types";
 import { React } from "@webpack/common";
-import { groqChat, getGroqKey } from "../nightcordAI/groqManager";
-import { showApiKeyWarning } from "@utils/apiKeyWarning";
 
-// ── Settings ───────────────────────────────────────────────────────────────────
+import { getGroqKey, groqChat } from "../nightcordAI/groqManager";
 
 const settings = definePluginSettings({
     showOnTopBar: {
@@ -30,11 +29,13 @@ const settings = definePluginSettings({
         type: OptionType.SELECT,
         description: "Correction language",
         options: [
-            { label: "English", value: "en", default: true },
+            { label: "Auto detect", value: "auto", default: true },
+            { label: "English", value: "en" },
             { label: "French", value: "fr" },
             { label: "Spanish", value: "es" },
             { label: "German", value: "de" },
             { label: "Italian", value: "it" },
+            { label: "Polish", value: "pl" },
             { label: "Portuguese", value: "pt" },
         ],
     },
@@ -50,14 +51,14 @@ const settings = definePluginSettings({
     },
 });
 
-// ── Correction via groqManager ────────────────────────────────────────────────
-
 const LANG_PROMPTS: Record<string, string> = {
-    fr: "You are a spell-checker. Fix ONLY spelling and grammar mistakes. Return the corrected text without explanation or quotes. FORBIDDEN: adding words, changing meaning, rephrasing. If already correct, return as-is.",
+    auto: "You are a spell-checker. Detect the language of the input text automatically, then fix ONLY spelling and grammar mistakes in that language. Return the corrected text without explanation or quotes. FORBIDDEN: adding words, changing meaning, rephrasing. If already correct, return as-is.",
     en: "You are a spell-checker. Fix ONLY spelling and grammar mistakes. Return the corrected text without explanation or quotes. FORBIDDEN: adding words, changing meaning, rephrasing. If already correct, return as-is.",
+    fr: "Tu es un correcteur orthographique. Corrige UNIQUEMENT les fautes d'orthographe et de grammaire. Retourne le texte corrigé sans explication ni citation. INTERDIT : ajouter des mots, changer le sens, reformuler. Si le texte est déjà correct, retourne-le tel quel.",
     es: "Eres un corrector ortográfico. Corrige SOLO errores ortográficos y gramaticales. Devuelve el texto corregido sin explicación. PROHIBIDO: añadir palabras, cambiar el sentido.",
     de: "Du bist ein Rechtschreibprüfer. Korrigiere NUR Rechtschreib- und Grammatikfehler. Gib den korrigierten Text ohne Erklärung zurück. VERBOTEN: Wörter hinzufügen, Bedeutung ändern.",
     it: "Sei un correttore ortografico. Correggi SOLO errori ortografici e grammaticali. Restituisci il testo corretto senza spiegazioni. VIETATO: aggiungere parole, cambiare il significato.",
+    pl: "Jesteś korektorem ortograficznym. Popraw TYLKO błędy ortograficzne i gramatyczne. Zwróć poprawiony tekst bez wyjaśnień. ZABRONIONO: dodawanie słów, zmiana znaczenia, przepisywanie. Jeśli tekst jest już poprawny, zwróć go bez zmian.",
     pt: "Você é um corretor ortográfico. Corrija SOMENTE erros ortográficos e gramaticais. Retorne o texto corrigido sem explicação. PROIBIDO: adicionar palavras, mudar o sentido.",
 };
 
@@ -82,38 +83,29 @@ async function correctText(text: string): Promise<string> {
             ],
             temperature: 0,
             maxTokens: 512,
-            // Force a lightweight model for correction — saves the 70B quota for the AI
             forceModel: "llama-3.1-8b-instant",
         });
 
         if (!corrected || corrected.trim() === "" || corrected === text) return text;
 
-        // Safety against infinite repetitions or hallucinations
         if (corrected.toLowerCase().includes("correction:") || corrected.toLowerCase().includes("text:")) return text;
 
-        // Safety: response too different → don't apply
         if (corrected.length > text.length * 1.5 || corrected.length < text.length * 0.4) return text;
 
-        // In low mode: stricter word count check
         if (aggr === "low") {
             const srcWords = text.trim().split(/\s+/).filter(w => w.length > 0).length;
             const corrWords = corrected.trim().split(/\s+/).filter(w => w.length > 0).length;
-            // Soft mode must not add/remove more than one word on short sentences
             if (Math.abs(corrWords - srcWords) > Math.max(1, Math.floor(srcWords * 0.15))) {
                 console.log("[AutoCorrect] Soft mode rejected: word count changed too much", { srcWords, corrWords });
                 return text;
             }
         }
-        return corrected.replace(/^"(.*)"$/, '$1').trim(); // Clean possible quotes
+        return corrected.replace(/^"(.*)"$/, "$1").trim();
     } catch (e: any) {
         console.warn("[AutoCorrect] Error correction:", e.message);
-        return text; // On error, send the original text
+        return text;
     }
 }
-
-
-
-// ── Chat Bar Button ────────────────────────────────────────────────────────────
 
 function AutoCorrectIcon({ enabled }: { enabled: boolean; }) {
     return (
@@ -140,7 +132,6 @@ const AutoCorrectChatBarButton: ChatBarButtonFactory = ({ type }) => {
 
     const toggle = async () => {
         if (!enabled) {
-            // Check that the API key is configured before enabling
             const key = await getGroqKey();
             if (!key) {
                 showApiKeyWarning("AutoCorrect");
@@ -163,11 +154,9 @@ const AutoCorrectChatBarButton: ChatBarButtonFactory = ({ type }) => {
     );
 };
 
-// ── Plugin ─────────────────────────────────────────────────────────────────────
-
 export default definePlugin({
     name: "AutoCorrectNC",
-    description: "Automatically corrects spelling and grammar before sending. Requires a free Groq API key configured in TestCordAI.",
+    description: "Automatically corrects spelling and grammar before sending. Requires a free Groq API key configured in TestcordAI.",
     authors: [{ name: "Nightcord", id: 0n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
@@ -204,4 +193,3 @@ export default definePlugin({
         }
     },
 });
-
