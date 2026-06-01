@@ -245,17 +245,6 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
             }
         }
     },
-    editChannelButton: {
-        description: "Hide the Edit Channel button on channels in the sidebar",
-        patches: {
-            find: 'tutorialId:"instant-invite",',
-            replacement: {
-                match: /(?<=function\(\w\)\{)let \w,\{channel:/,
-                replace: "return null;$&"
-            }
-        },
-        default: false
-    },
 
     boostProgressBar: {
         description: "Hide the Server Boost progress bar in all servers",
