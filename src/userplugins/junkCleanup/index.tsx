@@ -33,7 +33,7 @@ export default definePlugin({
     name: "JunkCleanup",
     description: "Another plugin that cleans up common annoyances in Discord",
     authors: [{ name: "Sqaaakoi", id: 0n }],
-    tags: ["Appearance", "Utility", "Shop", "Gift", "Nitro", "Advertisement", "Adblock", "Performance"],
+    tags: ["Appearance", "Utility", "Nitro", "Adblock", "Performance"],
     enabledByDefault: false,
     settings,
     patches: ParsedPatches.flatMap(p => p.patches),
