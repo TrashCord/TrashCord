@@ -146,7 +146,7 @@ export default definePlugin({
     name: "ScreenShareAlert",
     description: "Sends native notifications when someone starts sharing their screen in voice.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
-    tags: ["Screen", "Alert", "Recording", "Utility", "Voice", "Notifications"],
+    tags: ["Alert", "Recording", "Utility", "Voice", "Notifications"],
     enabledByDefault: false,
     settings,
 
