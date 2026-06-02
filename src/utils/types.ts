@@ -87,9 +87,6 @@ export const PluginTags = [
     "Language",
     "Spam",
     "Security",
-    "Youtube",
-    "ActivityIcons",
-    "Screen",
     "Alert",
     "Recording",
     "Adblock"
