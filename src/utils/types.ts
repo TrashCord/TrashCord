@@ -84,7 +84,6 @@ export const PluginTags = [
     "Layout",
     "Productivity",
     "Hide",
-    "Block",
     "Language",
     "Spam",
     "Security",
@@ -93,9 +92,6 @@ export const PluginTags = [
     "Screen",
     "Alert",
     "Recording",
-    "Debloat",
-    "Shop",
-    "Gift",
     "Adblock"
 ] as const;
 
