@@ -96,7 +96,7 @@ export default definePlugin({
             find: "this.state.shouldShowTooltip!==",
             predicate: () => settings.store.optimizeTooltips,
             replacement: {
-                match: /\w+\.flushSync\(\(\)=>\{(this\.setState\(\{shouldShowTooltip:\w+\}\))\}\)/,
+                match: /(?:\w+\.)?flushSync\(\(\)=>\{(this\.setState\(\{shouldShowTooltip:\w+\}\))\}\)/,
                 replace: "$1",
             },
         },
