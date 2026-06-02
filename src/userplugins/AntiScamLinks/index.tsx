@@ -109,7 +109,7 @@ export default definePlugin({
         { name: "irritably", id: 928787166916640838n },
         { name: "zfrancesck1", id: 456195985404592149n },
     ],
-    tags: ["Privacy", "Chat"],
+    tags: ["Privacy", "Chat", "Security", "Adblock"],
     enabledByDefault: false,
 
     async start() {
