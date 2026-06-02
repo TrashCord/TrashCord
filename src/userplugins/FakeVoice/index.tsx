@@ -40,7 +40,7 @@ function FakeDeafenIcon({ className }: { className?: string; }) {
 function GhostContextMenu() {
     const [, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
     return (
-        <Menu.Menu navId="fake-voice-menu" aria-label="Fake Voice Configuration">
+        <Menu.Menu navId="fake-voice-menu" aria-label="Fake Voice Configuration" onClose={() => {}}>
             <Menu.MenuGroup label="Ghost Options">
                 <Menu.MenuCheckboxItem
                     id="opt-both"

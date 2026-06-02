@@ -9,9 +9,10 @@ import definePlugin, { OptionType, type PluginNative, ReporterTestable } from "@
 import { ChannelStore, DraftType, FluxDispatcher, SelectedChannelStore, showToast, Toasts, UploadHandler } from "@webpack/common";
 
 const Native = VencordNative?.pluginHelpers?.SecureZipper as PluginNative<typeof import("./native")> | undefined;
-const securedFiles = new WeakSet<File>();
+const allowedFiles = new WeakSet<File>();
 const SEVEN_ZIP_MIME = "application/x-7z-compressed";
 const SEVEN_ZIP_SIGNATURE = [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c] as const;
+const IMAGE_FILE_EXTENSION = /\.(?:apng|avif|bmp|cur|gif|heic|heif|ico|jfif|jpe?g|jxl|pjp|pjpeg|png|svg|tiff?|webp)$/i;
 let uploadAddFilesInterceptor: ((event: unknown) => void) | null = null;
 
 interface UploadAddFilesEvent {
@@ -71,6 +72,10 @@ function isSevenZipArchive(data: ArrayBuffer): boolean {
     return SEVEN_ZIP_SIGNATURE.every((byte, index) => bytes[index] === byte);
 }
 
+function shouldEncryptFile(file: File): boolean {
+    return !file.type.toLowerCase().startsWith("image/") && !IMAGE_FILE_EXTENSION.test(file.name);
+}
+
 async function createArchiveFile(file: File, password: string): Promise<File | null> {
     const result = await Native?.createArchive(file.name || "file", await file.arrayBuffer(), password);
 
@@ -85,7 +90,7 @@ async function createArchiveFile(file: File, password: string): Promise<File | n
     }
 
     const archive = new File([result.data], result.fileName, { type: SEVEN_ZIP_MIME });
-    securedFiles.add(archive);
+    allowedFiles.add(archive);
     return archive;
 }
 
@@ -96,21 +101,23 @@ async function uploadEncryptedFiles(files: File[], payload: UploadAddFilesEvent,
         return;
     }
 
-    showToast(`Creating encrypted 7z archive${files.length === 1 ? "" : "s"}.`, Toasts.Type.MESSAGE);
+    const filesToEncrypt = files.filter(file => !allowedFiles.has(file) && shouldEncryptFile(file));
+    showToast(`Creating encrypted 7z archive${filesToEncrypt.length === 1 ? "" : "s"}.`, Toasts.Type.MESSAGE);
 
-    const archives: File[] = [];
+    const uploads: File[] = [];
     for (const file of files) {
-        if (securedFiles.has(file)) {
-            archives.push(file);
+        if (allowedFiles.has(file) || !shouldEncryptFile(file)) {
+            allowedFiles.add(file);
+            uploads.push(file);
             continue;
         }
 
         const archive = await createArchiveFile(file, password);
         if (!archive) return;
-        archives.push(archive);
+        uploads.push(archive);
     }
 
-    await UploadHandler.promptToUpload(archives, channel, typeof payload.draftType === "number" ? payload.draftType : DraftType.ChannelMessage);
+    await UploadHandler.promptToUpload(uploads, channel, typeof payload.draftType === "number" ? payload.draftType : DraftType.ChannelMessage);
 }
 
 function interceptUploadAddFiles(event: unknown): void {
@@ -126,7 +133,7 @@ function interceptUploadAddFiles(event: unknown): void {
     ];
     const uniqueFiles = Array.from(new Set(files));
 
-    if (!uniqueFiles.length || uniqueFiles.every(file => securedFiles.has(file))) return;
+    if (!uniqueFiles.length || uniqueFiles.every(file => allowedFiles.has(file) || !shouldEncryptFile(file))) return;
 
     payload.files = [];
     payload.uploads = [];
@@ -150,7 +157,7 @@ function interceptUploadAddFiles(event: unknown): void {
 
 export default definePlugin({
     name: "SecureZipper",
-    description: "Encrypts Discord uploads into 7z archives with AES-256 before sending.",
+    description: "Encrypts Discord uploads into 7z archives with AES-256 before sending. (Required 7zip & Windows",
     authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Privacy", "Utility"],
     enabledByDefault: false,

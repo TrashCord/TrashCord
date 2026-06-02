@@ -185,7 +185,7 @@ const settings = definePluginSettings({
     },
     lazyIframes: {
         type: OptionType.BOOLEAN,
-        description: "Defer iframe loading until they scroll into view. Reduces initial page load cost.",
+        description: "Defer iframe loading until they scroll into view. Reduces initial page load cost. hcaptcha iframes are excluded to prevent breaking verification.",
         default: true
     },
     batchDomUpdates: {
@@ -238,7 +238,7 @@ interface SpringMod {
 export default definePlugin({
     name: "optimizerPremium",
     description: "Combined performance suite: tooltip/emoji/spinner/confetti/gateway patches, bounded image cache, react-spring skip, offscreen media pause, safe DOM throttling, lazy images, DOM batching, React optimization.",
-    authors: [Devs.x2b],
+    authors: [Devs.x2b, Devs.SirPhantom89],
     tags: ["Utility", "Developers"],
     enabledByDefault: false,
     settings,
@@ -294,8 +294,8 @@ export default definePlugin({
             find: "getDispatchHandler needs to be passed in first!",
             predicate: () => settings.store.killGatewayAnalytics,
             replacement: {
-                match: /(\.flush\(\i,\i\),"READY"===\i\)\{).+?;(.+?\)),.+?\}/,
-                replace: (_m, pre, mid) => `${pre}${mid}}`
+                match: /let \i=Date\.now\(\),(\i=\i\.Z\.flush\(\i,\i\));\i\.\i\.showPerformanceTelemetry\?.+?Telemetry\(.+?,\i\)/,
+                replace: "$1"
             }
         }
     ],
@@ -1005,10 +1005,11 @@ export default definePlugin({
 
         const observeIframe = (iframe: HTMLIFrameElement) => {
             if (iframe.dataset.opLazyLoad) return;
-            if (/\.hcaptcha\.com/i.test(iframe.src)) return;
+            const src = iframe.src || "";
+            if (/\.hcaptcha\.com/i.test(src)) return;
             iframe.dataset.opLazyLoad = "pending";
-            if (iframe.src && !iframe.dataset.src) {
-                iframe.dataset.src = iframe.src;
+            if (src && !iframe.dataset.src) {
+                iframe.dataset.src = src;
                 iframe.removeAttribute("src");
             }
             this.intersectionObserver?.observe(iframe);

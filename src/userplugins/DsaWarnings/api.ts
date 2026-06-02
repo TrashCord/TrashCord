@@ -78,7 +78,7 @@ function normalizeCordCatStatement(value: unknown, parsedId: string): DsaAction 
         incompatibleContentExplanation: getString(value, "incompatible_content_explanation"),
         incompatibleContentIllegal: value.incompatible_content_illegal as string | boolean | null,
         category,
-        categorySpecification: value.category_specification ?? value.category_specification_other as string | string[] | null,
+        categorySpecification: (value.category_specification ?? value.category_specification_other) as string | string[] | null,
         contentType: (value.content_type ?? value.decision_provision ?? "") as string | string[],
         applicationDate: getString(value, "application_date"),
         decisionFacts: getString(value, "decision_facts"),

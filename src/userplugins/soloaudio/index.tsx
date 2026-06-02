@@ -7,7 +7,7 @@
 import { NavContextMenuPatchCallback, addContextMenuPatch, removeContextMenuPatch } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
-import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
+import { ModalContent, ModalFooter, ModalHeader, RenderModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { debounce } from "@shared/debounce";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
@@ -259,11 +259,11 @@ function SliderRow({ label, value, min, max, step, unit = "px", onChange }: {
                 <span style={{ fontSize: "14px", fontWeight: 600, color: C.text }}>{value}{unit}</span>
             </div>
             <Slider
-                value={value}
+                initialValue={value}
                 minValue={min}
                 maxValue={max}
-                step={step}
-                onChange={onChange}
+                keyboardStep={step}
+                onValueChange={onChange}
             />
             <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "12px", color: C.textMuted, fontWeight: 600 }}>{min}{unit}</span>
@@ -295,7 +295,7 @@ function Toggle({ label, desc, value, onChange }: { label: React.ReactNode; desc
     );
 }
 
-function SoloAudioModal({ modalProps }: { modalProps: ModalProps; }) {
+function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
     const [, forceUpdate] = React.useReducer(x => x + 1, 0);
     const [tab, setTab] = React.useState<"solo" | "groups" | "settings">("solo");
 
@@ -529,7 +529,7 @@ function QuickSoloAudioMenu({ onClose }: { onClose(): void; }) {
     const peers = getVoiceChannelPeers();
 
     return (
-        <Menu.Menu navId="solo-audio" onClose={onClose} aria-label="Solo Audio Quick Menu">
+            <Menu.Menu navId="solo-audio" onClose={onClose} aria-label="Solo Audio Quick Menu">
             <Menu.MenuItem id="solo-audio-open-modal" label="Open Full Menu" action={() => openModal(props => <SoloAudioModal modalProps={props} />)} />
 
             <Menu.MenuSeparator />
@@ -639,7 +639,8 @@ export default definePlugin({
     description: "A button near mute/deafen to solo users/groups. Left-click opens a full control panel, Right-click opens a quick dropdown.",
     dependencies: ["UserAreaAPI", "UserSettingsAPI"],
     authors: [{ name: "you", id: 0n }],
-    tags: ["Voice", "UI"],
+    tags: ["Voice", "Utility"],
+    enabledByDefault: false,
     settings,
 
     userAreaButton: {

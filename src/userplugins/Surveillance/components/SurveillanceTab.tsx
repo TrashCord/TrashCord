@@ -11,16 +11,18 @@ import { HeadingPrimary, HeadingTertiary } from "@components/Heading";
 import { SettingsTab, wrapTab } from "@components/settings";
 import { copyToClipboard } from "@utils/clipboard";
 import { classNameFactory } from "@utils/css";
+import { fetchUserProfile, openUserProfile } from "@utils/discord";
 import { classes } from "@utils/misc";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { ChannelStore, GuildStore, Modal, openModal, React, TextInput, Toasts, useEffect, useMemo, UserStore, useState, useStateFromStores } from "@webpack/common";
+import { ChannelStore, GuildStore, Modal, openModal, React, RelationshipStore, TextInput, Toasts, useEffect, useMemo, UserProfileStore, UserStore, useState, useStateFromStores } from "@webpack/common";
 
 import { addServerTarget, getServerTargets, getTargets, removeServerTarget, removeTarget, setServerTargets, setTargets, settings, subscribeServerTargets, subscribeTargets } from "..";
 import { clearEvents, getEvents, loadEvents, subscribe } from "../store";
-import type { SurveillanceEvent, SurveillanceEventType } from "../types";
+import type { SurveillanceEvent, SurveillanceEventType, VoiceParticipant } from "../types";
 
 type EventFilter = "all" | "activity" | "message" | "presence" | "reaction" | "server" | "typing" | "voice";
 type SurveillancePage = "user" | "server";
+type TargetMutualState = "idle" | "checking" | "match" | "no-match" | "unavailable" | "error";
 
 interface CachedUser {
     id: string;
@@ -142,6 +144,33 @@ const toast = (message: string, type: string = Toasts.Type.SUCCESS) =>
         id: Toasts.genId(),
     });
 
+const getMutualFriendId = (value: unknown) => {
+    if (typeof value !== "object" || value == null) return;
+
+    const entry = value as Record<string, unknown>;
+    const user = typeof entry.user === "object" && entry.user != null ? entry.user as Record<string, unknown> : undefined;
+
+    if (typeof user?.id === "string") return user.id;
+    if (typeof entry.key === "string") return entry.key;
+};
+
+const getTargetMutualStateLabel = (state: TargetMutualState, targetName: string) => {
+    switch (state) {
+        case "checking":
+            return "Checking mutual friends...";
+        case "match":
+            return `Mutual with ${targetName}.`;
+        case "no-match":
+            return `${targetName} was not found in mutual friends.`;
+        case "unavailable":
+            return "Discord did not expose the mutual friend list.";
+        case "error":
+            return "Could not check mutual friends.";
+        default:
+            return "";
+    }
+};
+
 function DetailField({ label, value, wide, preserve }: { label: string; value?: string | number | boolean | null; wide?: boolean; preserve?: boolean; }) {
     if (value == null || value === "") return null;
 
@@ -151,6 +180,132 @@ function DetailField({ label, value, wide, preserve }: { label: string; value?: 
         <div className={classes(cl("modal-field"), wide && cl("modal-wide"))}>
             <strong>{label}</strong>
             {preserve ? <pre>{text}</pre> : <span>{text}</span>}
+        </div>
+    );
+}
+
+function VoiceParticipantBadge({ participant }: { participant: VoiceParticipant; }) {
+    const isFriend = useStateFromStores([RelationshipStore], () => RelationshipStore.isFriend(participant.userId), [participant.userId]);
+
+    return (
+        <span className={classes(cl("voice-badge"), isFriend && cl("voice-badge-friend"))}>
+            {participant.displayName}
+            <small>{isFriend ? "Your friend" : "Not your friend"}</small>
+        </span>
+    );
+}
+
+function VoiceParticipantCard({ participant, targetUserId }: { participant: VoiceParticipant; targetUserId?: string; }) {
+    const user = UserStore.getUser(participant.userId);
+    const targetUser = targetUserId ? UserStore.getUser(targetUserId) : undefined;
+    const isFriend = useStateFromStores([RelationshipStore], () => RelationshipStore.isFriend(participant.userId), [participant.userId]);
+    const username = user?.username ?? participant.username;
+    const targetName = targetUser?.username ?? "target";
+    const [targetMutualState, setTargetMutualState] = useState<TargetMutualState>("idle");
+
+    const checkTargetMutual = async () => {
+        if (!targetUserId || targetMutualState === "checking") return;
+
+        setTargetMutualState("checking");
+
+        try {
+            await fetchUserProfile(participant.userId, { with_mutual_friends_count: true }, false);
+
+            const mutualFriends = UserProfileStore.getMutualFriends(participant.userId) as unknown;
+            if (!Array.isArray(mutualFriends)) {
+                setTargetMutualState("unavailable");
+                return;
+            }
+
+            setTargetMutualState(mutualFriends.some(friend => getMutualFriendId(friend) === targetUserId) ? "match" : "no-match");
+        } catch {
+            setTargetMutualState("error");
+        }
+    };
+
+    return (
+        <div className={cl("voice-participant")}>
+            <div className={cl("voice-person")}>
+                <div className={cl("voice-name-row")}>
+                    <strong>{participant.displayName}</strong>
+                    <span className={classes(cl("voice-status"), isFriend && cl("voice-status-friend"))}>
+                        {isFriend ? "Your friend" : "Not your friend"}
+                    </span>
+                </div>
+                <span className={cl("voice-username")}>@{username}</span>
+                <small className={cl("voice-id")}>ID {participant.userId}</small>
+                {targetUserId && targetMutualState !== "idle" ? (
+                    <div className={classes(
+                        cl("voice-mutual-state"),
+                        targetMutualState === "match" && cl("voice-mutual-state-friend"),
+                        (targetMutualState === "unavailable" || targetMutualState === "error") && cl("voice-mutual-state-muted")
+                    )}>
+                        {getTargetMutualStateLabel(targetMutualState, targetName)}
+                    </div>
+                ) : null}
+            </div>
+            <div className={cl("voice-actions")}>
+                {targetUserId ? (
+                    <button className={cl("action")} disabled={targetMutualState === "checking"} onClick={() => void checkTargetMutual()} type="button">
+                        Check Mutual
+                    </button>
+                ) : null}
+                <button className={cl("action")} onClick={() => void openUserProfile(participant.userId)} type="button">
+                    Open Profile
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function VoiceParticipantsPreview({ participants }: { participants?: VoiceParticipant[]; }) {
+    if (!participants) return null;
+
+    if (!participants.length) {
+        return (
+            <div className={cl("voice-preview")}>
+                <span className={cl("voice-badge")}>No one else in voice</span>
+            </div>
+        );
+    }
+
+    const shownParticipants = participants.slice(0, 3);
+    const hiddenCount = participants.length - shownParticipants.length;
+
+    return (
+        <div className={cl("voice-preview")}>
+            {shownParticipants.map(participant => (
+                <VoiceParticipantBadge key={participant.userId} participant={participant} />
+            ))}
+            {hiddenCount > 0 ? <span className={cl("voice-badge")}>{hiddenCount} more</span> : null}
+        </div>
+    );
+}
+
+function VoiceParticipantsPanel({ participants, targetUserId }: { participants?: VoiceParticipant[]; targetUserId?: string; }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    if (!participants) return null;
+
+    const participantCount = participants.length === 1 ? "1 person" : `${participants.length} people`;
+
+    return (
+        <div className={cl("voice-panel")}>
+            <div className={cl("voice-panel-head")}>
+                <strong>People in voice</strong>
+                <button className={cl("action")} onClick={() => setCollapsed(value => !value)} type="button">
+                    {collapsed ? "Open" : "Close"}
+                </button>
+            </div>
+            {collapsed ? (
+                <span className={cl("voice-collapsed")}>{participantCount} saved in this event.</span>
+            ) : participants.length ? (
+                <div className={cl("voice-list")}>
+                    {participants.map(participant => (
+                        <VoiceParticipantCard key={participant.userId} participant={participant} targetUserId={targetUserId} />
+                    ))}
+                </div>
+            ) : <span className={cl("empty")}>No one else was in voice.</span>}
         </div>
     );
 }
@@ -201,6 +356,8 @@ const EventDetailsModal = ErrorBoundary.wrap(function EventDetailsModal({ event,
                         ))}
                     </div>
                 ) : null}
+
+                <VoiceParticipantsPanel participants={event.voiceParticipants} targetUserId={event.scope === "person" ? event.userId : undefined} />
 
                 <div className={cl("actions")}>
                     <button className={cl("action")} onClick={copyEvent}>Copy Event JSON</button>
@@ -291,6 +448,7 @@ function EventRow({ event }: { event: SurveillanceEvent; }) {
                     <span>{formatTime(event.timestamp)}</span>
                 </div>
                 <div className={cl("event-details")}>{event.details}</div>
+                <VoiceParticipantsPreview participants={event.voiceParticipants} />
                 {location ? <div className={cl("event-location")}>{location}</div> : null}
                 {event.before || event.after ? (
                     <div className={cl("event-diff")}>
@@ -512,7 +670,7 @@ function SurveillanceTab() {
     const copyEvents = () => {
         try {
             void Promise.resolve(copyToClipboard(JSON.stringify(filteredEvents, null, 2))).then(
-                () => toast("Surveillance events copied."),
+                () => toast(`${pageHeading} events copied.`),
                 () => toast("Failed to copy surveillance events.", Toasts.Type.FAILURE)
             );
         } catch {
@@ -521,8 +679,11 @@ function SurveillanceTab() {
     };
 
     const resetEvents = () => {
-        void clearEvents().then(() => toast("Surveillance events cleared."));
+        void clearEvents(page === "server" ? "server" : "person").then(() => toast(`${pageHeading} events cleared.`));
     };
+
+    const exportLabel = page === "server" ? "Export Server JSON" : "Export User JSON";
+    const clearEventsLabel = page === "server" ? "Clear Server Events" : "Clear User Events";
 
     return (
         <SettingsTab>
@@ -530,8 +691,8 @@ function SurveillanceTab() {
                 <div className={cl("header")}>
                     <HeadingPrimary>Surveillance</HeadingPrimary>
                     <div className={cl("actions")}>
-                        <button className={cl("action")} onClick={copyEvents}>Export JSON</button>
-                        <button className={classes(cl("action"), cl("danger"))} onClick={resetEvents}>Clear</button>
+                        <button className={cl("action")} onClick={copyEvents}>{exportLabel}</button>
+                        <button className={classes(cl("action"), cl("danger"))} onClick={resetEvents}>{clearEventsLabel}</button>
                     </div>
                 </div>
 

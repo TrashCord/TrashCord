@@ -79,7 +79,10 @@ export default definePlugin({
         // {
         //     find: "getDispatchHandler needs to be passed in first!",
         //     predicate: () => settings.store.optimizeDispatch,
-        //     replacement: { match: /(\.flush\(\w,\w\),"READY"===\w\)\{).+?;(.+?\)),.+?\}/, replace: (_, a, b) => a + b + "}" },
+        //     replacement: {
+        //        match: /let \i=Date\.now\(\),(\i=\i\.Z\.flush\(\i,\i\));\i\.\i\.showPerformanceTelemetry\?.+?Telemetry\(.+?,\i\)/,
+        //        replace: "$1",
+        //    },
         // },
         {
             find: "--custom-app-panels-height",

@@ -7,7 +7,7 @@
 import * as DataStore from "@api/DataStore";
 import { Logger } from "@utils/Logger";
 
-import type { SurveillanceEvent } from "./types";
+import type { SurveillanceEvent, SurveillanceScope } from "./types";
 
 const STORE_KEY = "Illegalcord_Surveillance_events";
 const MIN_EVENTS = 50;
@@ -154,9 +154,18 @@ export async function recordEvent(event: SurveillanceEvent, limit: number) {
     scheduleSave();
 }
 
-export async function clearEvents() {
-    events = [];
-    pendingEvents = [];
+const matchesScope = (event: SurveillanceEvent, scope: SurveillanceScope) =>
+    scope === "server" ? event.scope === "server" : event.scope !== "server";
+
+export async function clearEvents(scope?: SurveillanceScope) {
+    if (scope) {
+        events = events.filter(event => !matchesScope(event, scope));
+        pendingEvents = pendingEvents.filter(event => !matchesScope(event, scope));
+    } else {
+        events = [];
+        pendingEvents = [];
+    }
+
     loaded = true;
     await persistNow();
     notify();

@@ -1,10 +1,15 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { cache } from "@webpack";
-import { Button, Constants, Forms, MessageStore, Parser, RestAPI, Toasts, useEffect, UserStore, useState } from "@webpack/common";
-import { Message } from "discord-types/general";
+import { Message } from "@vencord/discord-types";
+import { Button, Forms, MessageStore, Parser, Toasts, useEffect, UserStore, useState } from "@webpack/common";
 
 const DATA_STORE_KEY = "huskchart";
 type Husk = {
@@ -21,34 +26,8 @@ const messageCache = new Map<string, {
     fetched: boolean;
 }>();
 
-async function getMessage(channelId: string, messageId: string): Promise<Message | undefined> {
-    const cached = messageCache.get(messageId);
-    if (cached) return cached?.message;
-
-    const storeMessage = MessageStore.getMessage(channelId, messageId);
-    if (storeMessage) {
-        messageCache.set(storeMessage.id, {
-            message: storeMessage,
-            fetched: false
-        });
-        return storeMessage;
-    }
-
-    const apiMessage = await RestAPI.get({
-        url: Constants.Endpoints.MESSAGES(channelId),
-        query: {
-            limit: 1,
-            around: messageId
-        },
-        retries: 2
-    }).catch(() => null);
-    if (apiMessage) {
-        messageCache.set(apiMessage.body[0].id, {
-            message: apiMessage,
-            fetched: true
-        });
-        return apiMessage.body[0];
-    }
+function getMessage(channelId: string, messageId: string): Message | undefined {
+    return MessageStore.getMessage(channelId, messageId);
 }
 const UserData = () => {
     const [data, setData] = useState([]);
@@ -62,7 +41,7 @@ const UserData = () => {
                 let shouldAddInitialHusk = true;
                 for (const [i, hc] of unsortedHuskCountPerUser.entries()) {
                     const unsortedHusker: SortedHusk = hc;
-                    if (unsortedHusker.id == husk.userId) {
+                    if (unsortedHusker.id === husk.userId) {
                         unsortedHuskCountPerUser[i].count++;
                         shouldAddInitialHusk = false;
                     }
@@ -125,7 +104,7 @@ const ChannelData = () => {
                 let shouldAddInitialHusk = true;
                 for (const [i, hc] of unsortedHuskCountPerChannel.entries()) {
                     const unsortedHusker: SortedHusk = hc;
-                    if (unsortedHusker.id == husk.channelId) {
+                    if (unsortedHusker.id === husk.channelId) {
                         unsortedHuskCountPerChannel[i].count++;
                         shouldAddInitialHusk = false;
                     }
@@ -185,16 +164,17 @@ export default definePlugin({
     flux: {
         async MESSAGE_REACTION_ADD(event) {
             try {
-                const msg = await getMessage(event.channelId, event.messageId);
-                if (msg!.author.id !== UserStore.getCurrentUser().id) return;
+                const msg = getMessage(event.channelId, event.messageId);
+                if (!msg) return;
+                if (msg.author.id !== UserStore.getCurrentUser().id) return;
                 if (!event.emoji.name.includes("husk")) return;
-                let husks: Husk[] = await DataStore.get(DATA_STORE_KEY) || [];
+                const husks: Husk[] = await DataStore.get(DATA_STORE_KEY) || [];
                 husks.push({
                     userId: event.userId,
                     channelId: event.channelId,
                     messageId: event.messageId
                 });
-                DataStore.set(DATA_STORE_KEY, husks);
+                await DataStore.set(DATA_STORE_KEY, husks);
             }
             catch {
                 // explode
@@ -238,8 +218,3 @@ export default definePlugin({
         }
     })
 });
-
-
-
-
-

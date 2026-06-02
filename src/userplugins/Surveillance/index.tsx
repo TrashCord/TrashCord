@@ -16,10 +16,10 @@ import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Activity, Channel, Guild, GuildMember, Message, OnlineStatus, Role, User } from "@vencord/discord-types";
 import { ActivityType } from "@vencord/discord-types/enums";
-import { ChannelStore, GuildStore, Menu, PresenceStore, SettingsRouter, UserStore, VoiceStateStore } from "@webpack/common";
+import { ChannelStore, GuildStore, Menu, PresenceStore, RelationshipStore, SettingsRouter, UserStore, VoiceStateStore } from "@webpack/common";
 
 import { recordEvent, trimEvents } from "./store";
-import type { MessageSnapshot, SurveillanceEvent, SurveillanceEventType, SurveillanceScope, VoiceState, VoiceStateFlag } from "./types";
+import type { MessageSnapshot, SurveillanceEvent, SurveillanceEventType, SurveillanceScope, VoiceParticipant, VoiceState, VoiceStateFlag } from "./types";
 
 const SETTINGS_ENTRY_KEY = "illegalcord_surveillance";
 const NOTIFICATION_COLOR = "#5865f2";
@@ -28,6 +28,8 @@ const MESSAGE_CACHE_LIMIT = 1000;
 const TYPING_COOLDOWN = 15_000;
 const TYPING_CACHE_LIMIT = 2000;
 const MEMBER_JOIN_FRESHNESS = 300_000;
+const UPDATE_EVENT_COOLDOWN = 10_000;
+const UPDATE_EVENT_CACHE_LIMIT = 2000;
 
 let targets: string[] = [];
 let serverTargets: string[] = [];
@@ -38,6 +40,7 @@ const serverTargetListeners = new Set<() => void>();
 const messageCache = new Map<string, MessageSnapshot>();
 const previousVoiceStates = new Map<string, VoiceState>();
 const typingCooldowns = new Map<string, number>();
+const updateCooldowns = new Map<string, number>();
 const seenServerUsers = new Map<string, Set<string>>();
 const SurveillanceTab = LazyComponent(() => require("./components/SurveillanceTab").default);
 let lastStatuses = new Map<string, OnlineStatus>();
@@ -94,6 +97,8 @@ interface MessageReactionFluxEvent {
     userId?: string;
     emoji?: ReactionEmoji;
 }
+
+type DisplayUser = User & { globalName?: string | null; };
 
 const voiceStateLabels: Array<[VoiceStateFlag, string, string]> = [
     ["mute", "Server muted", "Server unmuted"],
@@ -191,7 +196,7 @@ export const settings = definePluginSettings({
     },
     captureMessageContent: {
         type: OptionType.BOOLEAN,
-        default: true,
+        default: false,
         description: "Include message previews in local logs.",
     },
     logMessageChanges: {
@@ -213,11 +218,13 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         default: true,
         description: "Log online, idle, dnd, and offline transitions.",
+        onChange: syncPresenceTracking,
     },
     logActivities: {
         type: OptionType.BOOLEAN,
         default: true,
         description: "Log activity starts, stops, and updates.",
+        onChange: syncPresenceTracking,
     },
     logVoice: {
         type: OptionType.BOOLEAN,
@@ -253,6 +260,9 @@ const makeId = () =>
 const getUsername = (userId: string, fallback?: string) =>
     fallback ?? UserStore.getUser(userId)?.username ?? userId;
 
+const getDisplayUser = (userId: string) =>
+    UserStore.getUser(userId) as DisplayUser | undefined;
+
 const preview = (content: string) =>
     content.length > MESSAGE_PREVIEW_LIMIT
         ? `${content.slice(0, MESSAGE_PREVIEW_LIMIT)}...`
@@ -286,6 +296,15 @@ const getScope = (userId: string, guildId?: string): SurveillanceScope | undefin
 const shouldTrackEvent = (userId: string, guildId?: string) =>
     getScope(userId, guildId) != null;
 
+function shouldTrackPresence() {
+    return settings.store.logActivities || settings.store.logStatus;
+}
+
+function syncPresenceTracking() {
+    if (shouldTrackPresence()) startPresenceTracking();
+    else stopPresenceTracking();
+}
+
 const getChannelInfo = (channelId: string | undefined): ChannelInfo => {
     if (!channelId) return {};
 
@@ -300,21 +319,33 @@ const getChannelInfo = (channelId: string | undefined): ChannelInfo => {
     };
 };
 
-const getVoiceUsers = (channelId: string | undefined, userId: string): string => {
-    if (!channelId) return "No one else";
+const getVoiceParticipants = (channelId: string | undefined, userId: string): VoiceParticipant[] => {
+    if (!channelId) return [];
 
-    const users = Object.values(VoiceStateStore.getVoiceStatesForChannel(channelId) ?? {})
+    return Object.values(VoiceStateStore.getVoiceStatesForChannel(channelId) ?? {})
         .filter(state => state.userId !== userId)
         .map(state => {
-            const user = UserStore.getUser(state.userId);
-            return `@${user?.username ?? "Unknown user"} | ${state.userId}`;
-        });
+            const user = getDisplayUser(state.userId);
+            const username = user?.username ?? "Unknown user";
 
-    return users.length ? users.join(", ") : "No one else";
+            return {
+                userId: state.userId,
+                username,
+                displayName: user?.globalName ?? username,
+                isFriend: RelationshipStore.isFriend(state.userId),
+            };
+        });
 };
 
-const withVoiceUsers = (details: string, channelId: string | undefined, userId: string) =>
-    `${details} People in voice: ${getVoiceUsers(channelId, userId)}.`;
+const getVoiceDetails = (details: string, channelId: string | undefined, userId: string) => {
+    const voiceParticipants = getVoiceParticipants(channelId, userId);
+    const people = voiceParticipants.length === 1 ? "1 other person" : `${voiceParticipants.length} other people`;
+
+    return {
+        details: `${details} ${voiceParticipants.length ? `${people} in voice.` : "No one else in voice."}`,
+        voiceParticipants,
+    };
+};
 
 const getGuildInfo = (guildId: string | undefined): Pick<SurveillanceEvent, "guildId" | "guildName"> => {
     const guild = guildId ? GuildStore.getGuild(guildId) : undefined;
@@ -407,6 +438,24 @@ const pruneTypingCooldowns = (now: number) => {
     for (const [key, lastTypedAt] of typingCooldowns) {
         if (now - lastTypedAt > TYPING_COOLDOWN) typingCooldowns.delete(key);
     }
+};
+
+const pruneUpdateCooldowns = (now: number) => {
+    if (updateCooldowns.size <= UPDATE_EVENT_CACHE_LIMIT) return;
+
+    for (const [key, lastLoggedAt] of updateCooldowns) {
+        if (now - lastLoggedAt > UPDATE_EVENT_COOLDOWN) updateCooldowns.delete(key);
+    }
+};
+
+const shouldLogUpdateEvent = (key: string) => {
+    const now = Date.now();
+    const lastLoggedAt = updateCooldowns.get(key) ?? 0;
+    if (now - lastLoggedAt < UPDATE_EVENT_COOLDOWN) return false;
+
+    updateCooldowns.set(key, now);
+    pruneUpdateCooldowns(now);
+    return true;
 };
 
 const addEvent = (entry: Omit<SurveillanceEvent, "id" | "timestamp">) => {
@@ -504,6 +553,7 @@ const seedPresence = () => {
 
 const startPresenceTracking = () => {
     presenceStartTimer = undefined;
+    if (!shouldTrackPresence()) return;
     if (presenceTrackingStarted) return;
 
     seedPresence();
@@ -521,6 +571,8 @@ const stopPresenceTracking = () => {
 
     PresenceStore.removeChangeListener(handlePresenceChange);
     presenceTrackingStarted = false;
+    lastStatuses.clear();
+    lastActivities.clear();
 };
 
 const handlePresenceChange = () => {
@@ -600,21 +652,42 @@ const handleVoiceState = (state: VoiceState) => {
     if (oldChannelId !== channelId) {
         if (!oldChannelId && channelId) {
             const channelInfo = getChannelInfo(channelId);
-            addUserEvent("voice_join", userId, withVoiceUsers(`Joined voice channel ${channelInfo.channelName ?? "Unknown channel"}.`, channelId, userId), channelInfo);
+            const voiceDetails = getVoiceDetails(`Joined voice channel ${channelInfo.channelName ?? "Unknown channel"}.`, channelId, userId);
+
+            addUserEvent("voice_join", userId, voiceDetails.details, {
+                ...channelInfo,
+                voiceParticipants: voiceDetails.voiceParticipants,
+            });
         } else if (oldChannelId && !channelId) {
             const channelInfo = getChannelInfo(oldChannelId);
-            addUserEvent("voice_leave", userId, withVoiceUsers(`Left voice channel ${channelInfo.channelName ?? "Unknown channel"}.`, oldChannelId, userId), channelInfo);
+            const voiceDetails = getVoiceDetails(`Left voice channel ${channelInfo.channelName ?? "Unknown channel"}.`, oldChannelId, userId);
+
+            addUserEvent("voice_leave", userId, voiceDetails.details, {
+                ...channelInfo,
+                voiceParticipants: voiceDetails.voiceParticipants,
+            });
         } else if (oldChannelId && channelId) {
             const oldChannel = getChannelInfo(oldChannelId).channelName ?? "Unknown channel";
             const channelInfo = getChannelInfo(channelId);
-            addUserEvent("voice_move", userId, withVoiceUsers(`Moved from ${oldChannel} to ${channelInfo.channelName ?? "Unknown channel"}.`, channelId, userId), channelInfo);
+            const voiceDetails = getVoiceDetails(`Moved from ${oldChannel} to ${channelInfo.channelName ?? "Unknown channel"}.`, channelId, userId);
+
+            addUserEvent("voice_move", userId, voiceDetails.details, {
+                ...channelInfo,
+                voiceParticipants: voiceDetails.voiceParticipants,
+            });
         }
     }
 
     if (previousState && channelId && oldChannelId === channelId) {
         const changes = getVoiceChanges(previousState, state);
         if (changes.length) {
-            addUserEvent("voice_update", userId, withVoiceUsers(`Voice state changed: ${changes.join(", ")}.`, channelId, userId), getChannelInfo(channelId));
+            const channelInfo = getChannelInfo(channelId);
+            const voiceDetails = getVoiceDetails(`Voice state changed: ${changes.join(", ")}.`, channelId, userId);
+
+            addUserEvent("voice_update", userId, voiceDetails.details, {
+                ...channelInfo,
+                voiceParticipants: voiceDetails.voiceParticipants,
+            });
         }
     }
 
@@ -632,14 +705,15 @@ const logMessage = (message: Message) => {
 
     rememberServerUser(author.id, info.guildId);
 
-    const content = settings.store.captureMessageContent ? preview(message.content) : undefined;
+    const captureContent = settings.store.captureMessageContent;
+    const content = captureContent ? preview(message.content) : undefined;
 
     rememberMessage(message.id, {
         userId: author.id,
         username: author.username,
         channelId: message.channel_id,
         guildId: info.guildId,
-        content: message.content,
+        content: captureContent ? message.content : "",
     });
 
     if (!settings.store.logMessages) return;
@@ -671,7 +745,8 @@ const logMessageUpdate = (message: Message) => {
 
     rememberServerUser(message.author.id, guildId);
 
-    const content = settings.store.captureMessageContent ? preview(message.content) : undefined;
+    const captureContent = settings.store.captureMessageContent;
+    const content = captureContent ? preview(message.content) : undefined;
     const previousContent = previousMessage?.content;
 
     rememberMessage(message.id, {
@@ -679,7 +754,7 @@ const logMessageUpdate = (message: Message) => {
         username: message.author.username,
         channelId: message.channel_id,
         guildId: info.guildId,
-        content: message.content,
+        content: captureContent ? message.content : "",
     });
 
     addEvent({
@@ -688,7 +763,7 @@ const logMessageUpdate = (message: Message) => {
         username: message.author.username,
         details: content ? `Edited message: ${content}` : "Edited a message.",
         scope: getScope(message.author.id, guildId),
-        before: settings.store.captureMessageContent && previousContent ? preview(previousContent) : undefined,
+        before: captureContent && previousContent ? preview(previousContent) : undefined,
         after: content,
         ...info,
         metadata: {
@@ -800,6 +875,8 @@ const logReactionClear = (event: { channelId: string; messageId: string; }) => {
 
 const logChannelEvent = (type: "channel_create" | "channel_delete" | "channel_update", event: ChannelFluxEvent) => {
     const info = getChannelEventInfo(event);
+    if (type === "channel_update" && !shouldLogUpdateEvent(`channel:${info.channelId ?? "unknown"}`)) return;
+
     const label = info.channelName ?? info.channelId ?? "Unknown channel";
     const verb = type === "channel_create" ? "Created" : type === "channel_delete" ? "Deleted" : "Updated";
 
@@ -814,6 +891,8 @@ const logChannelEvent = (type: "channel_create" | "channel_delete" | "channel_up
 
 const logThreadEvent = (type: "thread_create" | "thread_delete" | "thread_update", event: ChannelFluxEvent) => {
     const info = getChannelEventInfo(event);
+    if (type === "thread_update" && !shouldLogUpdateEvent(`thread:${info.channelId ?? "unknown"}`)) return;
+
     const label = info.channelName ?? info.channelId ?? "Unknown thread";
     const verb = type === "thread_create" ? "Created" : type === "thread_delete" ? "Deleted" : "Updated";
 
@@ -838,6 +917,7 @@ const logGuildMemberEvent = (
     const userId = event.user?.id ?? event.userId ?? event.member?.userId;
     if (userId && isCurrentUser(userId)) return;
     if (userId && shouldIgnoreUser(userId, event.user)) return;
+    if (type === "guild_member_update" && !shouldLogUpdateEvent(`member:${guildId ?? "unknown"}:${userId ?? "unknown"}`)) return;
 
     const joinedAt = event.member?.joinedAt ? Date.parse(event.member.joinedAt) : undefined;
     const isFreshJoin = joinedAt != null && Date.now() - joinedAt < MEMBER_JOIN_FRESHNESS;
@@ -865,6 +945,8 @@ const logGuildMemberEvent = (
 
 const logGuildEvent = (event: GuildFluxEvent) => {
     const guildId = event.guild?.id ?? event.guildId;
+    if (!shouldLogUpdateEvent(`guild:${guildId ?? "unknown"}`)) return;
+
     const guildName = event.guild?.name ?? GuildStore.getGuild(guildId ?? "")?.name;
 
     addServerEvent("guild_update", guildId, `Server settings changed${guildName ? ` for ${guildName}` : ""}.`, {
@@ -874,6 +956,8 @@ const logGuildEvent = (event: GuildFluxEvent) => {
 
 const logRoleEvent = (type: "role_create" | "role_delete" | "role_update", event: RoleFluxEvent) => {
     const guildId = event.role?.guildId ?? event.guildId ?? event.guild_id;
+    if (type === "role_update" && !shouldLogUpdateEvent(`role:${guildId ?? "unknown"}:${event.role?.id ?? event.roleId ?? "unknown"}`)) return;
+
     const roleName = event.role?.name ?? event.roleId ?? "Unknown role";
     const verb = type === "role_create" ? "Created" : type === "role_delete" ? "Deleted" : "Updated";
 
@@ -923,7 +1007,7 @@ export default definePlugin({
     start() {
         updateTargets(settings.store.targets);
         updateServerTargets(settings.store.serverTargets);
-        presenceStartTimer = setTimeout(startPresenceTracking, 3_000);
+        if (shouldTrackPresence()) presenceStartTimer = setTimeout(startPresenceTracking, 3_000);
 
         if (!SettingsPlugin.customEntries.some(entry => entry.key === SETTINGS_ENTRY_KEY)) {
             SettingsPlugin.customEntries.push({
@@ -941,6 +1025,7 @@ export default definePlugin({
         previousVoiceStates.clear();
         messageCache.clear();
         typingCooldowns.clear();
+        updateCooldowns.clear();
         seenServerUsers.clear();
         lastStatuses.clear();
         lastActivities.clear();
