@@ -204,6 +204,7 @@ export default definePlugin({
     name: "Pin to Voice Channel",
     description: "Right-click on a voice channel to pin",
     authors: [Devs.SirPhantom89],
+    enabledByDefault: false,
     tags: ["Utility"],
     settings,
 

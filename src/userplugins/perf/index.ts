@@ -62,7 +62,7 @@ export default definePlugin({
         { id: 579731384868798464n, name: "void" },
         { id: 456195985404592149n, name: "zfrancesck1" },
     ],
-    tags: ["Developers", "Utility"],
+    tags: ["Developers", "Utility", "Performance"],
     enabledByDefault: false,
     settings,
     patches: [

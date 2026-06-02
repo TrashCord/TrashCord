@@ -96,6 +96,7 @@ export default definePlugin({
     name: "timeDelete",
     description: "Automatically deletes your sent messages after a configurable delay.",
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Utility", "Chat"],
     dependencies: ["HeaderBarAPI"],
     settings,

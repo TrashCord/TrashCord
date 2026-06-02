@@ -73,7 +73,7 @@ export default definePlugin({
     name: "ArchiveGroups",
     description: "Archive servers to hide them from your list, mute their notifications, and auto-read mentions.",
     authors: [{ name: "Equicord", id: 0n }],
-    tags: ["Servers", "Utility", "Notification"],
+    tags: ["Servers", "Utility", "Notifications"],
     enabledByDefault: false,
     managedStyle,
     settings,

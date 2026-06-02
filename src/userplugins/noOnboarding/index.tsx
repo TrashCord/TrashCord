@@ -24,6 +24,7 @@ export default definePlugin({
     name: "NoOnboarding",
     description: "Bypasses Discord's onboarding process for quicker server entry.",
     authors: [EquicordDevs.omaw, Devs.Glitch],
+    enabledByDefault: false,
     tags: ["Privacy", "Utility"],
     patches: [
         {

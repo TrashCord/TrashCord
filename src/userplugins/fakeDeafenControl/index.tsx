@@ -165,6 +165,7 @@ export default definePlugin({
     name: "fakeDeafen (dot's one)",
     description: "Control which voice states are updated with customizable keybinds.",
     authors: [Devs.dot],
+    enabledByDefault: false,
     tags: ["Voice", "Privacy"],
 
     state(type: string, real: boolean) {

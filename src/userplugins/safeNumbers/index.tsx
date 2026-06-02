@@ -96,6 +96,7 @@ export default definePlugin({
     name: "SafeNumbers",
     description: "replace numbers in ur messages with a similiar math char shi so discord cant touch yo ass and ban for under. hope yall enjoy",
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Privacy", "Chat"],
     dependencies: ["MessageEventsAPI", "HeaderBarAPI"],
     settings,

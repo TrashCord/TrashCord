@@ -92,6 +92,7 @@ export default definePlugin({
     name: "QuickMsg",
     description: "Adds a chatbar button that sends the typed message and instantly deletes it",
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Chat", "Privacy"],
     dependencies: ["ChatInputButtonAPI"],
     settings,

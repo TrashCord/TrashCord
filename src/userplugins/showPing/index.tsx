@@ -24,7 +24,7 @@ export default definePlugin({
         name: "nicola02nb",
         id: 257900031351193600n
     }],
-    tags: ["Utility", "Notification"],
+    tags: ["Utility", "Notifications"],
     enabledByDefault: false,
     settings,
     managedStyle,

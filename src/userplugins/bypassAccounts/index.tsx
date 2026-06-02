@@ -811,6 +811,7 @@ export default definePlugin({
     name: "bypassAccounts",
     description: "Discord account switcher with file-based encrypted token storage.",
     authors: [Devs.dot],
+    enabledByDefault: false,
     tags: ["Utility", "Privacy"],
     settings,
 

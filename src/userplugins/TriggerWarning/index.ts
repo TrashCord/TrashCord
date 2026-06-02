@@ -30,7 +30,7 @@ const settings = definePluginSettings({
 export default definePlugin({
     name: "TriggerWarning",
     authors: [Devs.x2b],
-    tags: ["Chat", "Notification"],
+    tags: ["Chat", "Notifications"],
     enabledByDefault: false,
     description: "Spoiler attachments based on filenames and links.",
     patches: [

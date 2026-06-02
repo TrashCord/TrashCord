@@ -239,7 +239,7 @@ export default definePlugin({
     name: "optimizerPremium",
     description: "Combined performance suite: tooltip/emoji/spinner/confetti/gateway patches, bounded image cache, react-spring skip, offscreen media pause, safe DOM throttling, lazy images, DOM batching, React optimization.",
     authors: [Devs.x2b, Devs.SirPhantom89],
-    tags: ["Utility", "Developers"],
+    tags: ["Utility", "Developers", "Performance"],
     enabledByDefault: false,
     settings,
 

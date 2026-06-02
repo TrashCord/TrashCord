@@ -11,6 +11,7 @@ export default definePlugin({
     name: "IgnoreTerms",
     description: "Ignore Discord's new terms of service",
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Utility", "Privacy"],
     patches: [
         {

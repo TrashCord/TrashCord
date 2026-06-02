@@ -798,7 +798,7 @@ export default definePlugin({
     name: "EventLogs",
     description: "Logs: deleted/edited messages, voice, friends, servers.",
     authors: [{ name: "Nightcord", id: 0n }],
-    tags: ["Utility", "Notification"],
+    tags: ["Utility", "Notifications"],
     enabledByDefault: false,
     managedStyle,
     dependencies: ["HeaderBarAPI"],

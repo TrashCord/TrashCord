@@ -118,6 +118,7 @@ export default definePlugin({
         name: "ichi0995",
         id: 176761898581229569n
     }],
+    enabledByDefault: false,
     tags: ["Customisation", "Appearance"],
     settings,
     startAt: StartAt.WebpackReady,

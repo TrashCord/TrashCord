@@ -58,7 +58,7 @@ export default definePlugin({
     name: "VideoStartNotifier",
     description: "Plays a sound when someone starts/stops their webcam in a voice channel",
     authors: [Devs.redbaron2k7],
-    tags: ["Voice", "Notification"],
+    tags: ["Voice", "Notifications"],
     enabledByDefault: false,
     settings,
 

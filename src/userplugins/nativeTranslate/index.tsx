@@ -58,6 +58,7 @@ export default definePlugin({
     managedStyle,
     dependencies: ["ChatInputButtonAPI", "MessageAccessoriesAPI", "MessagePopoverAPI"],
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Chat", "Utility"],
     settings,
     contextMenus: {

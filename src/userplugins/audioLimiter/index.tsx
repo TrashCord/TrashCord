@@ -489,7 +489,7 @@ export default definePlugin({
   description:
     "Automatically limits output volume to avoid sounds that are too loud",
   authors: [Devs.x2b],
-  tags: ["Voice", "Utility"],
+    tags: ["Voice", "Utility"],
   enabledByDefault: false,
   settings,
   settingsAboutComponent: SettingsPanel,

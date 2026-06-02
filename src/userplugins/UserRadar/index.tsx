@@ -2786,7 +2786,7 @@ export default definePlugin({
     name: "UserRadar",
     description: "track watched users and get notified on messages, edits, deletes, typing, profile/avatar changes, voice, status, activity, boosts, and server joins",
     authors: [{ name: "k1ng_op", id: 641266820187160576 }],
-    tags: ["Friends", "Utility", "Notification"],
+    tags: ["Friends", "Utility", "Notifications"],
     enabledByDefault: false,
     settings,
 

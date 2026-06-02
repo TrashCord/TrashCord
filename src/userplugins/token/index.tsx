@@ -29,7 +29,8 @@ export default definePlugin({
     name: "Token Display",
     description: "shows ur token with the command: /mytoken",
     authors: [Devs.x2b],
-    tags: ["Privacy", "Developers"],
+    enabledByDefault: false,
+    tags: ["Privacy", "Developers", "Utility"],
     dependencies: ["CommandsAPI"],
 
     settings,

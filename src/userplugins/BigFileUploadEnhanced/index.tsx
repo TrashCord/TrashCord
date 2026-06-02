@@ -872,6 +872,7 @@ export default definePlugin({
     name: "BigFileUploadEnhanced",
     description: "Bypass Discord's upload limit by uploading files to a third-party host and sending the link in chat, this version offers (soon more options) and not using dom manipulation (faster)",
     authors: [EquicordDevs.Benjii, Devs.x2b],
+    enabledByDefault: false,
     tags: ["Utility", "Chat"],
     settings,
 

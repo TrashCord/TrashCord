@@ -97,6 +97,7 @@ export default definePlugin({
     name: "MuteUnmuteServers",
     description: "Mute or unmute all your servers at once via right-click context menu.",
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Servers", "Utility"],
 
     start() {

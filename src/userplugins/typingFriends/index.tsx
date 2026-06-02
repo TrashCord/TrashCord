@@ -247,7 +247,7 @@ export default definePlugin({
     name: "TypingFriends",
     description: "See which of your friends are typing anywhere",
     authors: [Devs.Xylen],
-    tags: ["Friends", "Notification"],
+    tags: ["Friends", "Notifications"],
     enabledByDefault: false,
     settings: settings,
 

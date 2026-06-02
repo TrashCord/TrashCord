@@ -73,7 +73,7 @@ export default definePlugin({
         name: "FawazT",
         id: 228825096360296448n
     }],
-    tags: ["Voice", "Notification"],
+    tags: ["Voice", "Notifications"],
     enabledByDefault: false,
     settings,
     managedStyle,

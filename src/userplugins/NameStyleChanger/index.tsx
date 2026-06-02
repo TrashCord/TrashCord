@@ -43,6 +43,7 @@ export default definePlugin({
     name: "NameStyleChanger",
     description: "Change the font style of your own username and display name. (basically Display Name Styles but free)",
     authors: [Devs.x2b],
+    enabledByDefault: false,
     tags: ["Customisation", "Appearance"],
     settings,
 

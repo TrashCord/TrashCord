@@ -27,6 +27,7 @@ export default definePlugin({
     name: "CursorMacOS",
     description: "Replaces Windows SYSTEM cursors with authentic macOS cursors (.cur/.ani). Restores default cursors when disabled.",
     authors: [{ name: "Nightcord", id: 0n }],
+    tags: ["Appearance", "Customisation"],
     enabledByDefault: false,
 
     settings,

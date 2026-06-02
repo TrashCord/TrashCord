@@ -12,6 +12,7 @@ export default definePlugin({
     name: "AutoJumpToMention",
     description: "Automatically takes you to the message when someone mentions you",
     authors: [Devs.SirPhantom89],
+    enabledByDefault: false,
     tags: ["Utility"],
     patches: [],
 

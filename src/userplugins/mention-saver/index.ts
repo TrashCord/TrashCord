@@ -29,7 +29,7 @@ export default definePlugin({
     name: "Mention Saver",
     description: "Saves mentions that were deleted or from servers/GCs you were removed from. Made by Mika Jonkovič 🐱",
     authors: [{ name: "Mika Jonkovič", id: 1507353053861384354n }],
-    tags: ["Notification", "Utility", "Chat"],
+    tags: ["Notifications", "Utility", "Chat"],
     enabledByDefault: false,
     settings,
 

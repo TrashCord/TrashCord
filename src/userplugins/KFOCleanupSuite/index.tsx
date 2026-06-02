@@ -413,7 +413,8 @@ export default definePlugin({
     name: "Smart Cleanup Suite",
     description: "Delete your messages or all messages + cleanup spam, media, and messages between two points",
     authors: [Devs.SirPhantom89,],
-    tags: ["Utility", "Developers"],
+    enabledByDefault: false,
+    tags: ["Chat", "Utility", "Developers"],
     settings,
     commands: [
         // Regular delete commands
