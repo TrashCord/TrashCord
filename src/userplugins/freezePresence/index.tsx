@@ -77,7 +77,7 @@ export default definePlugin({
     description: "Stops the member list from jumping around when people change status, and optionally makes everyone appear online.",
     authors: [Devs.nnenaza],
     enabledByDefault: false,
-    tags: ["Utility", "Appearance"],
+    tags: ["Utility", "Appearance", "MemberList"],
     settings,
 
     patches: [
