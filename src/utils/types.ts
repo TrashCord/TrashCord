@@ -96,7 +96,6 @@ export const PluginTags = [
     "Debloat",
     "Shop",
     "Gift",
-    "Advertisement",
     "Adblock"
 ] as const;
 
