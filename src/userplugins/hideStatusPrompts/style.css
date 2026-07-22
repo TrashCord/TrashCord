@@ -1,0 +1,5 @@
+/* A suggested prompt is marked italic; the normal "add custom status" row is not. */
+div[class*="referenceContainer_"]:has([class*="addStatusPrompt_"][class*="italicPrompt_"]),
+div[class*="container_"][class*="editable_"]:has([class*="addStatusPrompt_"][class*="italicPrompt_"]) {
+    display: none !important;
+}
