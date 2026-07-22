@@ -1,0 +1,492 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+.vc-stereo-root {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vc-stereo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vc-stereo-badge {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+}
+
+.vc-stereo-badge--patched {
+    color: var(--status-positive);
+    background: color-mix(in srgb, var(--status-positive) 12%, transparent);
+    border-color: color-mix(in srgb, var(--status-positive) 30%, transparent);
+}
+
+.vc-stereo-badge--warn {
+    color: var(--status-warning);
+    background: color-mix(in srgb, var(--status-warning) 12%, transparent);
+    border-color: color-mix(in srgb, var(--status-warning) 30%, transparent);
+}
+
+.vc-stereo-badge--error {
+    color: var(--status-danger);
+    background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+    border-color: color-mix(in srgb, var(--status-danger) 30%, transparent);
+}
+
+.vc-stereo-badge--idle {
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--background-modifier-accent) 40%, transparent);
+    border-color: var(--background-modifier-accent);
+}
+
+.vc-stereo-badge--busy {
+    color: var(--text-brand);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 12%, transparent);
+    border-color: color-mix(in srgb, var(--brand-500, #5865f2) 60%, transparent);
+}
+
+.vc-stereo-warning {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    margin-bottom: 4px;
+    border: 1px solid var(--status-warning);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--status-warning) 7%, var(--background-secondary));
+}
+
+.vc-stereo-warning-critical {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--status-danger);
+    border-left: 3px solid var(--status-warning);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--status-danger) 10%, var(--background-secondary));
+}
+
+.vc-stereo-warning-critical-icon {
+    flex: none;
+    color: var(--status-warning);
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.vc-stereo-critical-text {
+    color: var(--status-warning);
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.vc-stereo-critical-term {
+    color: var(--status-danger);
+    font-weight: 700;
+}
+
+.vc-stereo-warning-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-stereo-settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 28px;
+    padding: 18px 20px;
+    border: 1px solid var(--background-modifier-accent);
+    border-radius: 10px;
+    background: var(--background-secondary);
+}
+
+.vc-stereo-settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vc-stereo-settings-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--background-secondary-alt);
+}
+
+.vc-stereo-settings-row > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vc-stereo-settings-row > div > span {
+    display: block;
+    color: var(--header-primary);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.vc-stereo-settings-row > div > *:not(span) {
+    margin: 0;
+    line-height: 1.45;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.vc-stereo-settings-subgroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-left: 18px;
+    padding: 12px 0 2px 16px;
+    border-left: 2px solid var(--brand-500, #5865f2);
+}
+
+.vc-stereo-settings-subgroup .vc-stereo-select-row {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--background-secondary-alt);
+}
+
+.vc-stereo-select-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.vc-stereo-select-row {
+    display: grid;
+    grid-template-columns: minmax(170px, 0.4fr) minmax(220px, 1fr);
+    gap: 12px;
+    align-items: center;
+}
+
+.vc-stereo-select-row > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.vc-stereo-select-row > div > span {
+    display: block;
+    color: var(--header-primary);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.vc-stereo-select-row > div > *:not(span) {
+    margin: 0;
+    line-height: 1.45;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.vc-stereo-method2-note {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--status-warning);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--status-warning) 7%, var(--background-secondary));
+}
+
+.vc-stereo-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vc-stereo-buttons,
+.vc-stereo-inline-buttons,
+.vc-stereo-source-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-stereo-info {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--background-modifier-accent);
+    border-left: 3px solid var(--background-modifier-accent);
+    border-radius: 8px;
+    background: var(--background-secondary);
+}
+
+.vc-stereo-info--patched        { border-left-color: var(--status-positive); }
+.vc-stereo-info--repatch-needed { border-left-color: var(--status-warning); }
+.vc-stereo-info--error          { border-left-color: var(--status-danger); }
+.vc-stereo-info--idle,
+.vc-stereo-info--unpatched      { border-left-color: var(--background-modifier-accent); }
+
+.vc-stereo-info-line {
+    display: grid;
+    grid-template-columns: minmax(90px, 0.22fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+}
+
+.vc-stereo-info-line span {
+    color: var(--header-secondary);
+    font-weight: 600;
+    font-size: 12.5px;
+}
+
+.vc-stereo-info-line code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-normal);
+    font-family: var(--font-code);
+    font-size: 12px;
+}
+
+.vc-stereo-code--warn {
+    color: var(--status-warning) !important;
+    font-weight: 600;
+}
+
+.vc-stereo-status-msg {
+    font-size: 13px;
+    margin: 0;
+    padding: 0;
+}
+
+.vc-stereo-status-msg--patched        { color: var(--status-positive); }
+.vc-stereo-status-msg--repatch-needed { color: var(--status-warning); font-weight: 600; }
+.vc-stereo-status-msg--error          { color: var(--status-danger); }
+.vc-stereo-status-msg--busy           { color: var(--text-brand); }
+.vc-stereo-status-msg--idle,
+.vc-stereo-status-msg--unpatched      { color: var(--header-secondary); }
+
+.vc-stereo-settings-section .vc-stereo-toggle {
+    appearance: none;
+    justify-self: end;
+    width: 40px;
+    height: 22px;
+    padding: 2px;
+    border-radius: 12px;
+    background: #4a4d58;
+    border: 1px solid #6c6f7b;
+    box-shadow: none;
+    outline: none;
+    cursor: pointer;
+}
+
+.vc-stereo-settings-section .vc-stereo-toggle.vc-stereo-toggle--on {
+    background: #23a55a;
+    border-color: #1a7f45;
+}
+
+.vc-stereo-toggle-knob {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+.vc-stereo-toggle--on .vc-stereo-toggle-knob {
+    margin-left: 18px;
+}
+
+.vc-stereo-log-panel {
+    border: 1px solid var(--background-modifier-accent);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--background-secondary-alt);
+}
+
+.vc-stereo-log-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: var(--background-secondary);
+    border-bottom: 1px solid var(--background-modifier-accent);
+}
+
+.vc-stereo-log-title {
+    flex: 1;
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: var(--font-code);
+    color: var(--header-secondary);
+    user-select: none;
+}
+
+.vc-stereo-log {
+    max-height: 220px;
+    padding: 6px 12px;
+    margin: 0;
+    overflow-y: auto;
+    background: var(--background-tertiary);
+    font-family: var(--font-code);
+    font-size: 11.5px;
+    line-height: 1.6;
+}
+
+.vc-stereo-log-line {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding: 1px 0;
+    border-left: 2px solid transparent;
+    padding-left: 6px;
+    color: var(--text-normal);
+}
+
+.vc-stereo-log-line--section {
+    margin-top: 4px;
+    color: var(--header-primary);
+    font-weight: 700;
+    border-left-color: var(--brand-500, #5865f2);
+}
+
+.vc-stereo-log-line--ok      { color: var(--status-positive, #23a55a); border-left-color: var(--status-positive, #23a55a); }
+.vc-stereo-log-line--warn    { color: var(--status-warning, #f0b232); border-left-color: var(--status-warning, #f0b232); font-weight: 600; }
+.vc-stereo-log-line--fail    { color: var(--status-danger, #da373c);  border-left-color: var(--status-danger, #da373c);  font-weight: 700; }
+.vc-stereo-log-line--empty   { color: var(--text-muted); font-style: italic; }
+
+#vc-stereo-warning {
+    border: 1px solid var(--status-warning) !important;
+    background: color-mix(in srgb, var(--status-warning) 7%, var(--background-secondary)) !important;
+    box-shadow: none !important;
+}
+
+#vc-stereo-warning .vc-stereo-warning-critical {
+    border: 1px solid var(--status-danger) !important;
+    border-left: 3px solid var(--status-warning) !important;
+    background: color-mix(in srgb, var(--status-danger) 10%, var(--background-secondary)) !important;
+    box-shadow: none !important;
+}
+#vc-stereo-warning .vc-stereo-critical-text {
+    color: var(--status-warning) !important;
+}
+#vc-stereo-warning .vc-stereo-critical-term {
+    color: var(--status-danger) !important;
+}
+#vc-stereo-warning .vc-stereo-warning-critical-icon {
+    color: var(--status-warning) !important;
+}
+
+#vc-stereo-panel .vc-stereo-badge {
+    border-width: 1px !important;
+    border-style: solid !important;
+    box-shadow: none !important;
+}
+#vc-stereo-panel .vc-stereo-badge--patched { color: var(--status-positive) !important; background: color-mix(in srgb, var(--status-positive) 12%, transparent) !important; border-color: color-mix(in srgb, var(--status-positive) 30%, transparent) !important; }
+#vc-stereo-panel .vc-stereo-badge--warn    { color: var(--status-warning) !important; background: color-mix(in srgb, var(--status-warning) 12%, transparent) !important; border-color: color-mix(in srgb, var(--status-warning) 30%, transparent) !important; }
+#vc-stereo-panel .vc-stereo-badge--error   { color: var(--status-danger) !important; background: color-mix(in srgb, var(--status-danger) 12%, transparent) !important; border-color: color-mix(in srgb, var(--status-danger) 30%, transparent) !important; }
+#vc-stereo-panel .vc-stereo-badge--idle    { color: var(--text-muted) !important; background: color-mix(in srgb, var(--background-modifier-accent) 40%, transparent) !important; border-color: var(--background-modifier-accent) !important; }
+#vc-stereo-panel .vc-stereo-badge--busy    { color: var(--text-brand) !important; background: color-mix(in srgb, var(--brand-500, #5865f2) 12%, transparent) !important; border-color: color-mix(in srgb, var(--brand-500, #5865f2) 60%, transparent) !important; }
+
+#vc-stereo-panel .vc-stereo-info {
+    border: 1px solid var(--background-modifier-accent) !important;
+    border-left: 3px solid var(--background-modifier-accent) !important;
+    background: var(--background-secondary) !important;
+    box-shadow: none !important;
+}
+#vc-stereo-panel .vc-stereo-info--patched        { border-left-color: var(--status-positive) !important; }
+#vc-stereo-panel .vc-stereo-info--repatch-needed { border-left-color: var(--status-warning) !important; }
+#vc-stereo-panel .vc-stereo-info--error          { border-left-color: var(--status-danger) !important; }
+#vc-stereo-panel .vc-stereo-info--idle,
+#vc-stereo-panel .vc-stereo-info--unpatched      { border-left-color: var(--background-modifier-accent) !important; }
+
+#vc-stereo-panel .vc-stereo-log-panel {
+    border: 1px solid var(--background-modifier-accent) !important;
+    background: var(--background-secondary-alt) !important;
+    box-shadow: none !important;
+}
+#vc-stereo-panel .vc-stereo-log-toolbar {
+    background: var(--background-secondary) !important;
+    border-bottom: 1px solid var(--background-modifier-accent) !important;
+}
+#vc-stereo-panel .vc-stereo-log {
+    background: var(--background-tertiary) !important;
+}
+
+#vc-stereo-panel .vc-stereo-method2-note {
+    border: 1px solid var(--status-warning) !important;
+    background: color-mix(in srgb, var(--status-warning) 7%, var(--background-secondary)) !important;
+    box-shadow: none !important;
+}
+
+#vc-stereo-settings {
+    border: 1px solid var(--background-modifier-accent) !important;
+    background: var(--background-secondary) !important;
+    box-shadow: none !important;
+}
+#vc-stereo-settings .vc-stereo-settings-row,
+#vc-stereo-settings .vc-stereo-select-row {
+    background: var(--background-secondary-alt) !important;
+}
+#vc-stereo-settings .vc-stereo-settings-subgroup {
+    border-left: 2px solid var(--brand-500, #5865f2) !important;
+}
+
+#vc-stereo-panel input,
+#vc-stereo-panel select {
+    background-color: var(--input-background, var(--background-tertiary)) !important;
+    border: 1px solid var(--background-modifier-accent) !important;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+}
+
+#vc-stereo-settings .vc-stereo-toggle {
+    appearance: none !important;
+    background: #4a4d58 !important;
+    border: 1px solid #6c6f7b !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+#vc-stereo-settings .vc-stereo-toggle.vc-stereo-toggle--on {
+    background: #23a55a !important;
+    border-color: #1a7f45 !important;
+}
+#vc-stereo-settings .vc-stereo-toggle-knob {
+    background: #ffffff !important;
+    display: block !important;
+}
+
+#vc-stereo-panel button.vc-stereo-btn {
+    appearance: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+#vc-stereo-panel button.vc-stereo-btn--brand {
+    background: var(--brand-500, #5865f2) !important;
+    border: 1px solid var(--brand-560, #4752c4) !important;
+    color: #ffffff !important;
+}
+#vc-stereo-panel button.vc-stereo-btn--green {
+    background: var(--status-positive, #23a55a) !important;
+    border: 1px solid #1a7f45 !important;
+    color: #ffffff !important;
+}
+#vc-stereo-panel button.vc-stereo-btn--red {
+    background: var(--status-danger, #da373c) !important;
+    border: 1px solid #a12d2d !important;
+    color: #ffffff !important;
+}
+#vc-stereo-panel button.vc-stereo-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
