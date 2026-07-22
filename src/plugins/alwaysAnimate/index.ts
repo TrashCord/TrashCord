@@ -89,6 +89,25 @@ export default definePlugin({
             }
         },
         {
+<<<<<<< HEAD
+            // Gradient roles in chat
+            find: "=!1,contentOnly:",
+            replacement: {
+                match: /animate:\i/,
+                replace: "animate:!0"
+            }
+        },
+        {
+            // Gradient roles in member list
+            find: '="left",className:',
+            replacement: {
+                match: /,animateGradient:/,
+                replace: ",animateGradient:!0,_oldAnimateGradient:"
+            }
+        },
+        {
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             // Nameplates
             find: ".MINI_PREVIEW,[",
             predicate: () => settings.store.nameplates,

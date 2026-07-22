@@ -247,7 +247,7 @@ function addDirectPatch() {
         console.log("AudioCenter: Adding direct patch...");
 
         // Use Vencord's patch API
-        const { addPatch } = (Vencord as any).Patcher;
+        const { addPatch } = Vencord.Patcher;
 
         // Directly patch device selection components
         addPatch({
@@ -363,9 +363,9 @@ async function createVirtualInputDevice() {
 
                 // If it's a request for the virtual device
                 if (
-                    constraints?.audio &&
+                    constraints.audio &&
                     typeof constraints.audio === "object" &&
-                    (constraints.audio as MediaTrackConstraints).deviceId === "virtual-audio-center"
+                    constraints.audio.deviceId === "virtual-audio-center"
                 ) {
                     console.log("AudioCenter: Returning virtual stream");
                     return virtualInputStream;
@@ -424,6 +424,7 @@ function setVirtualDeviceAsOutput() {
 
         if ("setSinkId" in HTMLAudioElement.prototype) {
             console.log("AudioCenter: Attempting to set sinkId...");
+            // @ts-expect-error
             audioElement
                 .setSinkId(virtualOutputDevice.id)
                 .then(() => {
@@ -439,7 +440,8 @@ function setVirtualDeviceAsOutput() {
             "setSinkId" in AudioContext.prototype
         ) {
             console.log("AudioCenter: Attempting to set sinkId on audio context...");
-            (virtualOutputDevice.audioContext as any)
+            // @ts-expect-error
+            virtualOutputDevice.audioContext
                 .setSinkId(virtualOutputDevice.id)
                 .then(() => {
                     console.log("AudioCenter: SinkId set on audio context successfully");
@@ -859,7 +861,7 @@ function PrimaryDeviceSelector() {
                 );
 
                 if (!selectedPrimaryDevice && inputDevices.length > 0) {
-                    selectedPrimaryDevice = (inputDevices[0] as any).id;
+                    selectedPrimaryDevice = inputDevices[0].id;
                     console.log(
                         "AudioCenter: Default primary device set:",
                         selectedPrimaryDevice
@@ -905,7 +907,7 @@ function SecondaryDeviceSelector() {
                 );
 
                 if (!selectedSecondaryDevice && inputDevices.length > 1) {
-                    selectedSecondaryDevice = (inputDevices[1] as any).id;
+                    selectedSecondaryDevice = inputDevices[1].id;
                     console.log(
                         "AudioCenter: Default secondary device set:",
                         selectedSecondaryDevice
@@ -1201,3 +1203,8 @@ export default definePlugin({
         console.log("AudioCenter: Plugin stopped");
     },
 });
+
+
+
+
+

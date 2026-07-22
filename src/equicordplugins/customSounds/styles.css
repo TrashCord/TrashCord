@@ -54,6 +54,17 @@
     gap: 16px;
 }
 
+<<<<<<< HEAD
+.vc-custom-sounds-override-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.vc-custom-sounds-file-input {
+    display: none;
+=======
 .vc-custom-sounds-preview-controls {
     display: flex;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }

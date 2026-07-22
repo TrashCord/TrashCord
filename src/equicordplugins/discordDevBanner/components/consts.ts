@@ -13,7 +13,11 @@ export const settings = definePluginSettings({
     format: {
         component: ({ setValue }) => FormatSetting(setValue),
         type: OptionType.COMPONENT,
+<<<<<<< HEAD
         default: "{equicordIcon} Equicord {equicordVersion} ({equicordHash})",
+=======
+        default: "{buildChannel} {buildNumber} ({buildHash}) | {equicordName} {equicordVersion} ({equicordHash})",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         restartNeeded: true
     }
 });

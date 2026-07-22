@@ -244,10 +244,17 @@ export default definePlugin({
     renderVoiceSettings() { return <VoiceSettings />; },
     patches: [
         {
+<<<<<<< HEAD
+            find: "}getAccessibilityLabel(){",
+            replacement: {
+                match: /this.renderVoiceStates\(\),\i/,
+                replace: "$&,$self.renderVoiceSettings()"
+=======
             find: "this.renderChannelButtons()",
             replacement: {
                 match: /this.renderChannelButtons\(\)/,
                 replace: "this.renderChannelButtons(), $self.renderVoiceSettings()"
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         }
     ]

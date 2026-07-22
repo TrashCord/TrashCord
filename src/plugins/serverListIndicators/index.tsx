@@ -142,7 +142,11 @@ export default definePlugin({
     name: "ServerListIndicators",
     description: "Add online friend count or server count in the server list",
     tags: ["Servers", "Appearance"],
+<<<<<<< HEAD
+    authors: [Devs.Rini, EquicordDevs.Panniku],
+=======
     authors: [Devs.dzshn, EquicordDevs.Panniku],
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     dependencies: ["ServerListAPI"],
     settings,
 

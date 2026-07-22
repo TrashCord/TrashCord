@@ -204,11 +204,17 @@ export function uwuifyArray(arr) {
     return newArr;
 }
 
+<<<<<<< HEAD
+export function getFavoriteGif(opts: CommandArgument[], other: CommandContext) {
+    const frecencyStore = UserSettingsActionCreators.FrecencyUserSettingsActionCreators.getCurrentValue();
+    const gifsArray = Object.keys(frecencyStore.favoriteGifs.gifs);
+=======
 export function getMessage(opts, other) {
     const frecencyStore = UserSettingsActionCreators.FrecencyUserSettingsActionCreators.getCurrentValue();
 
     const gifsArray = Object.keys(frecencyStore.favoriteGifs.gifs);
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const chosenGifUrl = gifsArray[Math.floor(Math.random() * gifsArray.length)];
 
     return `${chosenGifUrl}`;

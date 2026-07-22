@@ -175,6 +175,8 @@ export function EquicordTranslatorModal() {
         </ErrorBoundary>
     ));
 }
+<<<<<<< HEAD
+=======
 
 interface DonorBadgeModalProps {
     description?: string;
@@ -282,3 +284,4 @@ export function TrashCordDonorModal(badge: DonorBadgeModalProps) {
         </ErrorBoundary>
     ));
 }
+>>>>>>> 89b0fd2a5 (Update index.tsx)

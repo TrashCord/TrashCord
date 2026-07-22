@@ -57,7 +57,11 @@ export default definePlugin({
                     replace: "$1$self.getMaxAccounts()",
                 },
                 {
+<<<<<<< HEAD
+                    match: /(\i.length(?:<|>=))5/g,
+=======
                     match: /(\i.length(<|>=))5/g,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     replace: "$1$self.getMaxAccounts()",
                 },
             ]

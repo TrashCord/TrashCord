@@ -1,43 +1,24 @@
 /*
- * Vencord, a Discord client mod
+ * Vencord, a Discord client mod - Fixxed by zFry
  * Copyright (c) 2024 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import managedStyle from "./style.css?managed";
 
-import { HeaderBarButton } from "@api/HeaderBar";
 import { ErrorBoundary } from "@components/index";
 import { Devs } from "@utils/constants";
-import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Forms, NavigationRouter, React, RestAPI, TextInput } from "@webpack/common";
-const FormText = Forms.FormText as any;
+import { Button, Forms, React, TextInput, Tooltip, RestAPI, NavigationRouter } from "@webpack/common";
+import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter, ModalCloseButton } from "@utils/modal";
 
-const UserIcon = (props: any) => (
-    <svg
-        x="0"
-        y="0"
-        className={props.className}
-        aria-hidden="true"
-        width={props.width ?? 24}
-        height={props.height ?? 24}
-        viewBox="0 0 24 24"
-        fill="currentColor"
-    >
-        <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-8 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm0 6c-2.2 0-4.5.9-4.5 2.2v0.8h9v-0.8c0-1.3-2.3-2.2-4.5-2.2z"
-        />
-    </svg>
-);
+const UserIcon = findComponentByCodeLazy("M14.99 11a1 1 0");
 const HeaderBarIcon = findComponentByCodeLazy(".HEADER_BAR_BADGE_TOP:", '.iconBadge,"top"');
 
 function getErrorMessage(err: any): string {
     const code = err?.body?.code;
-
+    
     switch (code) {
         case 50007:
             return "Cannot send messages to this user. They may have blocked you or are a bot/system/webhook account.";
@@ -88,7 +69,7 @@ function DirectMessageModal(props: any) {
     };
 
     return (
-        <ModalRoot {...props} title="">
+        <ModalRoot {...props}>
             <ModalHeader>
                 <Forms.FormTitle tag="h4">Open Direct Message</Forms.FormTitle>
                 <ModalCloseButton onClick={props.onClose} />
@@ -98,9 +79,9 @@ function DirectMessageModal(props: any) {
                 <Forms.FormTitle tag="h5" style={{ marginTop: "10px" }}>
                     User ID
                 </Forms.FormTitle>
-                <FormText type={"description" as any} style={{ marginBottom: "10px" }}>
+                <Forms.FormText type="description" style={{ marginBottom: "10px" }}>
                     Enter the Discord User ID of the person you want to message
-                </FormText>
+                </Forms.FormText>
                 <TextInput
                     placeholder="123456789012345678"
                     value={userId}
@@ -108,13 +89,13 @@ function DirectMessageModal(props: any) {
                     disabled={loading}
                 />
                 {error && (
-                    <FormText type={"description" as any} style={{ color: "var(--text-danger)", marginTop: "10px" }}>
+                    <Forms.FormText type="description" style={{ color: "var(--text-danger)", marginTop: "10px" }}>
                         {error}
-                    </FormText>
+                    </Forms.FormText>
                 )}
             </ModalContent>
 
-            <ModalFooter style={{ display: "flex", flexDirection: "row-reverse", gap: "16px", alignItems: "center" }}>
+            <ModalFooter>
                 <Button
                     color={Button.Colors.BRAND}
                     disabled={loading || !userId.trim()}
@@ -126,7 +107,6 @@ function DirectMessageModal(props: any) {
                     color={Button.Colors.TRANSPARENT}
                     look={Button.Looks.LINK}
                     onClick={props.onClose}
-                    style={{ marginRight: "8px" }}
                 >
                     Cancel
                 </Button>
@@ -156,10 +136,16 @@ function ToolBarHeader() {
 export default definePlugin({
     name: "DirectMessageOpener",
     description: "Open a DM with any user by entering their User ID via a toolbar button",
-    authors: [Devs.SirPhantom89,],
-    tags: ["Chat", "Utility"],
-    enabledByDefault: false,
+    authors: [
+        {
+            name: "Mifu",
+            id: 1309909311618814005n
+        }
+    ],
     managedStyle,
+    tags: ["Chat", "Friends"],
+    enabledByDefault: false,
+
     patches: [
         {
             find: '"BACK_FORWARD_NAVIGATION"',
@@ -172,12 +158,19 @@ export default definePlugin({
 
     renderDMButton() {
         return (
-            <HeaderBarButton
-                icon={UserIcon}
-                tooltip="Open DM by User ID"
-                className="vc-dm-opener-icon"
-                onClick={openDirectMessageModal}
-            />
+            <Tooltip text="Open DM by User ID">
+                {tooltipProps => (
+                    <Button 
+                        style={{ backgroundColor: "transparent", border: "none" }}
+                        {...tooltipProps}
+                        size={Button.Sizes.SMALL}
+                        className="vc-dm-opener-icon"
+                        onClick={openDirectMessageModal}
+                    >
+                        <UserIcon width={20} height={20} size={Button.Sizes.SMALL} />
+                    </Button>
+                )}
+            </Tooltip>
         );
     },
 
@@ -193,7 +186,7 @@ export default definePlugin({
                     required: true
                 }
             ],
-            execute: async args => {
+            execute: async (args) => {
                 const userId = args[0]?.value?.trim();
 
                 if (!userId) {

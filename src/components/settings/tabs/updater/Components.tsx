@@ -152,7 +152,11 @@ export function Updatable(props: CommonProps) {
                 </>
             ) : (
                 <Paragraph>
+<<<<<<< HEAD
+                    You're running the latest version of Equicord.
+=======
                     You're running the latest version of TrashCord.
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 </Paragraph>
             )}
         </>

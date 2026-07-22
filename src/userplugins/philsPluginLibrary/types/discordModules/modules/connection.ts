@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type TypedEmitter from "typed-emitter";
+import { Framerate, Resolution } from "@plugins/philsPluginLibrary/types";
+import TypedEmitter from "typed-emitter";
 
-import { Framerate, Resolution } from "../../../../philsPluginLibrary/types";
 import { Conn, FramerateReducer, VideoQualityManager } from "./";
 
 export const ConnectionEvent = {
@@ -214,11 +214,6 @@ interface Connection_ {
     setDesktopSourceStatusCallback: (...args: any[]) => any;
     hasDesktopSource: (...args: any[]) => any;
     setDesktopEncodingOptions: (
-        width: number,
-        height: number,
-        framerate: number
-    ) => void;
-    onDesktopEncodingOptionsSet: (
         width: number,
         height: number,
         framerate: number

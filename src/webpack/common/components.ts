@@ -74,6 +74,14 @@ export function setColorPicker(component: t.ColorPicker) {
     ColorPicker = component;
 }
 
+<<<<<<< HEAD
+export let NewCustomizationSection: t.ComponentSection = () => null;
+export function setNewCustomizationSection(component: t.ComponentSection) {
+    NewCustomizationSection = component;
+}
+
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export const UserSummaryItem = waitForComponent("UserSummaryItem", filters.componentByCode("defaultRenderUser", "showDefaultAvatarsForNullUsers"));
 
 export let createScroller: ((scrollbarClassName: string, fadeClassName: string, customThemeClassName: string) => t.ScrollerThin) | undefined;

@@ -4,35 +4,28 @@ import { FluxDispatcher } from "@webpack/common";
 
 const MediaEngineStore = findByPropsLazy("getMediaEngine");
 
-let pollInterval: ReturnType<typeof setInterval> | null = null;
-
-function tryFixEngine(): boolean {
+function fixEngine() {
     try {
         const engine = MediaEngineStore.getMediaEngine();
-        if (!engine || typeof engine.reconfigure !== "function") return false;
-        engine.reconfigure();
-        return true;
-    } catch {
-        return false;
+        if (engine) {
+            if (typeof engine.reconfigure === "function") {
+                console.log("[FixScreenshare] Forcing media engine reconfiguration...");
+                engine.reconfigure();
+            }
+            // Some versions use setVideoCapturerSource for initialization
+            if (typeof engine.setVideoCapturerSource === "function") {
+                console.log("[FixScreenshare] Media Engine capturer ready.");
+            }
+        }
+    } catch (e) {
+        console.error("[FixScreenshare] Error during engine fix:", e);
     }
 }
 
-function fixEngineWhenReady() {
-    if (pollInterval) clearInterval(pollInterval);
-    if (tryFixEngine()) return;
-    let attempts = 0;
-    pollInterval = setInterval(() => {
-        attempts++;
-        if (tryFixEngine() || attempts >= 10) {
-            clearInterval(pollInterval!);
-            pollInterval = null;
-        }
-    }, 500);
-}
-
-function handleVoiceChannelSelect() {
-    fixEngineWhenReady();
-}
+const handleVoiceChannelSelect = () => {
+    // Small delay to let Discord settle after joining voice
+    setTimeout(fixEngine, 1000);
+};
 
 export default definePlugin({
     name: "FixScreenshare",
@@ -40,17 +33,21 @@ export default definePlugin({
     authors: [{ name: "Nightcord", id: 0n }],
     tags: ["Voice", "Utility"],
     enabledByDefault: false,
+    required: true,
 
     start() {
-        fixEngineWhenReady();
+        console.log("[FixScreenshare] Mandatory fix starting...");
+
+        // Run immediately and after a short delay to ensure Discord is ready
+        fixEngine();
+        setTimeout(fixEngine, 5000);
+        setTimeout(fixEngine, 15000);
+
+        // Listen for voice channel joins to re-apply fix
         FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", handleVoiceChannelSelect);
     },
 
     stop() {
         FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", handleVoiceChannelSelect);
-        if (pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = null;
-        }
     }
 });

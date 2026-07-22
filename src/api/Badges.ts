@@ -107,8 +107,11 @@ export function _getBadges(args: BadgeUserArgs) {
 
     const donorBadges = BadgeAPIPlugin.getDonorBadges(args.userId);
     const equicordDonorBadges = BadgeAPIPlugin.getEquicordDonorBadges(args.userId);
+<<<<<<< HEAD
+=======
     const illegalcordDonorBadges = BadgeAPIPlugin.getIllegalcordDonorBadges(args.userId);
     const TrashCordDonorBadges = BadgeAPIPlugin.getTrashCordDonorBadges(args.userId);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const GlobalBadges = isPluginEnabled(globalBadges.name) ? globalBadges.getGlobalBadges(args.userId) : false;
 
     // do globalbadges first so it shows before the contrib badges but after donor badges
@@ -139,6 +142,8 @@ export function _getBadges(args: BadgeUserArgs) {
         );
     }
 
+<<<<<<< HEAD
+=======
     if (illegalcordDonorBadges) {
         badges.unshift(
             ...illegalcordDonorBadges.map(badge => ({
@@ -157,6 +162,7 @@ export function _getBadges(args: BadgeUserArgs) {
         );
     }
     
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     return badges;
 }
 

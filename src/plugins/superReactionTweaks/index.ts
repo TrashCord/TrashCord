@@ -45,7 +45,11 @@ export default definePlugin({
             replacement: [
                 {
                     // if (inlinedCalculatePlayingCount(a,b) >= limit) return;
+<<<<<<< HEAD
+                    match: /(BURST_REACTION_EFFECT_PLAY:(?:\i=>|function\(\i\)){.+?if\()(\(?(?:function)?\(\i,\i\)(?:=>)?{.+?\(\i,\i\))>=5+?(?=\))/,
+=======
                     match: /(BURST_REACTION_EFFECT_PLAY:\i=>{.+?if\()(\(\(\i,\i\)=>.+?\(\i,\i\))>=5+?(?=\))/,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     replace: (_, rest, playingCount) => `${rest}!$self.shouldPlayBurstReaction(${playingCount})`
                 }
             ]

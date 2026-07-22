@@ -657,7 +657,8 @@ function SoundboardModal({ modalProps }: { modalProps: ModalProps; }) {
                             style={{ display: "none" }}
                         />
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <Flex direction={Flex.Direction.VERTICAL} style={{ gap: "8px" }}>
+                            {/* Button to select an MP3 file */}
                             <Button
                                 onClick={openFileSelector}
                                 color={Button.Colors.BRAND}
@@ -711,19 +712,21 @@ function SoundboardModal({ modalProps }: { modalProps: ModalProps; }) {
                             >
                                 Add via URL
                             </Button>
-                        </div>
+                        </Flex>
                     </div>
                 )}
             </ModalContent>
 
             <ModalFooter>
-                {React.createElement(Flex as any, { flexDirection: "row-reverse" },
-                    React.createElement(Button as any, {
-                        onClick: modalProps.onClose,
-                        color: Button.Colors.PRIMARY,
-                        look: Button.Looks.FILLED
-                    }, "Close")
-                )}
+                <Flex direction={Flex.Direction.HORIZONTAL_REVERSE}>
+                    <Button
+                        onClick={modalProps.onClose}
+                        color={Button.Colors.PRIMARY}
+                        look={Button.Looks.FILLED}
+                    >
+                        Close
+                    </Button>
+                </Flex>
             </ModalFooter>
         </ModalRoot>
     );
@@ -733,7 +736,9 @@ function SoundboardModal({ modalProps }: { modalProps: ModalProps; }) {
 export function openSoundboardPro() {
     console.log("🔊 SoundboardPro: openSoundboardPro called");
     try {
-        const modalKey = openModal(modalProps => React.createElement(SoundboardModal as any, { modalProps }));
+        const modalKey = openModal(modalProps => (
+            <SoundboardModal modalProps={modalProps} />
+        ));
         console.log("🔊 SoundboardPro: Modal opened with key:", modalKey);
     } catch (error) {
         console.error("🔊 SoundboardPro: Error opening modal:", error);
@@ -821,9 +826,8 @@ export default definePlugin({
     name: "SoundboardPro",
     description:
         "Advanced soundboard with real sounds and synthetic sounds. Plays sounds directly in Discord voice channel.",
-    tags: ["Voice", "Utility", "Fun"],
     authors: [Devs.x2b],
-    enabledByDefault: false,
+    tags: ["Voice", "Utility"],
     settings,
     settingsAboutComponent: SettingsComponent,
 

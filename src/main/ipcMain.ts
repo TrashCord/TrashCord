@@ -30,6 +30,10 @@ import { release } from "os";
 import { join, normalize } from "path";
 
 import { registerCspIpcHandlers } from "./csp/manager";
+<<<<<<< HEAD
+import { getThemeInfo, stripBOM, UserThemeHeader } from "./themes";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { ALLOWED_PROTOCOLS, QUICK_CSS_PATH, SETTINGS_DIR, THEMES_DIR } from "./utils/constants";
 import { makeLinksOpenExternally } from "./utils/externalLinks";
 
@@ -50,6 +54,23 @@ function readCss() {
     return readFile(QUICK_CSS_PATH, "utf-8").catch(() => "");
 }
 
+<<<<<<< HEAD
+async function listThemes(): Promise<UserThemeHeader[]> {
+    const files = await readdir(THEMES_DIR).catch(() => []);
+
+    const themeInfo: UserThemeHeader[] = [];
+
+    for (const fileName of files) {
+        if (!fileName.endsWith(".css")) continue;
+
+        const data = await getThemeData(fileName).then(stripBOM).catch(() => null);
+        if (data == null) continue;
+
+        themeInfo.push(getThemeInfo(data, fileName));
+    }
+
+    return themeInfo;
+=======
 async function listThemes(): Promise<{ fileName: string; content: string; }[]> {
     try {
         const files = await readdir(THEMES_DIR);
@@ -57,6 +78,7 @@ async function listThemes(): Promise<{ fileName: string; content: string; }[]> {
     } catch {
         return [];
     }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 function getThemeData(fileName: string) {
@@ -85,7 +107,10 @@ ipcMain.handle(IpcEvents.SET_QUICK_CSS, (_, css) =>
     writeFileSync(QUICK_CSS_PATH, css)
 );
 
+<<<<<<< HEAD
+=======
 ipcMain.handle(IpcEvents.GET_THEMES_DIR, () => THEMES_DIR);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 ipcMain.handle(IpcEvents.GET_THEMES_LIST, () => listThemes());
 ipcMain.handle(IpcEvents.GET_THEME_DATA, (_, fileName) => getThemeData(fileName));
 ipcMain.handle(IpcEvents.DELETE_THEME, (_, fileName) => {

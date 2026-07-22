@@ -158,8 +158,13 @@ export default definePlugin({
         {
             find: ".VOICE_HANGOUT_INVITE?",
             replacement: {
+<<<<<<< HEAD
+                match: /(compact:\i}=\i.+?)(\(0,.+\}\)\]\}\))/,
+                replace: "$1 $self.modify(arguments[0].message,$2)"
+=======
                 match: /(compact:\i}=(\i).+?)(\(0,.+\}\)\]\}\))/,
                 replace: "$1 $self.modify(arguments[0].message,$3)"
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         }
     ],

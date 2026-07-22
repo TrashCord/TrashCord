@@ -128,6 +128,43 @@ export default definePlugin({
 
     patches: [
         {
+<<<<<<< HEAD
+            find: "AUTO_MODERATION_SYSTEM_MESSAGE_RULES:",
+            replacement: {
+                match: /staticRouteLink:\{order:(\i\.\i\.order)/,
+                replace: "wiggly:$self.wigglyRule($1),$&",
+            },
+        },
+        {
+            find: 'before:"@silent"',
+            replacement: [
+                {
+                    match: /staticRouteLink:{type:/,
+                    replace: 'wiggly:{type:"inlineObject"},$&',
+                },
+                {
+                    match: /case"roleMention":/,
+                    replace: '$&case "wiggly":'
+                }
+            ]
+        },
+    ],
+
+    wigglyRule: (order: number) => ({
+        order: order,
+        requiredFirstCharacters: ["<~", "^~", ")~"],
+        match(source: string) {
+            return classMap
+                .map(({ chars }) => source.match(
+                    new RegExp(`^(\\${chars[0]})~([\\s\\S]+?)~(\\${chars[1]})(?!_)`)
+                ))
+                .find(x => x !== null);
+        },
+        parse(capture: RegExpMatchArray, transform: (...args: any[]) => any, state: any) {
+            const className = classMap
+                .find(({ chars }) => chars[0] === capture[1] && chars[1] === capture[3])?.className
+                ?? "";
+=======
             find: "parseToAST:",
             replacement: {
                 match: /(parse[\w]*):(.*?)\((\i)\),/g,
@@ -145,16 +182,21 @@ export default definePlugin({
             state: any
         ) => {
             const className = classMap.find(({ chars }) => chars[0] === capture[1] && chars[1] === capture[3])?.className ?? "";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
             return {
                 content: transform(capture[2], state),
                 className
             };
         },
+<<<<<<< HEAD
+        react(data: { content: any[]; className: string; }, output: (...args: any[]) => ReactNode[]) {
+=======
         react: (
             data: { content: any[]; className: string; },
             output: (...args: any[]) => ReactNode[]
         ) => {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             let offset = 0;
             const traverse = (raw: any) => {
                 const children = !Array.isArray(raw) ? [raw] : raw;
@@ -186,7 +228,11 @@ export default definePlugin({
 
             return traverse(output(data.content));
         },
+<<<<<<< HEAD
+    }),
+=======
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     start: () => {
         styles = document.createElement("style");

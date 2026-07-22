@@ -64,12 +64,20 @@ function ThemeTab() {
     const [searchValue, setSearchValue] = useState({ value: "", status: SearchStatus.ALL });
     const [hideWarningCard, setHideWarningCard] = useState(Settings.plugins.ThemeLibrary.hideWarningCard);
     const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
+    const [error, setError] = useState(false);
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     const onSearch = (query: string) => setSearchValue(prev => ({ ...prev, value: query }));
     const onStatusChange = (status: SearchStatus) => setSearchValue(prev => ({ ...prev, status }));
 
     const themeFilter = (theme: Theme) => {
+<<<<<<< HEAD
+        const enabled = themeLinks.includes(`${apiUrl}/${theme.id}`);
+=======
         const enabled = themeLinks.includes(`${apiUrl}/${theme.name}`);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
         const tags = new Set(theme.tags.map(tag => tag?.toLowerCase()));
 
@@ -115,6 +123,10 @@ function ThemeTab() {
                 setFilteredThemes(themes);
             } catch (err) {
                 logger.error(err);
+<<<<<<< HEAD
+                setError(true);
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             } finally {
                 setLoading(false);
             }
@@ -161,6 +173,14 @@ function ThemeTab() {
                         }}> This won't take long! </p>
 
                     </div>
+<<<<<<< HEAD
+                ) : error ? (
+                    <ErrorCard>
+                        <HeadingTertiary>Failed to fetch themes</HeadingTertiary>
+                        <Paragraph className={Margins.top8}>Could not fetch the theme list. Try again later.</Paragraph>
+                    </ErrorCard>
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 ) : (
                     <>
                         {hideWarningCard ? null : (

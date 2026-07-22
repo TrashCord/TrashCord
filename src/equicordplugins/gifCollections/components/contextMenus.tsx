@@ -6,10 +6,17 @@
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { copyToClipboard } from "@utils/clipboard";
+<<<<<<< HEAD
+import { Alerts, Button, FluxDispatcher, Menu, showToast, Toasts } from "@webpack/common";
+
+import { settings } from "../settings";
+import { Gif } from "../types";
+=======
 import { Alerts, Button, ContextMenuApi, FluxDispatcher, Menu, showToast, Toasts } from "@webpack/common";
 
 import { settings } from "../settings";
 import { Gif, GifItem, GifPickerInstance } from "../types";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { addToCollection, cache_collections, deleteCollection, getGifById, getItemCollectionNameFromId, removeFromCollection } from "../utils/collectionManager";
 import { getGif } from "../utils/getGif";
 import { stripPrefix } from "../utils/misc";
@@ -69,6 +76,11 @@ export const addCollectionContextMenuPatch: NavContextMenuPatchCallback = (child
     group.push(AddToCollectionMenu(gif));
 };
 
+<<<<<<< HEAD
+export function RemoveItemContextMenuItems({ type, nameOrId, instance }: { type: "collection" | "gif"; nameOrId: string; instance: { forceUpdate: () => void; }; }) {
+    return (
+        <Menu.MenuGroup key={`remove-item-${nameOrId}`}>
+=======
 export function RemoveItemContextMenu({ type, nameOrId, instance }: { type: "collection" | "gif"; nameOrId: string; instance: { forceUpdate: () => void; }; }) {
     return (
         <Menu.Menu
@@ -76,6 +88,7 @@ export function RemoveItemContextMenu({ type, nameOrId, instance }: { type: "col
             onClose={() => FluxDispatcher.dispatch({ type: "CONTEXT_MENU_CLOSE" })}
             aria-label={type === "collection" ? "Delete Collection" : "Remove"}
         >
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             {type === "collection" && (
                 <>
                     <Menu.MenuItem
@@ -87,7 +100,11 @@ export function RemoveItemContextMenu({ type, nameOrId, instance }: { type: "col
                             if (collection) openCollectionInfoModal(collection);
                         }}
                     />
+<<<<<<< HEAD
+                    <Menu.MenuSeparator key="collection-sep-1" />
+=======
                     <Menu.MenuSeparator />
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     <Menu.MenuItem
                         key="rename-collection"
                         id="rename-collection"
@@ -107,7 +124,11 @@ export function RemoveItemContextMenu({ type, nameOrId, instance }: { type: "col
                             if (gif) openGifInfoModal(gif);
                         }}
                     />
+<<<<<<< HEAD
+                    <Menu.MenuSeparator key="gif-sep-1" />
+=======
                     <Menu.MenuSeparator />
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     <Menu.MenuItem
                         key="copy-url"
                         id="copy-url"
@@ -125,7 +146,11 @@ export function RemoveItemContextMenu({ type, nameOrId, instance }: { type: "col
                         label="Move To Collection"
                         action={() => openMoveToCollectionModal(nameOrId)}
                     />
+<<<<<<< HEAD
+                    <Menu.MenuSeparator key="gif-sep-2" />
+=======
                     <Menu.MenuSeparator />
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 </>
             )}
             <Menu.MenuItem
@@ -159,7 +184,11 @@ export function RemoveItemContextMenu({ type, nameOrId, instance }: { type: "col
                     });
                 }}
             />
+<<<<<<< HEAD
+        </Menu.MenuGroup>
+=======
         </Menu.Menu>
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     );
 }
 
@@ -186,6 +215,26 @@ export function GifPickerContextMenu({ gif }: { gif: Gif; }) {
     );
 }
 
+<<<<<<< HEAD
+export function getGifPickerContextMenuItems(src: string, url: string, height: number, width: number) {
+    const gif: Gif = { id: uuidv4(settings.store.itemPrefix), src, url, height, width };
+    return (
+        <Menu.MenuGroup key="gif-collections-group">
+            {settings.store.showCopyImageLink && (
+                <Menu.MenuItem
+                    label="Copy Image Link"
+                    key="copy-image-link"
+                    id="copy-image-link"
+                    action={() => {
+                        copyToClipboard(url);
+                        showToast("Image link copied to clipboard", Toasts.Type.SUCCESS);
+                    }}
+                />
+            )}
+            {AddToCollectionMenu(gif)}
+        </Menu.MenuGroup>
+    );
+=======
 export function buildGifPickerContextMenu(e: React.MouseEvent, item: GifItem, GIF_COLLECTION_PREFIX: string, GIF_ITEM_PREFIX: string, instance: GifPickerInstance) {
     if (item?.name?.startsWith(GIF_COLLECTION_PREFIX)) {
         return ContextMenuApi.openContextMenu(e, () =>
@@ -204,4 +253,5 @@ export function buildGifPickerContextMenu(e: React.MouseEvent, item: GifItem, GI
         );
     }
     return null;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }

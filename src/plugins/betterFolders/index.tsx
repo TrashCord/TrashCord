@@ -19,6 +19,17 @@
 import "./style.css";
 
 import { definePluginSettings } from "@api/Settings";
+<<<<<<< HEAD
+import { Devs } from "@utils/constants";
+import { getIntlMessage } from "@utils/discord";
+import { Logger } from "@utils/Logger";
+import definePlugin, { OptionType } from "@utils/types";
+import { findByPropsLazy, findStoreLazy } from "@webpack";
+import { FluxDispatcher } from "@webpack/common";
+import { ReactNode } from "react";
+
+import FolderSideBar from "./FolderSideBar";
+=======
 import { Devs, EquicordDevs } from "@utils/constants";
 import { getIntlMessage } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
@@ -29,6 +40,7 @@ import { ReactNode } from "react";
 
 import FolderSideBar from "./FolderSideBar";
 import { areNestedRelated as areNestedRelatedInMap, getChildFolderIds as getChildFolderIdsFromMap, getDescendantFolderIds as getDescendantFolderIdsFromMap, getGuildNavigationExpandTargets, hasParentInChain as hasParentInChainInMap, sanitizeNestedFolderMap } from "./nestedFolders";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 enum FolderIconDisplay {
     Never,
@@ -36,6 +48,21 @@ enum FolderIconDisplay {
     MoreThanOneFolderExpanded
 }
 
+<<<<<<< HEAD
+export const ExpandedGuildFolderStore = findStoreLazy("ExpandedGuildFolderStore");
+export const SortedGuildStore = findStoreLazy("SortedGuildStore");
+const FolderUtils = findByPropsLazy("move", "toggleGuildFolderExpand");
+
+let lastGuildId = null as string | null;
+let dispatchingFoldersClose = false;
+
+function getGuildFolder(id: string) {
+    return SortedGuildStore.getGuildFolders().find(folder => folder.guildIds.includes(id));
+}
+
+function closeFolders() {
+    for (const id of ExpandedGuildFolderStore.getExpandedFolders())
+=======
 type GuildTreeNode = {
     id: string | number;
     type?: string;
@@ -144,15 +171,22 @@ function scheduleGuildNavigationPath(guildId: string | null | undefined, closeSe
 
 function closeFolders() {
     for (const id of getExpandedFolderIdSet())
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         FolderUtils.toggleGuildFolderExpand(id);
 }
 
 // Nuckyz: Unsure if this should be a general utility or not
+<<<<<<< HEAD
+function filterTreeWithTargetNode(children: any, predicate: (node: any) => boolean) {
+=======
 function filterTreeWithTargetNode(children: any, predicate: (node: any) => boolean, visited = new WeakSet<object>(), depth = 0) {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     if (children == null) {
         return false;
     }
 
+<<<<<<< HEAD
+=======
     if (depth > MAX_TREE_FILTER_DEPTH) {
         return false;
     }
@@ -162,17 +196,26 @@ function filterTreeWithTargetNode(children: any, predicate: (node: any) => boole
         visited.add(children);
     }
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     if (!Array.isArray(children)) {
         if (predicate(children)) {
             return true;
         }
 
+<<<<<<< HEAD
+        return filterTreeWithTargetNode(children.props?.children, predicate);
+=======
         return filterTreeWithTargetNode(children.props?.children, predicate, visited, depth + 1);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 
     let childIsTargetChild = false;
     for (let i = 0; i < children.length; i++) {
+<<<<<<< HEAD
+        const shouldKeep = filterTreeWithTargetNode(children[i], predicate);
+=======
         const shouldKeep = filterTreeWithTargetNode(children[i], predicate, visited, depth + 1);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         if (shouldKeep) {
             childIsTargetChild = true;
             continue;
@@ -184,6 +227,8 @@ function filterTreeWithTargetNode(children: any, predicate: (node: any) => boole
     return childIsTargetChild;
 }
 
+<<<<<<< HEAD
+=======
 function getNestedFolderMap(): Record<string, string> {
     if (!settings.store.enableNestedFolders) return {};
 
@@ -245,6 +290,7 @@ function areNestedRelated(firstId: string, secondId: string): boolean {
     return areNestedRelatedInMap(getNestedFolderMap(), firstId, secondId);
 }
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export const settings = definePluginSettings({
     sidebar: {
         type: OptionType.BOOLEAN,
@@ -283,11 +329,14 @@ export const settings = definePluginSettings({
         description: "Force a folder to open when switching to a server of that folder",
         default: false
     },
+<<<<<<< HEAD
+=======
     enableNestedFolders: {
         type: OptionType.BOOLEAN,
         description: "Allow nesting folders inside other folders by dragging.",
         default: true
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     keepIcons: {
         type: OptionType.BOOLEAN,
         description: "Keep showing guild icons in the primary guild bar folder when it's open in the BetterFolders sidebar",
@@ -303,10 +352,15 @@ export const settings = definePluginSettings({
             { label: "When more than one folder is expanded", value: FolderIconDisplay.MoreThanOneFolderExpanded }
         ],
         restartNeeded: true
+<<<<<<< HEAD
+    }
+});
+=======
     },
 }).withPrivateSettings<{
     nestedFolders: Record<string, string>;
 }>();
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const IS_BETTER_FOLDERS_VAR = "typeof isBetterFolders!=='undefined'?isBetterFolders:arguments[0]?.isBetterFolders";
 const BETTER_FOLDERS_EXPANDED_IDS_VAR = "typeof betterFoldersExpandedIds!=='undefined'?betterFoldersExpandedIds:arguments[0]?.betterFoldersExpandedIds";
@@ -315,6 +369,12 @@ const GRID_STYLE_NAME = "vc-betterFolders-sidebar-grid";
 export default definePlugin({
     name: "BetterFolders",
     description: "Shows server folders on dedicated sidebar and adds folder related improvements",
+<<<<<<< HEAD
+    authors: [Devs.juby, Devs.AutumnVN, Devs.Nuckyz],
+    isModified: true,
+    tags: ["Organisation", "Servers", "Appearance"],
+    settings,
+=======
     tags: ["Organisation", "Servers", "Appearance"],
     authors: [Devs.juby, Devs.AutumnVN, Devs.Nuckyz, EquicordDevs.justjxke],
     isModified: true,
@@ -330,6 +390,7 @@ export default definePlugin({
         pendingNavigationGuildId = undefined;
         pendingNavigationCloseServerFolder = false;
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     patches: [
         {
@@ -375,6 +436,8 @@ export default definePlugin({
             ]
         },
         {
+<<<<<<< HEAD
+=======
             find: '("guildsnav")',
             predicate: () => !settings.store.sidebar,
             replacement: {
@@ -383,6 +446,7 @@ export default definePlugin({
             }
         },
         {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             // This is the parent folder component
             find: ".toggleGuildFolderExpand(",
             predicate: () => settings.store.sidebar && settings.store.showFolderIcon !== FolderIconDisplay.Always,
@@ -411,8 +475,13 @@ export default definePlugin({
                 // If we are rendering the normal GuildsBar sidebar, we make Discord think the folder is always collapsed to show better icons (the mini guild icons) and avoid transitions
                 {
                     predicate: () => settings.store.keepIcons,
+<<<<<<< HEAD
+                    match: /let ?(?:\i,)*?{folderNode:\i,setNodeRef:\i,.+?expanded:(\i),.+?;(?=let)/,
+                    replace: (m, isExpanded) => `${m}${isExpanded}=!!arguments[0]?.isBetterFolders&&${isExpanded};`
+=======
                     match: /(?<=let ?(?:\i,)*?{folderNode:\i,setNodeRef:\i,.+?expanded:(\i),.+?;)(?=let)/,
                     replace: (_, isExpanded) => `${isExpanded}=!!arguments[0]?.isBetterFolders&&${isExpanded};`
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 },
                 // Disable expanding and collapsing folders transition in the normal GuildsBar sidebar
                 {
@@ -441,6 +510,8 @@ export default definePlugin({
             ]
         },
         {
+<<<<<<< HEAD
+=======
             find: ".FOLDER_ITEM_ANIMATION_DURATION),",
             replacement: [
                 {
@@ -458,6 +529,7 @@ export default definePlugin({
             ]
         },
         {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             find: "APPLICATION_LIBRARY,render:",
             predicate: () => settings.store.sidebar,
             group: true,
@@ -483,6 +555,11 @@ export default definePlugin({
             predicate: () => settings.store.closeAllHomeButton,
             replacement: {
                 // Close all folders when clicking the home button
+<<<<<<< HEAD
+                match: /(?<=onClick:(?:function)?\(\)(?:=>)?{)(?=.{0,300}"discodo")/,
+                replace: "$self.closeFolders();"
+            }
+=======
                 match: /(?<=onClick:\(\)=>{)(?=.{0,300}"discodo")/,
                 replace: "$self.closeFolders();"
             }
@@ -536,10 +613,31 @@ export default definePlugin({
                 match: /\i:\(\)=>\i(?=.*?\.FOLDER_ITEM_ANIMATION_DURATION.{0,10}\.animated\)\(\i\.\i\),(\i))/,
                 replace: "$&,FolderItem:()=>$1"
             }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         }
     ],
 
     flux: {
+<<<<<<< HEAD
+        CHANNEL_SELECT(data) {
+            if (!settings.store.closeAllFolders && !settings.store.forceOpen && !settings.store.closeServerFolder)
+                return;
+
+            if (lastGuildId !== data.guildId) {
+                lastGuildId = data.guildId;
+                const guildFolder = getGuildFolder(data.guildId);
+
+                if (guildFolder?.folderId) {
+                    if (settings.store.forceOpen && !ExpandedGuildFolderStore.isFolderExpanded(guildFolder.folderId)) {
+                        FolderUtils.toggleGuildFolderExpand(guildFolder.folderId);
+                    }
+                    if (settings.store.closeServerFolder && ExpandedGuildFolderStore.isFolderExpanded(guildFolder.folderId)) {
+                        FolderUtils.toggleGuildFolderExpand(guildFolder.folderId);
+                    }
+                } else if (settings.store.closeAllFolders) {
+                    closeFolders();
+                }
+=======
         GUILD_SELECT({ guildId }: { guildId: string | null; }) {
             if (guildId == null) return;
             scheduleGuildNavigationPath(guildId);
@@ -554,6 +652,7 @@ export default definePlugin({
                 }
             } else if (settings.store.closeAllFolders) {
                 closeFolders();
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         },
 
@@ -563,6 +662,12 @@ export default definePlugin({
 
                 FluxDispatcher.wait(() => {
                     const expandedFolders = ExpandedGuildFolderStore.getExpandedFolders();
+<<<<<<< HEAD
+
+                    if (expandedFolders.size > 1) {
+                        for (const id of expandedFolders) if (id !== data.folderId)
+                            FolderUtils.toggleGuildFolderExpand(id);
+=======
                     const expandedId = data.folderId?.toString();
 
                     if (expandedFolders.size > 1) {
@@ -571,6 +676,7 @@ export default definePlugin({
                             if (folderId === expandedId || areNestedRelated(folderId, expandedId)) continue;
                             FolderUtils.toggleGuildFolderExpand(id);
                         }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     }
 
                     dispatchingFoldersClose = false;
@@ -585,6 +691,14 @@ export default definePlugin({
 
     FolderSideBar,
     closeFolders,
+<<<<<<< HEAD
+
+    wrapGuildNodeComponent(node: any, originalComponent: () => ReactNode, isBetterFolders: boolean, expandedFolderIds?: Set<any>) {
+        if (
+            !isBetterFolders ||
+            node.type === "folder" && expandedFolderIds?.has(node.id) ||
+            node.type === "guild" && expandedFolderIds?.has(node.parentId)
+=======
     handleGuildNavigation(guildId: string | null | undefined) {
         expandGuildNavigationPathNow(guildId);
     },
@@ -816,6 +930,7 @@ export default definePlugin({
             !isBetterFolders ||
             node.type === "folder" && (node.isBetterFoldersNested === true || expandedFolderIds?.has(node.id)) ||
             node.type === "guild" && node.parentId != null && expandedFolderIds?.has(node.parentId)
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         ) {
             return originalComponent();
         }
@@ -837,10 +952,19 @@ export default definePlugin({
                 // can cause hang if intl message is not found
                 const serversIntlMsg = getIntlMessage("SERVERS");
                 if (!serversIntlMsg) {
+<<<<<<< HEAD
+                    new Logger("BetterFolders").error("Failed to get SERVERS intl message");
+                    return true;
+                }
+                return child?.props?.["aria-label"] === serversIntlMsg;
+            } catch (e) {
+                console.error(e);
+=======
                     return true;
                 }
                 return child?.props?.["aria-label"] === serversIntlMsg;
             } catch {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 return true;
             }
         };
@@ -853,14 +977,24 @@ export default definePlugin({
             }
 
             try {
+<<<<<<< HEAD
+                return filterTreeWithTargetNode(child, child => child?.props?.renderTreeNode != null);
+            } catch (e) {
+                console.error(e);
+=======
                 return filterTreeWithTargetNode(child, c => c?.props?.renderTreeNode != null);
             } catch {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 return true;
             }
         };
     },
 
+<<<<<<< HEAD
+    shouldShowFolderIconAndBackground(isBetterFolders: boolean, expandedFolderIds?: Set<any>) {
+=======
     shouldShowFolderIconAndBackground(isBetterFolders: boolean, expandedFolderIds?: Set<string | number>) {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         if (!isBetterFolders) {
             return true;
         }

@@ -42,7 +42,7 @@ const settings = definePluginSettings({
     enabled: {
         type: OptionType.BOOLEAN,
         default: true,
-        description: "Enable Leash plugin",
+        description: "Enable laisse plugin",
     },
     onlyWhenInVoice: {
         type: OptionType.BOOLEAN,
@@ -78,13 +78,13 @@ async function moveUserToVoiceChannel(
         if (settings.store.showNotifications) {
             const user = UserStore.getUser(userId);
             showNotification({
-                title: "Leash - Success",
+                title: "laisse - Success",
                 body: `${user?.username || "User"
                     } has been moved to your voice channel`,
             });
         }
     } catch (error) {
-        console.error("Leash: Discord API error:", error);
+        console.error("laisse: Discord API error:", error);
         throw error;
     }
 }
@@ -103,14 +103,14 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (
         <Menu.MenuSeparator />,
         <Menu.MenuCheckboxItem
             id="laisse-leash-user"
-            label="Leash - Hook the user"
+            label="laisse - Hook the user"
             checked={checked}
             action={() => {
                 if (leashedUserInfo?.userId === user.id) {
                     leashedUserInfo = null;
                     setChecked(false);
                     showNotification({
-                        title: "Leash",
+                        title: "laisse",
                         body: `User ${user.username} is no longer hooked`,
                     });
                     return;
@@ -122,7 +122,7 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (
                 };
                 setChecked(true);
                 showNotification({
-                    title: "Leash",
+                    title: "laisse",
                     body: `User ${user.username} is now hooked to you`,
                 });
             }}
@@ -131,11 +131,11 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (
 };
 
 export default definePlugin({
-    name: "Leash",
+    name: "laisse",
     description:
-        "Leashes a user to you by automatically moving them to the voice channel you go to",
+        "Hooks a user to you by automatically moving them to the voice channel you go to",
     authors: [Devs.x2b],
-    tags: ["Utility"],
+    tags: ["Chat", "Fun"],
     enabledByDefault: false,
     settings,
     contextMenus: {
@@ -157,7 +157,7 @@ export default definePlugin({
                     voiceState.userId === myId &&
                     voiceState.channelId !== myLastChannelId
                 ) {
-                    myLastChannelId = (voiceState as any).channelId;
+                    myLastChannelId = voiceState.channelId;
 
                     // If we have a hooked user and we join a voice channel
                     if (voiceState.channelId && leashedUserInfo.userId) {
@@ -177,7 +177,7 @@ export default definePlugin({
 
                                 if (settings.store.showNotifications) {
                                     showNotification({
-                                        title: "Leash",
+                                        title: "laisse",
                                         body: `Attempting to move ${user?.username || "user"
                                             } to your voice channel`,
                                     });
@@ -189,10 +189,10 @@ export default definePlugin({
                                     voiceState.channelId
                                 );
                             } catch (error) {
-                                console.error("Leash: Error during move:", error);
+                                console.error("laisse: Error during move:", error);
                                 if (settings.store.showNotifications) {
                                     showNotification({
-                                        title: "Leash - Error",
+                                        title: "laisse - Error",
                                         body: "Unable to move user (insufficient permissions)",
                                     });
                                 }

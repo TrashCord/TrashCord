@@ -16,6 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+<<<<<<< HEAD
+import { migrateSettingsFromPlugin } from "@api/Settings";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { ErrorCard } from "@components/ErrorCard";
 import { HeadingSecondary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
@@ -45,7 +49,12 @@ interface VoiceStateChangeEvent {
 // not say the second mute, which would lead you to believe they're unmuted
 
 function speak(text: string) {
+<<<<<<< HEAD
+    // Don't narrate in the overlay window, otherwise everything is said twice
+    if (!text || window.__OVERLAY__) return;
+=======
     if (!text) return;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     const { volume, rate } = settings.store;
 
@@ -139,6 +148,10 @@ function playSample(type: string) {
     ));
 }
 
+<<<<<<< HEAD
+migrateSettingsFromPlugin("VcNarrator", "VcNarratorCustom", "enabled");
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export default definePlugin({
     name: "VcNarrator",
     description: "Announces when users join, leave, or move voice channels via narrator",

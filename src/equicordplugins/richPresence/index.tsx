@@ -12,7 +12,11 @@ import { migrateOldSettings } from "./migration";
 import * as abs from "./services/audiobookshelf";
 import * as gensokyoRadio from "./services/gensokyoRadio";
 import * as jellyfin from "./services/jellyfin";
+<<<<<<< HEAD
+import * as navidrome from "./services/navidrome";
+=======
 import * as listenbrainz from "./services/listenbrainz";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import * as statsfm from "./services/statsfm";
 import * as tosu from "./services/tosu";
 import { setOnServiceChange, settings, SettingsStore } from "./settings";
@@ -22,13 +26,22 @@ type SettingsKey = keyof SettingsStore;
 
 const logger = new Logger("RichPresence");
 
+<<<<<<< HEAD
+const services: Record<string, { start(): void; stop(): void; forceUpdate?(): void; }> = {
+=======
 const services: Record<string, { start(): void; stop(): void; }> = {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     [ServiceTab.AudioBookShelf]: abs,
     [ServiceTab.Tosu]: tosu,
     [ServiceTab.StatsFm]: statsfm,
     [ServiceTab.Jellyfin]: jellyfin,
+<<<<<<< HEAD
+    [ServiceTab.GensokyoRadio]: gensokyoRadio,
+    [ServiceTab.Navidrome]: navidrome,
+=======
     [ServiceTab.ListenBrainz]: listenbrainz,
     [ServiceTab.GensokyoRadio]: gensokyoRadio,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 };
 
 const enableKeys: Record<string, SettingsKey> = {
@@ -36,8 +49,13 @@ const enableKeys: Record<string, SettingsKey> = {
     [ServiceTab.Tosu]: "tosu_enabled",
     [ServiceTab.StatsFm]: "sfm_enabled",
     [ServiceTab.Jellyfin]: "jf_enabled",
+<<<<<<< HEAD
+    [ServiceTab.GensokyoRadio]: "gr_enabled",
+    [ServiceTab.Navidrome]: "nd_enabled",
+=======
     [ServiceTab.ListenBrainz]: "lb_enabled",
     [ServiceTab.GensokyoRadio]: "gr_enabled",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 };
 
 const activeServices = new Set<string>();
@@ -58,6 +76,11 @@ function syncServices() {
             logger.info(`Stopping ${id} service`);
             service.stop();
             activeServices.delete(id);
+<<<<<<< HEAD
+        } else if (shouldRun && isRunning && service.forceUpdate) {
+            service.forceUpdate();
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         }
     }
 }
@@ -72,7 +95,11 @@ function stopAllServices() {
 
 export default definePlugin({
     name: "RichPresence",
+<<<<<<< HEAD
+    description: "Unified rich presence hub for AudioBookShelf, osu!, stats.fm, Jellyfin, Navidrome, and Gensokyo Radio.",
+=======
     description: "Unified rich presence hub for AudioBookShelf, osu!, stats.fm, Jellyfin, ListenBrainz, and Gensokyo Radio.",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     tags: ["Activity"],
     authors: [
         EquicordDevs.vmohammad,
@@ -84,6 +111,10 @@ export default definePlugin({
         Devs.RyanCaoDev,
         EquicordDevs.Prince527,
         EquicordDevs.creations,
+<<<<<<< HEAD
+        EquicordDevs.Star123451,
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     ],
     reporterTestable: ReporterTestable.None,
 

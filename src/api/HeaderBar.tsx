@@ -248,6 +248,8 @@ export function _addHeaderBarButtons() {
 export function _addChannelToolbarButtons(toolbar: ReactNode[]) {
     toolbar.push(<ChannelToolbarButtons key="vc-channel-toolbar-buttons" />);
 }
+<<<<<<< HEAD
+=======
 
 // ══════════════════════════════════════════════════════════════════
 // STEALTH MODE (Nightcord compat) — exposed for plugins that hide UI
@@ -303,3 +305,4 @@ export function toggleStealthMode() {
 
 export function addStealthListener(fn: () => void) { stealthListeners.add(fn); }
 export function removeStealthListener(fn: () => void) { stealthListeners.delete(fn); }
+>>>>>>> 89b0fd2a5 (Update index.tsx)

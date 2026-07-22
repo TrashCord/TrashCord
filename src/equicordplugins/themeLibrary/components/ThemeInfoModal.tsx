@@ -22,9 +22,15 @@ import { logger } from "./ThemeTab";
 const Native = VencordNative.pluginHelpers.ThemeLibrary as PluginNative<typeof import("../native")>;
 const UserSummaryItem = findComponentByCodeLazy("defaultRenderUser", "showDefaultAvatarsForNullUsers");
 
+<<<<<<< HEAD
+async function downloadTheme(theme: Theme) {
+    try {
+        await Native.downloadTheme(theme);
+=======
 async function downloadTheme(themesDir: string, theme: Theme) {
     try {
         await Native.downloadTheme(themesDir, theme);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         showToast(`Downloaded ${theme.name}!`, Toasts.Type.SUCCESS);
     } catch (err: unknown) {
         logger.error(err);
@@ -33,7 +39,11 @@ async function downloadTheme(themesDir: string, theme: Theme) {
 }
 
 export const ThemeInfoModal: React.FC<ThemeInfoModalProps> = ({ author, theme, ...props }) => {
+<<<<<<< HEAD
+    const { name, type, content, likes, guild, tags, last_updated, requiresThemeAttributes } = theme;
+=======
     const { type, content, likes, guild, tags, last_updated, requiresThemeAttributes } = theme;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     const themeContent = window.atob(content);
     const metadata = themeContent.match(/\/\*\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\//g)?.[0] || "";
@@ -49,21 +59,38 @@ export const ThemeInfoModal: React.FC<ThemeInfoModalProps> = ({ author, theme, .
         <Modal
             {...props}
             size="md"
+<<<<<<< HEAD
+            title={`${name} details`}
+            actions={[
+                {
+                    text: "Close",
+                    variant: "secondary",
+=======
             title={`${type} Details`}
             actions={[
                 {
                     text: "Close",
                     variant: "dangerPrimary",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     onClick: () => props.onClose()
                 },
                 {
                     text: "Download",
+<<<<<<< HEAD
+                    variant: "primary",
+                    disabled: !theme.content || theme.id === "preview",
+                    onClick: async () => {
+                        const fileName = `${theme?.name}.theme.css`;
+
+                        const exists = await Native.themeExists(theme);
+=======
                     variant: "positive",
                     disabled: !theme.content || theme.id === "preview",
                     onClick: async () => {
                         const themesDir = await VencordNative.themes.getThemesDir();
                         const exists = await Native.themeExists(themesDir, theme);
                         const validThemesDir = await Native.getThemesDir(themesDir, theme);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                         if (exists) {
                             openModal(modalProps => (
                                 <Modal
@@ -75,7 +102,11 @@ export const ThemeInfoModal: React.FC<ThemeInfoModalProps> = ({ author, theme, .
                                             text: "Overwrite",
                                             variant: "dangerPrimary",
                                             onClick: async () => {
+<<<<<<< HEAD
+                                                await downloadTheme(theme);
+=======
                                                 await downloadTheme(themesDir, theme);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                                 modalProps.onClose();
                                             }
                                         },
@@ -91,7 +122,11 @@ export const ThemeInfoModal: React.FC<ThemeInfoModalProps> = ({ author, theme, .
                                             <p>A theme with the same name <b>already exists</b> in your themes directory! Do you want to overwrite it?</p>
                                             <div className="vce-overwrite-modal">
                                                 <code style={{ wordWrap: "break-word" }}>
+<<<<<<< HEAD
+                                                    {fileName}
+=======
                                                     {validThemesDir}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                                 </code>
                                             </div>
                                         </div>
@@ -99,7 +134,11 @@ export const ThemeInfoModal: React.FC<ThemeInfoModalProps> = ({ author, theme, .
                                 </Modal>
                             ));
                         } else {
+<<<<<<< HEAD
+                            await downloadTheme(theme);
+=======
                             await downloadTheme(themesDir, theme);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                         }
                     }
                 }

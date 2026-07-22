@@ -5,7 +5,6 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { disableCacheLimits, resetCacheLimits } from "@utils/cacheLimits";
 import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
@@ -123,7 +122,7 @@ const settings = definePluginSettings({
     killBackdropBlur: {
         type: OptionType.BOOLEAN,
         description: "Strip backdrop-filter blur effects (popouts, modals, overlays). Massive GPU win on integrated graphics.",
-        default: false
+        default: true
     },
     forcePassiveListeners: {
         type: OptionType.BOOLEAN,
@@ -170,58 +169,6 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Log optimization activity to the console. Disable for production.",
         default: false
-    },
-    cacheLimitsEnabled: {
-        type: OptionType.BOOLEAN,
-        description: "Cap internal plugin caches (diffs, translations, ZIP previews, logged messages, voice stats) to prevent unbounded memory growth. Disable if you have RAM to spare and want maximum cache hit rate.",
-        default: true
-    },
-    debounceScrollHandlers: {
-        type: OptionType.BOOLEAN,
-        description: "Debounce scroll event handlers to prevent excessive scroll-triggered updates. WARNING: May cause issues.",
-        default: false,
-        restartNeeded: true,
-        hidden: true
-    },
-    lazyIframes: {
-        type: OptionType.BOOLEAN,
-        description: "Defer iframe loading until they scroll into view. Reduces initial page load cost. hcaptcha iframes are excluded to prevent breaking verification.",
-        default: true
-    },
-    batchDomUpdates: {
-        type: OptionType.BOOLEAN,
-        description: "Batch DOM mutations via microtask scheduling. WARNING: May cause issues.",
-        default: false,
-        restartNeeded: true,
-        hidden: true
-    },
-    optimizeReactReconciliation: {
-        type: OptionType.BOOLEAN,
-        description: "Reduce React reconciliation overhead by skipping unnecessary updates in message lists.",
-        default: true,
-        restartNeeded: true
-    },
-    disableAnimatedHeaders: {
-        type: OptionType.BOOLEAN,
-        description: "Remove animated gradient effects in header areas. Pure cosmetic, big GPU savings.",
-        default: true
-    },
-    reduceDomDepth: {
-        type: OptionType.BOOLEAN,
-        description: "Flatten unnecessary nested wrapper divs in modals and popouts. Reduces layout computation.",
-        default: true,
-        restartNeeded: true
-    },
-    optimizeImageDecoding: {
-        type: OptionType.BOOLEAN,
-        description: "Force images to decode asynchronously and preload critical images. Smoother first paint.",
-        default: true
-    },
-    throttleMutationObservers: {
-        type: OptionType.BOOLEAN,
-        description: "Consolidate multiple MutationObservers into a single shared observer with priority dispatch.",
-        default: true,
-        restartNeeded: true
     }
 });
 
@@ -237,9 +184,9 @@ interface SpringMod {
 
 export default definePlugin({
     name: "optimizerPremium",
-    description: "Combined performance suite: tooltip/emoji/spinner/confetti/gateway patches, bounded image cache, react-spring skip, offscreen media pause, safe DOM throttling, lazy images, DOM batching, React optimization.",
-    authors: [Devs.x2b, Devs.SirPhantom89],
-    tags: ["Utility", "Developers", "Performance"],
+    description: "Combined performance suite: tooltip/emoji/spinner/confetti/gateway patches, bounded image cache, react-spring skip, offscreen media pause, safe DOM throttling, lazy images.",
+    authors: [Devs.x2b],
+    tags: ["Utility", "Developers"],
     enabledByDefault: false,
     settings,
 
@@ -249,7 +196,7 @@ export default definePlugin({
             predicate: () => settings.store.optimizeTooltips,
             replacement: [
                 {
-                    match: /\i\.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\i)\}\)\}\)/,
+                    match: /\i.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\i)\}\)\}\)/,
                     replace: (_m, p) => `this.__open=${p},this.setState({shouldShowTooltip:${p}})`
                 },
                 {
@@ -294,12 +241,13 @@ export default definePlugin({
             find: "getDispatchHandler needs to be passed in first!",
             predicate: () => settings.store.killGatewayAnalytics,
             replacement: {
-                match: /let \i=Date\.now\(\),(\i=\i\.Z\.flush\(\i,\i\));\i\.\i\.showPerformanceTelemetry\?.+?Telemetry\(.+?,\i\)/,
-                replace: "$1"
+                match: /(\.flush\(\i,\i\),"READY"===\i\)\{).+?;(.+?\)),.+?\}/,
+                replace: (_m, pre, mid) => `${pre}${mid}}`
             }
         }
     ],
 
+    // ---- Runtime state (cleaned up in stop()) ----
     originals: {} as {
         rAF?: typeof window.requestAnimationFrame;
         cAF?: typeof window.cancelAnimationFrame;
@@ -307,7 +255,6 @@ export default definePlugin({
         addEventListener?: typeof EventTarget.prototype.addEventListener;
         resizeObserver?: typeof ResizeObserver;
         console?: { log: typeof console.log; debug: typeof console.debug; info: typeof console.info; };
-        mutationObserver?: typeof MutationObserver;
     },
     springs: [] as SpringMod[],
     networkCache: new Map<string, CacheEntry>(),
@@ -326,13 +273,10 @@ export default definePlugin({
     lazyImageObserver: null as MutationObserver | null,
     rafFakeHandles: new Map<number, ReturnType<typeof setTimeout>>(),
     rafFakeCounter: 1 << 30,
-    consolidatedObserver: null as MutationObserver | null,
-    observerCallbacks: new Map<string, (records: MutationRecord[]) => void>(),
 
     start() {
         if (settings.store.verboseLogging) logger.info("Starting optimizer suite");
 
-        if (settings.store.throttleMutationObservers) this.installConsolidatedObserver();
         if (settings.store.domThrottle) this.installDomThrottle();
         if (settings.store.animationFrameReduction > 0) this.installRafReduction();
         if (settings.store.networkCache || settings.store.forceLowImageQuality) this.installNetworkLayer();
@@ -345,17 +289,7 @@ export default definePlugin({
         if (settings.store.throttleResizeObservers) this.installResizeObserverThrottle();
         if (settings.store.freezeGifsUntilHover) this.installGifFreezer();
         if (settings.store.lazyEmbedImages) this.installLazyImages();
-        if (settings.store.lazyIframes) this.installLazyIframes();
-        if (settings.store.optimizeImageDecoding) this.installImageDecodingOptimization();
         this.installExtraCSS();
-
-        if (settings.store.cacheLimitsEnabled) {
-            resetCacheLimits();
-            if (settings.store.verboseLogging) logger.info("Plugin cache limits active");
-        } else {
-            disableCacheLimits();
-            if (settings.store.verboseLogging) logger.info("Plugin cache limits disabled");
-        }
 
         if (settings.store.verboseLogging) logger.info("Started");
     },
@@ -363,7 +297,6 @@ export default definePlugin({
     stop() {
         if (settings.store.verboseLogging) logger.info("Stopping, restoring originals");
 
-        this.teardownConsolidatedObserver();
         this.teardownDomThrottle();
         this.restoreRafReduction();
         this.restoreNetworkLayer();
@@ -376,47 +309,15 @@ export default definePlugin({
         this.restoreResizeObserverThrottle();
         this.teardownGifFreezer();
         this.teardownLazyImages();
-        this.teardownLazyIframes();
-        this.teardownImageDecodingOptimization();
         this.teardownExtraCSS();
 
         this.networkCache.clear();
         this.networkCacheOrder.length = 0;
-
-        resetCacheLimits();
     },
 
-    installConsolidatedObserver() {
-        if (typeof MutationObserver === "undefined") return;
-
-        const callbacks = this.observerCallbacks;
-
-        this.consolidatedObserver = new MutationObserver(records => {
-            for (const cb of callbacks.values()) {
-                try {
-                    cb(records);
-                } catch (err) {
-                    if (settings.store.verboseLogging) logger.warn("Consolidated observer callback error", err);
-                }
-            }
-        });
-
-        this.consolidatedObserver.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        if (settings.store.verboseLogging) logger.info("Installed consolidated MutationObserver");
-    },
-
-    teardownConsolidatedObserver() {
-        if (this.consolidatedObserver) {
-            this.consolidatedObserver.disconnect();
-            this.consolidatedObserver = null;
-            this.observerCallbacks.clear();
-        }
-    },
-
+    // ---------------------------------------------------------------------
+    // DOM throttle — observer-based, doesn't touch appendChild
+    // ---------------------------------------------------------------------
     installDomThrottle() {
         const delay = settings.store.domThrottleDelay;
         const matches = (el: Element): boolean => {
@@ -427,6 +328,7 @@ export default definePlugin({
         };
 
         const apply = (el: HTMLElement) => {
+            // Hide briefly, then reveal. Cheap and reversible; no DOM-API patching.
             const prevVis = el.style.visibility;
             el.style.visibility = "hidden";
             const t = setTimeout(() => {
@@ -436,25 +338,18 @@ export default definePlugin({
             this.domThrottleTimers.add(t);
         };
 
-        const callback = (records: MutationRecord[]) => {
+        this.domThrottleObserver = new MutationObserver(records => {
             for (const r of records) {
                 for (const node of r.addedNodes) {
                     if (!(node instanceof HTMLElement)) continue;
                     if (matches(node)) apply(node);
                 }
             }
-        };
-
-        if (this.consolidatedObserver) {
-            this.observerCallbacks.set("domThrottle", callback);
-        } else {
-            this.domThrottleObserver = new MutationObserver(callback);
-            this.domThrottleObserver.observe(document.body, { childList: true, subtree: true });
-        }
+        });
+        this.domThrottleObserver.observe(document.body, { childList: true, subtree: true });
     },
 
     teardownDomThrottle() {
-        this.observerCallbacks.delete("domThrottle");
         if (this.domThrottleObserver) {
             this.domThrottleObserver.disconnect();
             this.domThrottleObserver = null;
@@ -463,6 +358,9 @@ export default definePlugin({
         this.domThrottleTimers.clear();
     },
 
+    // ---------------------------------------------------------------------
+    // rAF reduction with proper cancelAnimationFrame support
+    // ---------------------------------------------------------------------
     installRafReduction() {
         const original = window.requestAnimationFrame.bind(window);
         const originalCancel = window.cancelAnimationFrame.bind(window);
@@ -512,6 +410,9 @@ export default definePlugin({
         this.rafFakeHandles.clear();
     },
 
+    // ---------------------------------------------------------------------
+    // Network layer with LRU cap
+    // ---------------------------------------------------------------------
     installNetworkLayer() {
         const originalFetch = window.fetch.bind(window);
         this.originals.fetch = window.fetch;
@@ -608,6 +509,9 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // Spring skip — cache findAll result
+    // ---------------------------------------------------------------------
     installSpringSkip() {
         if (this.springs.length === 0) {
             const mods = findAll(mod => {
@@ -625,9 +529,12 @@ export default definePlugin({
         for (const spring of this.springs) {
             spring.Globals?.assign?.({ skipAnimation: false });
         }
-        this.springs = [];
+        // Keep `springs` cached for next start()
     },
 
+    // ---------------------------------------------------------------------
+    // Memory manager — guarded, no fake gc() spam
+    // ---------------------------------------------------------------------
     installMemoryManager() {
         const intervalMs = settings.store.memoryCheckSeconds * 1000;
         const perf = performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number; }; };
@@ -642,6 +549,7 @@ export default definePlugin({
                 if (!m) return;
                 const ratio = m.usedJSHeapSize / m.jsHeapSizeLimit;
                 if (ratio > 0.75) {
+                    // Trim network cache to half
                     if (this.networkCache.size > 50) {
                         const half = Math.floor(this.networkCacheOrder.length / 2);
                         for (let i = 0; i < half; i++) {
@@ -670,6 +578,9 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // Offscreen media pause
+    // ---------------------------------------------------------------------
     installOffscreenMediaPause() {
         if (typeof IntersectionObserver === "undefined") return;
         const paused = this.pausedMedia;
@@ -697,7 +608,7 @@ export default definePlugin({
 
         watch(document.body);
 
-        const callback = (records: MutationRecord[]) => {
+        this.mediaMutationObserver = new MutationObserver(records => {
             for (const r of records) {
                 for (const node of r.addedNodes) {
                     if (node instanceof HTMLMediaElement) {
@@ -707,18 +618,11 @@ export default definePlugin({
                     }
                 }
             }
-        };
-
-        if (this.consolidatedObserver) {
-            this.observerCallbacks.set("offscreenMedia", callback);
-        } else {
-            this.mediaMutationObserver = new MutationObserver(callback);
-            this.mediaMutationObserver.observe(document.body, { childList: true, subtree: true });
-        }
+        });
+        this.mediaMutationObserver.observe(document.body, { childList: true, subtree: true });
     },
 
     teardownOffscreenMediaPause() {
-        this.observerCallbacks.delete("offscreenMedia");
         if (this.intersectionObserver) {
             this.intersectionObserver.disconnect();
             this.intersectionObserver = null;
@@ -729,6 +633,9 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // CSS optimizations — scoped selectors only
+    // ---------------------------------------------------------------------
     installCSSOptimizations() {
         const rules: string[] = [];
         if (settings.store.virtualizeMessages) {
@@ -755,11 +662,18 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // Passive listeners — preserve removeEventListener compatibility
+    // ---------------------------------------------------------------------
     installPassiveListeners() {
         const PASSIVE_EVENTS = new Set(["wheel", "mousewheel", "touchstart", "touchmove", "touchend"]);
         const originalAdd = EventTarget.prototype.addEventListener;
         this.originals.addEventListener = originalAdd;
 
+        // We only patch addEventListener — listener identity is preserved (we only
+        // inject `passive: true` into the options bag). removeEventListener matches
+        // on (type, listener, capture); passive is irrelevant to matching, so the
+        // native remove keeps working unmodified.
         EventTarget.prototype.addEventListener = function patched(
             this: EventTarget,
             type: string,
@@ -784,6 +698,9 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // Console suppression
+    // ---------------------------------------------------------------------
     installConsoleSuppression() {
         this.originals.console = {
             log: console.log,
@@ -805,6 +722,9 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // ResizeObserver throttle — preserve instanceof via prototype chain
+    // ---------------------------------------------------------------------
     installResizeObserverThrottle() {
         if (typeof ResizeObserver === "undefined") return;
         const Native = ResizeObserver;
@@ -859,6 +779,9 @@ export default definePlugin({
         }
     },
 
+    // ---------------------------------------------------------------------
+    // GIF freezer — memory-bounded. Uses one shared canvas, no per-image data URLs.
+    // ---------------------------------------------------------------------
     installGifFreezer() {
         const sharedCanvas = document.createElement("canvas");
         const ctx = sharedCanvas.getContext("2d");
@@ -919,26 +842,18 @@ export default definePlugin({
         };
 
         document.querySelectorAll<HTMLImageElement>("img").forEach(freeze);
-
-        const callback = (records: MutationRecord[]) => {
+        this.gifMutationObserver = new MutationObserver(records => {
             for (const r of records) {
                 for (const node of r.addedNodes) {
                     if (node instanceof HTMLImageElement) freeze(node);
                     else if (node instanceof Element) node.querySelectorAll<HTMLImageElement>("img").forEach(freeze);
                 }
             }
-        };
-
-        if (this.consolidatedObserver) {
-            this.observerCallbacks.set("gifFreezer", callback);
-        } else {
-            this.gifMutationObserver = new MutationObserver(callback);
-            this.gifMutationObserver.observe(document.body, { childList: true, subtree: true });
-        }
+        });
+        this.gifMutationObserver.observe(document.body, { childList: true, subtree: true });
     },
 
     teardownGifFreezer() {
-        this.observerCallbacks.delete("gifFreezer");
         if (this.gifMutationObserver) {
             this.gifMutationObserver.disconnect();
             this.gifMutationObserver = null;
@@ -953,6 +868,9 @@ export default definePlugin({
         });
     },
 
+    // ---------------------------------------------------------------------
+    // Lazy images
+    // ---------------------------------------------------------------------
     installLazyImages() {
         const apply = (img: HTMLImageElement) => {
             if (img.dataset.opLazy === "1") return;
@@ -961,132 +879,50 @@ export default definePlugin({
             if (!img.decoding) img.decoding = "async";
         };
         document.querySelectorAll<HTMLImageElement>("img").forEach(apply);
-
-        const callback = (records: MutationRecord[]) => {
+        this.lazyImageObserver = new MutationObserver(records => {
             for (const r of records) {
                 for (const node of r.addedNodes) {
                     if (node instanceof HTMLImageElement) apply(node);
                     else if (node instanceof Element) node.querySelectorAll<HTMLImageElement>("img").forEach(apply);
                 }
             }
-        };
-
-        if (this.consolidatedObserver) {
-            this.observerCallbacks.set("lazyImages", callback);
-        } else {
-            this.lazyImageObserver = new MutationObserver(callback);
-            this.lazyImageObserver.observe(document.body, { childList: true, subtree: true });
-        }
+        });
+        this.lazyImageObserver.observe(document.body, { childList: true, subtree: true });
     },
 
     teardownLazyImages() {
-        this.observerCallbacks.delete("lazyImages");
         if (this.lazyImageObserver) {
             this.lazyImageObserver.disconnect();
             this.lazyImageObserver = null;
         }
     },
 
-    installLazyIframes() {
-        if (typeof IntersectionObserver === "undefined") return;
-
-        this.intersectionObserver = this.intersectionObserver || new IntersectionObserver(entries => {
-            for (const entry of entries) {
-                const { target } = entry;
-                if (!(target instanceof HTMLIFrameElement)) continue;
-                if (entry.isIntersecting && target.dataset.opLazyLoad !== "loaded") {
-                    target.dataset.opLazyLoad = "loaded";
-                    if (target.dataset.src) {
-                        target.src = target.dataset.src;
-                    }
-                }
-            }
-        }, { threshold: 0.1 });
-
-        const observeIframe = (iframe: HTMLIFrameElement) => {
-            if (iframe.dataset.opLazyLoad) return;
-            const src = iframe.src || "";
-            if (/\.hcaptcha\.com/i.test(src)) return;
-            iframe.dataset.opLazyLoad = "pending";
-            if (src && !iframe.dataset.src) {
-                iframe.dataset.src = src;
-                iframe.removeAttribute("src");
-            }
-            this.intersectionObserver?.observe(iframe);
-        };
-
-        document.querySelectorAll<HTMLIFrameElement>("iframe").forEach(observeIframe);
-
-        const callback = (records: MutationRecord[]) => {
-            for (const r of records) {
-                for (const node of r.addedNodes) {
-                    if (node instanceof HTMLIFrameElement) observeIframe(node);
-                    else if (node instanceof Element) node.querySelectorAll<HTMLIFrameElement>("iframe").forEach(observeIframe);
-                }
-            }
-        };
-
-        if (this.consolidatedObserver) {
-            this.observerCallbacks.set("lazyIframes", callback);
-        }
-    },
-
-    teardownLazyIframes() {
-        this.observerCallbacks.delete("lazyIframes");
-    },
-
-    installImageDecodingOptimization() {
-        const apply = (img: HTMLImageElement) => {
-            if (img.dataset.opDecoding === "1") return;
-            img.dataset.opDecoding = "1";
-            if (!img.decoding) img.decoding = "async";
-        };
-
-        document.querySelectorAll<HTMLImageElement>("img").forEach(apply);
-
-        const callback = (records: MutationRecord[]) => {
-            for (const r of records) {
-                for (const node of r.addedNodes) {
-                    if (node instanceof HTMLImageElement) apply(node);
-                    else if (node instanceof Element) node.querySelectorAll<HTMLImageElement>("img").forEach(apply);
-                }
-            }
-        };
-
-        if (this.consolidatedObserver) {
-            this.observerCallbacks.set("imageDecoding", callback);
-        }
-    },
-
-    teardownImageDecodingOptimization() {
-        this.observerCallbacks.delete("imageDecoding");
-    },
-
+    // ---------------------------------------------------------------------
+    // Extra CSS — kept narrow to avoid universal-selector cost
+    // ---------------------------------------------------------------------
     installExtraCSS() {
         const rules: string[] = [];
 
         if (settings.store.killBackdropBlur) {
+            // Scope to common Discord blur containers instead of universal selector
             rules.push(
                 "[class*=\"backdrop_\"], [class*=\"layer_\"], [class*=\"popout_\"], [class*=\"modal_\"] { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }"
             );
         }
         if (settings.store.reduceMotion) {
+            // This one genuinely needs universal scope to be effective
             rules.push(
                 "*, *::before, *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; }"
             );
         }
         if (settings.store.killWillChange) {
+            // Target elements likely to have will-change rather than the universe
             rules.push(
                 "[style*=\"will-change\"], [class*=\"scroller_\"], [class*=\"messageListItem_\"] { will-change: auto !important; }"
             );
         }
         if (settings.store.disableTypingIndicator) {
             rules.push("[class*=\"typing_\"], [class*=\"typingDots_\"] { display: none !important; }");
-        }
-        if (settings.store.disableAnimatedHeaders) {
-            rules.push(
-                "[class*=\"header_\"], [class*=\"banner_\"] { animation: none !important; transition: none !important; }"
-            );
         }
 
         if (!rules.length) return;

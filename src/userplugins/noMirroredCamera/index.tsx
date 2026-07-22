@@ -1,21 +1,27 @@
-import { isPluginEnabled } from "@api/PluginManager";
-import { Settings } from "@api/Settings";
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2024 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/*
+ * Fixxed by zFrxncesck1
+ */
+
+import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 
 export default definePlugin({
     name: "NoMirroredCamera",
     description: "Prevents the camera from being mirrored on your screen",
-    authors: [{ id: 456195985404592149n, name: "zfrancesck1" }, { id: 0n, name: "nyx" }],
+    authors: [Devs.nyx],
     tags: ["Voice", "Utility"],
-    enabledByDefault: false,
+    enabledByDefault: true,
 
     start() {
-        try {
-            if (isPluginEnabled("EquicordHelper") && (Settings.plugins?.EquicordHelper?.noMirroredCamera ?? false)) return;
-        } catch { }
         const style = document.createElement("style");
         style.id = "no-mirrored-camera-fix";
-        style.textContent = `[class*="cameraPreview"] [class*="camera"]{transform:scaleX(1)!important}`;
+        style.textContent = `[class*="cameraPreview"] [class*="camera"] { transform: scaleX(1) !important; }`;
         document.head.appendChild(style);
     },
 
@@ -24,6 +30,7 @@ export default definePlugin({
     },
 
     patches: [
+        // When focused on voice channel or group chat voice call
         {
             find: /\i\?#{intl::SELF_VIDEO}/,
             replacement: {
@@ -31,6 +38,7 @@ export default definePlugin({
                 replace: "mirror:!1"
             }
         },
+        // Popout camera when not focused on voice channel
         {
             find: ".mirror]:",
             replacement: {

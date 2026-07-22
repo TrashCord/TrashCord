@@ -25,7 +25,11 @@ import AudioPlayer from "@equicordplugins/songSpotlight.desktop/ui/components/Au
 import ProgressCircle from "@equicordplugins/songSpotlight.desktop/ui/components/ProgressCircle";
 import ServiceIcon from "@equicordplugins/songSpotlight.desktop/ui/components/ServiceIcon";
 import { openSettingsModal } from "@equicordplugins/songSpotlight.desktop/ui/settings";
+<<<<<<< HEAD
+import { RenderInfoEntry, RenderInfoEntryBased, RenderSongInfo } from "@song-spotlight/api/handlers";
+=======
 import { RenderInfoEntryBased, RenderSongInfo } from "@song-spotlight/api/handlers";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Song as SongType } from "@song-spotlight/api/structs";
 import { isListLayout, sid } from "@song-spotlight/api/util";
 import { copyWithToast } from "@utils/discord";
@@ -43,7 +47,11 @@ import {
     useCallback,
     useMemo,
     useRef,
+<<<<<<< HEAD
+    useState
+=======
     useState,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 } from "@webpack/common";
 
 interface SongEntryProps {
@@ -134,6 +142,31 @@ interface SongInfoProps {
 }
 
 function SongInfo({ owned, song, render, big }: SongInfoProps) {
+<<<<<<< HEAD
+    const [playing, setPlaying] = useState<number | undefined>(undefined);
+    const [loaded, setLoaded] = useState(new Set<number>());
+    const setLoadedAudio = useCallback((index: number, state: boolean) => {
+        if (state) loaded.add(index);
+        else loaded.delete(index);
+        setLoaded(new Set(loaded));
+    }, [loaded]);
+
+    const audios = useMemo(() => render.form === "single" ? [render.single] : render.list, [render]);
+    const audioRef = useRef<HTMLAudioElement>(undefined);
+    const playingRef = useRef<RenderInfoEntry>(undefined);
+    playingRef.current = playing !== undefined ? audios[playing] : undefined;
+
+    const duration = useMemo(
+        () =>
+            render.form === "single" ?
+                render.single.audio?.duration :
+                playing !== undefined ?
+                    render.list[playing].audio?.duration :
+                    undefined,
+        [playing, render],
+    );
+
+=======
     const [playing, setPlaying] = useState<number | false>(false);
     const [loaded, setLoaded] = useState(new Set<number>());
     const audios = useMemo(() => render.form === "single" ? [render.single] : render.list, [render]);
@@ -156,6 +189,7 @@ function SongInfo({ owned, song, render, big }: SongInfoProps) {
             return new Set(ld);
         }), []);
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const baseSize = big ? "md" : "sm";
     const subSize = big ? "sm" : "xs";
 
@@ -166,7 +200,11 @@ function SongInfo({ owned, song, render, big }: SongInfoProps) {
                 list={audios}
                 playing={playing}
                 setPlaying={setPlaying}
+<<<<<<< HEAD
+                setLoadedAudio={setLoadedAudio}
+=======
                 setLoaded={setLoadedAudio}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             />
             <div className={cl("song-grid")}>
                 <Flex gap="8px" alignItems="center" className={cl("song-core")}>
@@ -273,7 +311,11 @@ function SongInfo({ owned, song, render, big }: SongInfoProps) {
                     alignItems="flex-end"
                     gap="6px"
                     className={cl("song-player")}
+<<<<<<< HEAD
+                    data-idle={playing === undefined && !big}
+=======
                     data-idle={playing === false && !big}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 >
                     {duration && (
                         <BaseText size={subSize} weight="medium" className={cl("mono", "sub")}>
@@ -282,11 +324,25 @@ function SongInfo({ owned, song, render, big }: SongInfoProps) {
                     )}
                     <div className={cl("song-progress-container")}>
                         <ProgressCircle
+<<<<<<< HEAD
+                            border={2.5}
+                            playingRef={playingRef}
+=======
                             border={2}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                             audioRef={audioRef}
                             className={cl("song-progress")}
                         />
                         <PlayButton
+<<<<<<< HEAD
+                            state={playing !== undefined}
+                            disabled={loaded.size < 1}
+                            onClick={() => {
+                                if (playing !== undefined) return setPlaying(undefined);
+
+                                const loadedIndex = loaded.values().toArray().sort()[0];
+                                if (loadedIndex !== undefined) setPlaying(loadedIndex);
+=======
                             state={playing !== false}
                             disabled={loaded.size < 1}
                             onClick={() => {
@@ -295,6 +351,7 @@ function SongInfo({ owned, song, render, big }: SongInfoProps) {
 
                                 if (playing !== false) setPlaying(false);
                                 else setPlaying(loadedI);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                             }}
                         />
                     </div>
@@ -312,10 +369,15 @@ function SongInfo({ owned, song, render, big }: SongInfoProps) {
                                     isLoaded={loaded.has(i)}
                                     isPlaying={playing === i}
                                     onClick={() => {
+<<<<<<< HEAD
+                                        if (playing === i) setPlaying(undefined);
+                                        else if (loaded.has(i)) setPlaying(i);
+=======
                                         if (!loaded.has(i)) return;
 
                                         if (playing !== i) setPlaying(i);
                                         else setPlaying(false);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                     }}
                                     big={big}
                                     key={entry.link}

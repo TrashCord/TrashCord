@@ -17,7 +17,7 @@
 */
 
 /*
- * Fixxed by zfrancesck1
+ * Fixxed by zFrxncesck1
 */
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
@@ -1806,7 +1806,7 @@ const streamOptionsContextPatch: NavContextMenuPatchCallback = (children: any[])
 export default definePlugin({
     name: "CustomStreamTopQ",
     description: "Custom stream preview images with profiles & slideshow. GitHub: https://github.com/MrTopQ/customStream-Vencord",
-    authors: [{ name: "TopQ", id: 523800559791374356n }, { name: "zfrancesck1", id: 456195985404592149n }],
+    authors: [{ name: "TopQ", id: 523800559791374356n }, { name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Voice", "Media"],
     enabledByDefault: false,
 

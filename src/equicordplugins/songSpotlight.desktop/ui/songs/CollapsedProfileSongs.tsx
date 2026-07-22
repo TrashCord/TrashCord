@@ -17,6 +17,10 @@ import { RenderSongInfo } from "@song-spotlight/api/handlers";
 import { UserData } from "@song-spotlight/api/structs";
 import { sid } from "@song-spotlight/api/util";
 import { classes } from "@utils/index";
+<<<<<<< HEAD
+import { User } from "@vencord/discord-types";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import {
     SelectedChannelStore,
     SelectedGuildStore,
@@ -27,12 +31,21 @@ import {
     useState,
 } from "@webpack/common";
 
+<<<<<<< HEAD
+const shownSongs = 4;
+
+interface CollapsedProfileSongsProps {
+    data?: UserData;
+    user: User;
+    isSideBar: boolean;
+=======
 import { ProfileSongsProps } from "./ProfileSongs";
 
 const shownSongs = 4;
 
 interface CollapsedProfileSongsProps extends ProfileSongsProps {
     data?: UserData;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export default function CollapsedProfileSongs({ data, user, isSideBar }: CollapsedProfileSongsProps) {

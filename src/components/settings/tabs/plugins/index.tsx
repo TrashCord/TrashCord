@@ -41,7 +41,6 @@ import { Alerts, ConfirmModal, lodash, openModal, Parser, React, SearchableSelec
 import { JSX } from "react";
 
 import Plugins, { ExcludedPlugins, PluginMeta } from "~plugins";
-import { Devs, EquicordDevs, TrashCordDevs, IllegalcordDevs, TestcordDevs, NightcordDevs } from "@utils/constants";
 
 import { PluginCard } from "./PluginCard";
 import { openWarningModal } from "./PluginModal";
@@ -202,50 +201,12 @@ export default function PluginSettings() {
         .sort((a, b) => a.name.localeCompare(b.name)), []);
 
     const hasUserPlugins = useMemo(() => !IS_STANDALONE && Object.values(PluginMeta).some(m => m.userPlugin), []);
-    const [searchValue, setSearchValue] = useState<{ value: string; tags: PluginTag[]; status: number; author: string; }>({ value: "", tags: [] as PluginTag[], status: SearchStatus.ALL, author: "" });
+
+    const [searchValue, setSearchValue] = useState({ value: "", tags: [] as PluginTag[], status: SearchStatus.ALL });
 
     const search = searchValue.value.toLowerCase();
     const onSearch = (query: string) => setSearchValue(prev => ({ ...prev, value: query }));
-    
-    const githubMap = useMemo(() => {
-        const map: Record<string, string> = {};
-        const allDevs = { ...NightcordDevs, ...TestcordDevs, ...IllegalcordDevs, ...TrashCordDevs, ...EquicordDevs, ...Devs };
-        for (const dev of Object.values(allDevs)) {
-            if ((dev as any).github) map[(dev as any).name] = (dev as any).github;
-        }
-        return map;
-    }, []);
-    const authorOptions = useMemo(() => {
-        const authors = new Map<string, { category: string; github: any; }>();
-        const allTrashcord = new Set(Object.values(TrashCordDevs).map((d: any) => d.name));
-        const allNightcord = new Set(Object.values(NightcordDevs).map((d: any) => d.name));
-        const allIllegalcord = new Set(Object.values(IllegalcordDevs).map((d: any) => d.name));
-        const allTestcord = new Set(Object.values(TestcordDevs).map((d: any) => d.name));
-        for (const plugin of sortedPlugins) {
-            const meta = PluginMeta[plugin.name];
-            const folder = meta ? meta.folderName : "";
-            for (const author of (plugin.authors || [])) {
-                if (!author || !author.name) continue;
-                const category = allTrashcord.has(author.name) ? "TrashCord"
-                    : allNightcord.has(author.name) ? "Nightcord"
-                    : allIllegalcord.has(author.name) ? "Illegalcord"
-                    : allTestcord.has(author.name) ? "Testcord"
-                    : folder.startsWith("src/equicordplugins/") ? "Equicord"
-                    : folder.startsWith("src/plugins/") ? "Vencord"
-                    : "Other";
-                if (!authors.has(author.name))
-                    authors.set(author.name, { category, github: (author as any).github });
-            }
-        }
-        const grouped: Record<string, string[]> = { Nightcord: [], Testcord: [], Illegalcord: [], TrashCord: [], Equicord: [], Vencord: [], Other: [] };
-        for (const [name, info] of authors.entries()) grouped[info.category].push(name);
-        const result: Array<{ label: string; value: string; github: string; }> = [];
-        for (const [cat, names] of Object.entries(grouped)) {
-            for (const name of names.sort()) { const info = authors.get(name)!; result.push({ label: name + " (" + cat + ")", value: name, github: info.github || githubMap[name] }); }
-        }
-        return result;
-    }, [sortedPlugins]);
-    
+
     const pluginFilter = useCallback((plugin: typeof Plugins[keyof typeof Plugins], newPluginsSet: Set<string> | null) => {
         const { status, tags } = searchValue;
 
@@ -274,8 +235,7 @@ export default function PluginSettings() {
         }
 
         if (tags.length && tags.some(t => !plugin.tags?.includes(t))) return false;
-        if (searchValue.author && !plugin.authors?.some(a => a?.name === searchValue.author)) return false;
-        
+
         if (!search.length) return true;
 
         return (
@@ -320,7 +280,7 @@ export default function PluginSettings() {
 
             if (isRequired) {
                 const tooltipText = p.required || !depMap[p.name]
-                    ? "This plugin is required for TrashCord to function."
+                    ? "This plugin is required for Equicord to function."
                     : <PluginDependencyList deps={depMap[p.name]?.filter(d => settings.plugins[d].enabled)} />;
 
                 requiredPlugins.push(
@@ -420,8 +380,7 @@ export default function PluginSettings() {
     }, [isSentinelVisible, visibleCount, plugins.length, dLoadMore]);
 
     const visiblePlugins = plugins.slice(0, visibleCount);
-    const authorGithub = searchValue.author ? ("https://github.com/" + (authorOptions.find(a => a.value === searchValue.author)?.github || searchValue.author)) : "";
-    
+
     return (
         <SettingsTab>
             <ReloadRequiredCard required={changes.hasChanges} enabledPlugins={enabledPlugins} openWarningModal={openWarningModal} resetCheckAndDo={resetCheckAndDo} />
@@ -465,7 +424,11 @@ export default function PluginSettings() {
                             { label: "Show Equicord", value: SearchStatus.EQUICORD },
                             { label: "Show Vencord", value: SearchStatus.VENCORD },
                             { label: "Show New", value: SearchStatus.NEW },
+<<<<<<< HEAD
+                            hasUserPlugins && { label: "Show UserPlugins", value: SearchStatus.USER_PLUGINS },
+=======
                             hasUserPlugins && { label: "Show TrashCord", value: SearchStatus.USER_PLUGINS },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                             { label: "Show API Plugins", value: SearchStatus.API_PLUGINS },
                         ].filter(isTruthy)}
                         serialize={String}
@@ -482,24 +445,6 @@ export default function PluginSettings() {
                         placeholder="Filter by Tags"
                         multi
                     />
-                    <SearchableSelect
-                        options={[{ label: "All Authors", value: "" }, ...authorOptions]}
-                        value={searchValue.author}
-                        onChange={(v) => setSearchValue(prev => ({ ...prev, author: v ?? "" }))}
-                        closeOnSelect={true}
-                        placeholder="Filter by Author"
-                    />
-                    {searchValue.author && (
-                        <a
-                            href={authorGithub}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--text-link)", fontSize: "14px", textDecoration: "none", whiteSpace: "nowrap" }}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-                            {authorOptions.find(a => a.value === searchValue.author)?.github || searchValue.author}
-                        </a>
-                    )}
                 </div>
             </ErrorBoundary>
 

@@ -53,6 +53,8 @@
     gap: 2px;
 }
 
+<<<<<<< HEAD
+=======
 /* Jumpscare overlay styling */
 .vc-boo-jumpscare-overlay {
     position: fixed;
@@ -139,6 +141,7 @@
         transform: translate(-2px, -2px) rotate(-0.5deg);
     }
 }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 .vc-boo-clear {
     margin-right: 16px;
@@ -154,4 +157,8 @@
 
 .vc-boo-modal-text {
     color: var(--text-muted);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 89b0fd2a5 (Update index.tsx)

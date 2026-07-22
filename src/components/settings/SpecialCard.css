@@ -164,6 +164,9 @@
 .vc-translate-modal-paragraph {
     padding: 12px;
     text-align: center;
+<<<<<<< HEAD
+}
+=======
 }
 
 
@@ -208,3 +211,4 @@
   display: block;
   color: #fff;
 }
+>>>>>>> 89b0fd2a5 (Update index.tsx)

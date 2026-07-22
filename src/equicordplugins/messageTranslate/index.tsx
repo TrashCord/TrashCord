@@ -60,12 +60,21 @@ export default definePlugin({
             find: '.CUSTOM_GIFT?""',
             replacement: [
                 {
+<<<<<<< HEAD
+                    match: /childrenMessageContent:(\i),/g,
+                    replace: "childrenMessageContent:$self.wrapContent($1,arguments[0].message.id),",
+                },
+                {
+                    match: /\i\.memo\(function\((\i)\)\{(?=let \i,\i)/,
+                    replace: "$&$1.message=$self.transformMessage($1.message);",
+=======
                     match: /message:(\i),message:\{id:\i\}.{0,200}renderContentOnly:\i\}=\i;/,
                     replace: "$&$1=$self.transformMessage($1);",
                 },
                 {
                     match: /childrenMessageContent:(\i),/g,
                     replace: "childrenMessageContent:$self.wrapContent($1,arguments[0].message.id),",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 },
             ],
         },

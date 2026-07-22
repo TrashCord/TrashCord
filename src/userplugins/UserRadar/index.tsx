@@ -6,7 +6,7 @@
 // msgs, edits, deletes, typing, profile/pfp changes, voice, status, activity, boosts, joins
 
 import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu"
-import { DataStore, Notifications } from "@api/index"
+import { Notifications } from "@api/index"
 import { definePluginSettings } from "@api/Settings"
 import { getCurrentChannel, openUserProfile } from "@utils/discord"
 import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter, ModalCloseButton, ModalSize } from "@utils/modal"
@@ -27,155 +27,12 @@ import {
     TypingEvent, VoiceStateEvent, WatchedUser
 } from "./types"
 
-// ===== PERSISTENT ACTIVITY LOG SYSTEM =====
-// Uses DataStore API — survives Discord restarts
-
-const ACTIVITY_LOG_KEY = "UserRadar_ActivityLog_v2"
-const MAX_LOG_ENTRIES = 500 // per user
-
-export type ActivityType =
-    | "msg" | "edit" | "delete" | "typing"
-    | "status" | "activity" | "voice"
-    | "join" | "leave" | "boost"
-    | "profile" | "avatar" | "banner" | "bio" | "username" | "displayname"
-    | "online" | "offline" | "idle" | "dnd"
-    | "game_start" | "game_stop" | "spotify" | "streaming"
-    | "vc_join" | "vc_leave" | "vc_move"
-
-export interface ActivityEntry {
-    id: string
-    uid: string
-    ts: number
-    type: ActivityType
-    icon: string
-    title: string
-    body: string
-    guildId?: string
-    channelId?: string
-    msgId?: string
-    metadata?: Record<string, any>
-}
-
-class ActivityStore {
-    private cache: Record<string, ActivityEntry[]> = {}
-    private loaded = false
-
-    async load() {
-        if (this.loaded) return
-        try {
-            const data = await DataStore.get(ACTIVITY_LOG_KEY)
-            if (data) this.cache = JSON.parse(data)
-        } catch (e) { console.error("[UserRadar] Failed to load activity log", e) }
-        this.loaded = true
-    }
-
-    async save() {
-        try {
-            await DataStore.set(ACTIVITY_LOG_KEY, JSON.stringify(this.cache))
-        } catch (e) { console.error("[UserRadar] Failed to save activity log", e) }
-    }
-
-    getLogs(uid: string): ActivityEntry[] {
-        return this.cache[uid] || []
-    }
-
-    async addLog(entry: Omit<ActivityEntry, "id">) {
-        await this.load()
-        if (!this.cache[entry.uid]) this.cache[entry.uid] = []
-        const fullEntry: ActivityEntry = {
-            ...entry,
-            id: `${entry.uid}_${entry.ts}_${Math.random().toString(36).slice(2, 8)}`,
-        }
-        this.cache[entry.uid].unshift(fullEntry)
-        if (this.cache[entry.uid].length > MAX_LOG_ENTRIES) {
-            this.cache[entry.uid] = this.cache[entry.uid].slice(0, MAX_LOG_ENTRIES)
-        }
-        await this.save()
-        return fullEntry
-    }
-
-    async clearLogs(uid: string) {
-        await this.load()
-        delete this.cache[uid]
-        await this.save()
-    }
-
-    async clearAll() {
-        this.cache = {}
-        await DataStore.del(ACTIVITY_LOG_KEY)
-    }
-
-    exportAll(): string {
-        return JSON.stringify(this.cache, null, 2)
-    }
-
-    async importAll(json: string) {
-        try {
-            this.cache = JSON.parse(json)
-            await this.save()
-            return true
-        } catch { return false }
-    }
-}
-
-export const activityStore = new ActivityStore()
-
-// Live update listeners for real-time UI
-const activityListeners = new Set<(uid: string, entry: ActivityEntry) => void>()
-
-export function onActivityUpdate(cb: (uid: string, entry: ActivityEntry) => void) {
-    activityListeners.add(cb)
-    return () => activityListeners.delete(cb)
-}
-
-function emitActivityUpdate(uid: string, entry: ActivityEntry) {
-    activityListeners.forEach(cb => cb(uid, entry))
-}
-
-// Enhanced logger — replaces old logActivity()
-export async function logUserActivity(
-    uid: string,
-    type: ActivityType,
-    icon: string,
-    title: string,
-    body: string,
-    options?: {
-        guildId?: string
-        channelId?: string
-        msgId?: string
-        metadata?: Record<string, any>
-    }
-) {
-    const entry = await activityStore.addLog({
-        uid, ts: Date.now(), type, icon, title, body, ...options,
-    })
-    emitActivityUpdate(uid, entry)
-    return entry
-}
-
-// Legacy in-memory log for backward compat (used by WatchedRow "Recent" tab)
-const activityLog: Record<string, { ts: number; type: string; icon: string; body: string; guildId?: string; channelId?: string; msgId?: string }[]> = {}
-
-function logActivity(uid: string, type: string, icon: string, body: string, guildId?: string, channelId?: string, msgId?: string) {
-    if (!activityLog[uid]) activityLog[uid] = []
-    activityLog[uid].unshift({ ts: Date.now(), type, icon, body, guildId, channelId, msgId })
-    if (activityLog[uid].length > 50) activityLog[uid].pop()
-    // Also persist to DataStore
-    logUserActivity(uid, type as ActivityType, icon, body, body, { guildId, channelId, msgId }).catch(() => {})
-}
-
-// ===== END ACTIVITY LOG SYSTEM =====
 // these all reset when plugin stops, pre-populated in start() to avoid false positives
 const profileCache:  Record<string, any>                          = {}
 const vcCache:       Record<string, string | null>                = {}  // last known vc per user
 const statusCache:   Record<string, string>                       = {}  // last known status
 const activityCache: Record<string, string | null | undefined>    = {}  // undefined = never seen
 const guildCache:    Record<string, Set<string>>                  = {}  // guilds each user is in
-const vcJoinTime:    Record<string, number>                         = {}  // when each user joined vc
-
-// timestamp set when plugin starts — join/leave events in first 15s are ignored
-// discord fires GUILD_MEMBER_ADD for everyone on reconnect which causes false notifs
-let pluginStartedAt = 0
 
 let loggedMsgs: Record<string, Message> | null = null
 let pollTimer:  ReturnType<typeof setInterval> | null = null
@@ -209,25 +66,26 @@ function tryLoadLoggedMsgs() {
 
 const settings = definePluginSettings({
     watchlist:          { type: OptionType.STRING,  hidden: true,  default: "[]",    description: "watchlist json — managed by the ui, don't touch" },
-    globalPresetMode:   { type: OptionType.STRING,  hidden: true,  default: "custom",               description: "global preset mode" },
-    installedSha:       { type: OptionType.STRING,  hidden: true,  default: "none",  description: "installed commit sha" },
-    globalMsgs:         { type: OptionType.BOOLEAN, default: true,                   description: "notify: messages" },
-    globalEdits:        { type: OptionType.BOOLEAN, default: true,                   description: "notify: edits" },
-    globalDeletes:      { type: OptionType.BOOLEAN, default: true,                   description: "notify: deletes (needs vc-message-logger-enhanced for content)" },
-    globalTyping:       { type: OptionType.BOOLEAN, default: true,                   description: "notify: typing" },
-    globalProfile:      { type: OptionType.BOOLEAN, default: true,                   description: "notify: profile changes (bio, banner, username)" },
-    globalAvatar:       { type: OptionType.BOOLEAN, default: true,                   description: "notify: avatar changes" },
-    globalVoice:        { type: OptionType.BOOLEAN, default: true,                   description: "notify: voice joins / leaves / moves" },
-    globalStatus:       { type: OptionType.BOOLEAN, default: false,                  description: "notify: status changes (spammy, off by default)" },
-    globalJoins:        { type: OptionType.BOOLEAN, default: true,                   description: "notify: server joins / leaves" },
+    globalMsgs:         { type: OptionType.BOOLEAN, default: true,                   description: "messages" },
+    globalEdits:        { type: OptionType.BOOLEAN, default: true,                   description: "message edits" },
+    globalDeletes:      { type: OptionType.BOOLEAN, default: true,                   description: "message deletes (content needs vc-message-logger-enhanced)" },
+    globalTyping:       { type: OptionType.BOOLEAN, default: true,                   description: "typing (works in servers and dms)" },
+    globalProfile:      { type: OptionType.BOOLEAN, default: true,                   description: "profile changes (bio, banner, username, colors)" },
+    globalAvatar:       { type: OptionType.BOOLEAN, default: true,                   description: "avatar changes" },
+    globalVoice:        { type: OptionType.BOOLEAN, default: true,                   description: "voice joins / leaves / moves" },
+    globalStatus:       { type: OptionType.BOOLEAN, default: false,                  description: "status changes — spammy, off by default" },
+    globalBoosts:       { type: OptionType.BOOLEAN, default: true,                   description: "server boosts" },
+    globalActivity:     { type: OptionType.BOOLEAN, default: false,                  description: "activity changes (playing, listening, watching) — very spammy, off by default" },
+    globalJoins:        { type: OptionType.BOOLEAN, default: true,                   description: "server joins / leaves (only servers you're in)" },
     showPreview:        { type: OptionType.BOOLEAN, default: true,                   description: "show message content in notifications" },
     previewLen:         { type: OptionType.NUMBER,  default: 120,                    description: "max chars in preview (0 = no limit)" },
-    quietHours:         { type: OptionType.BOOLEAN, default: false,                  description: "mute notifications during certain hours" },
+    quietHours:         { type: OptionType.BOOLEAN, default: false,                  description: "silence all notifications during certain hours" },
     quietStart:         { type: OptionType.STRING,  default: "23:00",                description: "quiet hours start (24h, e.g. 23:00)" },
     quietEnd:           { type: OptionType.STRING,  default: "07:00",                description: "quiet hours end (24h, e.g. 07:00)" },
-    skipCurrentChannel: { type: OptionType.BOOLEAN, default: true,                   description: "skip notification if already in that channel" },
+    skipCurrentChannel: { type: OptionType.BOOLEAN, default: true,                   description: "skip notification if you're already in that channel" },
     debugLog:           { type: OptionType.BOOLEAN, default: false,                  description: "log all events to console" },
-    showToolbarIcon:    { type: OptionType.BOOLEAN, default: true,                   description: "show watchlist icon in discord toolbar" },
+    globalPresetMode:   { type: OptionType.STRING,  default: "custom",               description: "global preset mode — custom, stalker, lite, silent" },
+    showToolbarIcon:    { type: OptionType.BOOLEAN, default: true,                   description: "show watchlist icon in toolbar" },
 })
 
 // notification helpers
@@ -249,8 +107,8 @@ function jumpTo(guildId?: string, channelId?: string, msgId?: string) {
 // checks if a feature is on for a specific user, respects preset mode and per-user overrides
 function isFeatureOn(uid: string, userKey: keyof WatchedUser["overrides"], globalKey: string): boolean {
     if (!isWatched(settings, uid)) return false
-    const mode = settings.store.globalPresetMode ?? "custom"
-    if (mode !== "custom") {
+    const mode = settings.store.globalPresetMode
+    if (mode && mode !== "custom") {
         if (mode === "silent") return false
         if (mode === "stalker") return true
         if (mode === "lite") {
@@ -261,19 +119,8 @@ function isFeatureOn(uid: string, userKey: keyof WatchedUser["overrides"], globa
     return featureOn(settings, uid, userKey, globalKey)
 }
 
-// debounce map — prevents exact same notification firing twice within 1.5s
-// this catches cases where two flux events fire for the same action (e.g. MESSAGE_CREATE + USER_UPDATE)
-const _notifDebounce: Record<string, number> = {}
-
 function notify(opts: { title: string; body: string; icon?: string; onClick?: () => void }) {
     if (inQuietHours(settings)) return
-
-    // dedupe: skip if exact same title+body was shown in last 1.5s
-    const key = `${opts.title}|${opts.body}`
-    const now = Date.now()
-    if (_notifDebounce[key] && now - _notifDebounce[key] < 1500) return
-    _notifDebounce[key] = now
-
     if (settings.store.debugLog) log.info(`[notif] ${opts.title} — ${opts.body}`)
     Notifications.showNotification({ title: opts.title, body: opts.body, icon: opts.icon, onClick: opts.onClick })
 }
@@ -319,15 +166,6 @@ function checkProfileChanged(uid: string, fresh: any) {
     if (!isWatched(settings, uid)) return
     const old = profileCache[uid]
     if (!old) {
-        // no baseline yet — just store it, never notify on first fetch
-        profileCache[uid] = fresh
-        return
-    }
-    // suppress all profile notifications for 30s after startup
-    // profile API gets called during startup and may return slightly different data
-    // than what's cached (null vs undefined, missing fields etc)
-    if (Date.now() - pluginStartedAt < 30000) {
-        // still update cache so baseline is accurate
         profileCache[uid] = fresh
         return
     }
@@ -449,7 +287,7 @@ const ico = {
     external: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
     sortAz:   () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h12M3 12h8M3 18h4M16 8l4-4 4 4M20 4v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
     sortDate: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
-    eye:      () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3" fill={C.white} stroke="none"/><path d="M12 2v2M12 20v2" strokeWidth="1.5" opacity="0.5"/></svg>,
+    eye:      () => <svg width="20" height="20" viewBox="0 0 24 24" fill={C.white}><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>,
     ghost:    () => <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity=".25"><path d="M12 2a9 9 0 0 0-9 9v7c0 1.66 1.34 3 3 3h3v-4h6v4h3c1.66 0 3-1.34 3-3v-7a9 9 0 0 0-9-9zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>,
     msg:      () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 22V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6l-4 4z"/></svg>,
     edit:     () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
@@ -516,35 +354,26 @@ type LookupStage =
 
 function timeAgo(ts: number): string {
     const diff = Date.now() - ts
-    const d    = new Date(ts)
-    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     const mins = Math.floor(diff / 60000)
-    if (mins < 1)    return "just now"
-    if (mins < 60)   return `${mins}m ago`
-    if (diff < 86400000) return `Today at ${time}`
-    if (diff < 172800000) return `Yesterday at ${time}`
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ` at ${time}`
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+    if (mins < 1) return "Just now"
+    if (mins < 60) return `${mins}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return new Date(ts).toLocaleDateString()
 }
 
 function exactTime(ts: number): string {
-    return new Date(ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" })
+    return new Date(ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
 }
 
-// full timestamp for hovering on log entries
-function logTime(ts: number): string {
-    return new Date(ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" })
-}
-function decodeSnowflake(id: string) {
-    try {
-        const snowflake = BigInt(id)
-        const timestamp = Number(snowflake >> 22n) + 1420070400000
-        const workerId = Number((snowflake >> 17n) & 0x1Fn)
-        const processId = Number((snowflake >> 12n) & 0x1Fn)
-        const increment = Number(snowflake & 0xFFFn)
-        return { timestamp, workerId, processId, increment, date: new Date(timestamp) }
-    } catch {
-        return null
-    }
+const activityLog: Record<string, { ts: number; type: string; icon: string; body: string; guildId?: string; channelId?: string; msgId?: string }[]> = {}
+
+function logActivity(uid: string, type: string, icon: string, body: string, guildId?: string, channelId?: string, msgId?: string) {
+    if (!activityLog[uid]) activityLog[uid] = []
+    activityLog[uid].unshift({ ts: Date.now(), type, icon, body, guildId, channelId, msgId })
+    if (activityLog[uid].length > 50) activityLog[uid].pop()
 }
 
 function AddUserInput({ rawId, setRawId, hasErr, lk, setLk, doLookup }: {
@@ -692,16 +521,9 @@ function AddUserSection({ onAdded }: { onAdded: () => void }) {
     const [rawId, setRawId] = React.useState("")
     const [label, setLabel] = React.useState("")
     const [lk, setLk]       = React.useState<LookupStage>({ s: "idle" })
-    const [copiedId, setCopiedId] = React.useState(false)
 
     const cleanId = rawId.trim().replace(/\D/g, "")
     const hasErr  = lk.s === "err"
-
-    const copyId = (id: string) => {
-        navigator.clipboard.writeText(id)
-        setCopiedId(true)
-        setTimeout(() => setCopiedId(false), 1200)
-    }
 
     const doLookup = () => {
         if (!cleanId)                                    return setLk({ s: "err", msg: "enter a user id first" })
@@ -752,162 +574,45 @@ function AddUserSection({ onAdded }: { onAdded: () => void }) {
 
             {lk.s === "done" && (
                 <div className="ur-fade-in">
-                    {/* Profile Card */}
                     <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 14,
+                        padding: "12px 16px",
                         background: C.bg1,
-                        borderRadius: 16,
+                        borderRadius: 20,
                         border: `1px solid ${C.border}`,
                         marginBottom: 14,
-                        overflow: "hidden",
                     }}>
-                        <div style={{ padding: "12px 16px" }}>
-                            {/* Avatar + Name inline */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                                <img
-                                    src={lk.av}
-                                    style={{
-                                        width: 52, height: 52,
-                                        borderRadius: "50%",
-                                        border: `2px solid ${C.border}`,
-                                        flexShrink: 0,
-                                        background: C.bg1,
-                                    }}
-                                    onError={(e: any) => { e.target.src = FALLBACK_AV }}
-                                />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                        <span style={{ fontSize: 17, fontWeight: 800, color: C.header, lineHeight: 1.2 }}>
-                                            {lk.user.globalName || lk.user.username}
-                                        </span>
-                                        {lk.user.globalName && (
-                                            <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>@{lk.user.username}</span>
-                                        )}
-                                    </div>
-                                    {lk.user.pronouns && (
-                                        <div style={{ fontSize: 11, color: C.brandLight, marginTop: 2, fontWeight: 500 }}>
-                                            {lk.user.pronouns}
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{
-                                    width: 20, height: 20,
-                                    borderRadius: "50%",
-                                    background: "rgba(36,128,70,0.15)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                }}>
-                                    <span style={{ color: C.green, display: "flex", transform: "scale(0.8)" }}><ico.check /></span>
-                                </div>
+                        <img
+                            src={lk.av}
+                            style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0 }}
+                            onError={(e: any) => { e.target.src = FALLBACK_AV }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: C.header }}>
+                                {lk.user.globalName || lk.user.username}
                             </div>
-
-                            {/* About Me */}
-                            {lk.user.bio && (
-                                <div style={{ marginBottom: 10 }}>
-                                    <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, color: C.subheader, marginBottom: 4 }}>
-                                        About Me
-                                    </div>
-                                    <div style={{
-                                        fontSize: 12,
-                                        color: C.text,
-                                        lineHeight: 1.5,
-                                        padding: "8px 10px",
-                                        background: C.bg2,
-                                        borderRadius: 8,
-                                        border: `1px solid ${C.border}`,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                    }}>
-                                        {lk.user.bio}
-                                    </div>
+                            {lk.user.globalName && (
+                                <div style={{ fontSize: 13, color: C.muted, marginTop: 1 }}>
+                                    @{lk.user.username}
                                 </div>
                             )}
-
-                            {/* Divider */}
-                            <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
-
-                            {/* Account Info Grid */}
-                            {(() => {
-                                const sf = decodeSnowflake(lk.user.id)
-                                return sf && (
-                                <div>
-                                    <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, color: C.subheader, marginBottom: 5 }}>
-                                        Account Info
-                                    </div>
-                                    <div style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(2, 1fr)",
-                                        gap: 6,
-                                    }}>
-                                        {/* User ID */}
-                                        <div
-                                            onClick={() => copyId(lk.user.id)}
-                                            style={{
-                                                padding: "8px 10px",
-                                                background: C.bg2,
-                                                borderRadius: 8,
-                                                border: `1px solid ${C.border}`,
-                                                cursor: "pointer",
-                                                transition: "border-color 150ms ease, background 150ms ease",
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.background = "#232428" }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.bg2 }}
-                                            title="Click to copy ID"
-                                        >
-                                            <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>User ID</div>
-                                            <div style={{ fontSize: 11, fontFamily: "monospace", color: C.text, display: "flex", alignItems: "center", gap: 4 }}>
-                                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lk.user.id}</span>
-                                                <span style={{ color: copiedId ? C.green : C.muted, flexShrink: 0, transition: "color 150ms ease", display: "flex" }}>
-                                                    {copiedId ? <ico.check /> : <ico.copy />}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Created */}
-                                        <div style={{ padding: "8px 10px", background: C.bg2, borderRadius: 8, border: `1px solid ${C.border}` }}>
-                                            <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Created</div>
-                                            <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>
-                                                {sf.date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                                            </div>
-                                            <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
-                                                {sf.date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                                            </div>
-                                        </div>
-
-                                        {/* Account Age */}
-                                        <div style={{ padding: "8px 10px", background: C.bg2, borderRadius: 8, border: `1px solid ${C.border}` }}>
-                                            <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Account Age</div>
-                                            <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>
-                                                {(() => {
-                                                    const diff = Date.now() - sf.timestamp
-                                                    const years = Math.floor(diff / 31536000000)
-                                                    const months = Math.floor((diff % 31536000000) / 2592000000)
-                                                    const days = Math.floor((diff % 2592000000) / 86400000)
-                                                    if (years > 0) return `${years}y ${months}mo`
-                                                    if (months > 0) return `${months}mo ${days}d`
-                                                    return `${days}d`
-                                                })()}
-                                            </div>
-                                        </div>
-
-                                        {/* Snowflake */}
-                                        <div
-                                            title={`Worker ${sf.workerId} · Process ${sf.processId} · Increment ${sf.increment}`}
-                                            style={{ padding: "8px 10px", background: C.bg2, borderRadius: 8, border: `1px solid ${C.border}` }}
-                                        >
-                                            <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Snowflake</div>
-                                            <div style={{ fontSize: 11, fontFamily: "monospace", color: C.brandLight, fontWeight: 600 }}>
-                                                w{sf.workerId} · p{sf.processId}
-                                            </div>
-                                            <div style={{ fontSize: 10, color: C.muted, marginTop: 1, fontFamily: "monospace" }}>
-                                                inc {sf.increment}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                )
-                            })()}
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 3, fontFamily: "monospace", opacity: .6 }}>
+                                {lk.user.id}
+                            </div>
+                        </div>
+                        <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            background: "rgba(36,128,70,0.15)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                        }}>
+                            <div style={{ color: C.green }}><ico.check /></div>
                         </div>
                     </div>
 
@@ -982,13 +687,14 @@ const OV_GROUPS = {
     ],
     presence: [
         { label: "status",    key: "status",   gk: "globalStatus",   Icon: ico.status,   desc: "Notify on status changes" },
-        { label: "activity",  key: "activity", gk: "globalActivity", Icon: ico.activity, desc: "Game/music activity (off by default)" },
+        { label: "activity",  key: "activity", gk: "globalActivity", Icon: ico.activity, desc: "Notify on activity changes" },
         { label: "voice",     key: "voice",    gk: "globalVoice",    Icon: ico.voice,    desc: "Notify on voice channel activity" },
         { label: "joins",     key: "joins",    gk: "globalJoins",    Icon: ico.joins,    desc: "Notify on server joins / leaves" },
     ],
     profile: [
         { label: "profile",   key: "profile",  gk: "globalProfile",  Icon: ico.profile,  desc: "Notify on profile changes" },
         { label: "avatar",    key: "avatar",   gk: "globalAvatar",   Icon: ico.avatar,   desc: "Notify on avatar updates" },
+        { label: "boosts",    key: "boosts",   gk: "globalBoosts",   Icon: ico.boosts,   desc: "Notify on server boosts" },
     ],
 } as const
 
@@ -1110,426 +816,6 @@ function previewNotification(uid: string, type: string) {
     const p = previews[type] || { title: `${dn}: ${type}`, body: "preview notification" }
     Notifications.showNotification({ title: "[Preview] " + p.title, body: p.body, icon })
 }
-
-
-// ===== ACTIVITY LOG TAB COMPONENT =====
-// Full persistent activity log viewer with filters, stats, export
-
-const ACTIVITY_ICONS: Record<ActivityType, string> = {
-    msg: "💬", edit: "✏️", delete: "🗑️", typing: "💭",
-    status: "🔵", activity: "🎮", voice: "🎙️",
-    join: "📥", leave: "📤", boost: "🚀",
-    profile: "👤", avatar: "🖼️", banner: "🏳️", bio: "📝",
-    username: "🏷️", displayname: "📛", online: "🟢",
-    offline: "⚫", idle: "🌙", dnd: "🔴",
-    game_start: "🎮", game_stop: "🛑", spotify: "🎵",
-    streaming: "📺", vc_join: "🔊", vc_leave: "🔇", vc_move: "↔️",
-}
-
-function formatDuration(ms: number): string {
-    if (!ms || ms < 0) return "0m"
-    const mins = Math.floor(ms / 60000)
-    const hours = Math.floor(mins / 60)
-    const days = Math.floor(hours / 24)
-    if (days > 0) return `${days}d ${hours % 24}h`
-    if (hours > 0) return `${hours}h ${mins % 60}m`
-    return `${mins}m`
-}
-
-function isOnlineEvent(log: ActivityEntry): boolean {
-    if (log.type === "online") return true
-    if (log.type === "status") {
-        const text = (log.title || log.body || "").toLowerCase()
-        return /(?:changed to|→|status\s*[:=]|now|to)\s*online/.test(text)
-    }
-    return false
-}
-
-function isOfflineEvent(log: ActivityEntry): boolean {
-    if (log.type === "offline" || log.type === "idle" || log.type === "dnd") return true
-    if (log.type === "status") {
-        const text = (log.title || log.body || "").toLowerCase()
-        return /(?:changed to|→|status\s*[:=]|now|to)\s*(offline|idle|dnd)/.test(text)
-    }
-    return false
-}
-
-function calculateOnlineTime(logs: ActivityEntry[]): string {
-    let totalMs = 0
-    let lastOnline: number | null = null
-    const sorted = [...logs].sort((a, b) => a.ts - b.ts)
-    for (const log of sorted) {
-        if (isOnlineEvent(log)) lastOnline = log.ts
-        else if (isOfflineEvent(log) && lastOnline) {
-            totalMs += log.ts - lastOnline
-            lastOnline = null
-        }
-    }
-    // If still online, add time from last online event to now
-    if (lastOnline) {
-        totalMs += Date.now() - lastOnline
-    }
-    return formatDuration(totalMs)
-}
-
-function UserRadarActivityTab({ userId }: { userId: string }) {
-    const [logs, setLogs] = React.useState<ActivityEntry[]>([])
-    const [filter, setFilter] = React.useState<ActivityType | "all">("all")
-    const [expandedId, setExpandedId] = React.useState<string | null>(null)
-    const [loading, setLoading] = React.useState(true)
-
-    React.useEffect(() => {
-        const load = async () => {
-            await activityStore.load()
-            setLogs(activityStore.getLogs(userId))
-            setLoading(false)
-        }
-        load()
-        const unsub = onActivityUpdate((uid, entry) => {
-            if (uid === userId) setLogs(prev => [entry, ...prev].slice(0, MAX_LOG_ENTRIES))
-        })
-        return unsub
-    }, [userId])
-
-    // Category matching for filters (legacy logActivity uses "status" for all status changes)
-    function matchesFilter(log: ActivityEntry, filterType: ActivityType | "all"): boolean {
-        if (filterType === "all") return true
-        if (filterType === "msg") return log.type === "msg"
-        if (filterType === "edit") return log.type === "edit"
-        if (filterType === "delete") return log.type === "delete"
-        // Status tab: online, offline, idle, dnd — all status changes
-        if (filterType === "status") {
-            return log.type === "online" || log.type === "offline" || log.type === "idle" || log.type === "dnd" || log.type === "status"
-        }
-        if (filterType === "voice") return log.type === "voice" || log.type === "vc_join" || log.type === "vc_leave" || log.type === "vc_move"
-        if (filterType === "avatar") return log.type === "avatar" || log.type === "profile" || log.type === "banner" || log.type === "bio" || log.type === "username" || log.type === "displayname"
-        if (filterType === "profile") return log.type === "profile" || log.type === "avatar" || log.type === "banner" || log.type === "bio" || log.type === "username" || log.type === "displayname"
-        if (filterType === "activity") return log.type === "activity" || log.type === "game_start" || log.type === "game_stop" || log.type === "spotify" || log.type === "streaming"
-        return log.type === filterType
-    }
-
-    const filtered = filter === "all" ? logs : logs.filter(l => matchesFilter(l, filter))
-    const grouped = filtered.reduce((acc, log) => {
-        const date = new Date(log.ts).toLocaleDateString()
-        if (!acc[date]) acc[date] = []
-        acc[date].push(log)
-        return acc
-    }, {} as Record<string, ActivityEntry[]>)
-
-    const filters: { type: ActivityType | "all"; label: string; icon: string }[] = [
-        { type: "all", label: "All", icon: "📋" },
-        { type: "msg", label: "Messages", icon: "💬" },
-        { type: "edit", label: "Edits", icon: "✏️" },
-        { type: "delete", label: "Deletes", icon: "🗑️" },
-        { type: "status", label: "Status", icon: "🔵" },
-        { type: "voice", label: "Voice", icon: "🎙️" },
-        { type: "avatar", label: "Avatar", icon: "🖼️" },
-        { type: "profile", label: "Profile", icon: "👤" },
-        { type: "activity", label: "Activity", icon: "🎮" },
-    ]
-
-    if (loading) {
-        return (
-            <div style={{ padding: 40, textAlign: "center", color: C.muted }}>
-                <div className="ur-spin" style={{ width: 24, height: 24, margin: "0 auto 12px" }} />
-                <div style={{ fontSize: 13 }}>Loading activity log…</div>
-            </div>
-        )
-    }
-
-    return (
-        <div style={{ padding: "0 4px" }}>
-            {/* Filter tabs */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-                {filters.map(f => (
-                    <div
-                        key={f.type}
-                        onClick={() => setFilter(f.type)}
-                        style={{
-                            padding: "5px 10px",
-                            borderRadius: 12,
-                            background: filter === f.type ? C.brand : C.bg1,
-                            color: filter === f.type ? C.white : C.muted,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            transition: "all 150ms ease",
-                            userSelect: "none",
-                            border: `1px solid ${filter === f.type ? C.brand : C.border}`,
-                        }}
-                    >
-                        <span>{f.icon}</span>
-                        <span>{f.label}</span>
-                        <span style={{
-                            background: filter === f.type ? "rgba(255,255,255,0.2)" : C.bg3,
-                            padding: "1px 5px",
-                            borderRadius: 6,
-                            fontSize: 9,
-                            fontWeight: 800,
-                        }}>
-                            {f.type === "all" ? logs.length : logs.filter(l => matchesFilter(l, f.type)).length}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
-            {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
-                {[
-                    { label: "Total", value: logs.length, color: C.brand },
-                    { label: "Today", value: logs.filter(l => new Date(l.ts).toDateString() === new Date().toDateString()).length, color: "#23a55a" },
-                    { label: "This Week", value: logs.filter(l => Date.now() - l.ts < 7 * 86400000).length, color: "#f0b232" },
-                    { label: "Online Time", value: calculateOnlineTime(logs), color: C.brandLight },
-                ].map(stat => (
-                    <div key={stat.label} style={{ background: C.bg2, borderRadius: 12, padding: 10, border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-                        <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{stat.label}</div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Timeline */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 420, overflowY: "auto" }} className="ur-scrollbar">
-                {Object.entries(grouped).map(([date, dayLogs]) => (
-                    <div key={`${date}-${filter}`}>
-                        <div style={{
-                            fontSize: 10, fontWeight: 800, textTransform: "uppercase",
-                            letterSpacing: 0.8, color: C.muted, marginBottom: 6,
-                            display: "flex", alignItems: "center", gap: 8,
-                        }}>
-                            <span>{date === new Date().toLocaleDateString() ? "Today" : date}</span>
-                            <span style={{ flex: 1, height: 1, background: C.border }} />
-                            <span>{dayLogs.length} events</span>
-                        </div>
-                        {dayLogs.map(log => (
-                            <div
-                                key={log.id}
-                                onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                                style={{
-                                    display: "flex", gap: 10, padding: "8px 10px",
-                                    borderRadius: 10, background: C.bg2,
-                                    border: `1px solid ${C.border}`, marginBottom: 5,
-                                    cursor: "pointer",
-                                    transition: "all 150ms ease",
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = "#232428"; e.currentTarget.style.borderColor = C.bgEl }}
-                                onMouseLeave={e => { e.currentTarget.style.background = C.bg2; e.currentTarget.style.borderColor = C.border }}
-                            >
-                                <div style={{
-                                    width: 32, height: 32, borderRadius: "50%",
-                                    background: C.bg1, display: "flex",
-                                    alignItems: "center", justifyContent: "center",
-                                    fontSize: 14, flexShrink: 0,
-                                }}>
-                                    {log.icon}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
-                                        <span>{log.title}</span>
-                                        <span style={{ fontSize: 9, color: C.muted }} title={exactTime(log.ts)}>{timeAgo(log.ts)}</span>
-                                    </div>
-                                    <div style={{ fontSize: 11, color: C.muted, marginTop: 1, lineHeight: 1.4 }}>
-                                        {log.body}
-                                    </div>
-                                    {/* for edits only — show before content with strikethrough */}
-                                    {log.type === "edit" && log.metadata?.before && (
-                                        <div style={{
-                                            marginTop: 4,
-                                            padding: "5px 9px",
-                                            background: C.bg1,
-                                            borderRadius: 6,
-                                            fontSize: 11,
-                                            color: C.muted,
-                                            border: `1px solid ${C.border}`,
-                                            lineHeight: 1.4,
-                                        }}>
-                                            <span style={{ textDecoration: "line-through", opacity: 0.6 }}>{trunc(log.metadata.before, 120)}</span>
-                                        </div>
-                                    )}
-                                    {expandedId === log.id && log.metadata && (
-                                        <div style={{
-                                            marginTop: 6, padding: "6px 10px",
-                                            background: C.bg1, borderRadius: 8,
-                                            fontSize: 10, color: C.muted, fontFamily: "monospace",
-                                            lineHeight: 1.5,
-                                        }}>
-                                            {Object.entries(log.metadata).map(([key, val]) => (
-                                                <div key={key} style={{ display: "flex", gap: 6 }}>
-                                                    <span style={{ color: C.brand, minWidth: 80 }}>{key}:</span>
-                                                    <span style={{ color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                        {typeof val === "object" ? JSON.stringify(val) : String(val)}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                            {(log.channelId || log.guildId) && (
-                                                <div
-                                                    onClick={(e) => { e.stopPropagation(); jumpTo(log.guildId, log.channelId, log.msgId) }}
-                                                    style={{
-                                                        marginTop: 6, padding: "4px 10px",
-                                                        background: C.brand, borderRadius: 6,
-                                                        color: C.white, fontSize: 11,
-                                                        fontWeight: 600, cursor: "pointer",
-                                                        textAlign: "center", fontFamily: "inherit",
-                                                    }}
-                                                >
-                                                    Jump to Discord
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ color: C.muted, fontSize: 9, flexShrink: 0, opacity: 0.6 }}>
-                                    {new Date(log.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ))}
-                {logs.length === 0 && (
-                    <div style={{ textAlign: "center", padding: "32px 0", color: C.muted }}>
-                        <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>📭</div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>No activity tracked yet</div>
-                        <div style={{ fontSize: 11, marginTop: 3 }}>Events will appear here once this user does something</div>
-                    </div>
-                )}
-            </div>
-
-            {/* Actions */}
-            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => {
-                        const input = document.createElement("input")
-                        input.type = "file"
-                        input.accept = ".json"
-                        input.onchange = async (e: any) => {
-                            const file = e.target.files[0]
-                            if (!file) return
-                            const text = await file.text()
-                            const ok = await activityStore.importAll(text)
-                            if (ok) {
-                                setLogs(activityStore.getLogs(userId))
-                                Toasts.show({
-                                    message: `Imported activity log for ${displayName(UserStore.getUser(userId)) || userId}`,
-                                    id: Toasts.genId(),
-                                    type: Toasts.Type.SUCCESS,
-                                })
-                            } else {
-                                Toasts.show({
-                                    message: "Failed to import — invalid JSON file",
-                                    id: Toasts.genId(),
-                                    type: Toasts.Type.FAILURE,
-                                })
-                            }
-                        }
-                        input.click()
-                    }}
-                    style={{
-                        padding: "6px 14px", borderRadius: 20, background: "transparent",
-                        border: `1px solid ${C.border}`, color: C.muted, fontSize: 11,
-                        fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                        transition: "all 150ms ease",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.color = C.text }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted }}
-                >
-                    Import JSON
-                </button>
-                {logs.length > 0 && (
-                    <button
-                        onClick={() => {
-                            const data = activityStore.exportAll()
-                            const blob = new Blob([data], { type: "application/json" })
-                            const url = URL.createObjectURL(blob)
-                            const a = document.createElement("a")
-                            a.href = url
-                            a.download = `userradar_${userId}_${new Date().toISOString().slice(0,10)}.json`
-                            a.click()
-                            URL.revokeObjectURL(url)
-                        }}
-                        style={{
-                            padding: "6px 14px", borderRadius: 20, background: "transparent",
-                            border: `1px solid ${C.border}`, color: C.muted, fontSize: 11,
-                            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                            transition: "all 150ms ease",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.color = C.text }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted }}
-                    >
-                        Export JSON
-                    </button>
-                )}
-                {logs.length > 0 && (
-                    <button
-                        onClick={async () => {
-                            if (confirm("Clear all history for this user? This cannot be undone.")) {
-                                await activityStore.clearLogs(userId)
-                                setLogs([])
-                            }
-                        }}
-                        style={{
-                            padding: "6px 14px", borderRadius: 20, background: "transparent",
-                            border: `1px solid ${C.red}`, color: C.red, fontSize: 11,
-                            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                            transition: "all 150ms ease",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(218,55,60,0.1)" }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "transparent" }}
-                    >
-                        Clear History
-                    </button>
-                )}
-            </div>
-        </div>
-    )
-}
-
-// ===== END ACTIVITY TAB COMPONENT =====
-
-// Reactive activity count badge — updates when store loads or new events arrive
-function ActivityBadge({ userId }: { userId: string }) {
-    const [count, setCount] = React.useState(0)
-    const [loaded, setLoaded] = React.useState(false)
-
-    React.useEffect(() => {
-        let mounted = true
-        const load = async () => {
-            await activityStore.load()
-            if (mounted) {
-                setCount(activityStore.getLogs(userId).length)
-                setLoaded(true)
-            }
-        }
-        load()
-        const unsub = onActivityUpdate((uid) => {
-            if (uid === userId && mounted) {
-                setCount(activityStore.getLogs(userId).length)
-            }
-        })
-        return () => { mounted = false; unsub() }
-    }, [userId])
-
-    return (
-        <span style={{
-            fontSize: 10,
-            fontWeight: 800,
-            background: count > 0 ? C.brand : loaded ? C.bg3 : C.bg1,
-            padding: "2px 6px",
-            borderRadius: 6,
-            color: count > 0 ? C.white : loaded ? C.muted : "transparent",
-            minWidth: 18,
-            textAlign: "center",
-            lineHeight: 1,
-            transition: "all 150ms ease",
-        }}>
-            {loaded ? count : ""}
-        </span>
-    )
-}
-
-
 
 function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove }: {
     user: WatchedUser
@@ -1721,21 +1007,6 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove }: {
                                 {user.nick}
                             </span>
                         )}
-                        {settings.store.globalPresetMode === "custom" && activePreset !== "custom" && (
-                            <span style={{
-                                background: activePreset === "stalker" ? `${C.danger}25` : activePreset === "lite" ? `${C.brandLight}25` : `${C.muted}25`,
-                                color: activePreset === "stalker" ? C.danger : activePreset === "lite" ? C.brandLight : C.muted,
-                                fontSize: 9,
-                                fontWeight: 800,
-                                padding: "2px 7px",
-                                borderRadius: 6,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.5,
-                                border: `1px solid ${activePreset === "stalker" ? `${C.danger}60` : activePreset === "lite" ? `${C.brandLight}60` : `${C.muted}60`}`,
-                            }}>
-                                {activePreset}
-                            </span>
-                        )}
                     </div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ fontFamily: "monospace", opacity: .7 }}>{user.id}</span>
@@ -1790,69 +1061,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove }: {
                     </span>
                 </div>
 
-                
-                <div
-                    onClick={(e: any) => {
-                        e.stopPropagation();
-                        const u = UserStore.getUser(user.id);
-                        const name = displayName(u) || user.id;
-                        const av = u ? avatarUrl(u.id, (u as any).avatar, 64) : avatarUrl(user.id, null, 64);
-                        openModal(p => (
-                            <ModalRoot {...p} size={ModalSize.LARGE}>
-                                <ModalHeader separator={false}>
-                                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                                        <img src={av} style={{ width: 36, height: 36, borderRadius: "50%" }} />
-                                        <div>
-                                            <div style={{ fontSize: 16, fontWeight: 700, color: C.header }}>{name}</div>
-                                            <div style={{ fontSize: 12, color: C.muted }}>Activity Log</div>
-                                        </div>
-                                    </div>
-                                    <ModalCloseButton onClick={p.onClose} />
-                                </ModalHeader>
-                                <ModalContent>
-                                    <div style={{ padding: "0 12px" }}>
-                                        <UserRadarActivityTab userId={user.id} />
-                                    </div>
-                                </ModalContent>
-                            </ModalRoot>
-                        ));
-                    }}
-                    title="Full Activity History"
-                    style={{
-                        padding: "5px 12px",
-                        borderRadius: 12,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        background: C.bg1,
-                        color: C.text,
-                        border: `1px solid ${C.border}`,
-                        transition: "all 150ms cubic-bezier(0.4,0,0.2,1)",
-                        userSelect: "none",
-                        letterSpacing: 0.3,
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        height: 28,
-                        boxSizing: "border-box",
-                    }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.background = C.hov;
-                        e.currentTarget.style.borderColor = C.bgEl;
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.background = C.bg1;
-                        e.currentTarget.style.borderColor = C.border;
-                    }}
-                >
-                    <span style={{ display: "flex", alignItems: "center", opacity: 0.9 }}>
-                        <ico.history />
-                    </span>
-                    <span>Activity</span>
-                    <ActivityBadge userId={user.id} />
-                </div>
-<div style={{ color: C.muted, display: "flex", alignItems: "center", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 200ms cubic-bezier(.4,0,.2,1)" }}>
+                <div style={{ color: C.muted, display: "flex", alignItems: "center", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 200ms cubic-bezier(.4,0,.2,1)" }}>
                     <ico.chevron />
                 </div>
 
@@ -2290,7 +1499,6 @@ function createToolbarButton() {
 }
 
 let __urToolbarTimer: ReturnType<typeof setInterval> | null = null
-let __urDmTimer: ReturnType<typeof setInterval> | null = null
 
 function injectToolbarButton() {
     if (document.getElementById("ur-toolbar-btn")) return true
@@ -2461,10 +1669,105 @@ function GlobalPresetControl({ refresh }: { refresh: () => void }) {
     )
 }
 
+// updater — check github for new commits, download and write to disk, prompt restart
+// using VencordNative.ipc which is the same channel Vencord's own updater uses
+const PLUGIN_RAW_URL     = "https://raw.githubusercontent.com/k1ng0p/UserRadar/main/index.tsx"
+const PLUGIN_COMMITS_URL = "https://api.github.com/repos/k1ng0p/UserRadar/commits?path=index.tsx&per_page=1"
 
+type UpdateState = "idle" | "checking" | "uptodate" | "available" | "downloading" | "done" | "error"
 
+// installed sha is stored in vencord settings so it persists across restarts
+// avoids the file-stamping approach which required the github file to also have the right sha
+function getInstalledSha(): string {
+    try { return (settings.store as any).installedSha ?? "none" } catch { return "none" }
+}
+function setInstalledSha(sha: string) {
+    try { (settings.store as any).installedSha = sha } catch { }
+}
 
+async function checkUpdate(): Promise<{ hasUpdate: boolean; sha: string; shortSha: string; date: string }> {
+    const res = await fetch(PLUGIN_COMMITS_URL, {
+        headers: { Accept: "application/vnd.github.v3+json" },
+        cache: "no-store",
+    })
+    if (!res.ok) throw new Error(`github api error ${res.status}`)
+    const data = await res.json()
+    if (!Array.isArray(data) || !data[0]) throw new Error("no commits found")
+    const latestSha = data[0].sha as string
+    const shortSha  = latestSha.slice(0, 7)
+    const date      = (data[0].commit?.committer?.date ?? "").slice(0, 10)
+    const installed = getInstalledSha()
+    const hasUpdate = latestSha !== installed
+    return { hasUpdate, sha: latestSha, shortSha, date }
+}
 
+async function downloadAndInstall(): Promise<void> {
+    const [commitRes, fileRes] = await Promise.all([
+        fetch(PLUGIN_COMMITS_URL, { headers: { Accept: "application/vnd.github.v3+json" }, cache: "no-store" }),
+        fetch(PLUGIN_RAW_URL + "?t=" + Date.now(), { cache: "no-store" }),
+    ])
+    if (!commitRes.ok) throw new Error(`github ${commitRes.status}`)
+    if (!fileRes.ok)   throw new Error(`download ${fileRes.status}`)
+    const commitData = await commitRes.json()
+    const latestSha  = commitData[0]?.sha ?? "none"
+    const code = await fileRes.text()
+    if (!code || code.length < 500) throw new Error("bad response")
+
+    log.info("[updater] downloaded", code.length, "chars, sha:", latestSha.slice(0, 7))
+    log.info("[updater] available pluginHelpers:", Object.keys((window as any).VencordNative?.pluginHelpers ?? {}).join(", ") || "none")
+
+    // try native.ts helper first
+    const helper = (window as any).VencordNative?.pluginHelpers?.UserRadar
+    if (helper?.writePlugin) {
+        log.info("[updater] using native helper")
+        const result = await helper.writePlugin(code)
+        log.info("[updater] result:", JSON.stringify(result))
+        if (result?.ok) { setInstalledSha(latestSha); return }
+        // if it errored, fall through to require(fs)
+        log.warn("[updater] native helper failed:", result?.error, "— trying require(fs)")
+    } else {
+        log.info("[updater] native helper not found, trying require(fs)")
+    }
+
+    // fallback: node fs via discord's preload
+    const req = (window as any).require
+    if (!req) throw new Error("no write method — native.ts not loaded and require is unavailable")
+
+    try {
+        const fs   = req("fs")
+        const path = req("path")
+        const os   = req("os")
+        const home = os.homedir()
+
+        // get vencord data dir
+        let dir: string
+        const vn = (window as any).VencordNative
+        if (vn?.settings?.getSettingsDir) {
+            dir = await vn.settings.getSettingsDir()
+        } else if (process.platform === "win32") {
+            dir = path.join(process.env.APPDATA ?? path.join(home, "AppData", "Roaming"), "Vencord")
+        } else if (process.platform === "darwin") {
+            dir = path.join(home, "Library", "Application Support", "Vencord")
+        } else {
+            dir = path.join(process.env.XDG_CONFIG_HOME ?? path.join(home, ".config"), "Vencord")
+        }
+
+        log.info("[updater] writing to:", path.join(dir, "userplugins", "UserRadar", "index.tsx"))
+        const pluginDir = path.join(dir, "userplugins", "UserRadar")
+        if (!fs.existsSync(pluginDir)) fs.mkdirSync(pluginDir, { recursive: true })
+        fs.writeFileSync(path.join(pluginDir, "index.tsx"), code, "utf8")
+        log.info("[updater] write successful")
+        setInstalledSha(latestSha)
+    } catch (e: any) {
+        log.error("[updater] require(fs) failed:", e?.message)
+        throw new Error("write failed: " + (e?.message ?? String(e)))
+    }
+}
+
+function relaunchDiscord() {
+    try { (window as any).DiscordNative?.app?.relaunch?.() } catch { }
+    try { (window as any).VencordNative?.native?.relaunch?.() } catch { }
+}
 
 function WatchlistModal({ modalProps }: { modalProps: any }) {
     React.useEffect(() => { injectStyles() }, [])
@@ -2473,6 +1776,36 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
     const [query, setQuery]       = React.useState("")
     const [sort,  setSort]        = React.useState<SortMode>("date")
     const [expandedId, setExpandedId] = React.useState<string | null>(null)
+
+    const [updateState, setUpdateState] = React.useState<UpdateState>("idle")
+    const [updateInfo,  setUpdateInfo]  = React.useState<{ sha: string; date: string } | null>(null)
+    const [updateErr,   setUpdateErr]   = React.useState("")
+
+    const handleCheckUpdate = () => {
+        setUpdateState("checking")
+        setUpdateErr("")
+        checkUpdate().then(info => {
+            if (info.hasUpdate) {
+                setUpdateInfo({ sha: info.shortSha, date: info.date })
+                setUpdateState("available")
+            } else {
+                setUpdateState("uptodate")
+            }
+        }).catch(e => {
+            setUpdateErr(e?.message ?? "unknown error")
+            setUpdateState("error")
+        })
+    }
+
+    const handleInstall = () => {
+        setUpdateState("downloading")
+        downloadAndInstall().then(() => {
+            setUpdateState("done")
+        }).catch(e => {
+            setUpdateErr(e?.message ?? "install failed")
+            setUpdateState("error")
+        })
+    }
 
     const refresh = () => { try { setUsers(getWatchlist(settings)) } catch { setUsers([]) } }
 
@@ -2496,12 +1829,12 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                         width: 36,
                         height: 36,
                         borderRadius: 12,
-                        background: C.bg2,
-                        border: `1px solid ${C.border}`,
+                        background: C.brandGrad,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
+                        boxShadow: "0 2px 8px rgba(88,101,242,0.3)",
                     }}>
                         <ico.eye />
                     </div>
@@ -2582,15 +1915,85 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
             </ModalContent>
 
             <ModalFooter>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", width: "100%" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: 10 }}>
+
+                    {/* left side — updater */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+
+                        {/* check / install / restart button */}
+                        <button
+                            disabled={updateState === "checking" || updateState === "downloading"}
+                            onClick={() => {
+                                if (updateState === "idle" || updateState === "uptodate" || updateState === "error") handleCheckUpdate()
+                                else if (updateState === "available") handleInstall()
+                                else if (updateState === "done") relaunchDiscord()
+                            }}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 6,
+                                borderRadius: 20, height: 32, padding: "0 14px",
+                                boxSizing: "border-box", fontFamily: "inherit",
+                                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                border: `1px solid ${
+                                    updateState === "available"                     ? C.brand :
+                                    updateState === "done"                          ? C.green :
+                                    updateState === "error"                         ? C.red   :
+                                    C.border
+                                }`,
+                                background:
+                                    updateState === "available"                     ? "rgba(88,101,242,0.15)" :
+                                    updateState === "done"                          ? "rgba(36,128,70,0.15)"  :
+                                    updateState === "error"                         ? "rgba(218,55,60,0.1)"   :
+                                    "transparent",
+                                color:
+                                    updateState === "available"                     ? C.brand      :
+                                    updateState === "done"                          ? C.green      :
+                                    updateState === "error"                         ? C.red        :
+                                    updateState === "uptodate"                      ? C.green      :
+                                    C.muted,
+                                opacity: (updateState === "checking" || updateState === "downloading") ? 0.6 : 1,
+                                transition: "all 150ms ease",
+                            }}
+                        >
+                            {(updateState === "checking" || updateState === "downloading") && (
+                                <span className="ur-spin" style={{ width: 10, height: 10 }} />
+                            )}
+                            {updateState === "idle"        && "check for updates"}
+                            {updateState === "checking"    && "checking…"}
+                            {updateState === "uptodate"    && "✓ up to date"}
+                            {updateState === "available"   && `↓ install update  (${updateInfo?.sha})`}
+                            {updateState === "downloading" && "installing…"}
+                            {updateState === "done"        && "↺ restart discord"}
+                            {updateState === "error"       && "⚠ retry"}
+                        </button>
+
+                        {/* contextual hint text */}
+                        {updateState === "available" && updateInfo && (
+                            <span style={{ fontSize: 11, color: C.muted }}>
+                                {updateInfo.date}
+                            </span>
+                        )}
+                        {updateState === "done" && (
+                            <span style={{ fontSize: 11, color: C.muted }}>
+                                saved — restart to apply
+                            </span>
+                        )}
+                        {updateState === "error" && updateErr && (
+                            <span style={{ fontSize: 11, color: C.red }} title={updateErr}>
+                                {updateErr.length > 40 ? updateErr.slice(0, 40) + "…" : updateErr}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* right side — close button */}
                     <button
                         onClick={modalProps.onClose}
                         style={{
-                            borderRadius: 20, height: 32, padding: "0 18px",
-                            background: "transparent", color: C.text,
-                            border: `1px solid ${C.border}`, fontSize: 13,
-                            fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+                            borderRadius: 20, height: 32, boxSizing: "border-box",
+                            padding: "0 16px", background: "transparent", color: C.text,
+                            border: `1px solid ${C.border}`, fontSize: 13, fontWeight: 500,
+                            cursor: "pointer", fontFamily: "inherit",
                             transition: "background 150ms, border-color 150ms, color 150ms",
+                            flexShrink: 0,
                         }}
                         onMouseEnter={e => { e.currentTarget.style.background = C.brand; e.currentTarget.style.borderColor = C.brand; e.currentTarget.style.color = "#fff" }}
                         onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text }}
@@ -2651,153 +2054,20 @@ const msgCtxPatch: NavContextMenuPatchCallback = (children, { message }) => {
 
 // the plugin itself
 
-
-// ===== DM TOOLBAR ACTIVITY BUTTON =====
-// Injects clock icon into DM chat toolbar for tracked users
-
-const HISTORY_SVG = `<svg aria-hidden="true" role="img" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
-
-function injectDMActivityButton() {
-    // Only run in DM channels
-    const match = location.pathname.match(/\/channels\/@me\/(\d+)/)
-    if (!match) return
-    const channelId = match[1]
-
-    const channel = ChannelStore.getChannel(channelId)
-    if (!channel || channel.type !== 1) return
-
-    const recipientId = channel.recipients?.[0]
-    if (!recipientId) return
-    if (!isWatched(settings, recipientId)) return
-
-    // Strategy: Find an existing toolbar button and use it as anchor.
-    // Discord DM toolbar has buttons with aria-labels like "Start Voice Call",
-    // "Start Video Call", "Add Friends to DM", etc.
-    // We find one of these buttons, get its parent (the toolbar), then insert our button.
-    const knownButtonLabels = [
-        'Start Voice Call',
-        'Start Video Call', 
-        'Add Friends to DM',
-        'Show Member List',
-        'Threads',
-        'Notification Settings',
-        'Pinned Messages',
-        'Search',
-        'Inbox'
-    ]
-
-    let anchorBtn: Element | null = null
-    for (const label of knownButtonLabels) {
-        anchorBtn = document.querySelector(`[aria-label="${label}"]`)
-        if (anchorBtn) break
-    }
-
-    // Also try finding by role=button in the header area
-    if (!anchorBtn) {
-        const header = document.querySelector('[class*="chat_"]') || document.querySelector('[class*="chatContent_"]')
-        if (header) {
-            const buttons = header.querySelectorAll('[role="button"]')
-            for (const btn of buttons) {
-                const rect = btn.getBoundingClientRect()
-                // Must be visible and in the top area (toolbar)
-                if (rect.width > 20 && rect.height > 20 && rect.top < 100) {
-                    anchorBtn = btn
-                    break
-                }
-            }
-        }
-    }
-
-    if (!anchorBtn) return
-
-    // Get the toolbar container (parent of the anchor button)
-    const toolbar = anchorBtn.parentElement
-    if (!toolbar) return
-
-    // Don't inject if already present
-    if (toolbar.querySelector('.ur-dm-activity-btn')) return
-
-    // Create the icon button — matches Discord's native toolbar icons exactly
-    const btn = document.createElement('div')
-    btn.className = 'ur-dm-activity-btn'
-    btn.setAttribute('role', 'button')
-    btn.setAttribute('tabindex', '0')
-    btn.setAttribute('aria-label', 'Track User History')
-    btn.title = 'Track User History'
-    btn.innerHTML = HISTORY_SVG
-    btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:32px;height:32px;cursor:pointer;color:#b5bac1;border-radius:4px;transition:color 150ms ease,background 150ms ease;flex-shrink:0;'
-    btn.onmouseenter = () => { btn.style.color = '#ffffff'; btn.style.background = 'rgba(255,255,255,0.1)' }
-    btn.onmouseleave = () => { btn.style.color = '#b5bac1'; btn.style.background = 'transparent' }
-    btn.onclick = (e) => {
-        e.stopPropagation()
-        e.preventDefault()
-        const u = UserStore.getUser(recipientId)
-        const name = displayName(u) || recipientId
-        const av = u ? avatarUrl(u.id, (u as any).avatar, 64) : avatarUrl(recipientId, null, 64)
-        openModal(p => (
-            <ModalRoot {...p} size={ModalSize.LARGE}>
-                <ModalHeader separator={false}>
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                        <img src={av} style={{ width: 36, height: 36, borderRadius: "50%" }} />
-                        <div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: C.header }}>{name}</div>
-                            <div style={{ fontSize: 12, color: C.muted }}>Activity Log</div>
-                        </div>
-                    </div>
-                    <ModalCloseButton onClick={p.onClose} />
-                </ModalHeader>
-                <ModalContent>
-                    <div style={{ padding: "0 12px" }}>
-                        <UserRadarActivityTab userId={recipientId} />
-                    </div>
-                </ModalContent>
-            </ModalRoot>
-        ))
-    }
-
-    // Insert BEFORE the first button in the toolbar so it appears at the left side of icons
-    toolbar.insertBefore(btn, toolbar.firstChild)
-}
-
-function startDMObserver() {
-    injectDMActivityButton()
-    __urDmTimer = setInterval(() => injectDMActivityButton(), 600)
-    const observer = new MutationObserver(() => injectDMActivityButton())
-    observer.observe(document.body, { childList: true, subtree: true })
-    ;(window as any).__urDmObserver = observer
-}
-
-function stopDMObserver() {
-    if (__urDmTimer) {
-        clearInterval(__urDmTimer)
-        __urDmTimer = null
-    }
-    const observer = (window as any).__urDmObserver
-    if (observer) {
-        observer.disconnect()
-        delete (window as any).__urDmObserver
-    }
-    document.querySelectorAll('.ur-dm-activity-btn').forEach(el => el.remove())
-}
-
-// ===== END DM TOOLBAR =====
-
 export default definePlugin({
     name: "UserRadar",
     description: "track watched users and get notified on messages, edits, deletes, typing, profile/avatar changes, voice, status, activity, boosts, and server joins",
     authors: [{ name: "k1ng_op", id: 641266820187160576 }],
-    tags: ["Friends", "Utility", "Notifications"],
+    tags: ["Friends", "Utility", "Notification"],
     enabledByDefault: false,
+    dependencies: ["MessageLoggerEnhanced"],
+
     settings,
 
     start() {
         addContextMenuPatch("user-context", userCtxPatch)
         addContextMenuPatch("message", msgCtxPatch)
         if (settings.store.showToolbarIcon) startToolbarObserver()
-        startDMObserver()
-
-        // load persistent activity log from disk so badges are correct on first render
-        activityStore.load().catch(() => {})
 
         // pre-populate all caches BEFORE flux events start arriving
         // if we don't do this, the first VOICE_STATE_UPDATES looks like a join even if they were already in vc
@@ -2824,10 +2094,20 @@ export default definePlugin({
                     activityCache[wu.id] = realAct ? `${realAct.type}:${realAct.name}` : null
                 } catch { }
 
-                // don't try to snapshot guild membership — isMember() returns wrong results
-                // during discord's startup sequence while the member store is still loading
-                // the 45s cooldown in GUILD_MEMBER_ADD handles this correctly instead
-                guildCache[wu.id] = new Set()
+                // guild membership snapshot — try multiple store apis bc discord reorganizes these
+                try {
+                    // try GuildMemberStore first (most reliable in recent discord)
+                    let isMember: (gid: string, uid: string) => boolean = () => false
+                    const gms = findByProps("getMember", "getMemberIds")
+                        ?? findByProps("isMember", "getMember")
+                        ?? memMod
+                    if (gms?.isMember)   isMember = (gid, uid) => { try { return gms.isMember(gid, uid) } catch { return false } }
+                    else if (gms?.getMember) isMember = (gid, uid) => { try { return !!gms.getMember(gid, uid) } catch { return false } }
+
+                    if (allGuilds.length) {
+                        guildCache[wu.id] = new Set(allGuilds.filter(gid => isMember(gid, wu.id)))
+                    }
+                } catch { }
             }
         } catch (e) { log.warn("snapshot failed", e) }
 
@@ -2849,22 +2129,18 @@ export default definePlugin({
         setTimeout(fetchNext, 500)  // small delay so discord finishes its own startup first
 
         pollTimer = setInterval(pollProfiles, 5 * 60 * 1000)
-        pluginStartedAt = Date.now()
     },
 
     stop() {
         removeContextMenuPatch("user-context", userCtxPatch)
         removeContextMenuPatch("message", msgCtxPatch)
         stopToolbarObserver()
-        stopDMObserver()
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
         Object.keys(profileCache).forEach(k => delete profileCache[k])
         Object.keys(vcCache).forEach(k => delete vcCache[k])
         Object.keys(statusCache).forEach(k => delete statusCache[k])
         Object.keys(activityCache).forEach(k => delete activityCache[k])
         Object.keys(guildCache).forEach(k => delete guildCache[k])
-        Object.keys(vcJoinTime).forEach(k => delete vcJoinTime[k])
-        pluginStartedAt = 0
         loggedMsgs = null
     },
 
@@ -2879,14 +2155,9 @@ export default definePlugin({
                 const dn    = label ? `${label} (${name})` : name
                 const ch    = ChannelStore.getChannel(channelId)
                 const g     = ch?.guild_id ? findByProps("getGuild").getGuild(ch.guild_id) : null
-                const chName  = ch?.name || "dm"
-                const gName   = g?.name || ""
-                // for DMs, ch.name is null — show recipient context instead
-                const location = gName
-                    ? `${gName} · #${chName}`
-                    : ch?.recipients?.length
-                        ? "Direct Message"
-                        : `#${chName}`
+                const chName = ch?.name || "dm"
+                const gName = g?.name || ""
+                const location = gName ? `${gName} · #${chName}` : `DM · #${chName}`
                 if (settings.store.skipCurrentChannel) {
                     const cur = getCurrentChannel()
                     if (cur?.id === channelId) return
@@ -2897,17 +2168,7 @@ export default definePlugin({
                     icon: avatarUrl(uid, message.author?.avatar, 80),
                     onClick: () => jumpTo(ch?.guild_id, channelId, message.id),
                 })
-                logUserActivity(uid, "msg", "💬", `sent a message in ${location}`, msgPreview(message.content, message.attachments?.[0]?.filename), {
-                    guildId: ch?.guild_id,
-                    channelId,
-                    msgId: message.id,
-                    metadata: {
-                        content: message.content,
-                        attachments: message.attachments?.map((a: any) => a.filename) || [],
-                        embeds: message.embeds?.length || 0,
-                    }
-                }).catch(() => {})
-                
+                logActivity(uid, "msg", "💬", `sent a message in ${location}`, ch?.guild_id, channelId, message.id)
             }
         },
 
@@ -2948,17 +2209,7 @@ export default definePlugin({
                 icon: avatarUrl(uid, message.author?.avatar, 80),
                 onClick: () => jumpTo(ch?.guild_id, message.channel_id, message.id),
             })
-            logUserActivity(uid, "edit", "✏️", `edited a message in ${location}`, `${before}${after}`, {
-                guildId: ch?.guild_id,
-                channelId: message.channel_id,
-                msgId: message.id,
-                metadata: {
-                    before: cached?.content || "unknown",
-                    after: message.content || "",
-                    location,
-                }
-            }).catch(() => {})
-            
+            logActivity(uid, "edit", "✏️", `edited a message in ${location}`, ch?.guild_id, message.channel_id, message.id)
         },
 
         MESSAGE_DELETE({ id, channelId }: MsgDeleteEvent) {
@@ -2976,14 +2227,9 @@ export default definePlugin({
                 const dn    = label ? `${label} (${name})` : name
                 const ch    = ChannelStore.getChannel(channelId)
                 const g     = ch?.guild_id ? findByProps("getGuild").getGuild(ch.guild_id) : null
-                const chName  = ch?.name || "dm"
-                const gName   = g?.name || ""
-                // for DMs, ch.name is null — show recipient context instead
-                const location = gName
-                    ? `${gName} · #${chName}`
-                    : ch?.recipients?.length
-                        ? "Direct Message"
-                        : `#${chName}`
+                const chName = ch?.name || "dm"
+                const gName = g?.name || ""
+                const location = gName ? `${gName} · #${chName}` : `DM · #${chName}`
                 if (settings.store.skipCurrentChannel) {
                     const cur = getCurrentChannel()
                     if (cur?.id === channelId) return
@@ -2994,17 +2240,7 @@ export default definePlugin({
                     icon: avatarUrl(uid, msg.author?.avatar, 80),
                     onClick: () => jumpTo(ch?.guild_id, channelId, msg.id),
                 })
-                logUserActivity(uid, "delete", "🗑️", `deleted a message in ${location}`, msgPreview(msg.content, msg.attachments?.[0]?.filename), {
-                    guildId: ch?.guild_id,
-                    channelId,
-                    msgId: msg.id,
-                    metadata: {
-                        content: msg.content || "",
-                        attachments: msg.attachments?.map((a: any) => a.filename) || [],
-                        author: displayName(msg.author),
-                        location,
-                    }
-                }).catch(() => {})
+                logActivity(uid, "delete", "🗑️", `deleted a message in ${location}`, ch?.guild_id, channelId, msg.id)
             }
         },
 
@@ -3017,22 +2253,16 @@ export default definePlugin({
                 const dn    = label ? `${label} (${name})` : name
                 const ch    = ChannelStore.getChannel(channelId)
                 const g     = ch?.guild_id ? findByProps("getGuild").getGuild(ch.guild_id) : null
-                const chName  = ch?.name || "dm"
-                const gName   = g?.name || ""
-                // for DMs, ch.name is null — show recipient context instead
-                const location = gName
-                    ? `${gName} · #${chName}`
-                    : ch?.recipients?.length
-                        ? "Direct Message"
-                        : `#${chName}`
+                const chName = ch?.name || "dm"
+                const gName = g?.name || ""
+                const location = gName ? `${gName} · #${chName}` : `DM · #${chName}`
                 if (settings.store.skipCurrentChannel) {
                     const cur = getCurrentChannel()
                     if (cur?.id === channelId) return
                 }
-                // body format: "Server Name · #channel" or "Direct Message" for DMs
                 notify({
                     title: `${dn} is typing…`,
-                    body: location,
+                    body: `in ${location}`,
                     icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
                     onClick: () => jumpTo(ch?.guild_id, channelId),
                 })
@@ -3056,60 +2286,24 @@ export default definePlugin({
                 const dn    = label ? `${label} (${name})` : name
                 const ch    = now ? ChannelStore.getChannel(now) : (old ? ChannelStore.getChannel(old) : null)
                 const chName = ch?.name || "unknown"
-                if (!old && now) {
-                    vcJoinTime[uid] = Date.now()
-                    const guildNameVc = ch?.guild_id ? findByProps("getGuild")?.getGuild(ch.guild_id)?.name : null
-                    notify({
-                        title: `${dn} Joined Voice`,
-                        body: guildNameVc ? `${guildNameVc} · #${chName}` : `#${chName}`,
-                        icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
-                        onClick: () => jumpTo(ch?.guild_id, now!),
-                    })
-                    logActivity(uid, "voice", "🎙️", `joined #${chName}`, ch?.guild_id, now!)
-                } else if (old && !now) {
-                    const spent = vcJoinTime[uid] ? Date.now() - vcJoinTime[uid] : 0
-                    delete vcJoinTime[uid]
-                    const dur = spent > 60000 ? ` (${formatDuration(spent)})` : ""
-                    const guildNameVcLeft = (ch ?? (old ? ChannelStore.getChannel(old) : null))
-                    const guildNameVcLeftStr = guildNameVcLeft?.guild_id ? findByProps("getGuild")?.getGuild(guildNameVcLeft.guild_id)?.name : null
-                    notify({
-                        title: `${dn} Left Voice`,
-                        body: guildNameVcLeftStr ? `${guildNameVcLeftStr} · #${chName}${dur}` : `#${chName}${dur}`,
-                        icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
-                        onClick: () => openUserProfile(uid),
-                    })
-                    logActivity(uid, "voice", "🎙️", `left #${chName}${dur}`, ch?.guild_id, old!)
-                } else if (old && now && old !== now) {
-                    const oldCh = ChannelStore.getChannel(old)
-                    const guildNameVcMove = ch?.guild_id ? findByProps("getGuild")?.getGuild(ch.guild_id)?.name : null
-                    notify({
-                        title: `${dn} Moved Voice Channels`,
-                        body: guildNameVcMove
-                            ? `${guildNameVcMove}: #${oldCh?.name || "?"} → #${chName}`
-                            : `#${oldCh?.name || "?"} → #${chName}`,
-                        icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
-                        onClick: () => jumpTo(ch?.guild_id, now!),
-                    })
-                    logActivity(uid, "voice", "🎙️", `moved from #${oldCh?.name || "?"} to #${chName}`, ch?.guild_id, now!)
-                }
+                const action = !old && now ? "joined" : old && !now ? "left" : "moved in"
+                notify({
+                    title: `${dn} ${action} voice`,
+                    body: `#${chName}`,
+                    icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
+                    onClick: () => { if (now) jumpTo(ch?.guild_id, now) },
+                })
+                logActivity(uid, "voice", "🎙️", `${action} voice in #${chName}`, ch?.guild_id, now || old)
             }
         },
 
         PRESENCE_UPDATES({ updates }: PresenceEvent) {
-            // ignore presence events in first 15s — discord fires these on startup
-            // for everyone you share a server with, causing false online/offline spam
-            const isStartup = Date.now() - pluginStartedAt < 15000
             for (const u of updates || []) {
                 const uid = u.user?.id
                 if (!uid || !isWatched(settings, uid)) continue
-
                 const oldStatus = statusCache[uid]
                 const newStatus = u.status
-
-                // always update cache regardless of startup — so baseline is correct
-                // but don't notify during startup
-                const goingOffline = newStatus === "offline" && Date.now() - pluginStartedAt < 90000
-                if (oldStatus !== undefined && oldStatus !== newStatus && isFeatureOn(uid, "status", "globalStatus") && !isStartup && !goingOffline) {
+                if (oldStatus !== undefined && oldStatus !== newStatus && isFeatureOn(uid, "status", "globalStatus")) {
                     const label = getWatchedUser(settings, uid)?.nick
                     const user  = UserStore.getUser(uid)
                     const name  = displayName(user) || uid
@@ -3129,7 +2323,7 @@ export default definePlugin({
                 const newActKey = realAct ? `${realAct.type}:${realAct.name}` : null
                 const oldAct = activityCache[uid]
 
-                if (oldAct !== undefined && oldAct !== newActKey && isFeatureOn(uid, "activity", "globalActivity") && !isStartup) {
+                if (oldAct !== undefined && oldAct !== newActKey && isFeatureOn(uid, "activity", "globalActivity")) {
                     const ACT_VERB: Record<number, string> = { 0: "playing", 2: "listening to", 3: "watching", 5: "competing in" }
                     const label = getWatchedUser(settings, uid)?.nick
                     const user  = UserStore.getUser(uid)
@@ -3164,11 +2358,6 @@ export default definePlugin({
         // discord pushes username/avatar changes instantly over ws — fastest path for those fields
         USER_UPDATE({ user }: { user: any }) {
             if (!user?.id || !isWatched(settings, user.id)) return
-            // USER_UPDATE fires for lots of things including presence changes
-            // only process if it actually contains profile fields we care about
-            const relevant = ["username", "global_name", "globalName", "avatar", "discriminator"]
-            const hasProfileChange = relevant.some(f => user[f] !== undefined)
-            if (!hasProfileChange) return
             const old = profileCache[user.id]
             if (!old) return
             checkProfileChanged(user.id, { ...old, user: { ...old.user, ...camelize(user) } })
@@ -3177,65 +2366,88 @@ export default definePlugin({
         // fires when discord fetches a full profile (opening someone's card, profile page etc)
         USER_PROFILE_FETCH_SUCCESS(rawEvt: any) {
             if (!rawEvt?.user?.id) return
-            // only process if we already have a baseline — avoids false positives
-            // when discord fetches a profile for the first time (e.g. opening someone's card)
-            if (profileCache[rawEvt.user.id]) {
-                checkProfileChanged(rawEvt.user.id, camelize(rawEvt))
-            } else {
-                // set baseline silently
-                profileCache[rawEvt.user.id] = camelize(rawEvt)
-            }
+            checkProfileChanged(rawEvt.user.id, camelize(rawEvt))
         },
 
         GUILD_MEMBER_ADD({ guildId, user }: GuildMemberEvent) {
             if (!user?.id || !isWatched(settings, user.id)) return
-            if (!isFeatureOn(user.id, "joins", "globalJoins")) return
-            if (!guildCache[user.id]) guildCache[user.id] = new Set()
-            // discord fires this for all existing members during reconnect sync
-            // 45s cooldown — just populate cache, never notify during this window
-            if (Date.now() - pluginStartedAt < 45000) {
-                guildCache[user.id].add(guildId)
-                return
+
+            // if guildCache is empty for this user, snapshot failed on start
+            // do a live check now so we don't fire false positives
+            if (!guildCache[user.id]) {
+                guildCache[user.id] = new Set()
+                try {
+                    const guildMod = findByProps("getGuildIds", "getGuild")
+                    const memMod   = findByProps("getMember", "getMemberIds") ?? findByProps("isMember", "getMember")
+                    const allGuilds: string[] = guildMod?.getGuildIds?.() ?? []
+                    const isMem = (gid: string) => {
+                        try {
+                            if (memMod?.isMember) return memMod.isMember(gid, user.id)
+                            if (memMod?.getMember) return !!memMod.getMember(gid, user.id)
+                        } catch { }
+                        return false
+                    }
+                    // add all guilds they're already in EXCEPT the one we're about to process
+                    // so wasIn is correct for this specific event
+                    for (const gid of allGuilds) {
+                        if (gid !== guildId && isMem(gid)) guildCache[user.id].add(gid)
+                    }
+                } catch { }
             }
-            // already in cache = not a new join, skip
-            if (guildCache[user.id].has(guildId)) return
+
+            const wasIn = guildCache[user.id].has(guildId)
             guildCache[user.id].add(guildId)
-            const g     = findByProps("getGuild")?.getGuild(guildId)
-            const label = getWatchedUser(settings, user.id)?.nick
-            const name  = displayName(user)
-            const dn    = label ? `${label} (${name})` : name
-            notify({
-                title: `${dn} Joined a Server`,
-                body: g?.name || guildId,
-                icon: avatarUrl(user.id, user.avatar, 80),
-                onClick: () => jumpTo(guildId),
-            })
-            logActivity(user.id, "join", "📥", `joined ${g?.name || guildId}`, guildId)
+            if (!wasIn && isFeatureOn(user.id, "joins", "globalJoins")) {
+                const g = findByProps("getGuild").getGuild(guildId)
+                const label = getWatchedUser(settings, user.id)?.nick
+                const name  = displayName(user)
+                const dn    = label ? `${label} (${name})` : name
+                notify({
+                    title: `${dn} joined a server`,
+                    body: g?.name || guildId,
+                    icon: avatarUrl(user.id, user.avatar, 80),
+                    onClick: () => jumpTo(guildId),
+                })
+                logActivity(user.id, "join", "📥", `joined ${g?.name || guildId}`, guildId)
+            }
         },
 
         GUILD_MEMBER_REMOVE({ guildId, user }: GuildMemberEvent) {
             if (!user?.id || !isWatched(settings, user.id)) return
-            if (!isFeatureOn(user.id, "joins", "globalJoins")) return
             if (!guildCache[user.id]) guildCache[user.id] = new Set()
-            // silent during startup
-            if (Date.now() - pluginStartedAt < 45000) {
-                guildCache[user.id].delete(guildId)
-                return
-            }
-            // only notify if we knew they were in this guild
-            if (!guildCache[user.id].has(guildId)) return
+            const wasIn = guildCache[user.id].has(guildId)
             guildCache[user.id].delete(guildId)
-            const g     = findByProps("getGuild")?.getGuild(guildId)
-            const label = getWatchedUser(settings, user.id)?.nick
-            const name  = displayName(user)
-            const dn    = label ? `${label} (${name})` : name
-            notify({
-                title: `${dn} Left a Server`,
-                body: g?.name || guildId,
-                icon: avatarUrl(user.id, user.avatar, 80),
-                onClick: () => jumpTo(guildId),
-            })
-            logActivity(user.id, "leave", "📤", `left ${g?.name || guildId}`, guildId)
+            if (wasIn && isFeatureOn(user.id, "joins", "globalJoins")) {
+                const g = findByProps("getGuild").getGuild(guildId)
+                const label = getWatchedUser(settings, user.id)?.nick
+                const name  = displayName(user)
+                const dn    = label ? `${label} (${name})` : name
+                notify({
+                    title: `${dn} left a server`,
+                    body: g?.name || guildId,
+                    icon: avatarUrl(user.id, user.avatar, 80),
+                    onClick: () => jumpTo(guildId),
+                })
+                logActivity(user.id, "leave", "📤", `left ${g?.name || guildId}`, guildId)
+            }
+        },
+
+        GUILD_BOOST_CREATE({ guildId, userId }: any) {
+            if (!userId || !isWatched(settings, userId)) return
+            if (isFeatureOn(userId, "boosts", "globalBoosts")) {
+                const g = findByProps("getGuild").getGuild(guildId)
+                const u = UserStore.getUser(userId)
+                const label = getWatchedUser(settings, userId)?.nick
+                const name  = displayName(u) || userId
+                const dn    = label ? `${label} (${name})` : name
+                notify({
+                    title: `${dn} boosted a server`,
+                    body: g?.name || guildId,
+                    icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
+                    onClick: () => jumpTo(guildId),
+                })
+                logActivity(userId, "boost", "🚀", `boosted ${g?.name || guildId}`, guildId)
+            }
         },
     },
 })

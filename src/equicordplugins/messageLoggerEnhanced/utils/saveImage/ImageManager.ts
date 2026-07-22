@@ -106,8 +106,11 @@ async function downloadAttachmentWeb(attachemnt: LoggedAttachment, attempts = 0)
     const ab = await res.arrayBuffer();
     const path = `${DEFAULT_IMAGE_CACHE_DIR}/${attachemnt.id}${attachemnt.fileExtension}`;
 
+<<<<<<< HEAD
+=======
     // await writeImage(imageCacheDir, `${attachmentId}${fileExtension}`, new Uint8Array(ab));
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     await set(path, new Uint8Array(ab), ImageStore);
     idbSavedImages.set(attachemnt.id, { attachmentId: attachemnt.id, path });
 

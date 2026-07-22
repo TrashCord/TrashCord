@@ -20,6 +20,15 @@ const settings = definePluginSettings({
         description: "Remove requirement to hold shift for pinning a message.",
         default: true,
     },
+<<<<<<< HEAD
+    noQuickReacts: {
+        default: true,
+        restartNeeded: true,
+        type: OptionType.BOOLEAN,
+        description: "Hide quick reacts. By default, showing the full menu hides quick react buttons.",
+    },
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 });
 
 export default definePlugin({
@@ -46,7 +55,16 @@ export default definePlugin({
                     predicate: () => settings.store.noShiftPin,
                     match: /onClick:.{10,30}(?=\},"pin")/,
                     replace: "onClick:() => $self.toggleMessagePin(arguments[0]),"
+<<<<<<< HEAD
+                },
+                {
+                    predicate: () => !settings.store.noQuickReacts,
+                    match: /\i(\?null:\(0,\i\.jsxs\).{0,100}message:\i\}\)),\(0,\i\.jsxs?\)\(\i,\{\}\)/,
+                    replace: "false$1"
+                },
+=======
                 }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             ]
         },
     ],

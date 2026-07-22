@@ -102,6 +102,30 @@ export default function ChannelsTabsContainer(props: BasicChannelTabsProps) {
     const _update = useForceUpdater();
     const update = useCallback((save = true) => {
         _update();
+<<<<<<< HEAD
+        const currentUserId = UserStore.getCurrentUser()?.id;
+        if (save && currentUserId) void saveTabs(currentUserId);
+    }, []);
+
+    const ref = useRef<HTMLDivElement>(null);
+    const scrollerRef = useRef<HTMLDivElement>(null);
+    const currentChannelRef = useRef(props);
+    currentChannelRef.current = props;
+
+    useEffect(() => {
+        return setUpdaterFunction(update);
+    }, [update]);
+
+    useEffect(() => {
+        const onLogin = () => {
+            const user = UserStore.getCurrentUser();
+            if (!user) return;
+
+            void openStartupTabs({ ...currentChannelRef.current, userId: user.id }, setUserId);
+        };
+
+        onLogin();
+=======
         if (save) saveTabs(userId);
     }, [userId]);
 
@@ -118,6 +142,7 @@ export default function ChannelsTabsContainer(props: BasicChannelTabsProps) {
             openStartupTabs({ ...props, userId: id }, setUserId);
         };
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         FluxDispatcher.subscribe("CONNECTION_OPEN_SUPPLEMENTAL", onLogin);
         return () => {
             FluxDispatcher.unsubscribe("CONNECTION_OPEN_SUPPLEMENTAL", onLogin);

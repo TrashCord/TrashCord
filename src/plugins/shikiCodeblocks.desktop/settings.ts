@@ -51,6 +51,10 @@ export const settings = definePluginSettings({
     },
     tryHljs: {
         type: OptionType.SELECT,
+<<<<<<< HEAD
+        displayName: "Try Highlight.js",
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         description: "Use the more lightweight default Discord highlighter and theme.",
         options: [
             {

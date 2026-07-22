@@ -16,15 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import * as types from "@plugins/philsPluginLibrary/types/constants";
 import { Devs } from "@utils/constants";
-
-import * as types from "../../philsPluginLibrary/types/constants";
 
 export const PluginInfo: types.PluginInfo = {
     PLUGIN_NAME: "PhilsPluginLibrary",
     DESCRIPTION: "A library for phil's plugins",
     AUTHOR: {
-        ...Devs.phil,
+        ...Devs.philhk,
         github: "https://github.com/philhk"
     },
 } as const;

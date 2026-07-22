@@ -52,14 +52,6 @@ export interface SurveillanceEvent {
     before?: string;
     after?: string;
     metadata?: Record<string, string | number | boolean | null>;
-    voiceParticipants?: VoiceParticipant[];
-}
-
-export interface VoiceParticipant {
-    userId: string;
-    username: string;
-    displayName: string;
-    isFriend: boolean;
 }
 
 export interface MessageSnapshot {

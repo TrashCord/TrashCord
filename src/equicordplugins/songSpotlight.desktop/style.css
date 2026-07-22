@@ -145,6 +145,10 @@
     gap: 6px;
 
     &.vc-songspotlight-songs-container-sidebar {
+<<<<<<< HEAD
+        margin: 12px 16px 0;
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         padding: 12px;
     }
 }
@@ -201,10 +205,13 @@
     padding: 8px;
 }
 
+<<<<<<< HEAD
+=======
 .user-profile-popout:not(.custom-user-profile-theme) .vc-songspotlight-song-container {
     background: var(--opacity-16);
 }
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 .vc-songspotlight-song {
     height: 100%;
     animation: songspotlight-fade-in var(--time) linear forwards;
@@ -301,7 +308,11 @@
 .vc-songspotlight-song-progress {
     position: absolute;
     inset: 0;
+<<<<<<< HEAD
+    color: var(--icon-default);
+=======
     color: white;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     pointer-events: none;
 
     > circle {
@@ -369,4 +380,8 @@
     from {
         opacity: 0;
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 89b0fd2a5 (Update index.tsx)

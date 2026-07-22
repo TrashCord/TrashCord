@@ -1132,7 +1132,11 @@ export default definePlugin({
             // Replace name in solo DM title bar and tooltip.
             find: "channel.isSystemDM(),",
             replacement: {
+<<<<<<< HEAD
+                match: /(?<=length>0,\i=\i&&null!=\i&&!\i,)(\i=)(.{0,125}?"aria-label":)(\i.\i.getName\(\i\).{0,1700}?text:)(?=\i,position)/,
+=======
                 match: /(?<=length>0,)(\i=)(.{0,280}?"aria-label":)(\i.\i.getName\(\i\).{0,400}?text:)/,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "smynName=arguments[0].channel.recipients.length===1?$self.getTypingMemberListProfilesReactionsVoiceNameText({user:$self.UserStore.getUser(arguments[0].channel.recipients[0]),type:\"profilesPopout\"})??null:null,$1smynName??$2smynName??$3smynName??"
             },
         },
@@ -1152,8 +1156,13 @@ export default definePlugin({
             find: ".USER_MENTION)",
             replacement: [
                 {
+<<<<<<< HEAD
+                    match: /(?=function \i\(\i\){return\(0)/,
+                    replace: "const showMeYourNameMention=$self.getMentionNameElement(arguments[0]);"
+=======
                     match: /(let \i=\i=>\(0,)/,
                     replace: "const showMeYourNameMention=$self.getMentionNameElement(arguments[0]);$1"
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 },
                 {
                     match: /(?<=onContextMenu:\i,\.\.\.\i,children:)/,

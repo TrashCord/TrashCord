@@ -8,6 +8,10 @@ import { definePluginSettings } from "@api/Settings";
 import { Heading } from "@components/Heading";
 import { Margins } from "@components/margins";
 import { Paragraph } from "@components/Paragraph";
+<<<<<<< HEAD
+import { IS_WINDOWS } from "@utils/constants";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Logger } from "@utils/Logger";
 import { OptionType } from "@utils/types";
 import { findByCodeLazy, findByPropsLazy } from "@webpack";
@@ -68,7 +72,11 @@ export const settings = definePluginSettings({
 
 export async function getCurrentMedia() {
     const media = MediaEngineStore.getMediaEngine();
+<<<<<<< HEAD
+    const sources = await getDesktopSources(media, IS_WINDOWS, ["screen", "window"], null) ?? [];
+=======
     const sources = await getDesktopSources(media, ["screen", "window"], null) ?? [];
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     if (settings.store.includeVideoDevices) {
         try {
@@ -122,7 +130,11 @@ function ScreenSetting() {
         let active = true;
         async function fetchMedia() {
             setLoading(true);
+<<<<<<< HEAD
+            const sources = await getDesktopSources(media, IS_WINDOWS, ["screen", "window"], null) ?? [];
+=======
             const sources = await getDesktopSources(media, ["screen", "window"], null) ?? [];
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
             if (includeVideoDevices) {
                 try {

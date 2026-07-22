@@ -188,7 +188,6 @@ function triggerFollow(userChannelId: string | null = getChannelId(settings.stor
             // join when not already in the same channel
             if (userChannelId !== myChanId) {
                 const channel = ChannelStore.getChannel(userChannelId);
-                if (!channel) return;
                 const voiceStates = VoiceStateStore.getVoiceStatesForChannel(userChannelId);
                 const memberCount = voiceStates ? Object.keys(voiceStates).length : null;
                 if (channel.type === 1 || PermissionStore.can(CONNECT, channel)) {
@@ -321,7 +320,6 @@ export default definePlugin({
                     // if you're not in the channel of the followed user and it is no longer full, join
                     if (settings.store.channelFull && !isMe && !channelId && oldChannelId && oldChannelId !== SelectedChannelStore.getVoiceChannelId()) {
                         const channel = ChannelStore.getChannel(oldChannelId);
-                        if (!channel) continue;
                         const channelVoiceStates = VoiceStateStore.getVoiceStatesForChannel(oldChannelId);
                         const memberCount = channelVoiceStates ? Object.keys(channelVoiceStates).length : null;
                         if (channel.userLimit !== 0 && memberCount !== null && memberCount === (channel.userLimit - 1) && !PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) {

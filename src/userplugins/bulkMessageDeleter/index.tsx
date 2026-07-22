@@ -389,7 +389,7 @@ function onChannelSelect({ channelId }: { channelId: string; }) {
 export default definePlugin({
     name: "BulkMessageDeleter",
     description: "Select and mass-delete your own messages. Works on ALL message types including grouped. Click-to-select, hover button, keyword filter, slash command, and context menus.",
-    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
     dependencies: ["CommandsAPI", "MessagePopoverAPI", "ContextMenuAPI"],

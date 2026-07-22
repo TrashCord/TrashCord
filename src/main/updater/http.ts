@@ -49,7 +49,11 @@ async function calculateGitChanges() {
 
     return data.commits.map((c: any) => ({
         hash: c.sha,
+<<<<<<< HEAD
+        author: c.author?.login ?? c.commit?.author?.name ?? "Unknown Author",
+=======
         author: c.author?.login ?? c.commit?.author?.name ?? "Ghost",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         message: c.commit.message.split("\n")[0]
     }));
 }

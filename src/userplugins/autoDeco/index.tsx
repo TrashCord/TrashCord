@@ -508,7 +508,7 @@ export default definePlugin({
     description: "Auto-disconnects you from voice when specific users join your channel. Includes RandomVoice (move to a filtered random channel) and WaitForSlot (rejoin when they leave).",
     authors: [
         { name: "x2b", id: 0n },
-        { name: "zfrancesck1", id: 456195985404592149n },
+        { name: "zFrxncesck1", id: 456195985404592149n },
     ],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: false,

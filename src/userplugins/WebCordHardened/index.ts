@@ -131,7 +131,7 @@ function getBlockedRequestKind(url: URL | null): string | null {
 
     if (settings.store.blockFingerprinting && (
         path.startsWith("/cdn-cgi/") ||
-        (path.endsWith("/api.js") && !url.hostname.endsWith(".hcaptcha.com"))
+        path.endsWith("/api.js")
     )) {
         return "fingerprinting";
     }
@@ -398,7 +398,7 @@ function restoreWebRtc(): void {
 export default definePlugin({
     name: "WebCordHardened",
     description: "Adds WebCord privacy hardening with network, permission, and WebRTC protections.",
-    authors: [{ name: "irritably", id: 928787166916640838n }],
+    authors: [{ name: "Irritably", id: 928787166916640838n }],
     enabledByDefault: false,
     tags: ["Privacy", "Utility", "Voice"],
     settings,

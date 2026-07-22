@@ -5044,7 +5044,7 @@ function RSUserAreaButton() {
 export default definePlugin({
     name: "Rotator Suite",
     description: "All-in-one Discord identity rotator. Cycles status, clan, bio, global pronouns, display name, server nicknames, per-server pronouns, avatar, and banner color (26 modes, HSV picker, favorites). Master Sync, DataStore-persisted, drag-to-reorder, JSON import/export.",
-    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: false,
     settings,

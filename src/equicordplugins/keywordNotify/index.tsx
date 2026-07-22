@@ -326,7 +326,11 @@ export default definePlugin({
             group: true,
             replacement: [
                 {
+<<<<<<< HEAD
+                    match: /#{intl::Fn6Odn::raw}\)\}\)\}\):null/,
+=======
                     match: /#{intl::Fn6Odn::raw}\)\}\):null/,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     replace: "$&,$self.keywordTabBar()"
                 },
                 {
@@ -340,10 +344,17 @@ export default definePlugin({
             ]
         },
         {
+<<<<<<< HEAD
+            find: "#{intl::RECENT_MENTIONS_EMPTY_STATE_TIP}",
+            replacement: [
+                {
+                    match: /function (\i)\(\i\){let{message:\i,onJump/,
+=======
             find: ".guildFilter:null",
             replacement: [
                 {
                     match: /function (\i)\(\i\){let{message:\i,gotoMessage/,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     replace: "$self.renderMsg = $1; $&"
                 },
                 {

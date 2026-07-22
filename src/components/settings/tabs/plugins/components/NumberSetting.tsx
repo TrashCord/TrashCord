@@ -50,7 +50,11 @@ export function NumberSetting({ setting, pluginSettings, definedSettings, id, on
     }
 
     return (
+<<<<<<< HEAD
+        <SettingsSection name={setting.displayName} id={id} description={setting.description} error={error}>
+=======
         <SettingsSection name={id} description={setting.description} error={error}>
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             <TextInput
                 type="number"
                 pattern="-?[0-9]+"

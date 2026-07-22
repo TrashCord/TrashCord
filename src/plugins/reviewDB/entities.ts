@@ -70,7 +70,11 @@ export interface ReviewDBUser {
     username: string;
     type: UserType;
     profilePhoto: string;
+<<<<<<< HEAD
+    badges: Badge[];
+=======
     badges: any[];
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export interface ReviewDBCurrentUser extends ReviewDBUser {
@@ -93,9 +97,17 @@ export interface ReviewAuthor {
 export interface Review {
     comment: string,
     id: number,
+<<<<<<< HEAD
+    score?: number,
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     star: number,
     sender: ReviewAuthor,
     timestamp: number;
     type?: ReviewType;
     replies?: Review[];
+<<<<<<< HEAD
+    userVote?: boolean | null;
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }

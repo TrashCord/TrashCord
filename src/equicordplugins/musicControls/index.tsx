@@ -48,7 +48,11 @@ export default definePlugin({
 
     patches: [
         {
+<<<<<<< HEAD
+            find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
+=======
             find: ".DISPLAY_NAME_STYLES_COACHMARK)",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             replacement: {
                 // react.jsx)(AccountPanel, { ..., showTaglessAccountPanel: blah })
                 match: /(?<=\i\.jsxs?\)\()(\i),{(?=[^}]*?userTag:\i,occluded:)/,

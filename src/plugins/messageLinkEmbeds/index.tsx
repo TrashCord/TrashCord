@@ -22,7 +22,10 @@ import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
 import { BaseText } from "@components/BaseText";
 import { Devs } from "@utils/constants.js";
+<<<<<<< HEAD
+=======
 import { classes } from "@utils/misc";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Queue } from "@utils/Queue";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel, Message } from "@vencord/discord-types";
@@ -51,7 +54,10 @@ const Embed = findComponentLazy(m => m.prototype?.renderSuppressButton);
 const ChannelMessage = findComponentByCodeLazy("childrenExecutedCommand:", ".hideAccessories");
 let AutoModEmbed: ComponentType<any> = () => null;
 
+<<<<<<< HEAD
+=======
 const SearchResultClasses = findCssClassesLazy("message", "searchResult");
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 const EmbedClasses = findCssClassesLazy("embedAuthorIcon", "embedAuthor", "embedAuthor", "embedMargin");
 
 const MessageDisplayCompact = getUserSettingLazy("textAndImages", "messageDisplayCompact")!;
@@ -113,6 +119,10 @@ const settings = definePluginSettings({
         ]
     },
     idList: {
+<<<<<<< HEAD
+        displayName: "ID List",
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         description: "Guild/channel/user IDs to blacklist or whitelist (separate with comma)",
         type: OptionType.STRING,
         default: "",
@@ -302,7 +312,16 @@ function ChannelMessageEmbedAccessory({ message, channel }: MessageEmbedProps): 
                 }
             }}
             renderDescription={() => (
+<<<<<<< HEAD
+                <div key={message.id} style={!settings.store.messageBackgroundColor ? undefined : {
+                    backgroundColor: "var(--background-base-lower)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    paddingBottom: "8px",
+                }}>
+=======
                 <div key={message.id} className={classes(SearchResultClasses.message, settings.store.messageBackgroundColor && SearchResultClasses.searchResult)}>
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     <ChannelMessage
                         id={`message-link-embeds-${message.id}`}
                         message={message}

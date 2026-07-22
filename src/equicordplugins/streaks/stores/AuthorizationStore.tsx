@@ -7,7 +7,11 @@
 import * as DataStore from "@api/DataStore";
 import { proxyLazy } from "@utils/lazy";
 import { Logger } from "@utils/Logger";
+<<<<<<< HEAD
+import { OAuth2AuthorizeModal, openModal, showToast, Toasts, UserStore, zustandCreate, zustandPersist } from "@webpack/common";
+=======
 import { OAuth2AuthorizeModal, openModal,showToast, Toasts, UserStore, zustandCreate, zustandPersist } from "@webpack/common";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import { AUTHORIZE_URL, CLIENT_ID } from "../constants";
 import { useStreaksStore } from "./StreaksStore";
@@ -21,7 +25,10 @@ interface AuthorizationState {
     remove: (id: string) => void;
     isAuthorized: () => boolean;
 }
+<<<<<<< HEAD
+=======
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 const indexedDBStorage = {
     async getItem(name: string): Promise<string | null> {
         return DataStore.get(name).then(v => v ?? null);
@@ -33,7 +40,10 @@ const indexedDBStorage = {
         await DataStore.del(name);
     },
 };
+<<<<<<< HEAD
+=======
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export const useAuthorizationStore = proxyLazy(() => zustandCreate(
     zustandPersist(
         (set: any, get: any) => ({
@@ -50,7 +60,10 @@ export const useAuthorizationStore = proxyLazy(() => zustandCreate(
                 const newTokens = { ...tokens };
                 delete newTokens[id];
                 set({ tokens: newTokens });
+<<<<<<< HEAD
+=======
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 init();
             },
             async authorize() {
@@ -71,6 +84,14 @@ export const useAuthorizationStore = proxyLazy(() => zustandCreate(
                                     const url = new URL(response.location);
                                     const code = url.searchParams.get("code");
                                     if (!code) throw new Error("No code in redirect");
+<<<<<<< HEAD
+                                    const req = await fetch(`${AUTHORIZE_URL}?code=${encodeURIComponent(code)}`);
+                                    if (req?.ok) {
+                                        const { access_token: token } = await req.json();
+                                        if (token) get().setToken(token);
+                                    } else {
+                                        throw new Error(`Request not OK: ${req.status}`);
+=======
 
                                     const req = await fetch(`${AUTHORIZE_URL}?code=${code}`);
 
@@ -79,6 +100,7 @@ export const useAuthorizationStore = proxyLazy(() => zustandCreate(
                                         get().setToken(token);
                                     } else {
                                         throw new Error("Request not OK");
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                     }
                                     resolve(void 0);
                                 } catch (e) {

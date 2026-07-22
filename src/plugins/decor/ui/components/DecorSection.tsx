@@ -11,7 +11,11 @@ import { useCurrentUserDecorationsStore } from "@plugins/decor/lib/stores/Curren
 import { cl } from "@plugins/decor/ui";
 import { openChangeDecorationModal } from "@plugins/decor/ui/modals/ChangeDecorationModal";
 import { findComponentByCodeLazy } from "@webpack";
+<<<<<<< HEAD
+import { NewCustomizationSection, useEffect } from "@webpack/common";
+=======
 import { useEffect } from "@webpack/common";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const CustomizationSection = findComponentByCodeLazy(".DESCRIPTION", "hasBackground:");
 
@@ -19,9 +23,16 @@ export interface DecorSectionProps {
     hideTitle?: boolean;
     hideDivider?: boolean;
     noMargin?: boolean;
+<<<<<<< HEAD
+    useNewSection?: boolean;
+}
+
+export default function DecorSection({ hideTitle = false, hideDivider = false, noMargin = false, useNewSection = false }: DecorSectionProps) {
+=======
 }
 
 export default function DecorSection({ hideTitle = false, hideDivider = false, noMargin = false }: DecorSectionProps) {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const authorization = useAuthorizationStore();
     const { selectedDecoration, select: selectDecoration, fetch: fetchDecorations } = useCurrentUserDecorationsStore();
 
@@ -29,6 +40,53 @@ export default function DecorSection({ hideTitle = false, hideDivider = false, n
         if (authorization.isAuthorized()) fetchDecorations();
     }, [authorization.token]);
 
+<<<<<<< HEAD
+    const NewSection = useNewSection ? NewCustomizationSection : undefined;
+
+    if (useNewSection && !NewSection) return null;
+
+    const Section = (useNewSection ? NewCustomizationSection : CustomizationSection);
+    const sectionProps = useNewSection
+        ? { heading: hideTitle ? undefined : "Decor" }
+        : {
+            title: hideTitle ? undefined : "Decor",
+            hasBackground: true,
+            hideDivider,
+            className: noMargin ? cl("section-remove-margin") : undefined
+        };
+
+    const changeLabel = useNewSection ? "Change" : "Change Decoration";
+    const removeLabel = useNewSection ? "Remove" : "Remove Decoration";
+
+    return (
+        <Section {...sectionProps}>
+            <Flex gap="4px">
+                <Button
+                    onClick={() => {
+                        if (!authorization.isAuthorized()) {
+                            authorization.authorize().then(openChangeDecorationModal).catch(() => { });
+                        } else {
+                            openChangeDecorationModal();
+                        }
+                    }}
+                    variant="primary"
+                    size="small"
+                >
+                    {changeLabel}
+                </Button>
+                {selectedDecoration && authorization.isAuthorized() && (
+                    <Button
+                        onClick={() => selectDecoration(null)}
+                        variant="secondary"
+                        size="small"
+                    >
+                        {removeLabel}
+                    </Button>
+                )}
+            </Flex>
+        </Section>
+    );
+=======
     return <CustomizationSection
         title={!hideTitle && "Decor"}
         hasBackground={true}
@@ -56,4 +114,5 @@ export default function DecorSection({ hideTitle = false, hideDivider = false, n
             </Button>}
         </Flex>
     </CustomizationSection>;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }

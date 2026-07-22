@@ -101,12 +101,15 @@ export interface Settings {
     };
 
     ignoreResetWarning: boolean;
+<<<<<<< HEAD
+=======
 
     userCssVars: {
         [themeId: string]: {
             [varName: string]: string;
         };
     };
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 const DefaultSettings: Settings = {
@@ -153,8 +156,11 @@ const DefaultSettings: Settings = {
     },
 
     ignoreResetWarning: false,
+<<<<<<< HEAD
+=======
 
     userCssVars: {}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 };
 
 const settings = !IS_REPORTER ? VencordNative.settings.get() : {} as Settings;
@@ -335,7 +341,11 @@ export function migrateSettingsFromPlugin(newPlugin: string, oldPlugin: string, 
     SettingsStore.markAsChanged();
 }
 
+<<<<<<< HEAD
+export function migrateOldSettingToNewPlugin(newPlugin: string, newSetting: string, oldPlugin: string, oldSetting: string) {
+=======
 export function migrateOldSettingToNewPlugin(newPlugin: string, newSetting: string, oldPlugin: string, oldSetting: string,) {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const { plugins } = SettingsStore.plain;
     const oldSettings = plugins[oldPlugin];
     const newSettings = plugins[newPlugin];

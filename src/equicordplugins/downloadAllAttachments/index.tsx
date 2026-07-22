@@ -15,6 +15,8 @@ import { ChannelStore, showToast, Toasts } from "@webpack/common";
 const logger = new Logger("DownloadAllAttachments");
 
 async function downloadAll(attachments: MessageAttachment[]) {
+<<<<<<< HEAD
+=======
     let dir: FileSystemDirectoryHandle;
     try {
         dir = await window.showDirectoryPicker({ mode: "readwrite" });
@@ -24,6 +26,7 @@ async function downloadAll(attachments: MessageAttachment[]) {
         return;
     }
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const usedNames = new Map<string, number>();
 
     function uniqueName(original: string): string {
@@ -36,13 +39,29 @@ async function downloadAll(attachments: MessageAttachment[]) {
             : `${original.slice(0, dot)}_${count}${original.slice(dot)}`;
     }
 
+<<<<<<< HEAD
+    const results = await Promise.allSettled(attachments.map(async attachment => {
+        const filename = uniqueName(attachment.filename);
+=======
     const tasks = attachments.map(a => ({ attachment: a, filename: uniqueName(a.filename) }));
 
     const results = await Promise.allSettled(tasks.map(async ({ attachment, filename }) => {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         if (!attachment.proxy_url) throw new Error("Missing Proxy URL");
 
         const res = await fetch(attachment.proxy_url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+<<<<<<< HEAD
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+=======
         if (!res.body) throw new Error("Response body is empty");
 
         let fileHandle: FileSystemFileHandle | undefined;
@@ -61,6 +80,7 @@ async function downloadAll(attachments: MessageAttachment[]) {
             }
             throw e;
         }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }));
 
     const failed = results.filter(r => {

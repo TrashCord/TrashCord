@@ -184,7 +184,11 @@ export default definePlugin({
         return (
             <>
                 <Paragraph>
+<<<<<<< HEAD
                     To quickly send time only timestamps, include timestamps formatted as `HH:MM` (including the backticks!) in your message
+=======
+                    To quickly send send time only timestamps, include timestamps formatted as `HH:MM` (including the backticks!) in your message
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 </Paragraph>
                 <Paragraph>
                     See below for examples.

@@ -27,6 +27,10 @@ export const EQUICORD_TEAM = "1173520023239786538";
 export const EQUICORD_HELPERS = "1326406112144265257";
 export const VENCORD_CONTRIB_ROLE_ID = "1173343399470964856";
 export const EQUIBOT_USER_ID = "1243063117852835941";
+<<<<<<< HEAD
+export const KNOWN_ISSUES_CHANNEL_ID = "1466558228379992266";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 // Vencord
 export const VC_SUPPORT_CHANNEL_ID = "1026515880080842772";
@@ -36,7 +40,11 @@ export const VC_DONOR_ROLE_ID = "1042507929485586532";
 export const VC_CONTRIB_ROLE_ID = "1026534353167208489";
 export const VC_REGULAR_ROLE_ID = "1026504932959977532";
 export const VC_SUPPORT_CATEGORY_ID = "1108135649699180705";
+<<<<<<< HEAD
+export const VC_KNOWN_ISSUES_CHANNEL_ID = "1257025907625951423";
+=======
 export const VC_KNOWN_ISSUES_CHANNEL_ID = "1222936386626129920";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export const VESKTOP_SUPPORT_CHANNEL_ID = "1345457031426871417";
 export const VC_SUPPORT_CHANNEL_IDS = [VC_SUPPORT_CHANNEL_ID, VESKTOP_SUPPORT_CHANNEL_ID];
 
@@ -191,10 +199,13 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "kemo",
         id: 715746190813298788n
     },
+<<<<<<< HEAD
+=======
     dzshn: {
         name: "dzshn",
         id: 310449948011528192n
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     Ducko: {
         name: "Ducko",
         id: 506482395269169153n
@@ -373,8 +384,13 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         id: 354191516979429376n
     },
     Rini: {
+<<<<<<< HEAD
+        name: "rini",
+        id: 0n
+=======
         name: "Rini",
         id: 1079479184478441643n
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     },
     castdrian: {
         name: "castdrian",
@@ -514,7 +530,11 @@ export const Devs = /* #__PURE__*/ Object.freeze({
     },
     Byeoon: {
         name: "byeoon",
+<<<<<<< HEAD
+        id: 495683688474869781n
+=======
         id: 1167275288036655133n
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     },
     Kaitlyn: {
         name: "kaitlyn",
@@ -657,7 +677,26 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "prism",
         id: 390884143749136386n,
     },
+<<<<<<< HEAD
+    creations: {
+        name: "creations",
+        id: 209830981060788225n
+    },
+    nightmaresan: {
+        name: "NightmareSan",
+        id: 304239816466235392n
+    },
+    angelcube: {
+        name: "angelcube",
+        id: 958505257288208446n
+    },
+    Lunascape: {
+        name: "Lunascape",
+        id: 383365021415243776n
+    }
+=======
     x2b: {name: "x2b",id: 996137713432530976n},
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 } satisfies Record<string, Dev>);
 
 export const EquicordDevs = Object.freeze({
@@ -950,9 +989,15 @@ export const EquicordDevs = Object.freeze({
         name: "castdrian",
         id: 224617799434108928n
     },
+<<<<<<< HEAD
+    amy: {
+        name: "Amy",
+        id: 603229858612510720n
+=======
     echo: {
         name: "ECHO",
         id: 712639419785412668n
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     },
     RyanCaoDev: {
         name: "RyanCaoDev",
@@ -1112,7 +1157,11 @@ export const EquicordDevs = Object.freeze({
     },
     Byeoon: {
         name: "byeoon",
+<<<<<<< HEAD
+        id: 495683688474869781n
+=======
         id: 1167275288036655133n
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     },
     Skully: {
         name: "Skully",
@@ -1274,6 +1323,8 @@ export const EquicordDevs = Object.freeze({
         name: "yash",
         id: 889150838658977874n
     },
+<<<<<<< HEAD
+=======
     Solace: {
         name: "Solace",
         id: 1472732509241479218n
@@ -1286,8 +1337,9 @@ export const EquicordDevs = Object.freeze({
     zfrancesck1: {
         name: "zfrancesck1",
         id: 456195985404592149n,
-        github: "zFrxncesck1"
+        github: "zfrxncesck1"
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     Leon135: {
         name: "Leon135",
         id: 309275452231385088n
@@ -1352,13 +1404,63 @@ export const EquicordDevs = Object.freeze({
         name: "qdnx",
         id: 1374803023506702508n
     },
+<<<<<<< HEAD
+    BachLe2000: {
+        name: "BachLe2000",
+        id: 624091967625625610n
+    },
+    pandaptable: {
+        name: "pandaptable",
+        id: 97153209843335168n
+    },
+    SobakinTech: {
+        name: "sobakintech",
+        id: 745203026335236178n
+    },
+    Nyro: {
+        name: "zeyno36",
+        id: 1325431712406179962n
+    },
+    Jahsohsani: {
+        name: "jahsohsani",
+        id: 806442568564604968n
+    },
+    dawn: {
+        name: "dawn",
+        id: 604653220341743618n
+    },
+    Willow: {
+        name: "Willow",
+        id: 965933914092888074n
+    },
+    kat: {
+        name: "kat",
+        id: 665120188047556609n
+    },
+    Star123451: {
+        name: "Star123451",
+        id: 1037526188039618560n
+    },
+    auggeeo: {
+        name: "August (auggeeo)",
+        id: 594864203102158859n
+    },
+    bastih18: {
+        name: "bastih18",
+        id: 273797150880563201n
+    },
+    lucabeyer: {
+        name: "luca.beyer",
+        id: 405090676771127317n
+    },
+=======
 } satisfies Record<string, Dev>);
 
 export const TrashCordDevs = /* #__PURE__*/ Object.freeze({
     zfrancesck1: {
         name: "zfrancesck1",
         id: 456195985404592149n,
-        github: "zFrxncesck1"
+        github: "zfrxncesck1"
     },
     d3ad_d3sc3nt: {
         name: "d3ad_d3sc3nt",
@@ -1480,6 +1582,7 @@ export const NightcordDevs = /* #__PURE__*/ Object.freeze({
         name: "Trigger",
         id: 0n
     }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 } satisfies Record<string, Dev>);
 
 // iife so #__PURE__ works correctly
@@ -1498,6 +1601,8 @@ export const EquicordDevsById = /* #__PURE__*/ (() =>
             .map(([_, v]) => [v.id, v] as const)
     ))
 )() as Record<string, Dev>;
+<<<<<<< HEAD
+=======
 
 export const TrashCordDevsById = /* #__PURE__*/ (() =>
     Object.freeze(Object.fromEntries(
@@ -1530,3 +1635,4 @@ export const NightcordDevsById = /* #__PURE__*/ (() =>
             .map(([_, v]) => [v.id, v] as const)
     ))
 )() as Record<string, Dev>;
+>>>>>>> 89b0fd2a5 (Update index.tsx)

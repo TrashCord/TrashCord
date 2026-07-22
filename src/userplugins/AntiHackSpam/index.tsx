@@ -614,7 +614,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
 export default definePlugin({
     name: "AntiHackSpam",
     description: "Blocks & deletes spam from hacked account (image floods + mass mentions). Includes bulk-purge tool.",
-    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Chat", "Privacy", "Utility"],
     enabledByDefault: false,
     settings,

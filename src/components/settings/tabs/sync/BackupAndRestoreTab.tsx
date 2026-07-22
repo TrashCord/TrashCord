@@ -31,7 +31,11 @@ function BackupAndRestoreTab() {
         <SettingsTab>
             <Heading className={Margins.top16}>Backup & Restore</Heading>
             <Paragraph className={Margins.bottom20}>
+<<<<<<< HEAD
+                Import and export your Equicord settings as a JSON file. This allows you to easily transfer your settings to another device, or recover them after reinstalling Equicord or Discord.
+=======
                 Import and export your TrashCord settings as a JSON file. This allows you to easily transfer your settings to another device, or recover them after reinstalling TrashCord or Discord.
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             </Paragraph>
 
             <Notice.Warning className={Margins.bottom20}>

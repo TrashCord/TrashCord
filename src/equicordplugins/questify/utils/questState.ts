@@ -53,11 +53,14 @@ interface QuestPanelPercentCompleteResult {
     percentCompleteText?: string;
 }
 
+<<<<<<< HEAD
 interface QuestEmbedProgressResult {
     completedRatio: number;
     completedRatioDisplay?: string;
 }
 
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 interface QuestProgressEntry {
     eventName?: QuestTaskType;
     heartbeat?: { lastBeatAt?: string | null; } | null;
@@ -156,15 +159,22 @@ function getCurrentIgnoredQuestIds(): string[] {
 }
 
 function getAutoCompleteShowcaseQuest(): Quest | null {
+<<<<<<< HEAD
     const entries = getActiveAutoCompletes();
     const runningEntries = entries.filter(entry => entry.status === "running");
     const showcaseEntries = runningEntries.length > 0 ? runningEntries : entries;
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     let bestQuest: Quest | null = null;
     let bestTimeRemaining = Infinity;
     let currentQuest: Quest | null = null;
     let currentTimeRemaining = Infinity;
 
+<<<<<<< HEAD
     for (const entry of showcaseEntries) {
+=======
+    for (const entry of getActiveAutoCompletes()) {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         const quest = QuestStore.getQuest(entry.questId);
 
         if (!quest) {
@@ -283,6 +293,7 @@ export function getQuestPanelPercentComplete({
     };
 }
 
+<<<<<<< HEAD
 export function getQuestEmbedProgress(quest: Quest | null): QuestEmbedProgressResult | null {
     const progress = getQuestPanelPercentComplete({ quest, percentCompleteText: " " });
 
@@ -291,6 +302,8 @@ export function getQuestEmbedProgress(quest: Quest | null): QuestEmbedProgressRe
         : null;
 }
 
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export function getQuestStatus(
     quest: Quest,
     ignoredQuestIds: ReadonlyArray<string>,

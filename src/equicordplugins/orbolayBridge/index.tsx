@@ -20,8 +20,11 @@ interface ChannelState {
     selfStream: boolean;
 }
 
+<<<<<<< HEAD
+=======
 const liveUpdate = () => sendConfig();
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 const settings = definePluginSettings({
     port: {
         type: OptionType.NUMBER,
@@ -29,6 +32,8 @@ const settings = definePluginSettings({
         default: 6888,
         restartNeeded: true
     },
+<<<<<<< HEAD
+=======
     isKeybindEnabled: {
         type: OptionType.BOOLEAN,
         description: "Enable/disable the global keybind (Ctrl + `)",
@@ -103,6 +108,7 @@ const settings = definePluginSettings({
         default: false,
         onChange: liveUpdate,
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 });
 
 const sendConfig = () => {
@@ -111,12 +117,16 @@ const sendConfig = () => {
     const userId = UserStore.getCurrentUser()?.id;
     if (!userId) return;
 
+<<<<<<< HEAD
+    ws.send(JSON.stringify({ cmd: "REGISTER_CONFIG", userId }));
+=======
     const config: Record<string, unknown> = { userId };
     for (const key of Object.keys(settings.def)) {
         config[key] = settings.store[key];
     }
 
     ws?.send(JSON.stringify({ cmd: "REGISTER_CONFIG", ...config }));
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 };
 
 let ws: WebSocket | null = null;
@@ -302,6 +312,10 @@ const createWebsocket = () => {
         }
     }, 1000);
 
+<<<<<<< HEAD
+    // Use the configured port locally to open the websocket, but do not include it in REGISTER_CONFIG
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     ws = new WebSocket("ws://127.0.0.1:" + settings.store.port);
     ws.onerror = e => {
         ws?.close?.();
@@ -326,6 +340,17 @@ const createWebsocket = () => {
 
         sendConfig();
 
+<<<<<<< HEAD
+        // Let the client know whether we are in streamer mode
+        ws?.send(
+            JSON.stringify({
+                cmd: "STREAMER_MODE",
+                enabled: StreamerModeStore.enabled,
+            })
+        );
+
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         const userVoiceState = VoiceStateStore.getVoiceStateForUser(userId);
         if (!userVoiceState || !userVoiceState.channelId) return;
 
@@ -343,6 +368,8 @@ const createWebsocket = () => {
             })
         );
 
+<<<<<<< HEAD
+=======
         ws?.send(
             JSON.stringify({
                 cmd: "STREAMER_MODE",
@@ -350,6 +377,7 @@ const createWebsocket = () => {
             })
         );
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         currentChannel = userVoiceState.channelId;
     };
 };

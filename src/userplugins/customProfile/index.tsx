@@ -35,7 +35,7 @@ const FLAG = {
 
 const BADGES = [
     { label: t("Staff Discord"), flag: FLAG.STAFF, icon: "https://cdn.discordapp.com/badge-icons/5e74e9b61934fc1f67c65515d1f7e60d.png" },
-    { label: t("Owner of a partner server"), flag: FLAG.PARTNER, icon: "https://cdn.discordapp.com/badge-icons/3f9748e53446a137a052f3454e2de41e.png" },
+    { label: t("Partenaire"), flag: FLAG.PARTNER, icon: "https://cdn.discordapp.com/badge-icons/3f9748e53446a137a052f3454e2de41e.png" },
     { label: t("HypeSquad Events"), flag: FLAG.HYPESQUAD, icon: "https://cdn.discordapp.com/badge-icons/bf01d1073931f921909045f3a39fd264.png" },
     { label: t("Bug Hunter Lvl 1"), flag: FLAG.BUG_HUNTER_1, icon: "https://cdn.discordapp.com/badge-icons/2717692c7dca7289b35297368a940dd0.png" },
     { label: t("HypeSquad Bravery"), flag: FLAG.BRAVERY, icon: "https://cdn.discordapp.com/badge-icons/8a88d63823d8a71cd5e390baa45efa02.png" },
@@ -971,18 +971,18 @@ function CustomProfileButton() {
     return <HeaderBarButton icon={() => <EditIcon size={18} />} tooltip="Custom Profile" onClick={() => openModal(props => <CustomProfileModal rootProps={props} />)} />;
 }
 
-function fakeUser(this: any, user: any): any {
+function fakeUser(user: any): any {
     if (!user) return user;
     try {
         const uid = user?.id ?? user?.userId;
         if (!isMe(uid)) return user;
-        return (this as any).fakeCurrentUser(user);
+        return this.fakeCurrentUser(user);
     } catch { return user; }
 }
 
 export default definePlugin({
     name: "CustomProfile",
-    description: "Visually customize your Discord profile (username, PFP, banner, badges, bio...) — persistent, only visible to you.",
+    description: t("Visually customize your Discord profile (username, PFP, banner, badges, bio...) — persistent, only visible to you."),
     authors: [{ name: "Nightcord", id: 0n }],
     tags: ["Appearance", "Customisation", "Privacy"],
     enabledByDefault: false,
@@ -1483,7 +1483,7 @@ export default definePlugin({
                             if (isOurs) {
                                 const asset = storedData.decorationAsset;
                                 const dec = AVATAR_DECORATIONS.find(d => d.id === asset);
-                                const passthrough = dec ? (dec as any).passthrough : asset.startsWith("a_");
+                                const passthrough = dec ? dec.passthrough : asset.startsWith("a_");
                                 return getDecorationUrl(asset, passthrough);
                             }
                         }
@@ -1552,7 +1552,7 @@ export default definePlugin({
                     return true;
                 });
 
-                const badgeList: any[] = [];
+                const badgeList: ProfileBadge[] = [];
 
                 // 1. Staff Discord
                 if (storedData.badgeFlags && (storedData.badgeFlags & FLAG.STAFF)) {
@@ -1561,7 +1561,7 @@ export default definePlugin({
 
                 // 2. Partner
                 if (storedData.badgeFlags && (storedData.badgeFlags & FLAG.PARTNER)) {
-                    badgeList.push({ description: t("Owner of a partner server"), iconSrc: "https://cdn.discordapp.com/badge-icons/3f9748e53446a137a052f3454e2de41e.png", position: 0, props: { style } });
+                    badgeList.push({ description: t("Partenaire"), iconSrc: "https://cdn.discordapp.com/badge-icons/3f9748e53446a137a052f3454e2de41e.png", position: 0, props: { style } });
                 }
 
                 // 3. NITRO (Image 2 shows it here)

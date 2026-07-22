@@ -20,13 +20,24 @@ const ORIGINAL_NAME = Symbol("cleanChannelName.original");
 let editingChannelId: string | null = null;
 
 function computeClean(name: string, type: number): string {
+<<<<<<< HEAD
+    const separator = [2, 4].includes(type) ? " " : "-";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const cleaned = name
         .normalize("NFKC")
         .replace(/[ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ]/g, m => SMALL_CAPS[m])
         .replace(/[^ -~]?\p{Extended_Pictographic}[^ -~]?/ug, "")
+<<<<<<< HEAD
+        .replace(/-?\|-?/g, separator)
+        .replace(/-?[^\p{Letter} -~]-?/ug, separator)
+        .replace(/-+/g, "-")
+        .replace(/(^-|-$)/g, "");
+=======
         .replace(/-?[^\p{Letter} -~]-?/ug, [2, 4].includes(type) ? " " : "-")
         .replace(/(^-|-$)/g, "")
         .replace(/-+/g, "-");
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     return cleaned || name;
 }
 

@@ -7,7 +7,10 @@
 import * as DataStore from "@api/DataStore";
 import { isPluginEnabled } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
+<<<<<<< HEAD
+=======
 import { disableStyle, enableStyle } from "@api/Styles";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import usrbg from "@plugins/usrbg";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
@@ -73,14 +76,23 @@ export default definePlugin({
     ],
 
     data: {},
+<<<<<<< HEAD
+    managedStyle: style,
+
+    async start() {
+=======
 
     async start() {
         enableStyle(style);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         this.data = await DataStore.get(DATASTORE_KEY) || {};
     },
 
     stop() {
+<<<<<<< HEAD
+=======
         disableStyle(style);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         DataStore.set(DATASTORE_KEY, this.data);
     },
 

@@ -73,7 +73,6 @@ export default definePlugin({
     name: "RealtimeTimestamps",
     description: "Replaces Discord timestamps (e.g. 15:31) with live seconds (e.g. 15:34:21), updated every second.",
     authors: [{ name: "Nightcord", id: 253979869n }],
-    enabledByDefault: false,
     tags: ["Appearance", "Chat", "Utility"],
     settings,
 

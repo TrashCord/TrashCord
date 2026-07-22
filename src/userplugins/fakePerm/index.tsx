@@ -506,7 +506,6 @@ export default definePlugin({
     name: "FakePerm",
     description: "Visually simulates moderation options in the right-click menu. No real action.",
     authors: [{ name: "Nightcord", id: 0n }],
-    tags: ["Utility", "Servers"],
     enabledByDefault: false,
     dependencies: ["ContextMenuAPI"],
     requiresRestart: false,

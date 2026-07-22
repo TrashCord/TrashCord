@@ -18,13 +18,21 @@
 
 import { Auth, getToken } from "@plugins/reviewDB/auth";
 import { Review, ReviewType } from "@plugins/reviewDB/entities";
+<<<<<<< HEAD
+import { blockUser, deleteReview, deleteReviewVote, reportReview, unblockUser, voteReview } from "@plugins/reviewDB/reviewDbApi";
+=======
 import { blockUser, deleteReview, reportReview, unblockUser } from "@plugins/reviewDB/reviewDbApi";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { settings } from "@plugins/reviewDB/settings";
 import { canBlockReviewAuthor, canDeleteReview, canReportReview, cl, showToast } from "@plugins/reviewDB/utils";
 import { openUserProfile } from "@utils/discord";
 import { classes } from "@utils/misc";
 import { findCssClassesLazy } from "@webpack";
+<<<<<<< HEAD
+import { ConfirmModal, IconUtils, openModal as openVencordModal, Parser, Timestamp, useEffect, useState } from "@webpack/common";
+=======
 import { ConfirmModal,IconUtils, openModal as openVencordModal, Parser, Timestamp, useState } from "@webpack/common";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import { openBlockModal } from "./BlockedUserModal";
 import { BlockButton, DeleteButton, ReportButton } from "./MessageButton";
@@ -40,6 +48,17 @@ const dateFormat = new Intl.DateTimeFormat();
 
 export default function ReviewComponent({ review, refetch, profileId }: { review: Review; refetch(): void; profileId: string; }) {
     const [showAll, setShowAll] = useState(false);
+<<<<<<< HEAD
+    const [localVote, setLocalVote] = useState<boolean | null>(review.userVote ?? null);
+    const [score, setScore] = useState(review.score ?? 0);
+    const [isVoting, setIsVoting] = useState(false);
+
+    useEffect(() => {
+        setLocalVote(review.userVote ?? null);
+        setScore(review.score ?? 0);
+    }, [review.score, review.userVote]);
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     function openModal() {
         openUserProfile(review.sender.discordID);
@@ -56,6 +75,11 @@ export default function ReviewComponent({ review, refetch, profileId }: { review
                 onConfirm={async () => {
                     if (!(await getToken())) {
                         return showToast("You must be logged in to delete reviews.");
+<<<<<<< HEAD
+                    }
+                    const res = await deleteReview(review.id);
+                    if (res) refetch();
+=======
                     } else {
                         deleteReview(review.id).then(res => {
                             if (res) {
@@ -63,6 +87,7 @@ export default function ReviewComponent({ review, refetch, profileId }: { review
                             }
                         });
                     }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 }}
             />
         ));
@@ -79,9 +104,14 @@ export default function ReviewComponent({ review, refetch, profileId }: { review
                 onConfirm={async () => {
                     if (!(await getToken())) {
                         return showToast("You must be logged in to report reviews.");
+<<<<<<< HEAD
+                    }
+                    await reportReview(review.id);
+=======
                     } else {
                         reportReview(review.id);
                     }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 }}
             />
         ));
@@ -103,27 +133,107 @@ export default function ReviewComponent({ review, refetch, profileId }: { review
                 onConfirm={async () => {
                     if (!(await getToken())) {
                         return showToast("You must be logged in to block users.");
+<<<<<<< HEAD
+                    }
+                    await blockUser(review.sender.discordID);
+=======
                     } else {
                         blockUser(review.sender.discordID);
                     }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 }}
             />
         ));
     }
 
+<<<<<<< HEAD
+    async function submitVote(isUpvote: boolean) {
+        if (isVoting) return;
+
+        if (review.sender.discordID === Auth.user?.discordID) {
+            return showToast("You cannot vote on your own review.");
+        }
+
+        setIsVoting(true);
+
+        try {
+            if (localVote === isUpvote) {
+                if (await deleteReviewVote(review.id)) {
+                    setLocalVote(null);
+                    setScore(currentScore => currentScore + (isUpvote ? -1 : 1));
+                }
+                return;
+            }
+
+            if (await voteReview(review.id, isUpvote)) {
+                const delta = localVote == null
+                    ? isUpvote ? 1 : -1
+                    : isUpvote ? 2 : -2;
+
+                setLocalVote(isUpvote);
+                setScore(currentScore => currentScore + delta);
+            }
+        } finally {
+            setIsVoting(false);
+        }
+    }
+
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     return (
         <div className={classes(cl("review"), MessageClasses.cozyMessage, AvatarClasses.wrapper, MessageClasses.message, MessageClasses.groupStart, AvatarClasses.cozy)} style={
             {
                 marginLeft: "0px",
+<<<<<<< HEAD
+                paddingLeft: "52px",
+=======
                 paddingLeft: "52px", // wth is this
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 // nobody knows anymore
             }
         }>
 
+<<<<<<< HEAD
+            {review.id !== 0 && (
+                <div className={cl("vote-column")}>
+                    <span className={classes(cl("vote-column-score"), score > 0 && cl("vote-column-score-positive"), score < 0 && cl("vote-column-score-negative"))}>
+                        {score}
+                    </span>
+                    <div className={cl("vote-column-buttons")}>
+                        <button
+                            className={classes(cl("vote-column-button"), !!localVote && cl("vote-column-up-selected"))}
+                            disabled={isVoting}
+                            onClick={() => submitVote(true)}
+                            type="button"
+                        >
+                            <svg height="20" viewBox="0 0 12 12" width="20" fill="none">
+                                <path d="M3 7.5 6 4.5l3 3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                            </svg>
+                        </button>
+                        <button
+                            className={classes(cl("vote-column-button"), localVote === false && cl("vote-column-down-selected"))}
+                            disabled={isVoting}
+                            onClick={() => submitVote(false)}
+                            type="button"
+                        >
+                            <svg height="20" viewBox="0 0 12 12" width="20" fill="none">
+                                <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <img
+                className={classes(AvatarClasses.avatar, AvatarClasses.clickable)}
+                onClick={openModal}
+                src={review.sender.profilePhoto ?? IconUtils.getDefaultAvatarURL(review.sender.discordID)}
+=======
             <img
                 className={classes(AvatarClasses.avatar, AvatarClasses.clickable)}
                 onClick={openModal}
                 src={review.sender.profilePhoto || IconUtils.getDefaultAvatarURL(review.sender.discordID)}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 style={{ left: "0px", zIndex: 0 }}
                 onError={e => e.currentTarget.src = IconUtils.getDefaultAvatarURL(review.sender.discordID)}
             />
@@ -163,7 +273,10 @@ export default function ReviewComponent({ review, refetch, profileId }: { review
                         {dateFormat.format(review.timestamp * 1000)}
                     </Timestamp>)
             }
+<<<<<<< HEAD
+=======
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             <div className={cl("review-comment")}>
                 {(review.comment.length > 200 && !showAll)
                     ? (

@@ -316,9 +316,13 @@ export default definePlugin({
         },
         // Allow users to use custom client themes
         {
+<<<<<<< HEAD
+            find: '("custom_themes_editor_footer")',
+=======
             find: "customUserThemeSettings:{",
             // Discord has two separate modules for treatments 1 and 2
             all: true,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             replacement: {
                 match: /(?<=\i=)\(0,\i\.\i\)\(\i\.\i\.TIER_2\)(?=,|;)/g,
                 replace: "true"
@@ -394,8 +398,13 @@ export default definePlugin({
             predicate: () => settings.store.transformEmojis,
             replacement: {
                 // Add the fake nitro emoji notice
+<<<<<<< HEAD
+                match: /(?<=emojiDescription:)(\i)(?<=\1=function\(\i\)\{let\{sourceType:.+?)/,
+                replace: (_, reactNode) => `$self.addFakeNotice(${FakeNoticeType.Emoji},${reactNode},!!arguments[0]?.fakeNitroNode?.fake)`
+=======
                 match: /(?<=emojiDescription:)(\i)(?<=\1=\(\i=>\{.+?\}\)\((\i)\)[,;].+?)/,
                 replace: (_, reactNode, props) => `$self.addFakeNotice(${FakeNoticeType.Emoji},${reactNode},!!${props}?.fakeNitroNode?.fake)`
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         },
         // Separate patch for allowing using custom app icons
@@ -829,7 +838,11 @@ export default definePlugin({
             return;
         }
 
+<<<<<<< HEAD
+        this.preSend = addMessagePreSendListener(async (channelId, messageObj, options) => {
+=======
         this.preSend = addMessagePreSendListener(async (channelId, messageObj, extra) => {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             const { guildId } = this;
 
             let hasBypass = false;
@@ -838,7 +851,11 @@ export default definePlugin({
                 if (!s.enableStickerBypass)
                     break stickerBypass;
 
+<<<<<<< HEAD
+                const sticker = StickersStore.getStickerById(options.stickerIds?.[0]!);
+=======
                 const sticker = StickersStore.getStickerById(extra.stickers?.[0]!);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 if (!sticker)
                     break stickerBypass;
 
@@ -884,7 +901,11 @@ export default definePlugin({
                     const linkText = s.hyperLinkText.replaceAll("{{NAME}}", sticker.name);
 
                     messageObj.content += `${getWordBoundary(messageObj.content, messageObj.content.length - 1)}${s.useStickerHyperLinks ? `[${linkText}](${url})` : url}`;
+<<<<<<< HEAD
+                    options.stickerIds!.length = 0;
+=======
                     extra.stickers!.length = 0;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 }
             }
 

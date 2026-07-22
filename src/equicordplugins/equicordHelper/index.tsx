@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+<<<<<<< HEAD
+=======
 import "./standingButton.css";
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { ApplicationCommandInputType, sendBotMessage } from "@api/Commands";
 import { HeaderBarButton } from "@api/HeaderBar";
 import { addMessagePreSendListener, removeMessagePreSendListener } from "@api/MessageEvents";
@@ -44,6 +47,10 @@ const StandingConfig: Record<number, { label: string; hoverColor: string; Icon: 
 function StandingButton() {
     const standing = useStateFromStores([SafetyHubStore], () => SafetyHubStore.getAccountStanding());
     const isInitialized = useStateFromStores([SafetyHubStore], () => SafetyHubStore.isInitialized());
+<<<<<<< HEAD
+    const [hovered, setHovered] = React.useState(false);
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
     React.useEffect(() => {
         if (!isInitialized) fetchSafetyHub().catch(() => { });
@@ -52,12 +59,23 @@ function StandingButton() {
     const config = StandingConfig[standing?.state] ?? StandingConfig[StandingState.ALL_GOOD];
 
     return (
+<<<<<<< HEAD
+        <div style={{ display: "contents" }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+            <HeaderBarButton
+                tooltip={config.label}
+                position="bottom"
+                icon={props => <config.Icon {...props} color={hovered ? config.hoverColor : "currentColor"} />}
+                onClick={() => SettingsRouter.openUserSettings("account_standing_panel")}
+            />
+        </div>
+=======
         <HeaderBarButton
             tooltip={config.label}
             position="bottom"
             icon={props => <config.Icon {...props} className="vc-eqh-standing" style={{ "--vc-eqh-standing-hover": config.hoverColor } as React.CSSProperties} />}
             onClick={() => SettingsRouter.openUserSettings("account_standing_panel")}
         />
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     );
 }
 
@@ -71,13 +89,13 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Prevents the camera from being mirrored on your screen",
         restartNeeded: true,
-        default: true,
+        default: false,
     },
     removeActivitySection: {
         type: OptionType.BOOLEAN,
         description: "Removes the activity section above member list",
         restartNeeded: true,
-        default: true,
+        default: false,
     },
     showYourOwnActivityButtons: {
         type: OptionType.BOOLEAN,
@@ -106,25 +124,25 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Adds back the Download button at the top right corner of files",
         restartNeeded: true,
-        default: true
+        default: false
     },
     noBulletPoints: {
         type: OptionType.BOOLEAN,
         description: "Stops you from typing markdown bullet points (stinky)",
         restartNeeded: true,
-        default: true
+        default: false
     },
     noModalAnimation: {
         type: OptionType.BOOLEAN,
         description: "Remove the 300ms long animation when opening or closing modals",
         restartNeeded: true,
-        default: true
+        default: false
     },
     disableAdoptTagPrompt: {
         type: OptionType.BOOLEAN,
         description: "Disable the prompt to adopt tags",
         restartNeeded: true,
-        default: true,
+        default: false,
     },
     jsonGateway: {
         type: OptionType.BOOLEAN,
@@ -136,7 +154,7 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Hide voice indicator in server list when only active channels are muted",
         restartNeeded: true,
-        default: true,
+        default: false,
     }
 });
 
@@ -154,7 +172,12 @@ export default definePlugin({
         EquicordDevs.mart,
         EquicordDevs.omaw,
         Devs.Samwich,
+<<<<<<< HEAD
+        Devs.AutumnVN,
+        EquicordDevs.auggeeo
+=======
         Devs.AutumnVN
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     ],
     required: true,
     settings,
@@ -177,7 +200,11 @@ export default definePlugin({
                 }
             ]
         },
+<<<<<<< HEAD
+        // Fix a race condition
+=======
         // Fix a race condition?
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         {
             find: ".completeOperation(",
             replacement: {
@@ -185,11 +212,19 @@ export default definePlugin({
                 replace: "$2,$1"
             }
         },
+<<<<<<< HEAD
+        // Catch IndexedDB if it fails to open
+        {
+            find: "discarding speculative database",
+            replacement: {
+                match: /await \i\(\i\)(?=;.{0,15}this\.databases)/,
+=======
         // catch if it cant open
         {
             find: "discarding speculative database",
             replacement: {
                 match: /await (\i)\((\i)\)(?=;.{0,15}this\.databases)/,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$&.catch(()=>null)"
             }
         },
@@ -348,6 +383,19 @@ export default definePlugin({
             ],
             predicate: () => settings.store.hideVoiceIndicatorForMutedChannels,
         },
+<<<<<<< HEAD
+        // Add opening profile functionality to some connections
+        {
+            find: "getPlatformUserUrl:",
+            replacement: [
+                {
+                    match: /name:("(?:Xbox|Epic Games)").{0,180}enabled:!0/g,
+                    replace: "$&,getPlatformUserUrl:e=>$self.getPlatformUrl($1, e)"
+                }
+            ]
+        },
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     ],
     renderMessageAccessory(props) {
         return (
@@ -421,6 +469,19 @@ export default definePlugin({
             voiceState?.channelId === currentUserVoiceState?.channelId ||
             !UserGuildSettingsStore.isChannelMuted(guildId, voiceState?.channelId!)
         );
+<<<<<<< HEAD
+    },
+    getPlatformUrl(platform, args) {
+        switch (platform) {
+            case "Xbox":
+                return `https://www.xbox.com/play/user/${encodeURIComponent(args.name)}`;
+            case "Epic Games":
+                return `https://store.epicgames.com/u/${encodeURIComponent(args.id)}`;
+            default:
+                return null;
+        }
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 });
 

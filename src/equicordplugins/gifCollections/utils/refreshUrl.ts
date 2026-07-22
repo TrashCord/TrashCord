@@ -9,6 +9,15 @@ import { RestAPI } from "@webpack/common";
 import { logger } from "./misc";
 
 export function isCdnUrlExpired(url: string): boolean {
+<<<<<<< HEAD
+    if (
+        !url?.startsWith("https://cdn.discordapp.com")
+        && !url?.startsWith("https://media.discordapp.net")
+        && !url?.startsWith("https://images-ext-1.discordapp.net")
+        && !url?.startsWith("https://images-ext-2.discordapp.net")
+    ) return false;
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     try {
         const ex = new URL(url).searchParams.get("ex");
         if (!ex) return false;

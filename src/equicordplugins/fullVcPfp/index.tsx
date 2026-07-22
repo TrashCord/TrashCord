@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+<<<<<<< HEAD
+import { EquicordDevs } from "@utils/constants";
+import { getUserAvatarUrl } from "@utils/misc";
+=======
 import { disableStyle, enableStyle } from "@api/Styles";
 import { EquicordDevs } from "@utils/constants";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import definePlugin from "@utils/types";
 import { ChannelRTCStore, ChannelStore, UserStore, VoiceStateStore } from "@webpack/common";
 
@@ -16,6 +21,10 @@ export default definePlugin({
     description: "Makes avatars take up the entire vc tile",
     tags: ["Appearance", "Voice"],
     authors: [EquicordDevs.mochienya],
+<<<<<<< HEAD
+    managedStyle: style,
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     patches: [
         {
             find: "\"data-selenium-video-tile\":",
@@ -37,12 +46,18 @@ export default definePlugin({
 
         const guildId = ChannelStore.getChannel(channelId)?.guild_id;
         const isSpeaking = ChannelRTCStore.getSpeakingParticipants(channelId).some(p => p.user.id === participantUserId && p.speaking);
+<<<<<<< HEAD
+        const avatarUrl = getUserAvatarUrl(user, guildId, isSpeaking, 1024);
+=======
         const avatarUrl = user.getAvatarURL(guildId, 1024, isSpeaking);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
         return {
             "--full-res-avatar": `url(${avatarUrl})`
         };
     },
+<<<<<<< HEAD
+=======
 
     start() {
         enableStyle(style);
@@ -50,4 +65,5 @@ export default definePlugin({
     stop() {
         disableStyle(style);
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 });

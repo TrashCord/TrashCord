@@ -8,7 +8,12 @@ import { showNotice } from "@api/Notices";
 import { plugins, startDependenciesRecursive, startPlugin, stopPlugin } from "@api/PluginManager";
 import { Settings } from "@api/Settings";
 import { canonicalizeMatch } from "@utils/patches";
+<<<<<<< HEAD
+import { Module } from "@vencord/discord-types/webpack";
+import { CodeFilter, FilterFn, stringMatches, wreq } from "@webpack";
+=======
 import { CodeFilter, stringMatches, wreq } from "@webpack";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Toasts } from "@webpack/common";
 
 import { WebpackPatcher } from "../../Vencord";
@@ -193,3 +198,34 @@ export function toggleEnabled(name: string, beforeReload: (error?: string) => vo
     settings.enabled = !wasEnabled;
     beforeReturn();
 }
+<<<<<<< HEAD
+
+export function findAllModuleIds(filter: FilterFn, { topLevelOnly = false }: { topLevelOnly?: boolean; } = {}): string[] {
+    const { c } = wreq;
+    const ret: string[] = [];
+
+    outer: for (const key in c) {
+        const mod: Module | undefined = c[key];
+        if (!mod?.loaded || mod.exports == null) {
+            continue;
+        }
+        if (filter(mod.exports)) {
+            ret.push(key);
+            continue;
+        }
+        if (typeof mod.exports !== "object" || topLevelOnly) {
+            continue;
+        }
+        for (const nestedMod in mod.exports) {
+            const nested = mod.exports[nestedMod];
+            if (nested && filter(nested)) {
+                ret.push(key);
+                continue outer;
+            }
+        }
+    }
+
+    return ret;
+}
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)

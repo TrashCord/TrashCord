@@ -31,18 +31,43 @@ import {
 import { DragEvent } from "react";
 
 interface EditableSongProps {
+<<<<<<< HEAD
+    index: number;
+    song: Song;
+    insert?: "top" | "bottom";
+    setSongRef(index: number, div: HTMLAnchorElement | null): void;
+    onDrag(index: number, event: DragEvent<HTMLAnchorElement>): void;
+=======
     song: Song;
     insert?: "top" | "bottom";
     setSongRef(div: HTMLAnchorElement | null): void;
     onDrag(event: DragEvent<HTMLAnchorElement>): void;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     onDrop(song: Song): void;
     onRemove(song: Song): void;
 }
 
+<<<<<<< HEAD
+function EditableSong({ index, song, insert, setSongRef, onDrag, onDrop, onRemove }: EditableSongProps) {
+    const { render, failed } = useRender(song);
+    const [dragging, setDragging] = useState(false);
+
+    const refCallback = useCallback((div: HTMLAnchorElement | null) => setSongRef(index, div), [index, setSongRef]);
+    const dragCallback = useCallback((event: DragEvent<HTMLAnchorElement>) => {
+        setDragging(true);
+        onDrag(index, event);
+    }, [index, onDrag]);
+    const dragEndCallback = useCallback(() => {
+        setDragging(false);
+        onDrop(song);
+    }, [song, onDrop]);
+
+=======
 function EditableSong({ song, insert, setSongRef, onDrag, onDrop, onRemove }: EditableSongProps) {
     const { render, failed } = useRender(song);
     const [dragging, setDragging] = useState(false);
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     return (
         <Link
             href={render?.link}
@@ -72,6 +97,12 @@ function EditableSong({ song, insert, setSongRef, onDrag, onDrop, onRemove }: Ed
             draggable="true"
             data-dragging={dragging}
             data-insert={insert}
+<<<<<<< HEAD
+            onDragStart={dragCallback}
+            onDrag={dragCallback}
+            onDragEnd={dragEndCallback}
+            ref={refCallback}
+=======
             onDragStart={event => {
                 setDragging(true);
                 onDrag(event);
@@ -83,6 +114,7 @@ function EditableSong({ song, insert, setSongRef, onDrag, onDrop, onRemove }: Ed
             }}
             useDefaultUnderlineStyles={false}
             ref={div => setSongRef(div)}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             className={cl("editable-song-container")}
         >
             <Flex alignItems="center" gap="12px" className={cl("editable-song")}>
@@ -211,10 +243,18 @@ export default function SongList({ localData, setLocalData }: SongListProps) {
                 if (slot === "song") {
                     return (
                         <EditableSong
+<<<<<<< HEAD
+                            index={i}
+                            song={song}
+                            insert={last && insert === i + 1 ? "bottom" : insert === i ? "top" : undefined}
+                            setSongRef={handleRef}
+                            onDrag={handleDrag}
+=======
                             song={song}
                             insert={last && insert === i + 1 ? "bottom" : insert === i ? "top" : undefined}
                             setSongRef={element => handleRef(i, element)}
                             onDrag={event => handleDrag(i, event)}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                             onDrop={handleDrop}
                             onRemove={handleRemove}
                             key={sid(song)}

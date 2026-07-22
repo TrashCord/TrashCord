@@ -22,6 +22,10 @@ import * as $ChatButtons from "./ChatButtons";
 import * as $Commands from "./Commands";
 import * as $ContextMenu from "./ContextMenu";
 import * as $DataStore from "./DataStore";
+<<<<<<< HEAD
+import * as $GifPickerContextMenu from "./GifPickerContextMenu";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import * as $HeaderBar from "./HeaderBar";
 import * as $MemberListDecorators from "./MemberListDecorators";
 import * as $MessageAccessories from "./MessageAccessories";
@@ -39,6 +43,10 @@ import * as $ProfileSections from "./ProfileSections";
 import * as $ServerList from "./ServerList";
 import * as $Settings from "./Settings";
 import * as $Styles from "./Styles";
+<<<<<<< HEAD
+import * as $SurfaceClasses from "./SurfaceClasses";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import * as $Themes from "./Themes";
 import * as $UserSettings from "./UserSettings";
 
@@ -98,6 +106,15 @@ export const Badges = $Badges;
 export const ServerList = $ServerList;
 
 /**
+<<<<<<< HEAD
+ * An API allowing plugins to add semantic data attributes and limited props
+ * to stable Discord layout surfaces without patching them directly.
+ */
+export const SurfaceClasses = $SurfaceClasses;
+
+/**
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
  * An API allowing you to add components as message accessories.
  */
 export const MessageDecorations = $MessageDecorations;
@@ -182,3 +199,12 @@ export const ProfileCollections = $ProfileCollections;
  * An API allowing you to add sections near the 'Member Since' area of user profile panels.
  */
 export const ProfileSections = $ProfileSections;
+<<<<<<< HEAD
+
+/**
+ * An API allowing plugins to add items to the GIF picker right-click context menu
+ * without conflicting with each other.
+ */
+export const GifPickerContextMenu = $GifPickerContextMenu;
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)

@@ -1,4 +1,10 @@
 .vc-reply-timestamp {
+<<<<<<< HEAD
+    margin-inline-end: 0.5rem;
+    width: unset !important;
+}
+=======
     width: fit-content !important;
     margin-right: 0.25em;
 }
+>>>>>>> 89b0fd2a5 (Update index.tsx)

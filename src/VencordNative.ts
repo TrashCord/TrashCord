@@ -7,6 +7,10 @@
 import type { Settings } from "@api/Settings";
 import type { CspRequestResult } from "@main/csp/manager";
 import type { PluginIpcMappings } from "@main/ipcPlugins";
+<<<<<<< HEAD
+import { UserThemeHeader } from "@main/themes";
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { IpcEvents } from "@shared/IpcEvents";
 import type { IpcRes } from "@utils/types";
 import { ipcRenderer } from "electron/renderer";
@@ -34,9 +38,16 @@ export default {
         uploadTheme: async (fileName: string, fileData: string): Promise<void> => {
             throw new Error("uploadTheme is WEB only");
         },
+<<<<<<< HEAD
+        deleteTheme: async (fileName: string): Promise<void> => {
+            throw new Error("deleteTheme is WEB only");
+        },
+        getThemesList: () => invoke<Array<UserThemeHeader>>(IpcEvents.GET_THEMES_LIST),
+=======
         deleteTheme: (fileName: string) => invoke<void>(IpcEvents.DELETE_THEME, fileName),
         getThemesDir: () => invoke<string>(IpcEvents.GET_THEMES_DIR),
         getThemesList: () => invoke<Array<{ fileName: string; content: string; }>>(IpcEvents.GET_THEMES_LIST),
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         getThemeData: (fileName: string) => invoke<string | undefined>(IpcEvents.GET_THEME_DATA, fileName),
         getSystemValues: () => invoke<Record<string, string>>(IpcEvents.GET_THEME_SYSTEM_VALUES),
 

@@ -30,6 +30,35 @@ export interface MessageObject {
     tts: boolean;
 }
 
+<<<<<<< HEAD
+export interface MessageContentOptions {
+    content: string;
+    channelId: string;
+    command: unknown | null;
+    isGif?: boolean;
+    stickers?: string[];
+    uploads?: CloudUpload[];
+    alsoForwardToChannelId?: string;
+
+    // If you end up using these, update their type
+    scheduledTimestamp?: unknown;
+    mediaMention?: unknown;
+}
+
+export interface SendMessageOptions extends MessageContentOptions {
+    messageReference?: Message["messageReference"];
+    allowedMentions?: {
+        parse: string[];
+        repliedUser: boolean;
+    };
+    location: string;
+    stickerIds?: string[];
+}
+
+export interface SendMessageProps {
+    hasStickers: boolean;
+    hasAttachments: boolean;
+=======
 export interface MessageReplyOptions {
     messageReference: Message["messageReference"];
     allowedMentions?: {
@@ -44,23 +73,37 @@ export interface MessageOptions {
     stickers?: string[];
     uploads?: CloudUpload[];
     replyOptions: MessageReplyOptions;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     content: string;
     channel: Channel;
     type?: any;
     openWarningPopout: (props: any) => any;
 }
 
+<<<<<<< HEAD
+export type MessageSendListener = (channelId: string, messageObj: MessageObject, options: SendMessageOptions, props: SendMessageProps) => Promisable<void | { cancel: boolean; }>;
+=======
 export type MessageSendListener = (channelId: string, messageObj: MessageObject, options: MessageOptions) => Promisable<void | { cancel: boolean; }>;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export type MessageEditListener = (channelId: string, messageId: string, messageObj: MessageObject) => Promisable<void | { cancel: boolean; }>;
 
 const sendListeners = new Set<MessageSendListener>();
 const editListeners = new Set<MessageEditListener>();
 
+<<<<<<< HEAD
+export async function _handlePreSend(channelId: string, messageObj: MessageObject, options: SendMessageOptions, props: SendMessageProps, contentOptions: MessageContentOptions) {
+    options = { ...contentOptions, ...options };
+
+    for (const listener of sendListeners) {
+        try {
+            const result = await listener(channelId, messageObj, options, props);
+=======
 export async function _handlePreSend(channelId: string, messageObj: MessageObject, options: MessageOptions, replyOptions: MessageReplyOptions) {
     options.replyOptions = replyOptions;
     for (const listener of sendListeners) {
         try {
             const result = await listener(channelId, messageObj, options);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             if (result?.cancel) {
                 return true;
             }

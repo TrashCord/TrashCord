@@ -38,7 +38,11 @@ export function TextSetting({ setting, pluginSettings, definedSettings, id, onCh
     }
 
     return (
+<<<<<<< HEAD
+        <SettingsSection name={setting.displayName} id={id} description={setting.description} error={error}>
+=======
         <SettingsSection name={id} description={setting.description} error={error}>
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             {setting.multiline
                 ? <TextArea
                     placeholder={setting.placeholder ?? "Enter a value"}

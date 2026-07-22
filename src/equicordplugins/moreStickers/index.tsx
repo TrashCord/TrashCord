@@ -53,7 +53,11 @@ export default definePlugin({
             }]
         },
         {
+<<<<<<< HEAD
+            find: '("ChannelTextAreaButtons")',
+=======
             find: ".GIFT_PROMOTION]).",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             replacement: [
                 {
                     match: /(?<=(,\i\.stickers\?\.button.{0,50}\i\.push\(\(.{0,100})\},"sticker"\)\))/,

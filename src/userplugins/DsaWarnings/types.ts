@@ -43,26 +43,42 @@ export interface BreachRecord {
     date?: string;
 }
 
+export interface CordCatQueryResponse {
+    statements: unknown[];
+    breach?: {
+        success: boolean;
+        data?: {
+            results?: BreachRecord[];
+        };
+        resultsCount?: number;
+        error?: {
+            status?: number;
+            message?: string;
+            details?: string;
+        };
+    };
+}
+
 export type DsaLookupResult =
     | {
         kind: "ready";
         actions: DsaAction[];
-        breaches?: BreachRecord[];
-        breachStatus?: "ready" | "unavailable";
+        breaches: BreachRecord[];
+        breachStatus: "ready" | "unavailable";
     }
     | { kind: "captcha"; }
     | { kind: "unavailable"; }
     | { kind: "error"; };
 
-export interface NativeCordCatResultOk {
+export interface NativeSearchResultOk {
     ok: true;
     status: number;
     body: string;
 }
 
-export interface NativeCordCatResultError {
+export interface NativeSearchResultError {
     ok: false;
     error: string;
 }
 
-export type NativeCordCatResult = NativeCordCatResultOk | NativeCordCatResultError;
+export type NativeSearchResult = NativeSearchResultOk | NativeSearchResultError;

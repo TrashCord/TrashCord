@@ -28,6 +28,7 @@ export function openDevTools(event: IpcMainInvokeEvent): boolean {
     return true;
 }
 
+<<<<<<< HEAD
 export async function complete(_: IpcMainInvokeEvent, appId: string, authCode: string, questTarget: number, questId: string, activityReferrer?: string): Promise<{ success: boolean; error: string | null; }> {
     const authorization = await authorize(appId, authCode, questId, activityReferrer);
 
@@ -39,11 +40,25 @@ export async function complete(_: IpcMainInvokeEvent, appId: string, authCode: s
 
     if (progressResult.error || !progressResult.success) {
         return { success: false, error: "PROGRESS: " + JSON.stringify(progressResult.error) };
+=======
+export async function complete(_: IpcMainInvokeEvent, appId: string, authCode: string, questTarget: number): Promise<{ success: boolean; error: string | null; }> {
+    const authorization = await authorize(appId, authCode);
+
+    if (authorization.error || !authorization.token) {
+        return { success: false, error: JSON.stringify(authorization.error) };
+    }
+
+    const progressResult = await progress(appId, authorization.token, questTarget);
+
+    if (progressResult.error || !progressResult.success) {
+        return { success: false, error: JSON.stringify(progressResult.error) };
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 
     return { success: true, error: null };
 }
 
+<<<<<<< HEAD
 function getActivityHeaders(questId: string, authToken: string = "", activityReferrer?: string): Record<string, string> {
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -79,11 +94,18 @@ async function authorize(appId: string, authCode: string, questId: string, activ
 
     const token = await fetch(`https://${appId}.discordsays.com/.proxy/acf/authorize`, {
         headers: getActivityHeaders(questId, "", activityReferrer),
+=======
+async function authorize(appId: string, authCode: string): Promise<{ token: string | false; error: unknown; }> {
+    let error: unknown = null;
+
+    const token = await fetch(`https://${appId}.discordsays.com/.proxy/acf/authorize`, {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         body: JSON.stringify({ code: authCode }),
         method: "POST",
         mode: "cors",
         credentials: "include",
     })
+<<<<<<< HEAD
         .then(async res => {
             const data = await readJson(res);
             const token = getResponseToken(data);
@@ -98,16 +120,31 @@ async function authorize(appId: string, authCode: string, questId: string, activ
         .catch(e => {
             error = e;
             return false as const;
+=======
+        .then(res => res.json())
+        .then(data => data.token)
+        .catch(e => {
+            error = e;
+            return false;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         });
 
     return { token, error };
 }
 
+<<<<<<< HEAD
 async function progress(appId: string, token: string, questTarget: number, questId: string, activityReferrer?: string): Promise<{ success: boolean; error: unknown; }> {
     let error: unknown = null;
 
     const success = await fetch(`https://${appId}.discordsays.com/.proxy/acf/quest/progress`, {
         headers: getActivityHeaders(questId, token, activityReferrer),
+=======
+async function progress(appId: string, token: string, questTarget: number): Promise<{ success: boolean; error: unknown; }> {
+    let error: unknown = null;
+
+    const success = await fetch(`https://${appId}.discordsays.com/.proxy/acf/quest/progress`, {
+        headers: { "x-auth-token": token },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         body: JSON.stringify({ progress: questTarget }),
         method: "POST",
         mode: "cors",

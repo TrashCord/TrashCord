@@ -189,6 +189,31 @@ export const settings = definePluginSettings({
     attachmentFileExtensions: {
         default: "png,jpg,jpeg,gif,webp,mp4,webm,mp3,ogg,wav",
         type: OptionType.STRING,
+<<<<<<< HEAD
+        description: "Comma separated list of file extensions to save. Attachments with file extensions not in this list will not be saved.",
+        onChange: (value: string) => {
+            let processedValue = "";
+
+            if (value) {
+                const exts = value.split(",").map(ext => ext.trim().toLowerCase());
+                const invalid = exts.filter(ext => blockedExts.includes(ext));
+
+                if (invalid.length > 0) {
+                    console.warn("Rejected invalid file extensions:", invalid);
+                    processedValue = exts.filter(ext => !blockedExts.includes(ext)).join(",");
+                } else {
+                    processedValue = exts.join(",");
+                }
+            }
+
+            Native.updateAllowedExtensions(processedValue).catch((err: any) => {
+                console.error("Failed to sync attachment extensions natively:", err);
+            });
+
+            return processedValue;
+        }
+    },
+=======
         description: "Comma separated list of file extensions to save. Attachments with file extensions not in this list will not be saved. Leave empty to save all attachments.",
         onChange: (value: string) => {
             if (!value) return;
@@ -204,6 +229,7 @@ export const settings = definePluginSettings({
         }
     },
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     cacheLimit: {
         default: 1000,
         type: OptionType.NUMBER,
@@ -283,7 +309,11 @@ export const settings = definePluginSettings({
                     || settings.store.imageCacheDir == null
                     || settings.store.imageCacheDir === DEFAULT_IMAGE_CACHE_DIR
                 }
+<<<<<<< HEAD
+                onClick={() => Native.showItemInFolder()}
+=======
                 onClick={() => Native.showItemInFolder(settings.store.imageCacheDir)}
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             >
                 Open Image Cache Folder
             </Button>

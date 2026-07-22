@@ -397,9 +397,9 @@ function rewriteUrl(url: URL, address: string) {
 export default definePlugin({
     name: "CustomDNS",
     description: "Resolve Discord hosts through DNS.SB, Quad9, or custom DNS servers.",
-    authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Privacy", "Utility"],
     enabledByDefault: false,
+    authors: [{ name: "Irritably", id: 928787166916640838n }],
     settings,
 
     start() {

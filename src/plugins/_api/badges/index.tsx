@@ -30,11 +30,19 @@ import { ContextMenuApi, Menu, Toasts, UserStore } from "@webpack/common";
 
 import Plugins, { PluginMeta } from "~plugins";
 
+<<<<<<< HEAD
+import { EquicordDonorModal, EquicordTranslatorModal, VencordDonorModal } from "./modals";
+
+const CONTRIBUTOR_BADGE = "https://cdn.discordapp.com/emojis/1092089799109775453.png?size=64";
+const EQUICORD_CONTRIBUTOR_BADGE = "https://equicord.org/assets/favicon.png";
+const USERPLUGIN_CONTRIBUTOR_BADGE = "https://equicord.org/assets/icons/misc/userplugin.png";
+=======
 import { EquicordDonorModal, EquicordTranslatorModal, IllegalcordDonorModal, TrashCordDonorModal, VencordDonorModal } from "./modals";
 
 const CONTRIBUTOR_BADGE = "https://cdn.discordapp.com/emojis/1092089799109775453.png?size=64";
 const EQUICORD_CONTRIBUTOR_BADGE = "https://equicord.org/assets/favicon.png";
 const USERPLUGIN_CONTRIBUTOR_BADGE = "https://github.com/ImHisako/ImHisako/blob/main/Images/Illegalcord.png?raw=true";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const ContributorBadge: ProfileBadge = {
     id: "vencord_contributor_badge",
@@ -84,8 +92,11 @@ const UserPluginContributorBadge: ProfileBadge = {
 
 let DonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 let EquicordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+<<<<<<< HEAD
+=======
 let IllegalcordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 let TrashCordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 async function loadBadges(url: string, noCache = false) {
     const init = {} as RequestInit;
@@ -97,6 +108,11 @@ async function loadBadges(url: string, noCache = false) {
 async function loadAllBadges(noCache = false) {
     const vencordBadges = await loadBadges("https://badges.vencord.dev/badges.json", noCache);
     const equicordBadges = await loadBadges("https://badge.equicord.org/badges.json", noCache);
+<<<<<<< HEAD
+
+    DonorBadges = vencordBadges;
+    EquicordDonorBadges = equicordBadges;
+=======
     const illegalcordBadges = await loadBadges("https://raw.githubusercontent.com/ImHisako/ImHisako/refs/heads/main/Images/badges.json", noCache);
     const TrashCordBadges = await loadBadges("https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/refs/heads/main/host/files/badges.json", noCache);
 
@@ -104,6 +120,7 @@ async function loadAllBadges(noCache = false) {
     EquicordDonorBadges = equicordBadges;
     IllegalcordDonorBadges = illegalcordBadges;
     TrashCordDonorBadges = TrashCordBadges;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 let intervalId: any;
@@ -146,9 +163,21 @@ export default definePlugin({
                     match: /alt:" ","aria-hidden":!0,src:.{0,50}(\i).iconSrc/,
                     replace: "...$1.props,$&"
                 },
+<<<<<<< HEAD
+                // Path with 2026-04-badge-discovery OFF
+                {
+                    match: /(?<=forceOpen:.{0,40}?ariaHidden:!0,)children:(?=.{0,50}?(\i)\.id)/,
+                    replace: "children:$1.component?$self.renderBadgeComponent({...$1}):"
+                },
+                // Path with 2026-04-badge-discovery ON
+                {
+                    match: /(?<=fallbackIconSrc:.{0,50}?)children:(?=.{0,50}?(\i)\.id)/,
+                    replace: "children:$1.component?$self.renderBadgeComponent({...$1}):"
+=======
                 {
                     match: /(?<=forceOpen:.{0,40}?ariaHidden:!0,)children:(?=.{0,50}?(\i)\.id)/,
                     replace: "children:$1.component?$self.renderBadgeComponent({...$1}) :"
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 },
                 // handle onClick and onContextMenu
                 {
@@ -267,6 +296,8 @@ export default definePlugin({
                 return badge.tooltip === "Equicord Translator" ? EquicordTranslatorModal() : EquicordDonorModal();
             },
         } satisfies ProfileBadge));
+<<<<<<< HEAD
+=======
     },
 
     getIllegalcordDonorBadges(userId: string) {
@@ -309,5 +340,6 @@ export default definePlugin({
                 return TrashCordDonorModal(badge);
             },
         } satisfies ProfileBadge));
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 });

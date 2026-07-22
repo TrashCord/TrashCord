@@ -8,9 +8,15 @@ import "./style.css";
 
 import { EquicordDevs } from "@utils/constants";
 import definePlugin from "@utils/types";
+<<<<<<< HEAD
+import { FluxDispatcher, React } from "@webpack/common";
+
+import { addCollectionContextMenuPatch, getGifPickerContextMenuItems, RemoveItemContextMenuItems } from "./components/contextMenus";
+=======
 import { FluxDispatcher } from "@webpack/common";
 
 import { addCollectionContextMenuPatch, buildGifPickerContextMenu } from "./components/contextMenus";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { settings, SortingOptions } from "./settings";
 import { Category, Collection, Gif, GifPickerInstance } from "./types";
 import { cache_collections, refreshCacheCollection, updateGif } from "./utils/collectionManager";
@@ -48,6 +54,8 @@ export default definePlugin({
             ],
         },
         {
+<<<<<<< HEAD
+=======
             find: "renderEmptyFavorite",
             replacement: {
                 match: /render\(\){.{1,500}onClick:this\.handleClick,/,
@@ -55,6 +63,7 @@ export default definePlugin({
             },
         },
         {
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             find: "renderHeaderContent()",
             replacement: {
                 match: /(renderContent\(\){)(.{1,50}resultItems)/,
@@ -64,7 +73,11 @@ export default definePlugin({
         {
             find: "type:\"GIF_PICKER_QUERY\"",
             replacement: {
+<<<<<<< HEAD
+                match: /(function \i\(.{1,10}\){)(.{1,200}.GIFS_SEARCH,query:)/,
+=======
                 match: /(function \i\(.{1,10}\){)(.{1,100}.GIFS_SEARCH,query:)/,
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$1if($self.shouldStopFetch(arguments[0])) return;$2",
             },
         },
@@ -171,7 +184,29 @@ export default definePlugin({
         return query.startsWith(GIF_COLLECTION_PREFIX) && cache_collections.some(c => c.name === query);
     },
 
+<<<<<<< HEAD
+    gifPickerContextMenu(instance, e: React.MouseEvent) {
+        const item = instance?.props?.item;
+        if (!item) return;
+
+        const { name, id } = item;
+
+        if (name?.startsWith(GIF_COLLECTION_PREFIX)) {
+            return RemoveItemContextMenuItems({ type: "collection", nameOrId: name, instance });
+        }
+
+        if (id?.startsWith(GIF_ITEM_PREFIX)) {
+            return RemoveItemContextMenuItems({ type: "gif", nameOrId: id, instance });
+        }
+
+        const { src, url, height, width } = item;
+        if (!src || !url || !height || !width) return;
+
+        return getGifPickerContextMenuItems(src, url, height, width);
+    }
+=======
     collectionContextMenu(e: React.MouseEvent, instance: GifPickerInstance) {
         return buildGifPickerContextMenu(e, instance.props.item, GIF_COLLECTION_PREFIX, GIF_ITEM_PREFIX, instance);
     },
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 });

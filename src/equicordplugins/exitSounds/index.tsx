@@ -14,7 +14,11 @@ import { Devs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
+<<<<<<< HEAD
+import { Constants, GuildStore, IconUtils, MediaEngineStore, Menu, RestAPI, SearchableSelect, SelectedChannelStore, TextInput, Toasts } from "@webpack/common";
+=======
 import { ChannelActions, Constants, GuildStore, IconUtils, MediaEngineStore, Menu, RestAPI, SearchableSelect, SelectedChannelStore, TextInput, Toasts } from "@webpack/common";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const cl = classNameFactory("vc-exitsounds-");
 
@@ -99,8 +103,11 @@ const SoundButtonContext: NavContextMenuPatchCallback = (children, { sound }: { 
     );
 };
 
+<<<<<<< HEAD
+=======
 let original: typeof ChannelActions.selectVoiceChannel;
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export default definePlugin({
     name: "ExitSounds",
     description: "Play soundboard sounds when you disconnect from voice.",
@@ -108,6 +115,42 @@ export default definePlugin({
     authors: [Devs.prism],
     dependencies: ["AudioPlayerAPI"],
     settings,
+<<<<<<< HEAD
+    contextMenus: {
+        "sound-button-context": SoundButtonContext
+    },
+    patches: [
+        {
+            find: 'type:"VOICE_CHANNEL_SHOW_FEEDBACK"',
+            replacement: {
+                match: /disconnect\(\)\{/,
+                replace: "async $& await $self.onDisconnect();"
+            }
+        }
+    ],
+    async onDisconnect() {
+        const { soundGuildId, soundId } = settings.store;
+        if (!soundGuildId || !soundId || MediaEngineStore.isDeaf()) return;
+
+        const voiceId = SelectedChannelStore.getVoiceChannelId();
+        if (!voiceId) return;
+
+        try {
+            await RestAPI.post({
+                url: Constants.Endpoints.SEND_SOUNDBOARD_SOUND(voiceId),
+                body: {
+                    sound_id: soundId,
+                    source_guild_id: soundGuildId
+                }
+            });
+        } catch {
+            Toasts.show({
+                message: "Oops! Something went wrong.",
+                id: Toasts.genId(),
+                type: Toasts.Type.FAILURE
+            });
+        }
+=======
 
     contextMenus: {
         "sound-button-context": SoundButtonContext
@@ -144,5 +187,6 @@ export default definePlugin({
 
     stop() {
         ChannelActions.selectVoiceChannel = original;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 });

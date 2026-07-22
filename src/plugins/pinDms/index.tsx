@@ -18,7 +18,11 @@ import { Clickable, ContextMenuApi, FluxDispatcher, Menu, React } from "@webpack
 import { contextMenus } from "./components/contextMenu";
 import { openCategoryModal, requireSettingsModal } from "./components/CreateCategoryModal";
 import { DEFAULT_CHUNK_SIZE } from "./constants";
+<<<<<<< HEAD
+import { canMoveCategory, canMoveCategoryInDirection, Category, categoryLen, collapseCategory, getAllUncollapsedChannels, getCategoryByIndex, getCategoryChannels, getSections, init, isPinned, moveCategory, removeCategory, usePinnedDms } from "./data";
+=======
 import { canMoveCategory, canMoveCategoryInDirection, Category, categoryLen, collapseCategory, getAllUncollapsedChannels, getCategoryByIndex, getSections, init, isPinned, moveCategory, removeCategory, usePinnedDms } from "./data";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 interface ChannelComponentProps {
     children: React.ReactNode,
@@ -48,11 +52,19 @@ export const settings = definePluginSettings({
     },
     canCollapseDmSection: {
         type: OptionType.BOOLEAN,
+<<<<<<< HEAD
+        displayName: "Can Collapse DM Section",
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         description: "Allow uncategorised DMs section to be collapsable",
         default: false
     },
     dmSectionCollapsed: {
         type: OptionType.BOOLEAN,
+<<<<<<< HEAD
+        displayName: "DM Section Collapsed",
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         description: "Collapse DM section",
         default: false,
         hidden: true
@@ -241,6 +253,22 @@ export default definePlugin({
         const category = getCategoryByIndex(categoryIndex - 1);
         if (!category) return false;
 
+<<<<<<< HEAD
+        return category.collapsed && this.instance.props.selectedChannelId !== getCategoryChannels(category)[channelIndex];
+    },
+
+    getScrollOffset(channelId: string, rowHeight: number, padding: number, preRenderedChildren: number, originalOffset: number) {
+        const channels = this.getAllUncollapsedChannels();
+
+        if (!isPinned(channelId))
+            return (
+                (rowHeight + padding) * 2 // header
+                + rowHeight * channels.length // pins
+                + originalOffset // original pin offset minus pins
+            );
+
+        return rowHeight * (channels.indexOf(channelId) + preRenderedChildren) + padding;
+=======
         return category.collapsed && this.instance.props.selectedChannelId !== this.getCategoryChannels(category)[channelIndex];
     },
 
@@ -253,6 +281,7 @@ export default definePlugin({
             );
 
         return rowHeight * (this.getAllUncollapsedChannels().indexOf(channelId) + preRenderedChildren) + padding;
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     },
 
     renderCategory: ErrorBoundary.wrap(({ section }: { section: number; }) => {
@@ -347,12 +376,19 @@ export default definePlugin({
         const category = getCategoryByIndex(sectionIndex - 1);
         if (!category) return { channel: null, category: null };
 
+<<<<<<< HEAD
+        const channelId = getCategoryChannels(category)[index];
+=======
         const channelId = this.getCategoryChannels(category)[index];
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
         return { channel: channels[channelId], category };
     },
 
     getCategoryChannels(category: Category) {
+<<<<<<< HEAD
+        return getCategoryChannels(category);
+=======
         if (category.channels.length === 0) return [];
 
         if (settings.store.pinOrder === PinOrder.LastMessage) {
@@ -360,5 +396,6 @@ export default definePlugin({
         }
 
         return category?.channels ?? [];
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 });

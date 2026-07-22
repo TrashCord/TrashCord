@@ -18,7 +18,11 @@ import { Key } from "react";
 import { JsonValue } from "type-fest";
 
 import { base64ToUint8Array, uint8ArrayToBase64 } from "./polyfills";
+<<<<<<< HEAD
+import { AttachmentTransformer, CustomItemDef, CustomItemFormat, FavouriteItem, FavouriteItemFormat, ImageUtils as ImageUtils_, ItemsDef, ResizeObserverHook, UnfurledEmbedsResponse } from "./types";
+=======
 import { CustomItemDef, CustomItemFormat, FavouriteItem, FavouriteItemFormat, ImageUtils as ImageUtils_, ItemsDef, ResizeObserverHook, UnfurledEmbedsResponse } from "./types";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const Native = VencordNative.pluginHelpers.FavouriteAnything as PluginNative<typeof import("./native")>;
 
@@ -26,6 +30,12 @@ export const cl = classNameFactory("vc-favouriteAnything-");
 
 export const useResizeObserver: ResizeObserverHook = findByCodeLazy("borderBoxSize", "blockSize", "inlineSize");
 export const ImageUtils: ImageUtils_ = findByPropsLazy("isAnimated", "getFormatQuality");
+<<<<<<< HEAD
+export const transformAttachment: AttachmentTransformer = findByCodeLazy("return{uniqueId", ".IS_ANIMATED");
+
+const encoder = new TextEncoder(), decoder = new TextDecoder();
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const defineItem = <const A, const B extends JsonValue>(item: CustomItemDef<A, B>) => item;
 function defineItems<T extends Record<CustomItemFormat, CustomItemDef>>(def: ItemsDef<T>) {
@@ -36,7 +46,11 @@ function defineItems<T extends Record<CustomItemFormat, CustomItemDef>>(def: Ite
             try {
                 const obj = [format, def[format].encode(data)];
 
+<<<<<<< HEAD
+                const buf = deflateSync(encoder.encode(JSON.stringify(obj)));
+=======
                 const buf = deflateSync(new TextEncoder().encode(JSON.stringify(obj)));
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 return uint8ArrayToBase64(buf);
             } catch {
                 return null;
@@ -47,7 +61,11 @@ function defineItems<T extends Record<CustomItemFormat, CustomItemDef>>(def: Ite
                 if (!raw) return null;
 
                 const buf = inflateSync(base64ToUint8Array(raw));
+<<<<<<< HEAD
+                const parsed: unknown[] | null = JSON.parse(decoder.decode(buf));
+=======
                 const parsed: unknown[] | null = JSON.parse(new TextDecoder().decode(buf));
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                 if (!Array.isArray(parsed)) return null;
 
                 const [format, data] = parsed as [keyof typeof def, JsonValue];
@@ -214,6 +232,30 @@ function fuzzySearch(searchQuery: string, searchString: string) {
     return null;
 }
 
+<<<<<<< HEAD
+export function useFavourites(itemFormat: CustomItemFormat, searchQuery?: string) {
+    useEffect(() => void UserSettingsActionCreators.FrecencyUserSettingsActionCreators.loadIfNecessary(), []);
+
+    const items = useStateFromStores(
+        [UserSettingsProtoStore],
+        () => {
+            const gifs: Record<string, FavouriteItem> | undefined =
+                UserSettingsProtoStore.frecencyWithoutFetchingLatest.favoriteGifs?.gifs;
+            if (!gifs) return null;
+
+            return Object.entries(gifs)
+                .filter(([, { format }]) => format === FavouriteItemFormat.NONE)
+                .map(([url, { src, ...rest }]) => ({
+                    ...rest,
+                    ...defs.decode(URL.parse(src)?.hash.replace("#", "") ?? "")!,
+                    url
+                }))
+                .filter(({ format, data }) => data && format === itemFormat);
+        },
+        [itemFormat]
+    );
+
+=======
 function filterItems(items: Record<string, FavouriteItem> | null, itemFormat: CustomItemFormat, query?: string) {
     if (!items) return null;
 
@@ -241,16 +283,36 @@ function filterItems(items: Record<string, FavouriteItem> | null, itemFormat: Cu
 export function useFavourites(itemFormat: CustomItemFormat, searchQuery?: string) {
     useEffect(() => void UserSettingsActionCreators.FrecencyUserSettingsActionCreators.loadIfNecessary(), []);
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     const { state } = useStateFromStores(
         [UserSettingsProtoStore],
         () => {
             const query = searchQuery && normalize(searchQuery);
+<<<<<<< HEAD
+
+            if (!items) return { query, state: null };
+            if (!query) return { query, state: items.toSorted((a, b) => b.order - a.order) };
+
+            const state = items
+                .map(item => ({
+                    item,
+                    score: fuzzySearch(query, normalize(defs.stringify(item.format, item.data)))
+                }))
+                .filter(({ score }) => score !== null)
+                .sort((a, b) => b.score! - a.score!)
+                .map(({ item }) => item);
+
+            return { query, state };
+        },
+        [items, searchQuery],
+=======
             const items: Record<string, FavouriteItem> | null =
                 UserSettingsProtoStore.frecencyWithoutFetchingLatest.favoriteGifs?.gifs;
 
             return { query, state: filterItems(items, itemFormat, query) };
         },
         [searchQuery],
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         // Do not rerender components using this hook unless the query has changed or the items were loaded for the first time
         // This matches the behavior of the gif picker, where unfavouriting an item doesn't immediately hide it
         (prev, next) => !!prev.state === !!next.state && prev.query === next.query

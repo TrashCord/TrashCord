@@ -563,7 +563,7 @@ function GNRUserAreaButton() {
 export default definePlugin({
     name: "GlobalNameRotator",
     description: "Automatically rotates your global display name (not server nicknames). Sequential or random cycling, manual override, history tracking, JSON import/export, and live status in the user area.",
-    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    authors: [{ name: "zFrxncesck1", id: 456195985404592149n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: false,
     settings,

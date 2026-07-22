@@ -29,7 +29,7 @@ const settings = definePluginSettings({
         default: true,
         restartNeeded: true,
     },
-    optimizeTooltips: {
+    optimizeTooltip: {
         type: OptionType.BOOLEAN,
         description: "Bypasses flushSync in tooltip state updates - prevents forced synchronous re-renders on hover.",
         default: true,
@@ -41,7 +41,7 @@ const settings = definePluginSettings({
         default: true,
         restartNeeded: true,
     },
-    killLoadingSpinner: {
+    disableSpinner: {
         type: OptionType.BOOLEAN,
         description: "Removes the app loading spinner - skips spinner source resolution on startup, saving ~100ms.",
         default: true,
@@ -60,9 +60,9 @@ export default definePlugin({
     description: "Collection of small performance improvements",
     authors: [
         { id: 579731384868798464n, name: "void" },
-        { id: 456195985404592149n, name: "zfrancesck1" },
+        { id: 456195985404592149n, name: "zFrxncesck1" },
     ],
-    tags: ["Developers", "Utility", "Performance"],
+    tags: ["Developers", "Utility"],
     enabledByDefault: false,
     settings,
     patches: [
@@ -79,10 +79,7 @@ export default definePlugin({
         // {
         //     find: "getDispatchHandler needs to be passed in first!",
         //     predicate: () => settings.store.optimizeDispatch,
-        //     replacement: {
-        //        match: /let \i=Date\.now\(\),(\i=\i\.Z\.flush\(\i,\i\));\i\.\i\.showPerformanceTelemetry\?.+?Telemetry\(.+?,\i\)/,
-        //        replace: "$1",
-        //    },
+        //     replacement: { match: /(\.flush\(\w,\w\),"READY"===\w\)\{).+?;(.+?\)),.+?\}/, replace: (_, a, b) => a + b + "}" },
         // },
         {
             find: "--custom-app-panels-height",
@@ -94,32 +91,33 @@ export default definePlugin({
         },
         {
             find: "this.state.shouldShowTooltip!==",
-            predicate: () => settings.store.optimizeTooltips,
-            replacement: {
-                match: /(?:\w+\.)?flushSync\(\(\)=>\{(this\.setState\(\{shouldShowTooltip:\w+\}\))\}\)/,
-                replace: "$1",
-            },
+            predicate: () => settings.store.optimizeTooltip,
+            replacement: [
+                {
+                    match: /\w.flushSync\(\(\)=>\{this\.setState\(\{shouldShowTooltip:(\w)\}\)\}\)/,
+                    replace: (_, param) => "this.__open=" + param + ",this.setState({shouldShowTooltip:" + param + "})",
+                },
+                {
+                    match: /if\(this\.state\.shouldShowTooltip!==(\w)\)/,
+                    replace: "if(this.__open!==$1)",
+                },
+            ],
         },
         {
             find: "this.rebuildFavoriteEmojisWithoutFetchingLatest()",
             predicate: () => settings.store.optimizeEmojiCache,
             replacement: {
-                match: /(\w+)=(\w+)=>\{let (\w+)=(\w+)\[null==\2\?([^:]+):\2\];null!=\3&&\((\w+)\(\)\.each\(\3\.usableEmojis,(\w+)\),\6\(\)\.each\(\3\.emoticons,(\w+)\)\)\}/,
-                replace: (_, o, e, t, cache, key, each, r, s) =>
-                    `${o}=${e}=>{` +
-                    `const ${t}=${cache}[null==${e}?${key}:${e}];` +
-                    `const _u=${t}?.usableEmojis;` +
-                    `const _em=${t}?.emoticons;` +
-                    `null!=${t}&&(${each}().each(_u,${r}),${each}().each(_em,${s}))` +
-                    `}`,
+                match: /(\w)=>\{let \w=(\w)\[null==\w\?(\w)\.kod:\w\];null!=\w&&\((\w)\(\)\.each\(\w\.usableEmojis,(\w)\),\w\(\)\.each\(\w\.emoticons,(\w)\)\)\};/,
+                replace: (_, e, q, k, a, n, r) =>
+                    `${e}=>{const t=${q}[null==${e}?${k}.kod:${e}];const usableEmojis=t?.usableEmojis;const emoticons=t?.emoticons;null!=t&&(${a}().each(usableEmojis,${n}),${a}().each(emoticons,${r}))};`,
             },
         },
         {
-            find: "getAppSpinnerSources",
-            predicate: () => settings.store.killLoadingSpinner,
+            find: /\w\.\w\.getAppSpinnerSources\(\)/,
+            predicate: () => settings.store.disableSpinner,
             replacement: {
-                match: /let (\w+)=\w+\.\w+\.getAppSpinnerSources\(\),(\w+)=null!=\1\?\w+\(\1\):null/,
-                replace: (_, src, spinner) => `let ${src}=null,${spinner}=null`,
+                match: /let \w=\w\.\w\.getAppSpinnerSources\(\).+?;(\w\.\w).+?\)\}/,
+                replace: "$1 = () => null;",
             },
         },
         {

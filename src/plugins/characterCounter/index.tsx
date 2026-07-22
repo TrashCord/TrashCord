@@ -8,6 +8,14 @@ import "./style.css";
 
 import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
+<<<<<<< HEAD
+import { Devs } from "@utils/constants";
+import { classNameFactory } from "@utils/css";
+import definePlugin, { OptionType } from "@utils/types";
+import { useEffect, UserStore, useState } from "@webpack/common";
+
+const cl = classNameFactory("vc-charCounter-");
+=======
 import { Devs, EquicordDevs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
@@ -16,6 +24,7 @@ import { useEffect, UserStore, useState } from "@webpack/common";
 
 const cl = classNameFactory("vc-charCounter-");
 const SlateUtils = findByPropsLazy("getSelectedText");
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const settings = definePluginSettings({
     colorEffects: {
@@ -36,7 +45,11 @@ function getCounterColor(percentage: number) {
 export default definePlugin({
     name: "CharacterCounter",
     description: "Adds a character counter to the chat input",
+<<<<<<< HEAD
+    authors: [Devs.thororen, Devs.creations],
+=======
     authors: [Devs.thororen, EquicordDevs.creations],
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     tags: ["Utility"],
     settings,
     patches: [
@@ -64,9 +77,13 @@ export default definePlugin({
 
         useEffect(() => {
             const listener = () => {
+<<<<<<< HEAD
+                setSelectedCount(document.getSelection()?.toString()?.length ?? 0);
+=======
                 if (!editorRef?.current) return setSelectedCount(0);
 
                 setTimeout(() => setSelectedCount(SlateUtils.getSelectedText(editorRef.current?.getSlateEditor())?.length ?? 0), 50);
+>>>>>>> 89b0fd2a5 (Update index.tsx)
             };
 
             document.addEventListener("selectionchange", listener);

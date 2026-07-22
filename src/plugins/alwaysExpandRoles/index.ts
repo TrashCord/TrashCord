@@ -52,8 +52,13 @@ export default definePlugin({
                     replace: "false"
                 },
                 {
+<<<<<<< HEAD
+                    match: /return \i\.length<\i\.length/,
+                    replace: "return false",
+=======
                     match: /\(\)=>\i\.length<\i\.length/,
                     replace: "()=>false",
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                     predicate: () => settings.store.hideArrow
                 }
             ]

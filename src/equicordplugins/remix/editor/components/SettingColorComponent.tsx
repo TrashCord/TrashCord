@@ -4,9 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+<<<<<<< HEAD
+=======
 // brutally ripped out of usercss
 // (remove when usercss is merged)
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import "./colorStyles.css";
 
 import { classNameFactory } from "@utils/css";

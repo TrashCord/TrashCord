@@ -16,7 +16,7 @@ import managedStyle from "./styles.css?managed";
 export default definePlugin({
     name: "UnreadCountBadge",
     authors: [Devs.Joona],
-    tags: ["Notifications", "Utility"],
+    tags: ["Notification", "Utility"],
     enabledByDefault: false,
     managedStyle,
     description: "Show unread count in the channel list",

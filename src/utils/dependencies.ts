@@ -16,9 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+<<<<<<< HEAD
+=======
 import type StylusRenderer = require("stylus/lib/renderer");
 import type LessStatic from "less";
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 import { makeLazy } from "./lazy";
 
 // The below code is only used on the Desktop (electron) build of Vencord.
@@ -29,6 +32,8 @@ export const shikiOnigasmSrc = "https://cdn.jsdelivr.net/npm/@vap/shiki@0.10.3/d
 
 // @ts-expect-error
 export const getStegCloak = /* #__PURE__*/ makeLazy(() => import("https://cdn.jsdelivr.net/npm/stegcloak-dist@1.0.0/index.js"));
+<<<<<<< HEAD
+=======
 
 export const getStylus = /* #__PURE__*/ makeLazy(async () => {
     const stylusScript = await fetch("https://cdn.jsdelivr.net/npm/stylus-lang-bundle@0.58.1/dist/stylus-renderer.min.js").then(r => r.text());
@@ -44,3 +49,4 @@ export const getLess = /* #__PURE__*/ makeLazy(async () => {
     Function("module", "exports", lessScript)(module, module.exports);
     return module.exports as LessStatic;
 });
+>>>>>>> 89b0fd2a5 (Update index.tsx)

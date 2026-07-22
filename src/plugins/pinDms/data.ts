@@ -17,6 +17,11 @@ export interface Category {
 }
 
 let forceUpdateDms: (() => void) | undefined = undefined;
+<<<<<<< HEAD
+let lastPrivateChannelIds: string[] | null = null;
+const lastSortOrder = new Map<string, number>();
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export let currentUserCategories: Category[] = [];
 
 export async function init() {
@@ -83,6 +88,8 @@ export function categoryLen() {
     return currentUserCategories.length;
 }
 
+<<<<<<< HEAD
+=======
 export function getAllUncollapsedChannels() {
     if (settings.store.pinOrder === PinOrder.LastMessage) {
         const sortedChannels = PrivateChannelSortStore.getPrivateChannelIds();
@@ -92,6 +99,7 @@ export function getAllUncollapsedChannels() {
     return currentUserCategories.filter(c => !c.collapsed).flatMap(c => c.channels);
 }
 
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export function getSections() {
     return currentUserCategories.reduce((acc, category) => {
         acc.push(category.channels.length === 0 ? 1 : category.channels.length);
@@ -99,6 +107,40 @@ export function getSections() {
     }, [] as number[]);
 }
 
+<<<<<<< HEAD
+function getSortOrder(ids: string[]) {
+    if (ids !== lastPrivateChannelIds) {
+        lastPrivateChannelIds = ids;
+        lastSortOrder.clear();
+        for (let i = 0; i < ids.length; i++) {
+            lastSortOrder.set(ids[i], i);
+        }
+    }
+    return lastSortOrder;
+}
+
+export function getCategoryChannels(category: Category): string[] {
+    if (category.channels.length === 0) return [];
+
+    if (settings.store.pinOrder === PinOrder.LastMessage) {
+        const sortedChannels = PrivateChannelSortStore.getPrivateChannelIds();
+        const order = getSortOrder(sortedChannels);
+        return [...category.channels].sort((a, b) => {
+            return (order.get(a) ?? Infinity) - (order.get(b) ?? Infinity);
+        });
+    }
+
+    return category.channels;
+}
+
+export function getAllUncollapsedChannels() {
+    return currentUserCategories
+        .filter(c => !c.collapsed)
+        .flatMap(getCategoryChannels);
+}
+
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 // Move categories
 export const canMoveArrayInDirection = (array: any[], index: number, direction: -1 | 1) => {
     const a = array[index];

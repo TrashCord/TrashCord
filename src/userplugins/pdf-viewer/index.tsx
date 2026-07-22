@@ -496,8 +496,7 @@ export default definePlugin({
     name: "PdfViewer",
     description: "Preview PDF attachments inline without downloading them first",
     authors: [Devs.vp9, Devs.semon009],
-    enabledByDefault: false,
-    tags: ["Utility"],
+    tags: ["Media", "Utility", "Chat"],
     managedStyle,
     settings,
 

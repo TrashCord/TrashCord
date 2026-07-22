@@ -17,7 +17,11 @@ import { React, Toasts, useState } from "@webpack/common";
 import { CLIENT_VERSION, logger, PORT, settings } from ".";
 import { Recieve } from "./types";
 import { FullOutgoingMessage, OutgoingMessage } from "./types/send";
+<<<<<<< HEAD
+import { extractModule, extractOrThrow, findAllModuleIds, findModuleId, getModulePatchedBy, mkRegexFind, parseNode, toggleEnabled, } from "./util";
+=======
 import { extractModule, extractOrThrow, findModuleId, getModulePatchedBy, mkRegexFind, parseNode, toggleEnabled, } from "./util";
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 
 export function stopWs() {
     socket?.close(1000, "Plugin Stopped");
@@ -256,6 +260,31 @@ export function initWs(isManual = false) {
                             }
 
                             try {
+<<<<<<< HEAD
+                                let moduleIds: string[];
+                                switch (m.findType.replace("find", "").replace("Lazy", "")) {
+                                    case "":
+                                    case "Component":
+                                        moduleIds = findAllModuleIds(parsedArgs[0]);
+                                        break;
+                                    case "CssClasses":
+                                        moduleIds = findAllModuleIds(filters.byClassNames(...parsedArgs), { topLevelOnly: true });
+                                        break;
+                                    case "ByProps":
+                                        moduleIds = findAllModuleIds(filters.byProps(...parsedArgs));
+                                        break;
+                                    case "Store":
+                                        moduleIds = findAllModuleIds(filters.byStoreName(parsedArgs[0]));
+                                        break;
+                                    case "ByCode":
+                                        moduleIds = findAllModuleIds(filters.byCode(...parsedArgs));
+                                        break;
+                                    case "ModuleId":
+                                        moduleIds = Object.keys(search(parsedArgs[0]));
+                                        break;
+                                    case "ComponentByCode":
+                                        moduleIds = findAllModuleIds(filters.componentByCode(...parsedArgs));
+=======
                                 let results: any[];
                                 switch (m.findType.replace("find", "").replace("Lazy", "")) {
                                     case "":
@@ -279,24 +308,40 @@ export function initWs(isManual = false) {
                                         break;
                                     case "ComponentByCode":
                                         results = findAll(filters.componentByCode(...parsedArgs));
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                         break;
                                     default:
                                         return reply("Unknown Find Type " + m.findType);
                                 }
 
+<<<<<<< HEAD
+                                const uniqueModuleIds = new Set(moduleIds).size;
+                                if (uniqueModuleIds === 0) throw "No results";
+                                if (uniqueModuleIds > 1) throw "Found more than one result! Make this filter more specific";
+                                // best name ever
+                                const [foundId] = moduleIds;
+=======
                                 const uniqueResultsCount = new Set(results).size;
                                 if (uniqueResultsCount === 0) throw "No results";
                                 if (uniqueResultsCount > 1) throw "Found more than one result! Make this filter more specific";
                                 // best name ever
                                 const foundFind: string = [...results][0].toString();
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                 replyData({
                                     type: "extract",
                                     ok: true,
                                     data: {
+<<<<<<< HEAD
+                                        module: extractModule(foundId),
+                                        find: true,
+                                        moduleNumber: +foundId,
+                                        patchedBy: getModulePatchedBy(foundId)
+=======
                                         module: foundFind,
                                         find: true,
                                         moduleNumber: +findModuleId([foundFind]),
                                         patchedBy: getModulePatchedBy(foundFind)
+>>>>>>> 89b0fd2a5 (Update index.tsx)
                                     },
                                 });
                             } catch (err) {

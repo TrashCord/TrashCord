@@ -60,6 +60,19 @@ export default definePlugin({
             }
         },
         {
+<<<<<<< HEAD
+            find: ".SECONDS_30,label:",
+            replacement: [
+                {
+                    match: /\[\{.{0,25}\i.\i.SECONDS_30.{0,500}\}\]/,
+                    replace: " $self.patchTimeslots($&)"
+                },
+                {
+                    match: /\[\{.{0,25}\i.\i.FPS_15.{0,500}\}\]/,
+                    replace: " $self.patchFramerates($&)"
+                }
+            ]
+=======
             find: ".CLIPS_FRAME_RATE,{",
             replacement: {
                 match: /\[\{.{0,25}\i.\i.FPS_15.{0,500}\}\]/,
@@ -72,6 +85,7 @@ export default definePlugin({
                 match: /\[\{.{0,25}\i.\i.SECONDS_30.{0,500}\}\]/,
                 replace: "$self.patchTimeslots($&)"
             }
+>>>>>>> 89b0fd2a5 (Update index.tsx)
         },
     ],
 

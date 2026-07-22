@@ -4,7 +4,6 @@ export default definePlugin({
     name: "OverlayFix",
     description: "Attempts to fix the overlay by tricking Discord about the process name (pretends to be discord.exe).",
     authors: [{ name: "Nightcord", id: 0n }],
-    tags: ["Utility", "Developers"],
     enabledByDefault: false,
     cannotBeDisabled: false,
     requiresRestart: true,

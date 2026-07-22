@@ -12,6 +12,10 @@ type PolicyMap = Record<string, string[]>;
 export const ConnectSrc = ["connect-src"];
 export const ImageSrc = [...ConnectSrc, "img-src"];
 export const CssSrc = ["style-src", "font-src"];
+<<<<<<< HEAD
+export const ImageAndMediaSrc = [...ImageSrc, "media-src"];
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 export const ImageAndCssSrc = [...ImageSrc, ...CssSrc];
 export const ImageScriptsAndCssSrc = [...ImageAndCssSrc, "script-src", "worker-src"];
 export const CSPSrc = ["style-src", "connect-src", "img-src", "frame-src", "font-src", "media-src", "worker-src"];
@@ -41,7 +45,10 @@ export const CspPolicies: PolicyMap = {
     "i.imgur.com": ImageSrc, // Imgur, used by some themes
     "i.ibb.co": ImageSrc, // ImgBB, used by some themes
     "i.pinimg.com": ImageSrc, // Pinterest, used by some themes
+<<<<<<< HEAD
+=======
     "*.tenor.com": ImageSrc, // Tenor, used by some themes
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     "files.catbox.moe": ImageAndCssSrc, // Catbox, used by some themes
 
     "cdn.discordapp.com": ImageAndCssSrc, // Discord CDN, used by Vencord and some themes to load media
@@ -55,6 +62,14 @@ export const CspPolicies: PolicyMap = {
     // Function Specific
     "api.github.com": ConnectSrc, // used for updating Vencord itself
     "ws.audioscrobbler.com": ConnectSrc, // Last.fm API
+<<<<<<< HEAD
+    "musicbrainz.org": ConnectSrc,
+    "*.listenbrainz.org": ConnectSrc,
+    "coverartarchive.org": ConnectSrc,
+    "archive.org": ConnectSrc,
+    "*.archive.org": ConnectSrc,
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
     "translate-pa.googleapis.com": ConnectSrc, // Google Translate API
     "*.vencord.dev": ImageSrc, // VenCloud (api.vencord.dev) and Badges (badges.vencord.dev)
     "manti.vendicated.dev": ImageSrc, // ReviewDB API
@@ -64,12 +79,13 @@ export const CspPolicies: PolicyMap = {
     "dearrow-thumb.ajay.app": ImageSrc, // Dearrow Thumbnail CDN
     "usrbg.is-hardly.online": ImageSrc, // USRBG API
     "icons.duckduckgo.com": ImageSrc, // DuckDuckGo Favicon API (Reverse Image Search)
+<<<<<<< HEAD
 
-    // AI APIs — used by TrashCord plugins (NightcordAI, ChatGPT, AutoCorrect, VoiceDictation, TriviaAI, etc.)
-    "api.groq.com": ConnectSrc,
-    "api.openai.com": ConnectSrc,
-    // HCaptcha
-    "*.hcaptcha.com": [...CSPSrc, "script-src"],
+    // Tenor, used by TenorSearch plugin and some themes
+    "*.tenor.com": ImageAndMediaSrc,
+    "*.tenor.co": ImageAndMediaSrc,
+=======
+>>>>>>> 89b0fd2a5 (Update index.tsx)
 };
 
 const findHeader = (headers: PolicyMap, headerName: Lowercase<string>) => {
