@@ -1,0 +1,12 @@
+[--messageListItem]:hover,
+[--messageListItem]:focus-within {
+    position: relative;
+    z-index: 2;
+}
+
+[--messageListItem]:hover + [--messageListItem],
+[--messageListItem]:focus-within + [--messageListItem],
+[--messageListItem]:has(+ [--messageListItem]:hover),
+[--messageListItem]:has(+ [--messageListItem]:focus-within) {
+    z-index: 1;
+}
