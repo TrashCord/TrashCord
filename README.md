@@ -17,7 +17,7 @@ Check out the full list in the [`src/plugins`](./src/plugins), [`src/equicordplu
 
 ---
 
-## Installation / Uninstallation [Working Progress]
+## Installation / Uninstallation ["Working Progress"]
 
 Windows
 - [GUI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.exe) 
