@@ -3,15 +3,7 @@
     "author": "Equicord & Vencord Contributors",
     "private": false,
     "description": "Typescript definitions for the webpack modules of the Discord Web app",
-<<<<<<< HEAD
-<<<<<<< HEAD
     "version": "1.0.5",
-=======
-    "version": "1.0.4",
->>>>>>> 89b0fd2a5 (Update index.tsx)
-=======
-    "version": "1.0.5",
->>>>>>> upstream/main
     "license": "LGPL-3.0-or-later",
     "types": "src/index.d.ts",
     "type": "module",
@@ -21,26 +13,10 @@
         "directory": "packages/discord-types"
     },
     "dependencies": {
-<<<<<<< HEAD
-<<<<<<< HEAD
         "moment": "2.22.2",
         "type-fest": "^5.7.0"
     },
     "peerDependencies": {
         "@types/react": "19.1.0"
-=======
-        "moment": "^2.22.2",
-        "type-fest": "^4.41.0"
-    },
-    "peerDependencies": {
-        "@types/react": "^19.0.10"
->>>>>>> 89b0fd2a5 (Update index.tsx)
-=======
-        "moment": "2.22.2",
-        "type-fest": "^5.7.0"
-    },
-    "peerDependencies": {
-        "@types/react": "19.1.0"
->>>>>>> upstream/main
     }
 }
