@@ -1,27 +1,8 @@
 /*
-<<<<<<< HEAD
  * Vencord, a Discord client mod
  * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-=======
- * Vencord, a modification for Discord's desktop app
- * Copyright (c) 2022 Vendicated and contributors
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import { Toasts } from "@webpack/common";
 
@@ -43,7 +24,6 @@ export interface UserReviewsData {
     hasOptedOut: boolean;
 }
 
-<<<<<<< HEAD
 export interface ReviewVote {
     reviewID: number;
     isUpvote: boolean;
@@ -89,21 +69,6 @@ async function rdbRequest<T = unknown>(path: string, options: RequestInit = {}):
 }
 
 export async function getReviews(id: string, { limit, offset = 0, fetchVotes = false }: { limit?: number; offset?: number; fetchVotes?: boolean; } = {}): Promise<UserReviewsData> {
-=======
-const WarningFlag = 0b00000010;
-
-async function rdbRequest(path: string, options: RequestInit = {}) {
-    return fetch(API_URL + path, {
-        ...options,
-        headers: {
-            ...options.headers,
-            Authorization: await getToken() || "",
-        }
-    });
-}
-
-export async function getReviews(id: string, { limit, offset = 0 }: { limit?: number; offset?: number; } = {}): Promise<UserReviewsData> {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     let flags = 0;
     if (!settings.store.showWarning) flags |= WarningFlag;
 
@@ -112,10 +77,7 @@ export async function getReviews(id: string, { limit, offset = 0 }: { limit?: nu
     if (offset) params.append("offset", String(offset));
     if (limit) params.append("limit", String(limit));
 
-<<<<<<< HEAD
     const votesPromise = fetchVotes ? getReviewVotes(id).catch(() => []) : Promise.resolve([]);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const req = await fetch(`${API_URL}/users/${id}/reviews?${params}`);
 
     const res = (req.ok)
@@ -152,7 +114,6 @@ export async function getReviews(id: string, { limit, offset = 0 }: { limit?: nu
         };
     }
 
-<<<<<<< HEAD
     if (!fetchVotes || res.reviews.length === 0) return res;
 
     const votes = await votesPromise;
@@ -180,12 +141,6 @@ export async function getReviewVotes(id: string): Promise<ReviewVote[]> {
 }
 
 export async function addReview(review): Promise<UserReviewsData | null> {
-=======
-    return res;
-}
-
-export async function addReview(review: any): Promise<UserReviewsData | null> {
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     const token = await getToken();
     if (!token) {
@@ -194,7 +149,6 @@ export async function addReview(review: any): Promise<UserReviewsData | null> {
         return null;
     }
 
-<<<<<<< HEAD
     const data = await rdbRequest<UserReviewsData>(`/users/${review.userid}/reviews`, {
         method: "PUT",
         body: JSON.stringify(review),
@@ -262,67 +216,12 @@ export async function deleteReviewVote(id: number) {
 async function patchBlock(action: "block" | "unblock", userId: string) {
     const data = await rdbRequest("/blocks", {
         method: "PATCH",
-=======
-    return await rdbRequest(`/users/${review.userid}/reviews`, {
-        method: "PUT",
-        body: JSON.stringify(review),
-        headers: {
-            "Content-Type": "application/json",
-        }
-    }).then(async r => {
-        const data = await r.json() as UserReviewsData;
-        showToast(data.message);
-        return r.ok ? data : null;
-    });
-}
-
-export async function deleteReview(id: number): Promise<UserReviewsData | null> {
-    return await rdbRequest(`/users/${id}/reviews`, {
-        method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-        body: JSON.stringify({
-            reviewid: id
-        })
-    }).then(async r => {
-        const data = await r.json() as UserReviewsData;
-        showToast(data.message);
-        return r.ok ? data : null;
-    });
-}
-
-export async function reportReview(id: number) {
-    const res = await rdbRequest("/reports", {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-        body: JSON.stringify({
-            reviewid: id,
-        })
-    }).then(r => r.json()) as UserReviewsData;
-
-    showToast(res.message);
-}
-
-async function patchBlock(action: "block" | "unblock", userId: string) {
-    const res = await rdbRequest("/blocks", {
-        method: "PATCH",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
->>>>>>> 89b0fd2a5 (Update index.tsx)
         body: JSON.stringify({
             action: action,
             discordId: userId
         })
     });
 
-<<<<<<< HEAD
     if (!data) return;
 
     showToast(`Successfully ${action}ed user`, Toasts.Type.SUCCESS);
@@ -332,19 +231,6 @@ async function patchBlock(action: "block" | "unblock", userId: string) {
             ? [...Auth.user.blockedUsers, userId]
             : Auth.user.blockedUsers.filter(id => id !== userId);
         updateAuth({ user: { ...Auth.user, blockedUsers: newBlockedUsers } });
-=======
-    if (!res.ok) {
-        showToast(`Failed to ${action} user`, Toasts.Type.FAILURE);
-    } else {
-        showToast(`Successfully ${action}ed user`, Toasts.Type.SUCCESS);
-
-        if (Auth?.user?.blockedUsers) {
-            const newBlockedUsers = action === "block"
-                ? [...Auth.user.blockedUsers, userId]
-                : Auth.user.blockedUsers.filter(id => id !== userId);
-            updateAuth({ user: { ...Auth.user, blockedUsers: newBlockedUsers } });
-        }
->>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 }
 
@@ -352,7 +238,6 @@ export const blockUser = (userId: string) => patchBlock("block", userId);
 export const unblockUser = (userId: string) => patchBlock("unblock", userId);
 
 export async function fetchBlocks(): Promise<ReviewDBUser[]> {
-<<<<<<< HEAD
     return await rdbRequest<ReviewDBUser[]>("/blocks") ?? [];
 }
 
@@ -364,27 +249,6 @@ export function getCurrentUserInfo(): Promise<ReviewDBCurrentUser | null> {
 
 export async function readNotification(id: number) {
     return await rdbRequest(`/notifications?id=${id}`, {
-=======
-    const res = await rdbRequest("/blocks", {
-        method: "GET",
-        headers: {
-            Accept: "application/json",
-        }
-    });
-
-    if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-    return res.json();
-}
-
-export function getCurrentUserInfo(token: string): Promise<ReviewDBCurrentUser> {
-    return rdbRequest("/users", {
-        method: "POST",
-    }).then(r => r.json());
-}
-
-export async function readNotification(id: number) {
-    return rdbRequest(`/notifications?id=${id}`, {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         method: "PATCH"
     });
 }

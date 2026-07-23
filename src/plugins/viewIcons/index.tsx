@@ -61,10 +61,7 @@ const settings = definePluginSettings({
     },
     imgSize: {
         type: OptionType.SELECT,
-<<<<<<< HEAD
         displayName: "Image Size",
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         description: "The image size to use",
         options: ["128", "256", "512", "1024", "2048", "4096"].map(n => ({ label: n, value: n, default: n === "1024" }))
     }
@@ -203,11 +200,7 @@ export default definePlugin({
         {
             find: "return{avatarProps:{",
             replacement: {
-<<<<<<< HEAD
                 match: /(?<=avatarProps:(\i),eventHandlers:(\i).{0,100}?)return null==/,
-=======
-                match: /(?<=avatarProps:(\i),eventHandlers:(\i).{0,50}?)return null==/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: 'Object.assign($2,{style:{cursor:"pointer"},onClick:()=>$self.openAvatar($1.src)});$&',
             }
         },

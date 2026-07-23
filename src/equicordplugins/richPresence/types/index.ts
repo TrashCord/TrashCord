@@ -9,13 +9,8 @@ export enum ServiceTab {
     Tosu = "tosu",
     StatsFm = "statsfm",
     Jellyfin = "jellyfin",
-<<<<<<< HEAD
     GensokyoRadio = "gensokyoRadio",
     Navidrome = "navidrome",
-=======
-    ListenBrainz = "listenbrainz",
-    GensokyoRadio = "gensokyoRadio",
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export const enum NameFormat {

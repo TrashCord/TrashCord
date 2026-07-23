@@ -42,9 +42,13 @@ export { Plugins as plugins };
 
 import { addAudioProcessor, removeAudioProcessor } from "./AudioPlayer";
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { addGifPickerContextMenuPatch, removeGifPickerContextMenuPatch } from "./GifPickerContextMenu";
 =======
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+import { addGifPickerContextMenuPatch, removeGifPickerContextMenuPatch } from "./GifPickerContextMenu";
+>>>>>>> upstream/main
 import { addChannelToolbarButton, addHeaderBarButton, removeChannelToolbarButton, removeHeaderBarButton } from "./HeaderBar";
 import { addProfileCollection, removeProfileCollection } from "./ProfileCollections";
 import { addProfileSection, removeProfileSection } from "./ProfileSections";
@@ -227,10 +231,14 @@ export const startPlugin = traceFunction("startPlugin", function startPlugin(p: 
         // Custom
         renderNicknameIcon, headerBarButton, audioProcessor, userAreaButton, renderProfileCollection, chatBarButtonWrapper,
 <<<<<<< HEAD
+<<<<<<< HEAD
         renderProfileSection, gifPickerContextMenu
 =======
         renderProfileSection
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+        renderProfileSection, gifPickerContextMenu
+>>>>>>> upstream/main
     } = p;
 
     if (p.start) {
@@ -301,9 +309,13 @@ export const startPlugin = traceFunction("startPlugin", function startPlugin(p: 
     if (chatBarButtonWrapper) addChatBarButtonWrapper(name, chatBarButtonWrapper.wrapper, chatBarButtonWrapper.priority);
     if (renderProfileSection) addProfileSection(name, renderProfileSection.render, renderProfileSection.priority);
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (gifPickerContextMenu) addGifPickerContextMenuPatch(name, gifPickerContextMenu);
 =======
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+    if (gifPickerContextMenu) addGifPickerContextMenuPatch(name, gifPickerContextMenu);
+>>>>>>> upstream/main
 
     return true;
 }, p => `startPlugin ${p.name}`);
@@ -316,10 +328,14 @@ export const stopPlugin = traceFunction("stopPlugin", function stopPlugin(p: Plu
         // Custom
         renderNicknameIcon, headerBarButton, audioProcessor, userAreaButton, renderProfileCollection, chatBarButtonWrapper,
 <<<<<<< HEAD
+<<<<<<< HEAD
         renderProfileSection, gifPickerContextMenu
 =======
         renderProfileSection
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+        renderProfileSection, gifPickerContextMenu
+>>>>>>> upstream/main
     } = p;
 
     if (p.stop) {
@@ -388,9 +404,13 @@ export const stopPlugin = traceFunction("stopPlugin", function stopPlugin(p: Plu
     if (chatBarButtonWrapper) removeChatBarButtonWrapper(name);
     if (renderProfileSection) removeProfileSection(name);
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (gifPickerContextMenu) removeGifPickerContextMenuPatch(name);
 =======
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+    if (gifPickerContextMenu) removeGifPickerContextMenuPatch(name);
+>>>>>>> upstream/main
 
     return true;
 }, p => `stopPlugin ${p.name}`);
@@ -449,9 +469,13 @@ export const initPluginManager = onlyOnce(function init() {
         if (p.chatBarButtonWrapper) neededApiPlugins.add("ChatInputButtonAPI");
         if (p.renderProfileSection) neededApiPlugins.add("ProfileSectionsAPI");
 <<<<<<< HEAD
+<<<<<<< HEAD
         if (p.gifPickerContextMenu) neededApiPlugins.add("ExtraContextMenusAPI");
 =======
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+        if (p.gifPickerContextMenu) neededApiPlugins.add("ExtraContextMenusAPI");
+>>>>>>> upstream/main
 
         for (const key of pluginKeysToBind) {
             p[key] &&= (p[key] as Function).bind(p) as any;

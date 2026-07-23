@@ -94,13 +94,9 @@ const openTabs: ChannelTabsProps[] = [];
 const closedTabs: ChannelTabsProps[] = [];
 let currentlyOpenTab: number;
 const openTabHistory: number[] = [];
-<<<<<<< HEAD
 let hydratedUserId: string | undefined;
 let hydrationGeneration = 0;
 let saveQueue = Promise.resolve();
-=======
-let persistedTabs: Promise<PersistedTabs | undefined>;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 // cache for the tab state (so like scroll pos etc)
 interface TabStateCache {
@@ -119,18 +115,12 @@ const _ = {
 };
 export const { openedTabs } = _;
 
-<<<<<<< HEAD
 type UpdateFunction = (save?: boolean) => void;
 
 const unsetUpdate: UpdateFunction = () => {
     logger.warn("Update function not set");
 };
 let update = unsetUpdate;
-=======
-let update = (save = true) => {
-    logger.warn("Update function not set");
-};
->>>>>>> 89b0fd2a5 (Update index.tsx)
 let bumpGhostTabCount = () => {
     logger.warn("Set ghost tab function not set");
 };
@@ -466,7 +456,6 @@ export function moveToTab(id: number) {
     }, NAVIGATION_TIMEOUT_MS);
 }
 
-<<<<<<< HEAD
 export async function openStartupTabs(props: BasicChannelTabsProps & { userId: string; }, setUserId: (id: string) => void): Promise<void> {
     const { userId } = props;
 
@@ -515,46 +504,11 @@ export async function openStartupTabs(props: BasicChannelTabsProps & { userId: s
 
             savedTabs.openTabs.forEach(tab => createTab(tab, false, tab.messageId, false));
             currentlyOpenTab = openTabs[savedTabs.openTabIndex]?.id ?? openTabs[0]?.id;
-=======
-export function openStartupTabs(props: BasicChannelTabsProps & { userId: string; }, setUserId: (id: string) => void) {
-    const { userId } = props;
-    persistedTabs ??= DataStore.get("ChannelTabs_openChannels_v2");
-    replaceArray(openTabs);
-    replaceArray(openTabHistory);
-    highestIdIndex = 0;
-
-    if (settings.store.onStartup !== "nothing" && isPluginEnabled("KeepCurrentChannel"))
-        return showToast("Not restoring tabs as KeepCurrentChannel is enabled", Toasts.Type.FAILURE);
-
-    switch (settings.store.onStartup) {
-        case "remember": {
-            persistedTabs
-                .then(tabs => {
-                    const t = tabs?.[userId];
-                    if (!t) {
-                        createTab({ channelId: props.channelId, guildId: props.guildId }, true);
-                        return showToast("Failed to restore tabs", Toasts.Type.FAILURE);
-                    }
-                    replaceArray(openTabs); // empty the array
-                    t.openTabs.forEach(tab => createTab(tab));
-                    currentlyOpenTab = openTabs[t.openTabIndex]?.id ?? 0;
-
-                    setUserId(userId);
-                    moveToTab(currentlyOpenTab);
-                })
-                .catch(error => {
-                    logger.error("Failed to load persisted tabs from DataStore", error);
-                    showToast("Failed to load saved tabs", Toasts.Type.FAILURE);
-                    createTab({ channelId: props.channelId, guildId: props.guildId }, true);
-                    setUserId(userId);
-                });
->>>>>>> 89b0fd2a5 (Update index.tsx)
             break;
         }
         case "preset": {
             const tabs = settings.store.tabSet?.[userId];
             if (!tabs) break;
-<<<<<<< HEAD
             tabs.forEach(tab => createTab(tab, false, tab.messageId, false));
             currentlyOpenTab = openTabs[0]?.id;
             break;
@@ -567,20 +521,6 @@ export function openStartupTabs(props: BasicChannelTabsProps & { userId: string;
     currentlyOpenTab = openTabs.find(tab => tab.id === currentlyOpenTab)?.id ?? openTabs[0].id;
     hydratedUserId = userId;
     setUserId(userId);
-=======
-            tabs.forEach(t => createTab(t));
-            setOpenTab(0);
-            setUserId(userId);
-            break;
-        }
-        default: {
-            setUserId(userId);
-        }
-    }
-
-    if (!openTabs.length) createTab({ channelId: props.channelId, guildId: props.guildId }, true, undefined, false);
-    for (let i = 0; i < openTabHistory.length; i++) openTabHistory.pop();
->>>>>>> 89b0fd2a5 (Update index.tsx)
     moveToTab(currentlyOpenTab);
 }
 
@@ -590,7 +530,6 @@ export function reopenClosedTab() {
     createTab(tab, true);
 }
 
-<<<<<<< HEAD
 export function saveTabs(userId: string): Promise<void> {
     if (!userId) return Promise.resolve();
 
@@ -610,18 +549,6 @@ export function saveTabs(userId: string): Promise<void> {
 
     return saveQueue;
 }
-=======
-export const saveTabs = async (userId: string) => {
-    if (!userId) return;
-
-    DataStore.update<PersistedTabs>("ChannelTabs_openChannels_v2", old => {
-        return {
-            ...(old ?? {}),
-            [userId]: { openTabs, openTabIndex: openTabs.findIndex(t => t.id === currentlyOpenTab) }
-        };
-    });
-};
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 export function setOpenTab(id: number) {
     const i = openTabs.findIndex(v => v.id === id);
@@ -631,16 +558,11 @@ export function setOpenTab(id: number) {
     openTabHistory.push(id);
 }
 
-<<<<<<< HEAD
 export function setUpdaterFunction(fn: UpdateFunction): () => void {
     update = fn;
     return () => {
         if (update === fn) update = unsetUpdate;
     };
-=======
-export function setUpdaterFunction(fn: () => void) {
-    update = fn;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export function switchChannel(ch: BasicChannelTabsProps) {

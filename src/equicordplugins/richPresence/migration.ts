@@ -64,27 +64,6 @@ const migrations: MigrationMapping[] = [
         },
     },
     {
-<<<<<<< HEAD
-=======
-        oldPlugin: "ListenBrainzRPC",
-        enableKey: "lb_enabled",
-        keys: {
-            username: "lb_username",
-            mbContact: "lb_mbContact",
-            shareUsername: "lb_shareUsername",
-            shareSong: "lb_shareSong",
-            hideWithSpotify: "lb_hideWithSpotify",
-            hideWithActivity: "lb_hideWithActivity",
-            useTimeBar: "lb_useTimeBar",
-            statusName: "lb_statusName",
-            nameFormat: "lb_nameFormat",
-            useListeningStatus: "lb_useListeningStatus",
-            missingArt: "lb_missingArt",
-            useLogo: "lb_useLogo",
-        },
-    },
-    {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         oldPlugin: "GensokyoRadioRPC",
         enableKey: "gr_enabled",
         keys: {
@@ -100,11 +79,7 @@ function setStoreValue(key: SettingsKey, value: boolean | string | number) {
 export function migrateOldSettings() {
     if (Settings.plugins.RichPresence._migrated) return;
 
-<<<<<<< HEAD
     migratePluginSettings("RichPresence", "AudioBookShelfRichPresence", "GensokyoRadioRPC", "JellyfinRichPresence", "StatsfmPresence", "TosuRPC");
-=======
-    migratePluginSettings("RichPresence", "AudioBookShelfRichPresence", "GensokyoRadioRPC", "JellyfinRichPresence", "ListenBrainzRPC", "StatsfmPresence", "TosuRPC");
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     for (const migration of migrations) {
         const oldSettings = Settings.plugins[migration.oldPlugin];

@@ -34,11 +34,7 @@ export type ApiMessage = {
     content: ContentPayload;
 };
 
-<<<<<<< HEAD
 export async function getPayload(message: Message): Promise<ApiMessage[] | null> {
-=======
-export function getPayload(message: Message): ApiMessage[] | null {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const prevMessages = getPreviousMessages(message, settings.store.context);
     const allMessages = [...prevMessages, message];
 
@@ -83,7 +79,6 @@ export function getPayload(message: Message): ApiMessage[] | null {
         payload.push({ role, content });
     }
 
-<<<<<<< HEAD
     if (payload.length === 0) return null;
 
     if (!settings.store.sendImagesAsBase64) return payload;
@@ -95,9 +90,6 @@ export function getPayload(message: Message): ApiMessage[] | null {
 
         return { ...msg, content: content.filter(part => part !== null) };
     }));
-=======
-    return payload.length > 0 ? payload : null;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export function getPreviousMessages(message: Message, count: number): Message[] {
@@ -143,11 +135,7 @@ export function parseMessageContent(message: Message): ContentPayload | null {
 
     message.attachments
         .filter(att => att.content_type?.startsWith("image/"))
-<<<<<<< HEAD
         .forEach(att => imageUrls.add(att.proxy_url ?? att.url));
-=======
-        .forEach(att => imageUrls.add(att.url));
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     message.embeds.forEach(embed => {
         const potentialUrls = [
@@ -184,7 +172,6 @@ export function parseMessageContent(message: Message): ContentPayload | null {
     return payload;
 }
 
-<<<<<<< HEAD
 async function toBase64Image(part: ImagePart): Promise<ImagePart | null> {
     try {
         const req = await fetch(part.image_url.url);
@@ -206,8 +193,6 @@ async function toBase64Image(part: ImagePart): Promise<ImagePart | null> {
     }
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export async function handleResponse(message: Message, response: string): Promise<string> {
     switch (settings.store.mode) {
         case "autoreply":

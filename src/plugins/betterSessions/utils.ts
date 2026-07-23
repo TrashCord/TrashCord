@@ -17,10 +17,7 @@
 */
 
 import * as DataStore from "@api/DataStore";
-<<<<<<< HEAD
 import { classNameFactory } from "@utils/css";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { UserStore } from "@webpack/common";
 
 import { ChromeIcon, DiscordIcon, EdgeIcon, FirefoxIcon, IEIcon, MobileIcon, OperaIcon, SafariIcon, UnknownIcon } from "./components/icons";
@@ -28,10 +25,7 @@ import { SessionInfo } from "./types";
 
 const getDataKey = () => `BetterSessions_savedSessions_${UserStore.getCurrentUser().id}`;
 
-<<<<<<< HEAD
 export const cl = classNameFactory("vc-betterSessions-");
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export const savedSessionsCache: Map<string, { name: string, isNew: boolean; }> = new Map();
 
 export function getDefaultName(clientInfo: SessionInfo["session"]["client_info"]) {

@@ -40,11 +40,7 @@ export function SelectSetting({ setting, pluginSettings, definedSettings, onChan
     }
 
     return (
-<<<<<<< HEAD
         <SettingsSection name={setting.displayName} id={id} description={setting.description} error={error}>
-=======
-        <SettingsSection name={id} description={setting.description} error={error}>
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <Select
                 placeholder={setting.placeholder ?? "Select an option"}
                 options={setting.options}

@@ -21,11 +21,7 @@ export default definePlugin({
             find,
             replacement: [
                 {
-<<<<<<< HEAD
                     match: /(\i\.\i\.(?:unpin|pin)Message\(\i,\i\.id\)):\i\.\i\.confirm(?:Unpin|Pin)\(\i,\i\)/g,
-=======
-                    match: /(\i\.\i\.(unpin|pin)Message\(\i,\i\.id\)):\i\.\i\.confirm(Unpin|Pin)\(\i,\i\)/g,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     replace: "$1:$1"
                 }
             ]

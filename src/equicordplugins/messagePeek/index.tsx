@@ -225,13 +225,9 @@ function Timestamp({ channel }: { channel: Channel; }) {
     if (!lastMessage) return null;
 
     const timestamp = SnowflakeUtils.extractTimestamp(lastMessage.id);
-<<<<<<< HEAD
     const isChannelPinned = UserGuildSettingsStore.isMessagesFavorite(channel?.id);
     const isFavoritesEnabled = ExperimentStore.getUserExperimentBucket("2026-01-favorites-server") > 0;
     const className = isFavoritesEnabled || isChannelPinned ? cl("timestamp-favorites") : cl("timestamp");
-=======
-    const className = ExperimentStore.getUserExperimentBucket("2026-01-favorites-server") > 0 ? cl("timestamp-favorites") : cl("timestamp");
->>>>>>> 89b0fd2a5 (Update index.tsx)
     return <span className={className}>{formatRelativeTime(timestamp)}</span>;
 }
 
@@ -254,11 +250,7 @@ export default definePlugin({
         {
             find: "PrivateChannel.renderAvatar",
             replacement: {
-<<<<<<< HEAD
                 match: /,subText:\i\.isSystemDM\(\).{0,700}:null,(?=name:)/,
-=======
-                match: /,subText:(\i)\.isSystemDM\(\).{0,500}:null,(?=name:)/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: ",subText:$self.getSubText(arguments[0]),"
             }
         }

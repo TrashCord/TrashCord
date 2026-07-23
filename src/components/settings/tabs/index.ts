@@ -6,10 +6,6 @@
 
 import "./styles.css";
 
-<<<<<<< HEAD
-=======
-export { default as ThemesTab } from "../../ThemeSettings/ThemesTab";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export * from "./BaseTab";
 export { default as ChangelogTab } from "./changelog";
 export { default as PatchHelperTab } from "./patchHelper";
@@ -18,9 +14,6 @@ export { openContributorModal } from "./plugins/ContributorModal";
 export { openPluginModal } from "./plugins/PluginModal";
 export { default as BackupAndRestoreTab } from "./sync/BackupAndRestoreTab";
 export { default as CloudTab } from "./sync/CloudTab";
-<<<<<<< HEAD
 export { default as ThemesTab } from "./themes";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export { default as UpdaterTab } from "./updater";
 export { default as VencordTab } from "./vencord";

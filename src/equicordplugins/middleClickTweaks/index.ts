@@ -101,15 +101,9 @@ export default definePlugin({
     patches: [
         {
             // Detects paste events triggered by the "browser" outside of input fields.
-<<<<<<< HEAD
             find: 'document.addEventListener("paste",',
             replacement: {
                 match: /(?<=\.getMigrationStatus\(\)\);.{0,50}\i\((\i)\)\{)/,
-=======
-            find: "document.addEventListener(\"paste\",",
-            replacement: {
-                match: /(?<=paste",(\i)=>{)/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "if($1.target.tagName===\"BUTTON\"||$self.isPastingDisabled(false)){$1.preventDefault?.();$1.stopPropagation?.();return;};"
             }
         },

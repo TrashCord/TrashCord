@@ -24,10 +24,7 @@ const serviceOptions = [
     { label: "Zipline", value: ServiceType.ZIPLINE, default: true },
     { label: "E-Z Host", value: ServiceType.EZHOST },
     { label: "Nest", value: ServiceType.NEST },
-<<<<<<< HEAD
     { label: "Encrypting.host", value: ServiceType.ENCRYPTINGHOST },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     { label: "S3-Compatible", value: ServiceType.S3 },
     { label: "Catbox.moe", value: ServiceType.CATBOX },
     ...(IS_DISCORD_DESKTOP ? [{ label: "0x0.st", value: ServiceType.ZEROX0 }] : []),
@@ -39,12 +36,8 @@ const serviceOptions = [
     { label: "filebin.net", value: ServiceType.FILEBIN },
     { label: "PixelVault", value: ServiceType.PIXELVAULT },
     { label: "PixelDrain", value: ServiceType.PIXELDRAIN },
-<<<<<<< HEAD
     { label: "ShareX Custom Uploader", value: ServiceType.SHAREX },
     { label: "WebDAV (Nextcloud/Owncloud)", value: ServiceType.WEBDAV }
-=======
-    { label: "ShareX Custom Uploader", value: ServiceType.SHAREX }
->>>>>>> 89b0fd2a5 (Update index.tsx)
 ];
 
 const litterboxOptions = [
@@ -59,7 +52,6 @@ const embedProxyOptions = [
     { label: "discord.nfp.is", value: "nfp" }
 ];
 
-<<<<<<< HEAD
 const encryptingHostUrlStyleOptions = [
     { label: "Query", value: "query", default: true },
     { label: "Param", value: "param" },
@@ -67,8 +59,6 @@ const encryptingHostUrlStyleOptions = [
     { label: "Embed", value: "embed" }
 ];
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export const settings = definePluginSettings({
     serviceType: {
         type: OptionType.SELECT,
@@ -106,7 +96,6 @@ export const settings = definePluginSettings({
         default: "",
         hidden: true
     },
-<<<<<<< HEAD
     encryptingHostKey: {
         type: OptionType.STRING,
         description: "Encrypting.host API key",
@@ -144,8 +133,6 @@ export const settings = definePluginSettings({
         default: "",
         hidden: true
     },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     s3Endpoint: {
         type: OptionType.STRING,
         description: "S3-compatible endpoint URL",
@@ -327,7 +314,6 @@ export const settings = definePluginSettings({
         description: "Automatically upload files from clipboard to image host when pasting in chat input.",
         default: false
     },
-<<<<<<< HEAD
     webdavUrl: {
         type: OptionType.STRING,
         description: "WebDAV server URL",
@@ -380,8 +366,6 @@ export const settings = definePluginSettings({
         default: "",
         hidden: true
     },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     settingsComponent: {
         type: OptionType.COMPONENT,
         description: "Settings",
@@ -399,11 +383,7 @@ function SettingTextInput(props: {
     const { description, name, onChange, placeholder, value } = props;
 
     return (
-<<<<<<< HEAD
         <SettingsSection id={name} name={name} description={description ?? ""}>
-=======
-        <SettingsSection name={name} description={description ?? ""}>
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <TextInput
                 value={value}
                 onChange={onChange}
@@ -421,11 +401,7 @@ function SettingGroup(props: {
     const { children, description, name } = props;
 
     return (
-<<<<<<< HEAD
         <SettingsSection id={name} name={name} description={description ?? ""}>
-=======
-        <SettingsSection name={name} description={description ?? ""}>
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <div className={cl("group")}>
                 {children}
             </div>
@@ -442,11 +418,7 @@ function SettingSwitch(props: {
     const { checked, description, name, onChange } = props;
 
     return (
-<<<<<<< HEAD
         <SettingsSection id={name} tag="label" name={name} description={description} inlineSetting>
-=======
-        <SettingsSection tag="label" name={name} description={description} inlineSetting>
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <Switch checked={checked} onChange={onChange} />
         </SettingsSection>
     );
@@ -497,11 +469,7 @@ function FallbackOrderSettings() {
     };
 
     return (
-<<<<<<< HEAD
         <SettingsSection id="fallback-order" name="Fallback Order" description="Drag hosts to reorder fallback attempts. The selected host is tried first, then this order is used.">
-=======
-        <SettingsSection name="Fallback Order" description="Drag hosts to reorder fallback attempts. The selected host is tried first, then this order is used.">
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <div className={cl("fallback-order-list")}>
                 {order.map((service, index) => (
                     <div
@@ -551,10 +519,7 @@ export function SettingsComponent() {
     const sharexFileInputRef = React.useRef<HTMLInputElement>(null);
     const isNest = store.serviceType === ServiceType.NEST;
     const isEzHost = store.serviceType === ServiceType.EZHOST;
-<<<<<<< HEAD
     const isEncryptingHost = store.serviceType === ServiceType.ENCRYPTINGHOST;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const isS3 = store.serviceType === ServiceType.S3;
     const isZipline = store.serviceType === ServiceType.ZIPLINE;
     const isCatbox = store.serviceType === ServiceType.CATBOX;
@@ -563,10 +528,7 @@ export function SettingsComponent() {
     const isPixelVault = store.serviceType === ServiceType.PIXELVAULT;
     const isPixelDrain = store.serviceType === ServiceType.PIXELDRAIN;
     const isShareX = store.serviceType === ServiceType.SHAREX;
-<<<<<<< HEAD
     const isWebdav = store.serviceType === ServiceType.WEBDAV;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     const validateShareXConfig = () => {
         try {
@@ -605,11 +567,7 @@ export function SettingsComponent() {
 
     return (
         <>
-<<<<<<< HEAD
             <SettingsSection id="upload-service" name="Upload Service" description="Choose where FileUpload sends new files.">
-=======
-            <SettingsSection name="Upload Service" description="Choose where FileUpload sends new files.">
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 <ServicePicker
                     value={store.serviceType as ServiceType}
                     onChange={service => {
@@ -669,7 +627,6 @@ export function SettingsComponent() {
                 </SettingGroup>
             )}
 
-<<<<<<< HEAD
             {isEncryptingHost && (
                 <SettingGroup name="Encrypting.host" description="Connection details for Encrypting.host uploads.">
                     <SettingTextInput
@@ -723,8 +680,6 @@ export function SettingsComponent() {
                 </SettingGroup>
             )}
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
             {isS3 && (
                 <SettingGroup name="S3-Compatible Storage" description="Connection details and object naming for your bucket.">
                     <SettingTextInput
@@ -805,11 +760,7 @@ export function SettingsComponent() {
             )}
 
             {isLitterbox && (
-<<<<<<< HEAD
                 <SettingsSection id="litterbox-expiry" name="Litterbox Expiry" description="How long uploads are retained">
-=======
-                <SettingsSection name="Litterbox Expiry" description="How long uploads are retained">
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     <Select
                         options={litterboxOptions}
                         isSelected={v => v === store.litterboxExpiry}
@@ -862,10 +813,7 @@ export function SettingsComponent() {
             {isShareX && (
                 <SettingGroup name="ShareX Custom Uploader" description="Paste, import, or validate a ShareX custom uploader config.">
                     <SettingsSection
-<<<<<<< HEAD
                         id="sharex-custom-uploader-config"
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
                         name="ShareX Custom Uploader Config"
                         description="Paste your ShareX custom uploader JSON (.sxcu/.json). DestinationType must include FileUploader or ImageUploader."
                     >
@@ -876,11 +824,7 @@ export function SettingsComponent() {
                             onChange={v => store.sharexConfig = v}
                         />
                     </SettingsSection>
-<<<<<<< HEAD
                     <SettingsSection id="sharex-config-actions" name="ShareX Config Actions" description="Import from file or validate pasted config">
-=======
-                    <SettingsSection name="ShareX Config Actions" description="Import from file or validate pasted config">
->>>>>>> 89b0fd2a5 (Update index.tsx)
                         <div className={cl("actions")}>
                             <Button size="small" onClick={triggerShareXFileUpload}>Import .sxcu/.json</Button>
                             <Button size="small" onClick={validateShareXConfig}>Validate</Button>
@@ -896,7 +840,6 @@ export function SettingsComponent() {
                 </SettingGroup>
             )}
 
-<<<<<<< HEAD
             {isWebdav && (
                 <SettingGroup name="WebDAV" description="Connection details for WebDAV servers (Nextcloud, Owncloud, etc.).">
                     <SettingTextInput
@@ -964,8 +907,6 @@ export function SettingsComponent() {
                 </SettingGroup>
             )}
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <SettingGroup name="Upload Behavior" description="Control what FileUpload does after a host returns a URL.">
                 <SettingSwitch
                     name="Strip Query Parameters"
@@ -985,11 +926,7 @@ export function SettingsComponent() {
                 />
 
                 {store.embedProxyEnabled && (
-<<<<<<< HEAD
                     <SettingsSection id="embed-proxy-service" name="Embed Proxy Service" description="Choose which embed proxy service to use for uploaded video links">
-=======
-                    <SettingsSection name="Embed Proxy Service" description="Choose which embed proxy service to use for uploaded video links">
->>>>>>> 89b0fd2a5 (Update index.tsx)
                         <Select
                             options={embedProxyOptions}
                             isSelected={v => v === store.embedProxyService}
@@ -1067,7 +1004,6 @@ export function SettingsComponent() {
                     checked={store.bypassDiscordUploadOnlyOverLimit}
                     onChange={v => store.bypassDiscordUploadOnlyOverLimit = v}
                 />
-<<<<<<< HEAD
 
                 <SettingTextInput
                     name="Allowed File Types"
@@ -1076,8 +1012,6 @@ export function SettingsComponent() {
                     onChange={v => store.uploadAllowedFileTypes = v}
                     placeholder="png,jpg,gif,mp4,webp"
                 />
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
             </SettingGroup>
 
             <SettingGroup name="Network" description="Configure browser upload proxying and timeouts.">
@@ -1089,19 +1023,11 @@ export function SettingsComponent() {
                     placeholder="https://your-cors-proxy.example.com"
                 />
 
-<<<<<<< HEAD
                 <SettingsSection id="default-cors-proxy-source" name="Default CORS Proxy Source" description="Source code for the default CORS proxy">
                     <a href="https://codeberg.org/key/corsproxy" target="_blank" rel="noreferrer">codeberg.org/key/corsproxy</a>
                 </SettingsSection>
 
                 <SettingsSection id="upload-timeout" name="Upload Timeout" description="Maximum time to wait per upload attempt before switching to fallback">
-=======
-                <SettingsSection name="Default CORS Proxy Source" description="Source code for the default CORS proxy">
-                    <a href="https://codeberg.org/key/corsproxy" target="_blank" rel="noreferrer">codeberg.org/key/corsproxy</a>
-                </SettingsSection>
-
-                <SettingsSection name="Upload Timeout" description="Maximum time to wait per upload attempt before switching to fallback">
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     <Select
                         options={[
                             { label: "30 seconds", value: 30000 },

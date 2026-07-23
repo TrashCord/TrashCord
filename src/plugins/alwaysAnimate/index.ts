@@ -89,7 +89,6 @@ export default definePlugin({
             }
         },
         {
-<<<<<<< HEAD
             // Gradient roles in chat
             find: "=!1,contentOnly:",
             replacement: {
@@ -106,8 +105,6 @@ export default definePlugin({
             }
         },
         {
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
             // Nameplates
             find: ".MINI_PREVIEW,[",
             predicate: () => settings.store.nameplates,

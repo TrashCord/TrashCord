@@ -82,7 +82,6 @@ export function CopyIcon(props: IconProps) {
 }
 
 /**
-<<<<<<< HEAD
  * Discord's ID icon, as seen in Developer Mode "Copy ID" context menu items
  */
 export function CopyIdIcon(props: IconProps) {
@@ -107,8 +106,6 @@ export function CopyIdIcon(props: IconProps) {
 }
 
 /**
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
  * Discord's open external icon, as seen in the user profile connections
  */
 export function OpenExternalIcon(props: IconProps) {
@@ -1197,7 +1194,6 @@ export function AchievementsIcon(props: IconProps) {
         </Icon>
     );
 }
-<<<<<<< HEAD
 
 export function SkullIcon(props: IconProps) {
     return (
@@ -1214,5 +1210,3 @@ export function SkullIcon(props: IconProps) {
         </Icon>
     );
 }
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)

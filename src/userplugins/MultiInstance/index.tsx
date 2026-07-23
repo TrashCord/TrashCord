@@ -1,589 +1,696 @@
 /*
- * Nightcord — MultiInstance plugin
- *
- * Left click on an account:
- *   → If token available: directly chooses "New window" or "Split" via the ctx menu
- *   → If no token: quick switch only
- *
- * Right click on an account: context menu (New window | Split screen | Close)
- *
- * The logic is:
- *   - Left CLICK with token → opens the context menu (same as right click)
- *     (we NO LONGER do location.reload on left click if the account has a token)
- *   - Left CLICK without token → classic quick switch
- *   - Right CLICK with token → context menu
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { addHeaderBarButton, HeaderBarButton, removeHeaderBarButton } from "@api/HeaderBar";
-import { DataStore } from "@api/index";
-import definePlugin, { PluginNative } from "@utils/types";
-import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
-import { findByProps } from "@webpack";
-import { Forms, React, ReactDOM, UserStore } from "@webpack/common";
-import { t } from "../autoTranslateNightcord";
-import managedStyle from "./styles.css?managed";
+import managedStyle from "./style.css?managed";
 
-const Native = VencordNative.pluginHelpers.MultiInstance as PluginNative<typeof import("./native")>;
-const STORE_KEY = "TokenImporter_accounts";
-const MI_TOKEN_CACHE_KEY = "nightcord-mi-token-cache";
+import { HeaderBarButton } from "@api/HeaderBar";
+import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
+import ErrorBoundary from "@components/ErrorBoundary";
+import { classes } from "@utils/misc";
+import { useTimer } from "@utils/react";
+import definePlugin, { OptionType, type PluginNative } from "@utils/types";
+import type { RenderModalProps } from "@vencord/discord-types";
+import { Avatar, ContextMenuApi, Menu, Modal, openModal, React, showToast, TextInput, Toasts, UserStore, useStateFromStores } from "@webpack/common";
+import type { MouseEvent as ReactMouseEvent, SVGProps } from "react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Token cache — captures tokens from native Discord accounts
-// ─────────────────────────────────────────────────────────────────────────────
+import type { InstanceMode, InstanceStatus, InstanceUser } from "./native";
 
-let tokenCache: Record<string, string> = {};
-let tokenCacheLoaded = false;
-let encryptHooked = false;
+const Native = VencordNative?.pluginHelpers?.MultiInstance as PluginNative<typeof import("./native")> | undefined;
 
-async function loadTokenCache(): Promise<void> {
-    if (tokenCacheLoaded) return;
-    tokenCache = (await DataStore.get<Record<string, string>>(MI_TOKEN_CACHE_KEY)) ?? {};
-    tokenCacheLoaded = true;
-}
+const ICON_SETTING_KEYS: Array<"showIcon"> = ["showIcon"];
+const SESSION_SETTING_KEYS: Array<"blockExternalTokenAccess" | "performanceMode"> = ["blockExternalTokenAccess", "performanceMode"];
+const DOMAINS = ["discord.com", "ptb.discord.com", "canary.discord.com"] as const;
+const DOMAIN_LABELS: Record<DiscordDomain, string> = {
+    "discord.com": "Discord",
+    "ptb.discord.com": "PTB",
+    "canary.discord.com": "Canary"
+};
+const DEFAULT_DOMAIN: DiscordDomain = "discord.com";
+const DEFAULT_PROFILES: InstanceProfile[] = [{ id: "secondary", name: "Secondary Discord", domain: DEFAULT_DOMAIN }];
+const ALL_INSTANCES_BUSY_ID = "__all__";
 
-async function saveTokenCache(): Promise<void> {
-    await DataStore.set(MI_TOKEN_CACHE_KEY, tokenCache);
-}
+type DiscordDomain = typeof DOMAINS[number];
 
-function cacheToken(userId: string, token: string): void {
-    if (!userId || !token) return;
-    tokenCache[userId] = token;
-}
-
-function captureCurrentToken(): void {
-    try {
-        const tokenMod = findByProps("getToken", "encryptAndStoreTokens");
-        const token = tokenMod?.getToken?.();
-        const user = UserStore.getCurrentUser();
-        if (token && user?.id) {
-            cacheToken(user.id, token);
-            saveTokenCache();
-        }
-    } catch { }
-}
-
-function hookEncryptAndStoreTokens(): void {
-    if (encryptHooked) return;
-    try {
-        const tokenMod = findByProps("getToken", "encryptAndStoreTokens");
-        if (!tokenMod?.encryptAndStoreTokens) return;
-        const orig = tokenMod.encryptAndStoreTokens.bind(tokenMod);
-        tokenMod.encryptAndStoreTokens = async function (tokens: Record<string, string>) {
-            // Capture all tokens in passing
-            for (const [id, token] of Object.entries(tokens)) {
-                if (id && token) cacheToken(id, token);
-            }
-            saveTokenCache();
-            return orig(tokens);
-        };
-        encryptHooked = true;
-    } catch { }
-}
-
-function hookFluxDispatcher(): (() => void) | null {
-    try {
-        const Flux = findByProps("dispatch", "subscribe");
-        if (!Flux?.subscribe) return null;
-        const handler = (event: any) => {
-            if (event?.token && event?.userId) {
-                cacheToken(event.userId, event.token);
-                saveTokenCache();
-            }
-        };
-        Flux.subscribe("MULTI_ACCOUNT_VALIDATE_TOKEN_SUCCESS", handler);
-        return () => Flux.unsubscribe("MULTI_ACCOUNT_VALIDATE_TOKEN_SUCCESS", handler);
-    } catch { return null; }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface SavedAccount {
+interface InstanceProfile {
     id: string;
-    token: string;
-    username: string;
-    discriminator: string;
-    avatar: string;
+    name: string;
+    saveSession?: boolean;
+    domain?: DiscordDomain;
+    mode?: InstanceMode;
+    user?: InstanceUser;
 }
 
-interface AccountEntry extends SavedAccount {
-    hasToken: boolean;
-    isNative: boolean;
+interface PrivateSettings {
+    instances?: InstanceProfile[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function getAvatarUrl(id: string, hash?: string | null, discriminator?: string): string {
-    if (hash) return `https://cdn.discordapp.com/avatars/${id}/${hash}.webp?size=64`;
-    const idx = discriminator && discriminator !== "0"
-        ? parseInt(discriminator) % 5
-        : Number(BigInt(id) >> 22n) % 6;
-    return `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
 }
 
-function getNativeAccounts(): SavedAccount[] {
-    try {
-        const store = findByProps("getUsers", "getValidUsers");
-        const users: any[] = store?.getUsers?.() ?? [];
-        return users.filter(u => u?.id).map(u => ({
-            id: u.id,
-            token: tokenCache[u.id] ?? "",
-            username: u.globalName || u.username || `User_${u.id.slice(-4)}`,
-            discriminator: u.discriminator ?? "0",
-            avatar: getAvatarUrl(u.id, u.avatar, u.discriminator),
-        }));
-    } catch {
-        return [];
-    }
+function isDomain(value: unknown): value is DiscordDomain {
+    return typeof value === "string" && DOMAINS.includes(value as DiscordDomain);
 }
 
-/** Quick switch — token direct */
-function switchToQuick(token: string) {
-    try {
-        window.localStorage.setItem("token", `"${token}"`);
-        location.reload();
-    } catch {
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        document.body.appendChild(iframe);
-        try { (iframe as any).contentWindow.localStorage.token = `"${token}"`; } catch { }
-        document.body.removeChild(iframe);
-        location.reload();
-    }
+function getDomain(profile: InstanceProfile) {
+    return profile.domain ?? DEFAULT_DOMAIN;
 }
 
-/** Switch for native accounts without token — uses the native Discord mechanism */
-function switchNativeAccount(userId: string) {
-    try {
-        const multiAuth = findByProps("switchAccount", "loginToken") ?? findByProps("switchAccount");
-        if (multiAuth?.switchAccount) {
-            multiAuth.switchAccount(userId);
-            return;
-        }
-        // Fallback : dispatch le flux event comme Discord le fait nativement
-        const Flux = findByProps("dispatch", "subscribe");
-        if (Flux?.dispatch) {
-            Flux.dispatch({ type: "MULTI_ACCOUNT_SWITCH_ATTEMPT", userId });
-        }
-    } catch {
-        console.warn("[MultiInstance] switchNativeAccount failed for", userId);
-    }
+function isInstanceUser(value: unknown): value is InstanceUser {
+    return typeof value === "object" &&
+        value !== null &&
+        "id" in value &&
+        "username" in value &&
+        "avatarUrl" in value &&
+        typeof value.id === "string" &&
+        typeof value.username === "string" &&
+        typeof value.avatarUrl === "string" &&
+        (!("globalName" in value) || typeof value.globalName === "string" || value.globalName == null);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Context menu — mounted in document.body via portal to avoid overflow
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface CtxState {
-    x: number;
-    y: number;
-    acc: AccountEntry;
+function isProfile(value: unknown): value is InstanceProfile {
+    return typeof value === "object" &&
+        value !== null &&
+        "id" in value &&
+        "name" in value &&
+        typeof value.id === "string" &&
+        typeof value.name === "string" &&
+        (!("saveSession" in value) || typeof value.saveSession === "boolean") &&
+        (!("domain" in value) || isDomain(value.domain)) &&
+        (!("mode" in value) || value.mode === "detached" || value.mode === "grouped") &&
+        (!("user" in value) || isInstanceUser(value.user)) &&
+        /^[a-z0-9_-]{1,32}$/i.test(value.id) &&
+        value.name.trim().length > 0;
 }
 
-interface CtxMenuProps extends CtxState {
-    isOpen: boolean;
-    onClose(): void;
-    onNewWindow(): void;
-    onNewDetached(): void;
-    onNewGrouped(): void;
-    onSwitch(): void;
-}
+function getProfiles(value: unknown) {
+    if (!Array.isArray(value)) return DEFAULT_PROFILES;
 
-function ContextMenuPortal(props: CtxMenuProps) {
-    const { x, y, acc, isOpen, onClose, onNewWindow, onNewDetached, onNewGrouped, onSwitch } = props;
-    const ref = React.useRef<HTMLDivElement>(null);
-    const [pos, setPos] = React.useState({ left: x, top: y });
-
-    // Creates the portal container once
-    const [container] = React.useState(() => {
-        const el = document.getElementById("nightcord-mi-ctx-root") ?? document.createElement("div");
-        el.id = "nightcord-mi-ctx-root";
-        if (!el.parentNode) document.body.appendChild(el);
-        return el;
-    });
-
-    // Cleans up the container on unmount
-    React.useEffect(() => {
-        return () => {
-            try { container.remove(); } catch { }
-        };
-    }, [container]);
-
-    // Close if click outside or Escape
-    React.useEffect(() => {
-        const onDown = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-        };
-        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-        document.addEventListener("mousedown", onDown, true);
-        document.addEventListener("keydown", onKey, true);
-        return () => {
-            document.removeEventListener("mousedown", onDown, true);
-            document.removeEventListener("keydown", onKey, true);
-        };
-    }, [onClose]);
-
-    // Adjust position to stay within the viewport
-    React.useLayoutEffect(() => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        setPos({
-            left: Math.min(x, window.innerWidth - rect.width - 8),
-            top: Math.min(y, window.innerHeight - rect.height - 8),
+    const seen = new Set<string>();
+    const profiles = value
+        .filter(isProfile)
+        .map(profile => ({
+            id: profile.id.toLowerCase(),
+            name: profile.name.trim(),
+            saveSession: profile.saveSession,
+            domain: getDomain(profile),
+            mode: profile.mode ?? "detached",
+            user: profile.user
+        }))
+        .filter(profile => {
+            if (seen.has(profile.id)) return false;
+            seen.add(profile.id);
+            return true;
         });
-    }, [x, y]);
 
-    const menu = (
-        <div ref={ref} className="mi-ctx-menu" style={{ left: pos.left, top: pos.top, position: "fixed" }}>
-            <div className="mi-ctx-header">
-                <span className="mi-ctx-username">{acc.username}</span>
-            </div>
-            <div className="mi-ctx-separator" />
-
-            {acc.hasToken && <>
-                <div className="mi-ctx-item" onClick={() => { onNewWindow(); onClose(); }}>
-                    <WindowIcon /> {t("New detached instance")}
-                </div>
-                <div className="mi-ctx-item" onClick={() => { onNewGrouped(); onClose(); }}>
-                    <GroupedIcon /> {t("New grouped instance")}
-                </div>
-                <div className="mi-ctx-separator" />
-            </>}
-
-            <div className="mi-ctx-item" onClick={() => { onSwitch(); onClose(); }}>
-                <SwitchIcon /> {t("Quick switch")}
-            </div>
-
-            {isOpen && <>
-                <div className="mi-ctx-separator" />
-                <div className="mi-ctx-item mi-ctx-item--danger" onClick={async () => {
-                    await Native.closeInstance(acc.id).catch(() => { });
-                    onClose();
-                }}>
-                    <CloseIcon /> {t("Close instance")}
-                </div>
-            </>}
-        </div>
-    );
-
-    // createPortal mounts the menu in document.body — outside the modal's DOM
-    // which bypasses the z-index and overflow of ModalRoot
-    return ReactDOM.createPortal(menu, container) as any;
+    return profiles.length ? profiles : DEFAULT_PROFILES;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Modal principal
-// ─────────────────────────────────────────────────────────────────────────────
+function shouldSaveSession(profile: InstanceProfile) {
+    if (settings.store.blockExternalTokenAccess) return false;
 
-function MultiInstanceModal({ rootProps }: { rootProps: any; }) {
-    const currentUser = UserStore.getCurrentUser();
-    const [savedAccounts, setSavedAccounts] = React.useState<SavedAccount[]>([]);
-    const [nativeAccounts, setNativeAccounts] = React.useState<SavedAccount[]>([]);
-    const [openInstances, setOpenInstances] = React.useState<string[]>([]);
-    const [ctx, setCtx] = React.useState<CtxState | null>(null);
-    const [status, setStatus] = React.useState<string | null>(null);
+    return profile.saveSession ?? settings.store.saveSessionsByDefault;
+}
 
-    React.useEffect(() => {
-        captureCurrentToken();
-        DataStore.get<SavedAccount[]>(STORE_KEY).then(v => setSavedAccounts(v ?? []));
-        setNativeAccounts(getNativeAccounts());
-        Native.getOpenInstances().then(ids => setOpenInstances(ids ?? [])).catch(() => { });
-    }, []);
+function makeProfileId(name: string, profiles: InstanceProfile[]) {
+    const base = name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 24) || "instance";
 
-    const allAccounts = React.useMemo<AccountEntry[]>(() => {
-        const seen = new Set<string>();
-        const result: AccountEntry[] = [];
+    const used = new Set(profiles.map(profile => profile.id));
+    let id = base;
+    let suffix = 2;
 
-        for (const acc of nativeAccounts) {
-            if (acc.id === currentUser?.id || seen.has(acc.id)) continue;
-            seen.add(acc.id);
-            const saved = savedAccounts.find(s => s.id === acc.id);
-            const token = saved?.token || acc.token || tokenCache[acc.id] || "";
-            result.push({ ...acc, token, hasToken: !!token, isNative: true });
-        }
-        for (const acc of savedAccounts) {
-            if (acc.id === currentUser?.id || seen.has(acc.id)) continue;
-            seen.add(acc.id);
-            result.push({ ...acc, hasToken: true, isNative: false });
-        }
-        return result;
-    }, [savedAccounts, nativeAccounts, currentUser]);
+    while (used.has(id)) {
+        id = `${base}-${suffix}`.slice(0, 32);
+        suffix++;
+    }
 
-    const refreshInstances = async () => {
-        const ids = await Native.getOpenInstances().catch(() => []);
-        setOpenInstances(ids ?? []);
-    };
+    return id;
+}
 
-    const handleNewWindow = async (acc: AccountEntry) => {
-        if (!acc.hasToken) return;
-        setCtx(null);
-        setStatus(t("Opening window…"));
-        // @ts-ignore - Passing the username
-        const res = await Native.openInstanceWindow(acc.token, acc.id, false, acc.username).catch(() => ({ ok: false, error: "error" }));
-        if ((res as any).ok) {
-            setStatus(t("Window opened ✓"));
-            await refreshInstances();
-        } else {
-            setStatus(`${t("Error:")} ` + ((res as any).error ?? t("unknown")));
-        }
-        setTimeout(() => setStatus(null), 3000);
-    };
+export function MultiInstanceIcon({ width = 20, height = 20, className }: SVGProps<SVGSVGElement> & { size?: string; }) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M4 5a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v1h-2V5a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h1v2H7a3 3 0 0 1-3-3V5Z" />
+            <path d="M10 11a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3v-6Zm3-1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4Z" />
+            <path d="M7 18h2v2H7a5 5 0 0 1-5-5v-2h2v2a3 3 0 0 0 3 3ZM20 6h2v2h-2V6Zm0-2V2h-2v2h2Zm-4 0V2h-2v2h2Z" />
+        </svg>
+    );
+}
 
-    const handleNewDetached = async (acc: AccountEntry) => {
-        if (!acc.hasToken) return;
-        setCtx(null);
-        setStatus(t("Opening detached instance…"));
-        // @ts-ignore - 'detached' argument and username added
-        const res = await Native.openInstanceWindow(acc.token, acc.id, true, acc.username).catch(() => ({ ok: false, error: "error" }));
-        if ((res as any).ok) {
-            setStatus(t("Instance opened ✓"));
-            await refreshInstances();
-        } else {
-            setStatus(`${t("Error:")} ` + ((res as any).error ?? t("unknown")));
-        }
-        setTimeout(() => setStatus(null), 3000);
-    };
-
-    const handleNewGrouped = async (acc: AccountEntry) => {
-        if (!acc.hasToken) return;
-        setCtx(null);
-        setStatus(t("Opening grouped instance…"));
-        // @ts-ignore
-        const res = await Native.openInstanceWindowGrouped(acc.token, acc.id, acc.username).catch(() => ({ ok: false, error: "error" }));
-        if ((res as any).ok) {
-            setStatus(t("Instance opened ✓"));
-            await refreshInstances();
-        } else {
-            setStatus(`${t("Error:")} ` + ((res as any).error ?? t("unknown")));
-        }
-        setTimeout(() => setStatus(null), 3000);
-    };
-
-    const openCtx = (e: React.MouseEvent, acc: AccountEntry) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setCtx({ x: e.clientX, y: e.clientY, acc });
-    };
+function InstanceAvatar({ status }: { status?: InstanceStatus; }) {
+    if (status?.user) {
+        return <Avatar src={status.user.avatarUrl} size="SIZE_48" aria-label={`${status.user.username} avatar`} />;
+    }
 
     return (
-        <ModalRoot {...rootProps} size="small">
-            <ModalHeader separator={false}>
-                <Forms.FormTitle tag="h4" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
-                    <DiscordIcon /> {t("Multi-instance")}
-                </Forms.FormTitle>
-                <ModalCloseButton onClick={rootProps.onClose} />
-            </ModalHeader>
+        <div className="vc-multi-instance-avatar-placeholder">
+            <MultiInstanceIcon width={24} height={24} />
+        </div>
+    );
+}
 
-            <ModalContent className="mi-modal-content">
-                <p className="mi-subtitle">
-                    <strong>{t("Left click")}</strong> {t("or")} <strong>{t("right click")}</strong> → {t("options menu")}
-                </p>
+async function reportCurrentInstanceUser() {
+    if (!Native) return;
 
-                {/* Active account */}
-                {currentUser && (
-                    <div className="mi-list">
-                        <div className="mi-section-label">{t("ACTIVE ACCOUNT")}</div>
-                        <div className="mi-account-row mi-account-row--current">
-                            <AccountAvatar
-                                url={getAvatarUrl(currentUser.id, currentUser.avatar, currentUser.discriminator)}
-                                name={currentUser.username}
-                            />
-                            <div className="mi-account-info">
-                                <span className="mi-account-name">
-                                    {(currentUser as any).globalName || currentUser.username}
-                                </span>
-                                <span className="mi-account-tag">@{currentUser.username}</span>
-                            </div>
-                            <span className="mi-badge-current">{t("Active")}</span>
-                        </div>
+    const user = UserStore.getCurrentUser();
+    await Native.reportInstanceUser(user ? {
+        id: user.id,
+        username: user.username,
+        globalName: user.globalName,
+        avatarUrl: user.getAvatarURL(null, 128, false)
+    } : null);
+}
+
+function saveProfiles(profiles: InstanceProfile[]) {
+    settings.store.instances = profiles;
+}
+
+function MultiInstanceSettingsButton() {
+    return (
+        <Button size="small" variant="secondary" onClick={openMultiInstanceModal}>
+            Open Multi Instance
+        </Button>
+    );
+}
+
+const settings = definePluginSettings({
+    showIcon: {
+        type: OptionType.BOOLEAN,
+        description: "Show the Multi Instance icon in the header bar.",
+        default: true
+    },
+    saveSessionsByDefault: {
+        type: OptionType.BOOLEAN,
+        description: "Save sessions for new instances by default.",
+        default: true
+    },
+    blockExternalTokenAccess: {
+        type: OptionType.BOOLEAN,
+        description: "Use protected temporary sessions and clear saved login data before opening an instance.",
+        default: false
+    },
+    performanceMode: {
+        type: OptionType.BOOLEAN,
+        description: "Throttle background instances to reduce CPU usage.",
+        default: false
+    },
+    openManager: {
+        type: OptionType.COMPONENT,
+        component: MultiInstanceSettingsButton,
+        default: null
+    }
+}).withPrivateSettings<PrivateSettings>();
+
+function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
+    const currentUser = useStateFromStores([UserStore], () => UserStore.getCurrentUser());
+    const { blockExternalTokenAccess, performanceMode } = settings.use(SESSION_SETTING_KEYS);
+    const [profiles, setProfiles] = React.useState(() => getProfiles(settings.plain.instances));
+    const profilesRef = React.useRef(profiles);
+    const [instances, setInstances] = React.useState<InstanceStatus[]>([]);
+    const [busyId, setBusyId] = React.useState<string | null>(null);
+    const [newName, setNewName] = React.useState("");
+    const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [editingName, setEditingName] = React.useState("");
+    const refreshTick = useTimer({ interval: 1000 });
+
+    const refreshInstances = React.useCallback(async () => {
+        if (!Native) {
+            setInstances([]);
+            return;
+        }
+
+        const openInstances = await Native.getOpenInstances().catch((): InstanceStatus[] => []);
+        setInstances(openInstances);
+
+        let changed = false;
+        const nextProfiles = profilesRef.current.map(profile => {
+            const user = openInstances.find(instance => instance.id === profile.id)?.user;
+            if (
+                !user ||
+                profile.user?.id === user.id &&
+                profile.user.username === user.username &&
+                profile.user.globalName === user.globalName &&
+                profile.user.avatarUrl === user.avatarUrl
+            ) return profile;
+
+            changed = true;
+            return { ...profile, user };
+        });
+
+        if (changed) {
+            profilesRef.current = nextProfiles;
+            setProfiles(nextProfiles);
+            saveProfiles(nextProfiles);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        void refreshInstances();
+    }, [refreshInstances, refreshTick]);
+
+    function changeProfiles(change: (profiles: InstanceProfile[]) => InstanceProfile[]) {
+        const nextProfiles = change(profilesRef.current);
+        profilesRef.current = nextProfiles;
+        setProfiles(nextProfiles);
+        saveProfiles(nextProfiles);
+    }
+
+    function updateProfile(profileId: string, patch: Partial<Pick<InstanceProfile, "name" | "saveSession" | "domain" | "mode" | "user">>) {
+        changeProfiles(profiles => profiles.map(profile => profile.id === profileId ? { ...profile, ...patch } : profile));
+    }
+
+    async function openInstance(profile: InstanceProfile, mode: InstanceMode = profile.mode ?? "detached") {
+        if (!Native) {
+            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            return;
+        }
+
+        setBusyId(profile.id);
+        updateProfile(profile.id, { mode });
+
+        const saveSession = shouldSaveSession(profile);
+        const result = await Native.openInstance(profile.id, profile.name, saveSession, getDomain(profile), blockExternalTokenAccess, performanceMode, mode)
+            .catch(error => ({ ok: false, error: getErrorMessage(error) }));
+
+        if (result.ok) {
+            showToast(`${profile.name} opened as a ${mode} instance.`, Toasts.Type.SUCCESS);
+        } else {
+            showToast(result.error ?? `Could not open ${profile.name}.`, Toasts.Type.FAILURE);
+        }
+
+        await refreshInstances();
+        setBusyId(null);
+    }
+
+    async function closeInstance(profile: InstanceProfile) {
+        if (!Native) {
+            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            return;
+        }
+
+        setBusyId(profile.id);
+
+        const result = await Native.closeInstance(profile.id)
+            .catch(error => ({ ok: false, error: getErrorMessage(error) }));
+
+        if (result.ok) {
+            showToast(`${profile.name} closed.`, Toasts.Type.SUCCESS);
+        } else {
+            showToast(result.error ?? `Could not close ${profile.name}.`, Toasts.Type.FAILURE);
+        }
+
+        await refreshInstances();
+        setBusyId(null);
+    }
+
+    async function closeAllInstances() {
+        if (!Native) {
+            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            return;
+        }
+
+        setBusyId(ALL_INSTANCES_BUSY_ID);
+
+        const result = await Native.closeAllInstances()
+            .catch(error => ({ ok: false, error: getErrorMessage(error) }));
+
+        if (result.ok) {
+            showToast("All Multi Instance windows closed.", Toasts.Type.SUCCESS);
+        } else {
+            showToast(result.error ?? "Could not close all Multi Instance windows.", Toasts.Type.FAILURE);
+        }
+
+        await refreshInstances();
+        setBusyId(null);
+    }
+
+    async function clearSavedSession(profile: InstanceProfile) {
+        if (!Native) {
+            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            return;
+        }
+
+        if (instances.some(instance => instance.id === profile.id)) {
+            showToast("Close this instance before clearing its saved session.", Toasts.Type.FAILURE);
+            return;
+        }
+
+        setBusyId(profile.id);
+
+        const result = await Native.clearSavedSession(profile.id)
+            .catch(error => ({ ok: false, error: getErrorMessage(error) }));
+
+        if (result.ok) {
+            updateProfile(profile.id, { user: undefined });
+            showToast(`${profile.name} saved session cleared.`, Toasts.Type.SUCCESS);
+        } else {
+            showToast(result.error ?? `Could not clear ${profile.name}.`, Toasts.Type.FAILURE);
+        }
+
+        setBusyId(null);
+    }
+
+    function addInstance() {
+        const requestedName = newName.trim();
+
+        changeProfiles(profiles => {
+            const name = requestedName || `Discord Instance ${profiles.length + 1}`;
+            const id = makeProfileId(name, profiles);
+
+            return [...profiles, { id, name, saveSession: settings.store.saveSessionsByDefault, domain: DEFAULT_DOMAIN, mode: "detached" }];
+        });
+        setNewName("");
+    }
+
+    function toggleSessionSaving(profile: InstanceProfile) {
+        updateProfile(profile.id, { saveSession: !shouldSaveSession(profile) });
+    }
+
+    function cycleDomain(profile: InstanceProfile) {
+        const currentIndex = DOMAINS.indexOf(getDomain(profile));
+        const domain = DOMAINS[(currentIndex + 1) % DOMAINS.length];
+        updateProfile(profile.id, { domain });
+    }
+
+    function startRename(profile: InstanceProfile) {
+        setEditingId(profile.id);
+        setEditingName(profile.name);
+    }
+
+    function saveRename(profile: InstanceProfile) {
+        const name = editingName.trim();
+
+        if (!name) {
+            showToast("Enter an instance name.", Toasts.Type.FAILURE);
+            return;
+        }
+
+        updateProfile(profile.id, { name });
+        setEditingId(null);
+        setEditingName("");
+    }
+
+    async function removeInstance(profile: InstanceProfile) {
+        if (instances.some(instance => instance.id === profile.id)) await closeInstance(profile);
+
+        changeProfiles(profiles => profiles.filter(({ id }) => id !== profile.id));
+    }
+
+    function openInstanceMenu(event: ReactMouseEvent, profile: InstanceProfile, status?: InstanceStatus) {
+        event.preventDefault();
+        const isBusy = busyId === profile.id || busyId === ALL_INSTANCES_BUSY_ID;
+
+        ContextMenuApi.openContextMenu(event, () => (
+            <Menu.Menu
+                navId="multi-instance-profile-menu"
+                onClose={ContextMenuApi.closeContextMenu}
+                aria-label={`${profile.name} options`}
+            >
+                <Menu.MenuItem
+                    id="multi-instance-open-grouped"
+                    label="Open grouped with Discord"
+                    disabled={!!status || isBusy}
+                    action={() => void openInstance(profile, "grouped")}
+                />
+                <Menu.MenuItem
+                    id="multi-instance-open-detached"
+                    label="Open separate Discord window"
+                    disabled={!!status || isBusy}
+                    action={() => void openInstance(profile, "detached")}
+                />
+                {status && (
+                    <>
+                        <Menu.MenuItem
+                            id="multi-instance-focus"
+                            label="Focus instance"
+                            disabled={isBusy}
+                            action={() => void openInstance(profile, status.mode)}
+                        />
+                        <Menu.MenuItem
+                            id="multi-instance-close"
+                            label="Close instance"
+                            disabled={isBusy}
+                            action={() => void closeInstance(profile)}
+                        />
+                    </>
+                )}
+                <Menu.MenuSeparator />
+                <Menu.MenuItem
+                    id="multi-instance-rename"
+                    label="Rename profile"
+                    disabled={isBusy}
+                    action={() => startRename(profile)}
+                />
+                <Menu.MenuItem
+                    id="multi-instance-session"
+                    label={shouldSaveSession(profile) ? "Use a temporary session" : "Save this session"}
+                    disabled={isBusy || !!status || blockExternalTokenAccess}
+                    action={() => toggleSessionSaving(profile)}
+                />
+                <Menu.MenuItem
+                    id="multi-instance-domain"
+                    label={`Switch to ${DOMAIN_LABELS[DOMAINS[(DOMAINS.indexOf(getDomain(profile)) + 1) % DOMAINS.length]]}`}
+                    disabled={isBusy || !!status}
+                    action={() => cycleDomain(profile)}
+                />
+                <Menu.MenuItem
+                    id="multi-instance-clear"
+                    label="Clear saved session"
+                    disabled={isBusy || !!status}
+                    action={() => void clearSavedSession(profile)}
+                />
+                <Menu.MenuItem
+                    id="multi-instance-remove"
+                    label="Remove profile"
+                    color="danger"
+                    disabled={isBusy || profiles.length === 1}
+                    action={() => void removeInstance(profile)}
+                />
+            </Menu.Menu>
+        ));
+    }
+
+    return (
+        <Modal
+            {...rootProps}
+            size="xl"
+            title="Multi Instance Studio"
+            subtitle="Left click Open to launch or focus. Right click a profile for grouped, separate and advanced options."
+        >
+            <div className="vc-multi-instance-body">
+                {!Native && (
+                    <div className="vc-multi-instance-warning">
+                        Multi Instance can be configured here, but opening windows requires the native helper.
                     </div>
                 )}
 
-                {/* Autres accounts */}
-                <div className="mi-list">
-                    <div className="mi-section-label">
-                        {allAccounts.length} {t(allAccounts.length !== 1 ? "OTHER ACCOUNTS" : "OTHER ACCOUNT")}
-                    </div>
-
-                    {allAccounts.length === 0 ? (
-                        <div className="mi-empty">
-                            No other account found.<br />
-                            Use "<strong>Switch Account</strong>" in Discord or add tokens via <strong>TokenImporter</strong>.
+                <div className="vc-multi-instance-hero">
+                    <div className="vc-multi-instance-current">
+                        {currentUser
+                            ? <Avatar src={currentUser.getAvatarURL(null, 128, false)} size="SIZE_48" aria-label={`${currentUser.username} avatar`} />
+                            : <InstanceAvatar />}
+                        <div>
+                            <span className="vc-multi-instance-kicker">Active account</span>
+                            <strong>{currentUser?.globalName ?? currentUser?.username ?? "Connecting..."}</strong>
+                            <span className="vc-multi-instance-current-handle">{currentUser ? `@${currentUser.username}` : "Waiting for Discord account"}</span>
                         </div>
-                    ) : allAccounts.map(acc => {
-                        const isOpen = openInstances.includes(acc.id);
-                        const tagText = acc.hasToken
-                            ? (acc.isNative ? "🔗 Discord Account" : `🔑 Token`)
-                            : t("Switch only");
+                        <span className="vc-multi-instance-active-badge">Active</span>
+                    </div>
+                    <div className="vc-multi-instance-stats">
+                        <div><strong>{profiles.length}</strong><span>Profiles</span></div>
+                        <div><strong>{instances.length}</strong><span>Running</span></div>
+                    </div>
+                </div>
+
+                <div className="vc-multi-instance-modes">
+                    <div className="vc-multi-instance-mode-card">
+                        <div className="vc-multi-instance-mode-icon"><MultiInstanceIcon /></div>
+                        <div className="vc-multi-instance-mode-copy">
+                            <strong>Grouped instance</strong>
+                            <span>Uses the Discord client taskbar group while keeping a separate login session.</span>
+                        </div>
+                    </div>
+                    <div className="vc-multi-instance-mode-card">
+                        <div className="vc-multi-instance-mode-icon"><MultiInstanceIcon /></div>
+                        <div className="vc-multi-instance-mode-copy">
+                            <strong>Separate Discord instance</strong>
+                            <span>Gets its own taskbar identity and the Discord app icon.</span>
+                        </div>
+                    </div>
+                </div>
+
+                {blockExternalTokenAccess && (
+                    <div className="vc-multi-instance-warning">
+                        Token protection is enabled. Every alt will use a protected temporary session.
+                    </div>
+                )}
+
+                <div className="vc-multi-instance-toolbar">
+                    <div className="vc-multi-instance-toolbar-copy">
+                        <strong>Other accounts</strong>
+                        <span>Left click Open for quick switch. Right click any profile for the options menu.</span>
+                    </div>
+                    <div className="vc-multi-instance-toolbar-actions">
+                        <Button size="small" variant="secondary" onClick={() => void refreshInstances()}>
+                            Refresh
+                        </Button>
+                        <Button
+                            size="small"
+                            variant="secondary"
+                            disabled={!instances.length || busyId === ALL_INSTANCES_BUSY_ID}
+                            onClick={() => void closeAllInstances()}
+                        >
+                            Close all
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="vc-multi-instance-list">
+                    {profiles.map(profile => {
+                        const status = instances.find(instance => instance.id === profile.id);
+                        const isOpen = !!status;
+                        const isBusy = busyId === profile.id || busyId === ALL_INSTANCES_BUSY_ID;
+                        const saveSession = shouldSaveSession(profile);
+                        const domain = getDomain(profile);
+                        const isEditing = editingId === profile.id;
+                        const sessionLabel = blockExternalTokenAccess ? "Protected temporary session" : saveSession ? "Saved session" : "Temporary session";
+                        const mode = status?.mode ?? profile.mode ?? "detached";
+                        const user = status?.user ?? profile.user;
+
                         return (
                             <div
-                                key={acc.id}
-                                className={`mi-account-row${isOpen ? " mi-account-row--active" : ""}${!acc.hasToken ? " mi-account-row--no-token" : ""}`}
-                                onClick={e => openCtx(e, acc)}
-                                onContextMenu={e => openCtx(e, acc)}
+                                className={classes("vc-multi-instance-row", isOpen && "vc-multi-instance-row-open")}
+                                key={profile.id}
+                                onContextMenu={event => openInstanceMenu(event, profile, status)}
                             >
-                                <AccountAvatar url={acc.avatar} name={acc.username} />
-                                <div className="mi-account-info">
-                                    <span className="mi-account-name">{acc.username}</span>
-                                    <span className="mi-account-tag">
-                                        {tagText}{acc.hasToken && acc.discriminator && acc.discriminator !== "0" ? ` · #${acc.discriminator}` : ""}
-                                    </span>
+                                <div className="vc-multi-instance-row-info">
+                                    <div className="vc-multi-instance-avatar">
+                                        <InstanceAvatar status={status} />
+                                        <span className={classes("vc-multi-instance-dot", isOpen && "vc-multi-instance-dot-open")} />
+                                    </div>
+                                    <div className="vc-multi-instance-profile">
+                                        {isEditing ? (
+                                            <div className="vc-multi-instance-rename">
+                                                <div className="vc-multi-instance-rename-input">
+                                                    <TextInput
+                                                        value={editingName}
+                                                        placeholder="Instance name"
+                                                        onChange={setEditingName}
+                                                    />
+                                                </div>
+                                                <Button size="small" disabled={isBusy} onClick={() => saveRename(profile)}>
+                                                    Save
+                                                </Button>
+                                                <Button size="small" variant="secondary" disabled={isBusy} onClick={() => setEditingId(null)}>
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="vc-multi-instance-kicker">{profile.name}</span>
+                                                <div className="vc-multi-instance-name">{user?.globalName ?? user?.username ?? "Ready for login"}</div>
+                                            </>
+                                        )}
+                                        <div className="vc-multi-instance-id">
+                                            {user ? `@${user.username}` : `Profile ${profile.id}`}
+                                        </div>
+                                        <div className="vc-multi-instance-tags">
+                                            <span>{DOMAIN_LABELS[domain]}</span>
+                                            <span>{sessionLabel}</span>
+                                            <span>{mode === "grouped" ? "Grouped" : "Separate"}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                {isOpen
-                                    ? <span className="mi-badge-open">{t("Open")}</span>
-                                    : <span className="mi-badge-arrow">›</span>}
+                                <div className="vc-multi-instance-actions">
+                                    <Button size="small" disabled={isBusy || isEditing} onClick={() => void openInstance(profile, mode)}>
+                                        {isOpen ? "Focus" : "Open"}
+                                    </Button>
+                                    <Button size="small" variant="secondary" disabled={isBusy} onClick={event => openInstanceMenu(event, profile, status)}>
+                                        Options
+                                    </Button>
+                                </div>
                             </div>
                         );
                     })}
                 </div>
 
-                {status && (
-                    <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center", margin: "4px 0 0" }}>
-                        {status}
-                    </p>
-                )}
-            </ModalContent>
-
-            {/* Context menu via portal */}
-            {ctx && (() => {
-                const acc = allAccounts.find(a => a.id === ctx.acc.id);
-                if (!acc) return null;
-                return (
-                    <ContextMenuPortal
-                        x={ctx.x}
-                        y={ctx.y}
-                        acc={acc}
-                        isOpen={openInstances.includes(acc.id)}
-                        onClose={() => setCtx(null)}
-                        onNewWindow={() => handleNewWindow(acc)}
-                        onNewDetached={() => handleNewDetached(acc)}
-                        onNewGrouped={() => handleNewGrouped(acc)}
-                        onSwitch={() => acc.token ? switchToQuick(acc.token) : switchNativeAccount(acc.id)}
-                    />
-                );
-            })()}
-        </ModalRoot>
+                <div className="vc-multi-instance-add">
+                    <div>
+                        <strong>Create an alt profile</strong>
+                        <span>Its login data remains isolated from every other profile.</span>
+                    </div>
+                    <div className="vc-multi-instance-add-controls">
+                        <div className="vc-multi-instance-add-input">
+                            <TextInput
+                                value={newName}
+                                placeholder="Profile name"
+                                onChange={setNewName}
+                            />
+                        </div>
+                        <Button size="small" onClick={addInstance}>
+                            Add profile
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </Modal>
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sous-composants
-// ─────────────────────────────────────────────────────────────────────────────
-
-function AccountAvatar({ url, name }: { url: string; name: string; }) {
-    const [err, setErr] = React.useState(false);
-    if (err || !url) return <div className="mi-avatar mi-avatar--ph">{name?.[0]?.toUpperCase() ?? "?"}</div>;
-    return <img src={url} className="mi-avatar" alt="" onError={() => setErr(true)} />;
+export function openMultiInstanceModal() {
+    openModal(props => <MultiInstanceModal rootProps={props} />);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Icons
-// ─────────────────────────────────────────────────────────────────────────────
-
-function DiscordIcon() {
-    return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.73 4.87a18.2 18.2 0 0 0-4.6-1.44c-.21.4-.4.8-.58 1.21-1.69-.25-3.4-.25-5.1 0-.18-.41-.37-.82-.59-1.2-1.6.27-3.14.75-4.6 1.43A19.04 19.04 0 0 0 .96 17.7a18.43 18.43 0 0 0 5.63 2.87c.46-.62.86-1.28 1.2-1.98-.65-.25-1.29-.55-1.9-.92.17-.12.32-.24.47-.37 3.58 1.7 7.7 1.7 11.28 0l.46.37c-.6.36-1.25.67-1.9.92.35.7.75 1.35 1.2 1.98 2.03-.63 3.94-1.6 5.64-2.87.47-4.87-.78-9.09-3.3-12.83ZM8.3 15.12c-1.1 0-2-1.02-2-2.27 0-1.24.88-2.26 2-2.26s2.02 1.02 2 2.26c0 1.25-.89 2.27-2 2.27Zm7.4 0c-1.1 0-2-1.02-2-2.27 0-1.24.88-2.26 2-2.26s2.02 1.02 2 2.26c0 1.25-.88 2.27-2 2.27Z" />
-        </svg>
-    );
-}
-
-function WindowIcon() {
-    return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10z" />
-        </svg>
-    );
-}
-
-function ExternalIcon() {
-    return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-        </svg>
-    );
-}
-
-function SwitchIcon() {
-    return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M16 17v-3H9v-4h7V7l5 5-5 5zm-9 2H5V5h2V3H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h2v-2z" />
-        </svg>
-    );
-}
-
-function GroupedIcon() {
-    return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2 7h20v2H2zm0 4h20v2H2zm0 4h20v2H2z" />
-        </svg>
-    );
-}
-
-function CloseIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-        </svg>
-    );
-}
-
-function MultiInstanceIcon({ width = 20, height = 20 }: { width?: number; height?: number; }) {
-    return (
-        <svg width={width} height={height} viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.73 4.87a18.2 18.2 0 0 0-4.6-1.44c-.21.4-.4.8-.58 1.21-1.69-.25-3.4-.25-5.1 0-.18-.41-.37-.82-.59-1.2-1.6.27-3.14.75-4.6 1.43A19.04 19.04 0 0 0 .96 17.7a18.43 18.43 0 0 0 5.63 2.87c.46-.62.86-1.28 1.2-1.98-.65-.25-1.29-.55-1.9-.92.17-.12.32-.24.47-.37 3.58 1.7 7.7 1.7 11.28 0l.46.37c-.6.36-1.25.67-1.9.92.35.7.75 1.35 1.2 1.98 2.03-.63 3.94-1.6 5.64-2.87.47-4.87-.78-9.09-3.3-12.83ZM8.3 15.12c-1.1 0-2-1.02-2-2.27 0-1.24.88-2.26 2-2.26s2.02 1.02 2 2.26c0 1.25-.89 2.27-2 2.27Zm7.4 0c-1.1 0-2-1.02-2-2.27 0-1.24.88-2.26 2-2.26s2.02 1.02 2 2.26c0 1.25-.88 2.27-2 2.27Z" />
-            <circle cx="19.5" cy="19.5" r="4.5" fill="var(--brand-500, #5865f2)" />
-            <path d="M19.5 17.5v4M17.5 19.5h4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Bouton header bar
-// ─────────────────────────────────────────────────────────────────────────────
 
 function MultiInstanceButton() {
+    const { showIcon } = settings.use(ICON_SETTING_KEYS);
+    if (!showIcon) return null;
+
     return (
         <HeaderBarButton
             icon={MultiInstanceIcon}
-            tooltip="Multi-instance — open Discord with another account"
-            onClick={() => openModal(props => <MultiInstanceModal rootProps={props} />)}
+            tooltip="Multi Instance"
+            onClick={openMultiInstanceModal}
         />
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Plugin
-// ─────────────────────────────────────────────────────────────────────────────
+const MultiInstanceButtonWithBoundary = ErrorBoundary.wrap(MultiInstanceButton, { noop: true });
 
 export default definePlugin({
     name: "MultiInstance",
-    description: "Opens a 2nd Discord (new window or split screen) with another account.",
-    authors: [{ name: "Nightcord", id: 0n }],
+    description: "Opens extra Discord windows with separate Discord sessions.",
+    authors: [{ name: "irritably", id: 928787166916640838n }],
+    dependencies: ["HeaderBarAPI"],
     tags: ["Utility", "Privacy"],
     enabledByDefault: false,
     managedStyle,
-    dependencies: ["HeaderBarAPI"],
-
-    _fluxUnsub: null as (() => void) | null,
-
-    async start() {
-        await loadTokenCache();
-        hookEncryptAndStoreTokens();
-        this._fluxUnsub = hookFluxDispatcher();
-        captureCurrentToken();
-        addHeaderBarButton("nightcord-multi-instance", () => <MultiInstanceButton />, 9);
+    settings,
+    headerBarButton: {
+        icon: MultiInstanceIcon,
+        render: () => <MultiInstanceButtonWithBoundary />,
+        priority: 9
     },
-
-    stop() {
-        removeHeaderBarButton("nightcord-multi-instance");
-        if (this._fluxUnsub) { this._fluxUnsub(); this._fluxUnsub = null; }
-        const root = document.getElementById("nightcord-mi-ctx-root");
-        if (root) root.remove();
+    start() {
+        void reportCurrentInstanceUser().catch(() => undefined);
     },
+    flux: {
+        async CONNECTION_OPEN() {
+            await reportCurrentInstanceUser();
+        },
+        async CURRENT_USER_UPDATE() {
+            await reportCurrentInstanceUser();
+        }
+    },
+    toolboxActions: {
+        "Open Multi Instance"() { openMultiInstanceModal(); }
+    }
 });

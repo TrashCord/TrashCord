@@ -92,10 +92,7 @@
     padding-left: 5px;
     padding-right: 8px;
     user-select: none;
-<<<<<<< HEAD
     white-space: nowrap;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 .vc-shiki-root .vc-shiki-table-cell:last-child {

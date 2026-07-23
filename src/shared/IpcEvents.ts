@@ -24,10 +24,6 @@ export const enum IpcEvents {
     SET_QUICK_CSS = "VencordSetQuickCss",
     UPLOAD_THEME = "VencordUploadTheme",
     DELETE_THEME = "VencordDeleteTheme",
-<<<<<<< HEAD
-=======
-    GET_THEMES_DIR = "VencordGetThemesDir",
->>>>>>> 89b0fd2a5 (Update index.tsx)
     GET_THEMES_LIST = "VencordGetThemesList",
     GET_THEME_DATA = "VencordGetThemeData",
     GET_THEME_SYSTEM_VALUES = "VencordGetThemeSystemValues",

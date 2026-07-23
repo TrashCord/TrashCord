@@ -19,11 +19,7 @@ export interface RemoteStreak {
     last_streak_date: string | null;
     user_a_today: boolean;
     user_b_today: boolean;
-<<<<<<< HEAD
     today_date: string | null;
-=======
-    today_date: string;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export interface StreaksState {

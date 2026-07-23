@@ -25,10 +25,7 @@ import type { MouseEvent } from "react";
 interface URLReplacementRule {
     match: RegExp;
     replace: (...matches: string[]) => string;
-<<<<<<< HEAD
     displayName?: string;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     description: string;
     shortlinkMatch?: RegExp;
     accountViewReplace?: (userId: string) => string;
@@ -63,24 +60,18 @@ const UrlReplacementRules: Record<string, URLReplacementRule> = {
     itunes: {
         match: /^https:\/\/(?:geo\.)?music\.apple\.com\/([a-z]{2}\/)?(album|artist|playlist|song|curator)\/([^/?#]+)\/?([^/?#]+)?(?:\?.*)?(?:#.*)?$/,
         replace: (_, lang, type, name, id) => id ? `itunes://music.apple.com/us/${type}/${name}/${id}` : `itunes://music.apple.com/us/${type}/${name}`,
-<<<<<<< HEAD
         displayName: "iTunes",
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         description: "Open Apple Music links in the iTunes app"
     },
     vrcx: {
         match: /^https:\/\/vrchat.com\/home\/(user|avatar|world|group)\/(.+)$/,
         replace: (_, type, id) => `vrcx://${type}/${id}`,
         description: "Open VRChat links in the VRCX app"
-<<<<<<< HEAD
     },
     telegram: {
         match: /^https:\/\/t\.me\/([a-zA-Z0-9_]+)$/,
         replace: (_, username) => `tg://resolve?domain=${username}`,
         description: "Open Telegram links in the Telegram app"
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 };
 
@@ -88,10 +79,7 @@ const pluginSettings = definePluginSettings(
     Object.entries(UrlReplacementRules).reduce((acc, [key, rule]) => {
         acc[key] = {
             type: OptionType.BOOLEAN,
-<<<<<<< HEAD
             displayName: rule.displayName,
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
             description: rule.description,
             default: true,
         };
@@ -107,10 +95,7 @@ export default definePlugin({
     tags: ["Utility"],
     authors: [Devs.Ven, Devs.surgedevs],
     settings: pluginSettings,
-<<<<<<< HEAD
     isModified: true,
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     patches: [
         {

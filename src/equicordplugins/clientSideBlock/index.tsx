@@ -155,13 +155,8 @@ export default definePlugin({
         {
             find: ".NITRO_NOTIFICATION,[",
             replacement: {
-<<<<<<< HEAD
                 match: /\i\(\)\(\i\.type.{0,40}Message must not be a thread starter message/,
                 replace: "if($self.shouldHideUser(arguments[0].message.author.id, arguments[0].message.channel_id)) return null;$&"
-=======
-                match: /renderContentOnly:\i}=\i;/,
-                replace: "$&if($self.shouldHideUser(arguments[0].message.author.id, arguments[0].message.channel_id)) return null; "
->>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         },
         // friends list (should work with all tabs)

@@ -5,10 +5,7 @@
  */
 
 import { AudioPlayerInterface, playAudio } from "@api/AudioPlayer";
-<<<<<<< HEAD
 import { Button } from "@components/Button";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Card } from "@components/Card";
 import { FormSwitch } from "@components/FormSwitch";
 import { Heading } from "@components/Heading";
@@ -17,11 +14,7 @@ import { Margins } from "@utils/margins";
 import { useForceUpdater } from "@utils/react";
 import { makeRange } from "@utils/types";
 import { findLazy } from "@webpack";
-<<<<<<< HEAD
 import { React, Select, showToast, Slider } from "@webpack/common";
-=======
-import { Button, React, Select, showToast, Slider } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { ComponentType, Ref, SyntheticEvent } from "react";
 
 import { deleteAudio, getAllAudio, saveAudio, StoredAudioFile } from "./audioStore";
@@ -185,32 +178,21 @@ export function SoundOverrideComponent({ type, override, onChange }: {
 
             {override.enabled && (
                 <>
-<<<<<<< HEAD
                     <div className={cl("override-controls")}>
                         <Button
                             variant="positive"
-=======
-                    <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                        <Button
-                            color={Button.Colors.GREEN}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                             onClick={previewSound}
                         >
                             Preview
                         </Button>
                         <Button
-<<<<<<< HEAD
                             variant="dangerPrimary"
-=======
-                            color={Button.Colors.RED}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                             onClick={() => sound.current?.stop()}
                         >
                             Stop
                         </Button>
                     </div>
 
-<<<<<<< HEAD
                     <div className={Margins.bottom16}>
                         <Heading>Volume</Heading>
                         <Slider
@@ -286,91 +268,13 @@ export function SoundOverrideComponent({ type, override, onChange }: {
                                 <Button
                                     variant="primary"
                                     onClick={() => fileInputRef.current?.click()}
-=======
-                    <Heading>Volume</Heading>
-                    <Slider
-                        markers={makeRange(0, 100, 10)}
-                        initialValue={override.volume}
-                        onValueChange={val => {
-                            sound.current && (sound.current.volume = val);
-                            override.volume = val;
-                            saveAndNotify();
-                        }}
-                        className={Margins.bottom16}
-                        disabled={!override.enabled}
-                    />
-
-                    <Heading>Sound Source</Heading>
-                    <Select
-                        options={[
-                            { value: "default", label: "Default" },
-                            ...(type.seasonal?.map(id => ({ value: id, label: capitalizeWords(id) })) ?? []),
-                            { value: "custom", label: "Custom" }
-                        ]}
-                        isSelected={v => v === override.selectedSound}
-                        select={async v => {
-                            override.selectedSound = v;
-
-                            if (v === "custom" && override.selectedFileId) {
-                                try {
-                                    await ensureDataURICached(override.selectedFileId);
-                                } catch (error) {
-                                    console.error(`[CustomSounds] Failed to cache data URI for ${type.id}:`, error);
-                                    showToast("Error loading custom sound file");
-                                }
-                            }
-
-                            await saveAndNotify();
-                        }}
-                        serialize={opt => opt.value}
-                        className={Margins.bottom16}
-                    />
-
-                    {override.selectedSound === "custom" && (
-                        <>
-                            <Heading>Custom File</Heading>
-                            <Select
-                                options={[
-                                    { value: "", label: "Select a file..." },
-                                    ...customFileOptions
-                                ]}
-                                isSelected={v => v === (override.selectedFileId || "")}
-                                select={async id => {
-                                    if (!id) {
-                                        override.selectedFileId = undefined;
-                                    } else {
-                                        override.selectedFileId = id;
-                                        await ensureDataURICached(id);
-                                    }
-
-                                    await saveAndNotify();
-                                }}
-                                serialize={opt => opt.value}
-                                className={Margins.bottom8}
-                            />
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".mp3,.wav,.ogg,.m4a,.flac,.aac,.webm,.wma,.mp4"
-                                style={{ display: "none" }}
-                                onChange={uploadFile}
-                            />
-                            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                                <Button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    color={Button.Colors.BRAND}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                                 >
                                     Upload New
                                 </Button>
 
                                 {override.selectedFileId && files[override.selectedFileId] && (
                                     <Button
-<<<<<<< HEAD
                                         variant="dangerPrimary"
-=======
-                                        color={Button.Colors.RED}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                                         onClick={() => deleteFile(override.selectedFileId!)}
                                     >
                                         Delete Selected File

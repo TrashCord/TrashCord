@@ -17,11 +17,8 @@ export interface Category {
 }
 
 let forceUpdateDms: (() => void) | undefined = undefined;
-<<<<<<< HEAD
 let lastPrivateChannelIds: string[] | null = null;
 const lastSortOrder = new Map<string, number>();
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export let currentUserCategories: Category[] = [];
 
 export async function init() {
@@ -88,18 +85,6 @@ export function categoryLen() {
     return currentUserCategories.length;
 }
 
-<<<<<<< HEAD
-=======
-export function getAllUncollapsedChannels() {
-    if (settings.store.pinOrder === PinOrder.LastMessage) {
-        const sortedChannels = PrivateChannelSortStore.getPrivateChannelIds();
-        return currentUserCategories.filter(c => !c.collapsed).flatMap(c => sortedChannels.filter(channel => c.channels.includes(channel)));
-    }
-
-    return currentUserCategories.filter(c => !c.collapsed).flatMap(c => c.channels);
-}
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export function getSections() {
     return currentUserCategories.reduce((acc, category) => {
         acc.push(category.channels.length === 0 ? 1 : category.channels.length);
@@ -107,7 +92,6 @@ export function getSections() {
     }, [] as number[]);
 }
 
-<<<<<<< HEAD
 function getSortOrder(ids: string[]) {
     if (ids !== lastPrivateChannelIds) {
         lastPrivateChannelIds = ids;
@@ -139,8 +123,6 @@ export function getAllUncollapsedChannels() {
         .flatMap(getCategoryChannels);
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 // Move categories
 export const canMoveArrayInDirection = (array: any[], index: number, direction: -1 | 1) => {
     const a = array[index];

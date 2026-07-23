@@ -17,10 +17,7 @@ export default definePlugin({
     name: "NoMiddleClickPaste",
     description: "Disable Linux middle-click paste - Linux only",
     authors: [Devs.Darxoon],
-<<<<<<< HEAD
     tags: ["Accessibility"],
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     hidden: !IS_LINUX,
 
     start() {

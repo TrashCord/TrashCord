@@ -99,31 +99,6 @@
     margin-bottom: 16px;
 }
 
-<<<<<<< HEAD
-=======
-.vc-profile-presets-random {
-    background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 50%, #8a7bff 100%);
-    color: #fff;
-    border: none;
-}
-
-.vc-profile-presets-random:hover {
-    filter: brightness(1.05);
-}
-
-.vc-profile-presets-random-content {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.vc-profile-presets-random-icon {
-    width: 16px;
-    height: 16px;
-    display: inline-block;
-}
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
 .vc-profile-presets-block {
     margin: 16px 0;
     border: none;
@@ -237,8 +212,4 @@
     border: 2px solid var(--background-modifier-accent);
     border-radius: 4px;
     color: var(--text-default);
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 89b0fd2a5 (Update index.tsx)

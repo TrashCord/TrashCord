@@ -14,7 +14,6 @@ import { getSettings, saveSettings } from "./settings";
 export * from "./export";
 export * from "./import";
 
-<<<<<<< HEAD
 import { blockedExts } from "../list";
 import { LoggedAttachment } from "../types";
 import { DEFAULT_ATTACHMENT_FILE_EXTENSIONS, LOGS_DATA_FILENAME } from "../utils/constants";
@@ -23,18 +22,6 @@ import { ensureDirectoryExists, getAttachmentIdFromFilename, sleep } from "./uti
 export { getSettings };
 export function messageLoggerEnhancedUniqueIdThingyIdkMan() { }
 
-=======
-import { LoggedAttachment } from "../types";
-import { LOGS_DATA_FILENAME } from "../utils/constants";
-import { ensureDirectoryExists, getAttachmentIdFromFilename, sleep } from "./utils";
-
-export { getSettings };
-
-// so we can filter the native helpers by this key
-export function messageLoggerEnhancedUniqueIdThingyIdkMan() { }
-
-// Map<attachmetId, path>()
->>>>>>> 89b0fd2a5 (Update index.tsx)
 const nativeSavedImages = new Map<string, string>();
 export const getNativeSavedImages = () => nativeSavedImages;
 
@@ -78,12 +65,6 @@ export async function getImageNative(_event: IpcMainInvokeEvent, attachmentId: s
 export async function writeImageNative(_event: IpcMainInvokeEvent, filename: string, content: Uint8Array) {
     if (!filename || !content) return;
     const imageDir = await getImageCacheDir();
-<<<<<<< HEAD
-=======
-
-    // returns the file name
-    // ../../someMalicousPath.png -> someMalicousPath
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const attachmentId = getAttachmentIdFromFilename(filename);
 
     const existingImage = nativeSavedImages.get(attachmentId);
@@ -117,13 +98,10 @@ export async function getDefaultNativeDataDir(): Promise<string> {
     return path.join(DATA_DIR, "MessageLoggerData");
 }
 
-<<<<<<< HEAD
 export async function getDefaultAttachmentFileExtensions(): Promise<string> {
     return DEFAULT_ATTACHMENT_FILE_EXTENSIONS;
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export async function chooseDir(event: IpcMainInvokeEvent, logKey: "logsDir" | "imageCacheDir") {
     const settings = await getSettings();
     const defaultPath = settings[logKey] || await getDefaultNativeDataDir();
@@ -148,13 +126,8 @@ export async function chooseDir(event: IpcMainInvokeEvent, logKey: "logsDir" | "
     return dir;
 }
 
-<<<<<<< HEAD
 export async function showItemInFolder(_event: IpcMainInvokeEvent) {
     shell.showItemInFolder(await getImageCacheDir());
-=======
-export async function showItemInFolder(_event: IpcMainInvokeEvent, filePath: string) {
-    shell.showItemInFolder(filePath);
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export async function chooseFile(_event: IpcMainInvokeEvent, title: string, filters: Electron.FileFilter[], defaultPath?: string) {
@@ -166,11 +139,6 @@ export async function chooseFile(_event: IpcMainInvokeEvent, title: string, filt
     return await readFile(path, "utf-8");
 }
 
-<<<<<<< HEAD
-=======
-// doing it in native because you can only fetch images from the renderer
-// other types of files will cause cors issues
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export async function downloadAttachment(_event: IpcMainInvokeEvent, attachment: LoggedAttachment, attempts = 0, useOldUrl = false): Promise<{ error: string | null; path: string | null; }> {
     try {
         if (!attachment?.url || !attachment.oldUrl || !attachment?.id)
@@ -180,7 +148,6 @@ export async function downloadAttachment(_event: IpcMainInvokeEvent, attachment:
             return { error: "Invalid Attachment ID", path: null };
         }
 
-<<<<<<< HEAD
         const settings = await getSettings();
         const allowedExtensionsStr = settings.attachmentFileExtensions?.trim() || "";
         if (allowedExtensionsStr === "" || allowedExtensionsStr.toLowerCase() === "none") {
@@ -194,8 +161,6 @@ export async function downloadAttachment(_event: IpcMainInvokeEvent, attachment:
             return { error: `File type .${cleanExt} is blocked by settings configurations.`, path: null };
         }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         const existingImage = nativeSavedImages.get(attachment.id);
         if (existingImage)
             return {
@@ -240,7 +205,6 @@ export async function downloadAttachment(_event: IpcMainInvokeEvent, attachment:
         return { error: error.message, path: null };
     }
 }
-<<<<<<< HEAD
 
 export async function updateAllowedExtensions(_event: IpcMainInvokeEvent, cleanExtensionsString: string | undefined) {
     const settings = await getSettings();
@@ -265,5 +229,3 @@ export async function updateAllowedExtensions(_event: IpcMainInvokeEvent, cleanE
 
     await saveSettings(settings);
 }
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)

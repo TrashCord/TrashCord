@@ -73,20 +73,7 @@ export default definePlugin({
                     replace: "{...$1,...$self.getPlatform(true)}"
                 },
             ]
-<<<<<<< HEAD
         }
-=======
-        },
-        {
-            find: '"2025-01-virtual-currency-rollout"',
-            replacement: [
-                {
-                    match: /(?<=\}\),)(\i)/g,
-                    replace: "$1=e=>({enabled:true}),_equicord_$1"
-                }
-            ]
-        },
->>>>>>> 89b0fd2a5 (Update index.tsx)
     ],
     getPlatform(bypass, userId?: any) {
         const platform = settings.store.platform ?? "desktop";

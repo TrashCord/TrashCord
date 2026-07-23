@@ -16,11 +16,7 @@ export default definePlugin({
         {
             find: '"view-profile"',
             replacement: {
-<<<<<<< HEAD
                 match: /function (\i)\(\i?\)\{.{0,45}\(0,\i\.openUserProfileModal.{0,300}(?=return)/,
-=======
-                match: /(\i)=.{0,45}\(0,\i\.openUserProfileModal.{0,300}(?=return)/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$&return $1();"
             },
             all: true

@@ -54,10 +54,7 @@ export const settings = definePluginSettings({
 export default definePlugin({
     name: "UserpluginInstaller",
     description: "Install userplugins with a simple button click",
-<<<<<<< HEAD
     tags: ["Developers"],
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     settingsAboutComponent: () => (
         <Notice.Warning>
             Equicord does not moderate userplugins and takes no responsibility for anything that may result from installing them.

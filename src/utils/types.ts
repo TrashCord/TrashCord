@@ -20,10 +20,7 @@ import { AudioProcessor } from "@api/AudioPlayer";
 import type { ProfileBadge } from "@api/Badges";
 import type { ChatBarButtonData, ChatBarButtonWrapperData } from "@api/ChatButtons";
 import type { NavContextMenuPatchCallback } from "@api/ContextMenu";
-<<<<<<< HEAD
 import type { GifPickerContextMenuItemFactory } from "@api/GifPickerContextMenu";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { HeaderBarButtonData } from "@api/HeaderBar";
 import type { MemberListDecoratorFactory } from "@api/MemberListDecorators";
 import type { MessageAccessoryFactory } from "@api/MessageAccessories";
@@ -240,10 +237,7 @@ export interface PluginDef {
     renderProfileCollection?: ProfileCollectionData;
     chatBarButtonWrapper?: ChatBarButtonWrapperData;
     renderProfileSection?: ProfileSectionData;
-<<<<<<< HEAD
     gifPickerContextMenu?: GifPickerContextMenuItemFactory;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     /**
      * A Vencord plugin that is modified for extra features in Equicord
@@ -300,10 +294,7 @@ export type PluginSettingDef =
 
 export interface PluginSettingDefCommon extends IsDisabledOrHidden, IsValid<unknown> {
     description: string;
-<<<<<<< HEAD
     displayName?: string;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     placeholder?: string;
     onChange?(newValue: any): void;
     /**
@@ -387,11 +378,7 @@ export interface PluginSettingSliderDef extends PluginSettingDefCommon {
     stickToMarkers?: boolean;
 }
 
-<<<<<<< HEAD
 export interface PluginSettingComponentDef extends Omit<PluginSettingDefCommon, "description" | "placeholder" | "displayName"> {
-=======
-export interface PluginSettingComponentDef extends Omit<PluginSettingDefCommon, "description" | "placeholder"> {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     type: OptionType.COMPONENT;
     component: (props: PluginSettingComponentProps) => ReactNode | Promise<ReactNode>;
     default?: any;

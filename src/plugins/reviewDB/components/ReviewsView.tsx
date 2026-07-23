@@ -62,11 +62,7 @@ export default function ReviewsView({
 }: Props) {
     const [signal, refetch] = useForceUpdater(true);
 
-<<<<<<< HEAD
     const [reviewData] = useAwaiter(() => getReviews(discordId, { offset: (page - 1) * REVIEWS_PER_PAGE, fetchVotes: true }), {
-=======
-    const [reviewData] = useAwaiter(() => getReviews(discordId, { offset: (page - 1) * REVIEWS_PER_PAGE }), {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         fallbackValue: null,
         deps: [refetchSignal, signal, page],
         onSuccess: data => {

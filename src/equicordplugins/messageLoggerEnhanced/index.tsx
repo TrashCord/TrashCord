@@ -414,16 +414,10 @@ export default definePlugin({
             }
         }
 
-<<<<<<< HEAD
         const { imageCacheDir, logsDir, attachmentFileExtensions } = await Native.getSettings();
         settings.store.imageCacheDir = imageCacheDir;
         settings.store.logsDir = logsDir;
         settings.store.attachmentFileExtensions = attachmentFileExtensions ?? "none";
-=======
-        const { imageCacheDir, logsDir } = await Native.getSettings();
-        settings.store.imageCacheDir = imageCacheDir;
-        settings.store.logsDir = logsDir;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
         setupContextMenuPatches();
     },

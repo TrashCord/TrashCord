@@ -21,10 +21,7 @@ import "./styles.css";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
-<<<<<<< HEAD
 import { Paragraph } from "@components/Paragraph";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy, findCssClassesLazy, findStoreLazy } from "@webpack";
@@ -32,20 +29,10 @@ import { Constants, React, RestAPI, SettingsRouter, Tooltip } from "@webpack/com
 
 import { NewButton, RenameButton } from "./components/RenameButton";
 import { Session, SessionInfo } from "./types";
-<<<<<<< HEAD
 import { cl, fetchNamesFromDataStore, getDefaultName, GetOsColor, GetPlatformIcon, savedSessionsCache, saveSessionsToDataStore } from "./utils";
 
 const AuthSessionsStore = findStoreLazy("AuthSessionsStore");
 const TimestampClasses = findCssClassesLazy("timestamp", "blockquoteContainer");
-=======
-import { fetchNamesFromDataStore, getDefaultName, GetOsColor, GetPlatformIcon, savedSessionsCache, saveSessionsToDataStore } from "./utils";
-
-const AuthSessionsStore = findStoreLazy("AuthSessionsStore");
-
-const TimestampClasses = findCssClassesLazy("timestamp", "blockquoteContainer");
-const SessionIconClasses = findCssClassesLazy("sessionIcon");
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
 const BlobMask = findComponentByCodeLazy("!1,lowerBadgeSize:");
 
 const settings = definePluginSettings({
@@ -72,7 +59,6 @@ export default definePlugin({
 
     patches: [
         {
-<<<<<<< HEAD
             find: "#{intl::AUTH_SESSIONS_OS_UNKNOWN}",
             replacement: [
                 {
@@ -93,26 +79,6 @@ export default definePlugin({
                 },
             ]
         },
-=======
-            find: "#{intl::AUTH_SESSIONS_OTHERS_LOG_OUT_SELECTED_ACTION}",
-            replacement: [
-                // Replace children with a single label with state
-                {
-                    match: /({variant:"eyebrow",className:\i\.\i,children:).{70,110}{children:"\\xb7"}\),\(0,\i\.\i\)\("span",{children:\i\[\d+\]}\)\]}\)\]/,
-                    replace: "$1$self.renderName(arguments[0])"
-                },
-                {
-                    match: /({variant:"text-sm\/medium",className:\i\.\i,children:.{70,110}{children:"\\xb7"}\),\(0,\i\.\i\)\("span",{children:)(\i\[\d+\])}/,
-                    replace: "$1$self.renderTimestamp({...arguments[0],timeLabel:$2})}"
-                },
-                // Replace the icon
-                {
-                    match: /(?<=Icon:(\i).{0,250}className:\i\.\i,children:\[)/,
-                    replace: "$self.renderIcon({...arguments[0],DeviceIcon:$1}),false&&"
-                }
-            ]
-        }
->>>>>>> 89b0fd2a5 (Update index.tsx)
     ],
 
     renderName: ErrorBoundary.wrap(({ session }: SessionInfo) => {
@@ -120,7 +86,6 @@ export default definePlugin({
 
         const state = React.useState(savedSession?.name ? `${savedSession.name}*` : getDefaultName(session.client_info));
         const [title, setTitle] = state;
-<<<<<<< HEAD
         // Show a "NEW" badge if the session is seen for the first time
         return (
             <>
@@ -131,22 +96,10 @@ export default definePlugin({
                     )}
                     <RenameButton session={session} state={state} />
                 </div>
-=======
-
-        // Show a "NEW" badge if the session is seen for the first time
-        return (
-            <>
-                <span>{title}</span>
-                {(savedSession == null || savedSession.isNew) && (
-                    <NewButton />
-                )}
-                <RenameButton session={session} state={state} />
->>>>>>> 89b0fd2a5 (Update index.tsx)
             </>
         );
     }, { noop: true }),
 
-<<<<<<< HEAD
     renderDescription: ErrorBoundary.wrap(({ session, description }: { session: Session, description: string; }) => {
         const [label, timeLabel] = description.split(" \xb7 ");
 
@@ -170,21 +123,6 @@ export default definePlugin({
     }, { noop: true }),
 
     renderIcon: ErrorBoundary.wrap(({ session, icon: DeviceIcon }: { session: Session; icon: React.ComponentType<any>; }) => {
-=======
-    renderTimestamp: ErrorBoundary.wrap(({ session, timeLabel }: { session: Session, timeLabel: string; }) => {
-        return (
-            <Tooltip text={session.approx_last_used_time.toLocaleString()}>
-                {props => (
-                    <span {...props} className={TimestampClasses.timestamp}>
-                        {timeLabel}
-                    </span>
-                )}
-            </Tooltip>
-        );
-    }, { noop: true }),
-
-    renderIcon: ErrorBoundary.wrap(({ session, DeviceIcon }: { session: Session, DeviceIcon: React.ComponentType<any>; }) => {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         const PlatformIcon = GetPlatformIcon(session.client_info.platform);
 
         return (
@@ -193,27 +131,8 @@ export default definePlugin({
                 style={{ cursor: "unset" }}
                 selected={false}
                 lowerBadge={
-<<<<<<< HEAD
                     <div className={cl("lowerBadge")}>
                         <PlatformIcon width={14} height={14} className={cl("lowerBadge-icon")} />
-=======
-                    <div
-                        style={{
-                            width: "20px",
-                            height: "20px",
-
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            overflow: "hidden",
-
-                            borderRadius: "50%",
-                            backgroundColor: "var(--interactive-icon-default)",
-                            color: "var(--background-base-lower)",
-                        }}
-                    >
-                        <PlatformIcon width={14} height={14} style={{ display: "block" }} />
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     </div>
                 }
                 lowerBadgeSize={{
@@ -222,11 +141,7 @@ export default definePlugin({
                 }}
             >
                 <div
-<<<<<<< HEAD
                     className={cl("icon")}
-=======
-                    className={SessionIconClasses.sessionIcon}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     style={{ backgroundColor: GetOsColor(session.client_info.os) }}
                 >
                     <DeviceIcon size="md" color="currentColor" />

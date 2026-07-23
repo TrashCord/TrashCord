@@ -6,11 +6,7 @@
 
 import "./styles.css";
 
-<<<<<<< HEAD
 import { MessageObject, SendMessageOptions } from "@api/MessageEvents";
-=======
-import { MessageOptions } from "@api/MessageEvents";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { definePluginSettings } from "@api/Settings";
 import { Devs, EquicordDevs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
@@ -123,11 +119,7 @@ export default definePlugin({
         return <MessageAccessory message={props.message} />;
     },
 
-<<<<<<< HEAD
     async onBeforeMessageSend(channelId: string, messageObj: MessageObject, options: SendMessageOptions) {
-=======
-    async onBeforeMessageSend(channelId: string, messageObj: { content: string; }, options: MessageOptions) {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         if (!isScheduleModeEnabled) return;
         if (!messageObj.content.trim() && !options.uploads?.length) return;
 

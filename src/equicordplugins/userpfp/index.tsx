@@ -20,21 +20,14 @@ import { openInviteModal } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
 import { extractAndLoadChunksLazy } from "@webpack";
-<<<<<<< HEAD
 import { IconUtils, Menu, openModal, UserStore } from "@webpack/common";
-=======
-import { IconUtils, Menu, openModal,UserStore } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import { SetAvatarModal } from "./AvatarModal";
 
 const cl = classNameFactory("vc-userpfp-");
 const DONO_URL = "https://ko-fi.com/coolesding";
 const INVITE_LINK = "userpfp-1129784704267210844";
-<<<<<<< HEAD
 const USERPFP_IMG_URL = "https://raw.githubusercontent.com/UserPFP/img";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 export const requireSettingsModal = extractAndLoadChunksLazy(['type:"USER_SETTINGS_MODAL_OPEN"']);
 export const KEY_DATASTORE = "vencord-custom-avatars";
@@ -143,17 +136,11 @@ export default definePlugin({
 
         try {
             const res = new URL(avatarUrl);
-<<<<<<< HEAD
             if (avatarUrl.startsWith(USERPFP_IMG_URL)) {
                 res.searchParams.set("animated", animated ? "true" : "false");
                 if (!animated) {
                     res.pathname = res.pathname.replaceAll(/\.gifv?/g, ".png");
                 }
-=======
-            res.searchParams.set("animated", animated ? "true" : "false");
-            if (!animated) {
-                res.pathname = res.pathname.replaceAll(/\.gifv?/g, ".png");
->>>>>>> 89b0fd2a5 (Update index.tsx)
             }
             return res.toString();
         } catch {

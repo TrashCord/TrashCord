@@ -42,11 +42,7 @@
 .vc-rdb-review {
     padding-top: 8px !important;
     padding-bottom: 8px !important;
-<<<<<<< HEAD
     padding-right: 64px !important;
-=======
-    padding-right: 32px !important;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 .vc-rdb-review:hover {
@@ -61,10 +57,7 @@
 .vc-rdb-review-comment {
     overflow-y: hidden;
     margin-top: 1px;
-<<<<<<< HEAD
     line-height: 1.2;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     margin-bottom: 8px;
     color: var(--text-default);
     font-size: 15px;
@@ -124,7 +117,6 @@
 .vc-rdb-profile-popout-disabled {
     opacity: 0.4;
     cursor: not-allowed;
-<<<<<<< HEAD
 }
 
 
@@ -198,6 +190,3 @@
     background: color-mix(in srgb, var(--status-danger) 14%, transparent);
     color: var(--status-danger);
 }
-=======
-}
->>>>>>> 89b0fd2a5 (Update index.tsx)

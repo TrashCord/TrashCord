@@ -17,14 +17,15 @@ import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType, PluginNative, ReporterTestable } from "@utils/types";
 import { Alerts, Button, React, Select, SettingsRouter, showToast, TextInput, Toasts } from "@webpack/common";
 
-import type { ActionInfo, InstallInfo, NativeResult, PatchMethod, StereoMethod2Quality } from "./native";
+import type { ActionInfo, InstallInfo, NativeResult, PatchMethod } from "./native";
 
 const Native = VencordNative.pluginHelpers.StereoInstaller as PluginNative<typeof import("./native")>;
 
-const SETTINGS_ENTRY_KEY  = "illegalcord_stereo_installer";
-const DAC_SOURCE_URL      = "https://github.com/ProdHallow/Discord-Stereo-Windows-MacOS-Linux";
-const VP_SOURCE_URL       = "https://codeberg.org/UnpackedX/Discord-Experimental-Subsystem";
-const VP_TUTORIAL_URL     = "https://www.youtube.com/watch?v=zSIIganbZxg";
+const SETTINGS_ENTRY_KEY = "illegalcord_stereo_installer";
+const LOG_RETENTION_RESTARTS = 5;
+const DAC_SOURCE_URL = "https://github.com/ProdHallow/Discord-Stereo-Windows-MacOS-Linux";
+const VP_SOURCE_URL = "https://codeberg.org/UnpackedX/Discord-Experimental-Subsystem";
+const VP_TUTORIAL_URL = "https://www.youtube.com/watch?v=zSIIganbZxg";
 
 const MAX_LOG_LINES = 150;
 
@@ -46,13 +47,13 @@ const METHOD_OPTIONS = [
     { label: "Voice Playground Method",                   value: "method2" as InstallerMethod },
 ];
 
-const METHOD2_QUALITY_OPTIONS = [
-    { label: "128 kbps  (recommended for low-end PCs)", value: "128" as StereoMethod2Quality },
-    { label: "384 kbps",                                value: "384" as StereoMethod2Quality },
-    { label: "512 kbps",                                value: "512" as StereoMethod2Quality },
-];
+interface PrivateSettings {
+    logRestartCount?: number;
+}
 
 const shownNotifyKeys = new Set<string>();
+
+let launchCounted = false;
 
 const PATCH_METHOD_DISPLAY: Record<PatchMethod, string> = {
     discordAudioCollective: "Discord Audio Collective Method",
@@ -73,6 +74,22 @@ function notifyRepatchIfNeeded(info: InstallInfo): void {
         permanent: false,
         onClick: () => SettingsRouter.openUserSettings(`${SETTINGS_ENTRY_KEY}_panel`),
     });
+}
+
+async function maintainInstallerLogs(): Promise<void> {
+    if (launchCounted) return;
+    launchCounted = true;
+
+    const savedCount = settings.store.logRestartCount;
+    const restartCount = (typeof savedCount === "number" && Number.isInteger(savedCount) && savedCount >= 0 ? savedCount : 0) + 1;
+
+    if (restartCount < LOG_RETENTION_RESTARTS) {
+        settings.store.logRestartCount = restartCount;
+        return;
+    }
+
+    const result = await Native.clearLogs().catch(() => null);
+    settings.store.logRestartCount = result?.success ? 0 : LOG_RETENTION_RESTARTS - 1;
 }
 
 async function runAutoPatchIfNeeded(detected: InstallInfo): Promise<void> {
@@ -97,7 +114,7 @@ async function runAutoPatchIfNeeded(detected: InstallInfo): Promise<void> {
     }
 
     await (method === "voicePlayground"
-        ? Native.patchMethod2(detected.discordRoot, settings.store.autoPatchQuality as StereoMethod2Quality)
+        ? Native.patchMethod2(detected.discordRoot)
         : Native.patch(detected.discordRoot));
 }
 
@@ -212,11 +229,6 @@ function StereoSettingsSection() {
         forceRerender();
     }, []);
 
-    const setAutoPatchQuality = React.useCallback((value: StereoMethod2Quality) => {
-        settings.store.autoPatchQuality = value;
-        forceRerender();
-    }, []);
-
     return (
         <div className="vc-stereo-settings-section" id="vc-stereo-settings">
             <Heading tag="h2" style={{ margin: 0 }}>Settings</Heading>
@@ -266,20 +278,6 @@ function StereoSettingsSection() {
                                 serialize={(v: InstallerMethod) => v}
                             />
                         </div>
-                        {settings.store.autoPatchMethod === "method2" && (
-                            <div className="vc-stereo-select-row">
-                                <div>
-                                    <span>Auto-patch quality</span>
-                                    <Paragraph>Voice Playground bitrate used when auto-patching. 128 kbps is recommended for low-end PCs.</Paragraph>
-                                </div>
-                                <Select
-                                    options={METHOD2_QUALITY_OPTIONS}
-                                    select={setAutoPatchQuality}
-                                    isSelected={(v: StereoMethod2Quality) => v === settings.store.autoPatchQuality}
-                                    serialize={(v: StereoMethod2Quality) => v}
-                                />
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
@@ -295,7 +293,6 @@ function StereoInstallerPanel() {
     const [busy,            setBusy]            = React.useState(false);
     const [hasError,        setHasError]        = React.useState(false);
     const [installerMethod, setInstallerMethod] = React.useState<InstallerMethod>("method1");
-    const [method2Quality,  setMethod2Quality]  = React.useState<StereoMethod2Quality>("128");
 
     const status                 = React.useMemo(() => deriveStatus(info, hasError), [info, hasError]);
     const voicePlaygroundUnavail = React.useMemo(() => !!info && info.platformKey !== "windows", [info?.platformKey]);
@@ -315,6 +312,7 @@ function StereoInstallerPanel() {
     }, []);
 
     const clearLogs = React.useCallback(() => {
+        settings.store.logRestartCount = 0;
         setLogs([]);
         void Native.clearLogs();
     }, []);
@@ -393,19 +391,21 @@ function StereoInstallerPanel() {
     const handlePatch = React.useCallback(async () => {
         const result = await runNative<ActionInfo>(() =>
             installerMethod === "method2"
-                ? Native.patchMethod2(root, method2Quality)
+                ? Native.patchMethod2(root)
                 : Native.patch(root)
         );
         if (!result) return;
+        settings.store.logRestartCount = 0;
         setInfo(result);
         setHasError(false);
         setStatusMsg("Patch scheduled - Discord will close briefly, apply the patch, then reopen.");
         showToast("Patch scheduled. Discord will restart shortly.", Toasts.Type.SUCCESS);
-    }, [runNative, root, installerMethod, method2Quality]);
+    }, [runNative, root, installerMethod]);
 
     const handleRevert = React.useCallback(async () => {
         const result = await runNative<ActionInfo>(() => Native.revert(root));
         if (!result) return;
+        settings.store.logRestartCount = 0;
         setInfo(result);
         setHasError(false);
         setStatusMsg("Revert scheduled - Discord will close briefly, restore the backup, then reopen.");
@@ -415,6 +415,7 @@ function StereoInstallerPanel() {
     const handleMethod2IndexPatch = React.useCallback(async () => {
         const result = await runNative<ActionInfo>(() => Native.patchMethod2Index(root));
         if (!result) return;
+        settings.store.logRestartCount = 0;
         setInfo(result);
         setHasError(false);
         setStatusMsg("index.js replacement scheduled - Discord will close briefly then reopen.");
@@ -446,7 +447,7 @@ function StereoInstallerPanel() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {isM2 ? (
                         <Paragraph>
-                            Installs the local {method2Quality} kbps Voice Playground payload into Discord.
+                            Installs the local 512 discord_voice.node and the bundled index.js into Discord.
                             Only one method should be active at a time - revert to the backup before switching.
                         </Paragraph>
                     ) : (
@@ -463,7 +464,7 @@ function StereoInstallerPanel() {
             confirmColor: Button.Colors.GREEN,
             onConfirm: () => void handlePatch(),
         });
-    }), [requireRoot, installerMethod, method2Quality, handlePatch]);
+    }), [requireRoot, installerMethod, handlePatch]);
 
     const confirmRevert = React.useCallback(() => requireRoot(() => {
         Alerts.show({
@@ -529,21 +530,6 @@ function StereoInstallerPanel() {
                     />
                 </div>
 
-                {installerMethod === "method2" && (
-                    <div className="vc-stereo-select-row">
-                        <div>
-                            <span>Voice Playground quality</span>
-                            <Paragraph>Higher bitrate uses more CPU. Use 128 kbps on low-end PCs.</Paragraph>
-                        </div>
-                        <Select
-                            options={METHOD2_QUALITY_OPTIONS}
-                            select={(v: StereoMethod2Quality) => setMethod2Quality(v)}
-                            isSelected={(v: StereoMethod2Quality) => v === method2Quality}
-                            serialize={(v: StereoMethod2Quality) => v}
-                        />
-                    </div>
-                )}
-
                 <div className="vc-stereo-select-row">
                     <div>
                         <span>Source code</span>
@@ -575,8 +561,9 @@ function StereoInstallerPanel() {
             {installerMethod === "method2" && (
                 <div className="vc-stereo-method2-note">
                     <Paragraph>
-                        Voice Playground uses locally bundled payloads. Install only one method at a time.
-                        If Discord voice breaks after patching, use the repair button and follow the tutorial.
+                        Voice Playground Method automatically installs both discord_voice.node and index.js from
+                        the local payload. Install only one method at a time. The separate Replace index.js button
+                        below remains available for repairs.
                     </Paragraph>
                     <div className="vc-stereo-inline-buttons">
                         <Button
@@ -715,21 +702,11 @@ const settings = definePluginSettings({
         ],
         restartNeeded: false,
     },
-    autoPatchQuality: {
-        type: OptionType.SELECT,
-        description: "Voice Playground quality to use for Auto-patch (only used if the method above is Voice Playground)",
-        options: [
-            { label: "128 kbps (recommended for low-end PCs)", value: "128", default: true },
-            { label: "384 kbps",                                value: "384" },
-            { label: "512 kbps",                                value: "512" },
-        ],
-        restartNeeded: false,
-    },
     installer: {
         type: OptionType.COMPONENT,
         component: ErrorBoundary.wrap(StereoInstallerPanel, { noop: true }),
     },
-});
+}).withPrivateSettings<PrivateSettings>();
 
 function StereoWarning() {
     return (
@@ -796,7 +773,7 @@ export default definePlugin({
             void Native.shouldRunStartupChecks().then(gate => {
                 if (!gate.success || !gate.data) return;
 
-                void Native.autoDetect().then(result => {
+                void maintainInstallerLogs().then(() => Native.autoDetect()).then(result => {
                     if (!result.success) return;
                     notifyRepatchIfNeeded(result.data);
                     void runAutoPatchIfNeeded(result.data);

@@ -20,15 +20,9 @@ import { getIntlMessage } from "@utils/discord";
 import { Logger } from "@utils/Logger";
 import { classes } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
-<<<<<<< HEAD
 import { Message, MessageAttachment } from "@vencord/discord-types";
 import { findCssClassesLazy } from "@webpack";
 import { AuthenticationStore, ChannelStore, FluxDispatcher, Menu, MessageStore, Parser, SelectedChannelStore, Timestamp, UserStore, useStateFromStores } from "@webpack/common";
-=======
-import { Message } from "@vencord/discord-types";
-import { findCssClassesLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, Menu, MessageStore, Parser, SelectedChannelStore, Timestamp, UserStore, useStateFromStores } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import overlayStyle from "./deleteStyleOverlay.css?managed";
 import textStyle from "./deleteStyleText.css?managed";
@@ -42,7 +36,6 @@ interface MLMessage extends Message {
     diffViewDisabled?: boolean;
 }
 
-<<<<<<< HEAD
 interface MLAttachment extends MessageAttachment {
     /**
      * if the attachment was deleted
@@ -52,8 +45,6 @@ interface MLAttachment extends MessageAttachment {
     deleted?: boolean;
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 const MessageClasses = findCssClassesLazy("edited", "communicationDisabled", "isSystemMessage");
 
 // track messages where the user disabled diffs for this session
@@ -436,11 +427,7 @@ export default definePlugin({
     name: "MessageLogger",
     description: "Temporarily logs deleted and edited messages.",
     tags: ["Chat", "Utility"],
-<<<<<<< HEAD
     authors: [Devs.rushii, Devs.Ven, Devs.AutumnVN, Devs.Nickyux, Devs.Kyuuhachi, Devs.sadan, EquicordDevs.justjxke],
-=======
-    authors: [Devs.rushii, Devs.Ven, Devs.AutumnVN, Devs.Nickyux, Devs.Kyuuhachi, EquicordDevs.justjxke],
->>>>>>> 89b0fd2a5 (Update index.tsx)
     dependencies: ["MessageUpdaterAPI"],
     isModified: true,
     settings,
@@ -572,7 +559,6 @@ export default definePlugin({
         };
     },
 
-<<<<<<< HEAD
     handleUpdateAttachments(newMessage: MLMessage): MLAttachment[] {
         const oldMessage = MessageStore.getMessage(newMessage.channel_id, newMessage.id) as MLMessage | undefined;
         // if oldMessage is undefined, this is a new message and we shouldn't touch the attachments
@@ -596,13 +582,6 @@ export default definePlugin({
     },
 
     handleDelete(cache: any, data: { ids: string[], id: string; mlDeleted?: boolean; }, isBulk: boolean) {
-=======
-    handleDelete(
-        cache: any,
-        data: { ids: string[]; id: string; mlDeleted?: boolean; },
-        isBulk: boolean,
-    ) {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         try {
             if (cache == null || (!isBulk && !cache.has(data.id))) return cache;
 
@@ -672,7 +651,6 @@ export default definePlugin({
         }
     },
 
-<<<<<<< HEAD
     // It is possible to replace a message in place by creating a new message with the same nonce as an existing one.
     // This is not considered an edit since it's a new message. Thus it bypasses our edit logging and can be used to "delete" a message by replacing it with an empty one.
     // This fixes that bypass
@@ -691,8 +669,6 @@ export default definePlugin({
         }
     },
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     EditMarker({ message, className, children, ...props }: any) {
         return (
             <span
@@ -797,7 +773,6 @@ export default definePlugin({
         },
 
         {
-<<<<<<< HEAD
             // Updated message transformer
             find: ".PREMIUM_REFERRAL&&(",
             replacement: [
@@ -813,52 +788,12 @@ export default definePlugin({
                     replace: "attachments: $self.handleUpdateAttachments($1),"
                 }
             ]
-=======
-            // Updated message transformer(?)
-            find: ".PREMIUM_REFERRAL&&(",
-            replacement: [
-                {
-                    // Pass through editHistory & deleted & original attachments to the "edited message" transformer
-                    match:
-                        /(?<=null!=\i\.edited_timestamp\)return )\i\(\i,\{reactions:(\i)\.reactions.{0,50}\}\)/,
-                    replace:
-                        "Object.assign($&,{ deleted:$1.deleted, editHistory:$1.editHistory, firstEditTimestamp:$1.firstEditTimestamp, diffViewDisabled:$1.diffViewDisabled })",
-                },
-
-                {
-                    // Construct new edited message and add editHistory & deleted (ref above)
-                    // Pass in custom data to attachment parser to mark attachments deleted as well
-                    match: /attachments:(\i)\((\i)\)/,
-                    replace:
-                        "attachments: $1((() => {" +
-                        "   if ($self.shouldIgnore($2)) return $2;" +
-                        "   let old = arguments[1]?.attachments;" +
-                        "   if (!old) return $2;" +
-                        "   let new_ = $2.attachments?.map(a => a.id) ?? [];" +
-                        "   let diff = old.filter(a => !new_.includes(a.id));" +
-                        "   old.forEach(a => a.deleted = true);" +
-                        "   $2.attachments = [...diff, ...$2.attachments];" +
-                        "   return $2;" +
-                        "})())," +
-                        "deleted: arguments[1]?.deleted," +
-                        "editHistory: arguments[1]?.editHistory," +
-                        "firstEditTimestamp: new Date(arguments[1]?.firstEditTimestamp ?? $2.editedTimestamp ?? $2.timestamp)," +
-                        "diffViewDisabled: arguments[1]?.diffViewDisabled",
-                },
-                {
-                    // Preserve deleted attribute on attachments
-                    match: /(\((\i)\){return null==\2\.attachments.+?)spoiler:/,
-                    replace: "$1deleted: arguments[0]?.deleted," + "spoiler:",
-                },
-            ],
->>>>>>> 89b0fd2a5 (Update index.tsx)
         },
 
         {
             // Attachment renderer
             find: "#{intl::REMOVE_ATTACHMENT_TOOLTIP_TEXT}",
             replacement: [
-<<<<<<< HEAD
                 // add deleted class to deleted attachments
                 {
                     // we can't use arguments[0] because we patch a nested **non-arrow** function
@@ -869,11 +804,6 @@ export default definePlugin({
                 {
                     match: /(?<=\{let\{[^}]*?item:(\i),autoPlayGif:\i,)canRemoveItem:(\i)(?=,onRemoveItem:)/,
                     replace: "_canRemoveItem:$2 = arguments[0].canRemoveItem && !$1?.originalItem?.deleted",
-=======
-                {
-                    match: /\.SPOILER,(?=\[\i\.\i\]:)/,
-                    replace: '$&"messagelogger-deleted-attachment":arguments[0]?.item?.originalItem?.deleted,'
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 }
             ]
         },
@@ -958,7 +888,6 @@ export default definePlugin({
                     replace: '$&$1.type==="MESSAGE_GROUP_DELETED"?$2=$self.DELETED_MESSAGE_COUNT:',
                 },
             ],
-<<<<<<< HEAD
             predicate: () => settings.store.collapseDeleted
         },
 
@@ -970,9 +899,4 @@ export default definePlugin({
             }
         }
     ]
-=======
-            predicate: () => settings.store.collapseDeleted,
-        },
-    ],
->>>>>>> 89b0fd2a5 (Update index.tsx)
 });

@@ -21,7 +21,6 @@ import { findComponentByCodeLazy } from "@webpack";
 import { Animations, ChannelRTCStore, useStateFromStores } from "@webpack/common";
 import type { CSSProperties } from "react";
 
-<<<<<<< HEAD
 import { ExpandedGuildFolderStore, settings, SortedGuildStore } from ".";
 
 const GuildsBar = findComponentByCodeLazy('("guildsnav")');
@@ -35,37 +34,6 @@ function getExpandedFolderIds() {
     for (const folder of folders) {
         if (expandedFolders.has(folder.folderId) && folder.guildIds?.length) {
             expandedFolderIds.add(folder.folderId);
-=======
-import { ExpandedGuildFolderStore, getExpandedFolderIdSet, getParentFolderId, settings, SortedGuildStore } from ".";
-
-const GuildsBar = findComponentByCodeLazy('("guildsnav")');
-
-type GuildTreeNode = {
-    id?: string | number;
-    type?: string;
-    children?: GuildTreeNode[];
-};
-
-function getExpandedFolderIds() {
-    const expandedFolders = getExpandedFolderIdSet();
-    const tree = SortedGuildStore.getGuildsTree();
-    const expandedFolderIds = new Set<number>();
-    const stack = [...(tree?.root?.children ?? [])];
-
-    while (stack.length) {
-        const node = stack.pop();
-        if (!node) continue;
-
-        if (node.type === "folder") {
-            const folderId = node.id;
-            if (folderId != null && expandedFolders.has(Number(folderId))) {
-                expandedFolderIds.add(Number(folderId));
-            }
-        }
-
-        if (node.children?.length) {
-            stack.push(...node.children);
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
     }
 
@@ -84,15 +52,7 @@ export default ErrorBoundary.wrap(guildsBarProps => {
         />
     );
 
-<<<<<<< HEAD
     const visible = !!expandedFolderIds.size;
-=======
-    const visible = SortedGuildStore.getGuildFolders().some(folder =>
-        folder.guildIds?.length &&
-        expandedFolderIds.has(Number(folder.folderId)) &&
-        getParentFolderId(folder.folderId) == null
-    );
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const guilds = document.querySelector(guildsBarProps.className.split(" ").map(c => `.${c}`).join(""));
 
     // We need to display none if we are in fullscreen. Yes this seems horrible doing with css, but it's literally how Discord does it.

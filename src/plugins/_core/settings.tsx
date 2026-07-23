@@ -98,11 +98,7 @@ interface SettingsLayoutBuilder {
 const settings = definePluginSettings({
     settingsLocation: {
         type: OptionType.SELECT,
-<<<<<<< HEAD
         description: "Where to put the Equicord settings section",
-=======
-        description: "Where to put the TrashCord settings section",
->>>>>>> 89b0fd2a5 (Update index.tsx)
         options: [
             { label: "At the very top", value: "top" },
             { label: "Above the Nitro section", value: "aboveNitro", default: true },
@@ -123,10 +119,7 @@ export default definePlugin({
     name: "Settings",
     description: "Adds Settings UI and debug info",
     authors: [Devs.Ven, Devs.Megu],
-<<<<<<< HEAD
     tags: ["Utility"],
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     required: true,
 
     settings,
@@ -200,13 +193,8 @@ export default definePlugin({
         const equicordEntries: SettingsLayoutNode[] = [
             buildEntry({
                 key: "equicord_main",
-<<<<<<< HEAD
-                title: "Equicord",
-                panelTitle: "Equicord Settings",
-=======
-                title: "TrashCord",
-                panelTitle: "TrashCord Settings",
->>>>>>> 89b0fd2a5 (Update index.tsx)
+                title: "Illegalcord",
+                panelTitle: "Illegalcord Settings",
                 Component: VencordTab,
                 Icon: MainSettingsIcon
             }),
@@ -225,11 +213,7 @@ export default definePlugin({
             !IS_UPDATER_DISABLED && UpdaterTab && buildEntry({
                 key: "equicord_updater",
                 title: "Updater",
-<<<<<<< HEAD
-                panelTitle: "Equicord Updater",
-=======
-                panelTitle: "TrashCord Updater",
->>>>>>> 89b0fd2a5 (Update index.tsx)
+                panelTitle: "Illegalcord Updater",
                 Component: UpdaterTab,
                 Icon: UpdaterIcon
             }),
@@ -242,11 +226,7 @@ export default definePlugin({
             buildEntry({
                 key: "equicord_cloud",
                 title: "Cloud",
-<<<<<<< HEAD
-                panelTitle: "Equicord Cloud",
-=======
-                panelTitle: "Cloud",
->>>>>>> 89b0fd2a5 (Update index.tsx)
+                panelTitle: "Illegalcord Cloud",
                 Component: CloudTab,
                 Icon: CloudIcon
             }),
@@ -268,11 +248,7 @@ export default definePlugin({
         const equicordSection: SettingsLayoutNode = {
             key: "equicord_section",
             type: LayoutTypes.SECTION,
-<<<<<<< HEAD
-            useTitle: () => "Equicord Settings",
-=======
-            useTitle: () => "TrashCord Settings",
->>>>>>> 89b0fd2a5 (Update index.tsx)
+            useTitle: () => "Illegalcord Settings",
             buildLayout: () => equicordEntries
         };
 

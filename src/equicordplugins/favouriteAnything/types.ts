@@ -72,23 +72,16 @@ export interface AttachmentsComponentProps {
     attachment: MessageAttachment;
 }
 
-<<<<<<< HEAD
 export interface AttachmentContextProviderProps extends PropsWithChildren {
     attachment?: AttachmentItem<MessageAttachment | { media: CV2Attachment; }>;
     component?: { id: string; size: number; name: string; spoiler: boolean; file: CV2Attachment; };
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export interface EmbedComponent extends Component<{ embed: Embed; }> {
     __render: () => ReactNode;
 }
 
-<<<<<<< HEAD
 export interface AttachmentItem<TOriginal = MessageAttachment> {
-=======
-export interface AttachmentItem {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     contentType: string;
     type: "IMAGE" | "VIDEO" | "CLIP" | "AUDIO" | "VISUAL_PLACEHOLDER" | "PLAINTEXT_PREVIEW" | "OTHER" | "INVALID";
     width?: number;
@@ -97,7 +90,6 @@ export interface AttachmentItem {
     spoiler: boolean;
     srcIsAnimated: boolean;
     uniqueId: string;
-<<<<<<< HEAD
     originalItem: TOriginal;
 }
 
@@ -109,9 +101,6 @@ export interface CV2Attachment {
     placeholder?: string;
     contentType: string;
     flags: number;
-=======
-    originalItem: MessageAttachment;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export enum FavouriteItemFormat {
@@ -164,8 +153,5 @@ export type ResizeObserverHook = (
 export interface ImageUtils {
     isAnimated(image: { src: string; original?: string; animated: boolean; srcIsAnimated?: boolean; }): boolean;
 }
-<<<<<<< HEAD
 
 export type AttachmentTransformer = (attachment: MessageAttachment, inlineAttachmentMedia?: boolean) => AttachmentItem;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)

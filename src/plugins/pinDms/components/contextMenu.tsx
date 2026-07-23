@@ -18,11 +18,7 @@ function createPinMenuItem(channelId: string) {
 
     return (
         <Menu.MenuItem
-<<<<<<< HEAD
             id="vc-pin-dm"
-=======
-            id="pin-dm"
->>>>>>> 89b0fd2a5 (Update index.tsx)
             label="Pin DMs"
         >
 
@@ -52,11 +48,7 @@ function createPinMenuItem(channelId: string) {
             {pinned && (
                 <>
                     <Menu.MenuItem
-<<<<<<< HEAD
                         id="vc-unpin-dm"
-=======
-                        id="unpin-dm"
->>>>>>> 89b0fd2a5 (Update index.tsx)
                         label="Unpin DM"
                         color="danger"
                         action={() => removeChannelFromCategory(channelId)}

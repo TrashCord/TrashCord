@@ -57,10 +57,7 @@ export default definePlugin({
     name: "SilenceUsers",
     description: "Silences @mention pings and server badge counts from specific users. Regular messages and DMs are untouched.",
     authors: [EquicordDevs.dka],
-<<<<<<< HEAD
     tags: ["Notifications"],
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     settings,
     start() {
         FluxDispatcher.addInterceptor(interceptor);

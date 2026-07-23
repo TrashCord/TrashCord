@@ -458,7 +458,6 @@ export async function uploadToPixelDrain(
     }
 }
 
-<<<<<<< HEAD
 function isValidHttpsUrl(url: string): boolean {
     try {
         const parsed = new URL(url);
@@ -537,8 +536,6 @@ export async function createWebdavShare(
     }
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export async function fetchFile(
 
     _: IpcMainInvokeEvent,

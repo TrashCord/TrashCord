@@ -48,15 +48,9 @@ export default definePlugin({
         },
         {
             // Show all activities in the user popout/sidebar
-<<<<<<< HEAD
             find: '"UserProfilePopout");',
             replacement: {
                 match: /((\i)=.{0,10}(\i)\.id\).*?)\(0,\i\.jsxs?.{0,150}onClose:\i\}\)(?=.{0,30}userId:\i\.id)/,
-=======
-            find: /onOpenUserProfileModal:\i,onClose:\i\}\),null/,
-            replacement: {
-                match: /((\i)=.{0,10}(\i)\.id\).*?,onOpenUserProfileModal:\i\}\),).{0,250}onClose:\i\}\)/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$1$self.showAllActivitiesComponent({ activity: $2, user: $3 })"
             },
             predicate: () => settings.store.userPopout

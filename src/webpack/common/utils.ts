@@ -226,11 +226,7 @@ export const ExpressionPickerStore: t.ExpressionPickerStore = mapMangledModuleLa
     openExpressionPicker: filters.byCode(/setState\({activeView:(?:(?!null)\i),activeViewType:/),
     closeExpressionPicker: filters.byCode("setState({activeView:null"),
     toggleMultiExpressionPicker: filters.byCode(".EMOJI,"),
-<<<<<<< HEAD
     toggleExpressionPicker: filters.byCode(/\i\.activeView===\i&&\i\.activeViewType===\i&&/),
-=======
-    toggleExpressionPicker: filters.byCode(/getState\(\)\.activeView===\i\?\i\(\):\i\(/),
->>>>>>> 89b0fd2a5 (Update index.tsx)
     setExpressionPickerView: filters.byCode(/setState\({activeView:\i,lastActiveView:/),
     setSearchQuery: filters.byCode("searchQuery:"),
     useExpressionPickerStore: filters.byCode(/\(\i,\i=\i\)=>/)

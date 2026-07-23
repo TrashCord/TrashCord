@@ -173,11 +173,7 @@ export default definePlugin({
         },
         // User Area
         {
-<<<<<<< HEAD
             find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
-=======
-            find: ".DISPLAY_NAME_STYLES_COACHMARK)",
->>>>>>> 89b0fd2a5 (Update index.tsx)
             replacement: [
                 {
                     match: /((\i)=\i\?\.avatarDecoration,\i=)\(0,\i\.\i\)\(\2\)/,
@@ -209,11 +205,7 @@ export default definePlugin({
             // Profile banner animation effect
             find: "bannerAdjustment,isHovering",
             replacement: {
-<<<<<<< HEAD
                 match: /\i=function\((\i)\)\{(?=.{0,50}\.useReducedMotion\))/,
-=======
-                match: /\i=(\i)=>\{(?=.{0,50}\.useReducedMotion\))/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$&if(!$1.shopPreview)return null;"
             },
             predicate: () => settings.store.removeProfileEffect,
@@ -229,11 +221,7 @@ export default definePlugin({
         },
         {
             // Always show username
-<<<<<<< HEAD
             find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
-=======
-            find: ".DISPLAY_NAME_STYLES_COACHMARK)",
->>>>>>> 89b0fd2a5 (Update index.tsx)
             replacement: {
                 match: /hoverText:(\i),forceHover:\i,children:/g,
                 replace: "hoverText:$1,forceHover:!0,children:"
@@ -338,11 +326,7 @@ export default definePlugin({
             // Channel list server boost progress bar
             find: "useGuildActionRow",
             replacement: {
-<<<<<<< HEAD
                 match: /(GUILD_NEW_MEMBER_ACTIONS_PROGRESS_BAR\)):\i(?:\.premiumProgressBarEnabled)?/,
-=======
-                match: /(GUILD_NEW_MEMBER_ACTIONS_PROGRESS_BAR\)):(\i(?:\.premiumProgressBarEnabled)?)/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$1:null"
             },
             predicate: () => settings.store.removeServerBoostInfo,
@@ -351,13 +335,8 @@ export default definePlugin({
             // Billing settings
             find: ".BILLING_SECTION,",
             replacement: {
-<<<<<<< HEAD
                 match: /(\.BILLING_SECTION.{0,50}buildLayout:\(\)=>\[).{0,15}?\]/,
                 replace: "$1]",
-=======
-                match: /(?<=#{intl::BILLING}\),buildLayout:\(\)=>)\[.+?\]/,
-                replace: "[]",
->>>>>>> 89b0fd2a5 (Update index.tsx)
             },
             predicate: () => settings.store.removeBillingSettings,
         },

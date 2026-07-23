@@ -26,11 +26,7 @@ export default definePlugin({
                     replace: "$&.replace(/^\\++/, '+')"
                 },
                 {
-<<<<<<< HEAD
                     match: /=\i\.\i\.getMessages\(\i\.id\)\.last\(\)(?=.{78,85}.getByName\(\i\.)/,
-=======
-                    match: /=(\i\.\i\.getMessages\(\i\.id\))\.last\(\)(?=.{78,85}.getByName\((\i)\.)/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     replace: "=$self.getMsgReference()"
                 }
             ]

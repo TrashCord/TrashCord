@@ -7,7 +7,6 @@
 import { Devs, EquicordDevs } from "@utils/constants";
 import { getIntlMessage } from "@utils/discord";
 import definePlugin from "@utils/types";
-<<<<<<< HEAD
 import { ComponentType, ReactNode } from "react";
 
 import { AttachmentAccessory, AttachmentContextProvider, EmbedAccessory, EmbedContext, EmbedMosaicContext, FilePicker } from "./components";
@@ -16,23 +15,6 @@ import managedStyle from "./style.css?managed";
 import { AttachmentContextProviderProps, EmbedComponent, ExpressionPickerTabProps, ExpressionPickerView, FavouriteItem, FavouriteItemFormat } from "./types";
 import { getThumbnailUrl } from "./utils";
 
-=======
-import { Embed } from "@vencord/discord-types";
-import { proxyLazyWebpack } from "@webpack";
-import { React } from "@webpack/common";
-import { ComponentType, ReactNode } from "react";
-
-import { AttachmentAccessory, EmbedAccessory, FilePicker } from "./components";
-import { SignedUrlsStore } from "./stores";
-import managedStyle from "./style.css?managed";
-import { AttachmentItem, EmbedComponent, ExpressionPickerTabProps, ExpressionPickerView, FavouriteItem, FavouriteItemFormat } from "./types";
-import { getThumbnailUrl } from "./utils";
-
-export const EmbedContext = proxyLazyWebpack(() => React.createContext<null | Embed>(null));
-export const EmbedMosaicContext = proxyLazyWebpack(() => React.createContext<null | number>(null));
-export const AttachmentContext = proxyLazyWebpack(() => React.createContext<null | AttachmentItem>(null));
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export default definePlugin({
     name: "FavouriteAnything",
     description: "Favourite any image, video, or file attachment",
@@ -61,11 +43,7 @@ export default definePlugin({
             // Override the default renderAdjacentContent prop value for all types of embed components (renderImageComponent, renderVideoComponent...)
             find: "#{intl::MEDIA_MOSAIC_ALT_TEXT_POPOUT_TITLE}",
             replacement: {
-<<<<<<< HEAD
                 match: /renderAdjacentContent:\i/g,
-=======
-                match: /renderAdjacentContent:(\i)/g,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "$&=$self.renderEmbedAccessory"
             }
         },
@@ -85,7 +63,6 @@ export default definePlugin({
                 }
             ]
         },
-<<<<<<< HEAD
         // COMPONENTS V2
         {
             find: "#{intl::ATTACHMENT_FILENAME_UNKNOWN}",
@@ -94,8 +71,6 @@ export default definePlugin({
                 replace: "return $self.renderCV2File($1,$3,$2)"
             }
         },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         // EXPRESSION PICKER
         {
             find: "#{intl::EXPRESSION_PICKER_CATEGORIES_A11Y_LABEL}",
@@ -141,11 +116,7 @@ export default definePlugin({
                     isActive={activeView === ExpressionPickerView.GIF}
                     viewType={ExpressionPickerView.GIF}
                 >
-<<<<<<< HEAD
                     {getIntlMessage("QUICKSEARCH_MEDIA")}
-=======
-                    Media
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 </Tab>
                 <Tab
                     id="files-picker-tab"
@@ -155,11 +126,7 @@ export default definePlugin({
                     isActive={activeView === ExpressionPickerView.FILES}
                     viewType={ExpressionPickerView.FILES}
                 >
-<<<<<<< HEAD
                     {getIntlMessage("QUICKSEARCH_FILES")}
-=======
-                    {getIntlMessage("FILES")}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 </Tab>
             </>
         );
@@ -167,16 +134,11 @@ export default definePlugin({
     renderFilePicker(activeView: ExpressionPickerView, onSelectGIF: (item: { url: string; }) => void) {
         return activeView === ExpressionPickerView.FILES ? <FilePicker onSelectItem={onSelectGIF} /> : null;
     },
-<<<<<<< HEAD
     renderAttachment(children: ReactNode, { item }: { item: AttachmentContextProviderProps["attachment"] }) {
         return <AttachmentContextProvider attachment={item}>{children}</AttachmentContextProvider>;
     },
     renderCV2File(children: ReactNode, key: React.Key, component: AttachmentContextProviderProps["component"]) {
         return <AttachmentContextProvider component={component} key={key}>{children}</AttachmentContextProvider>;
-=======
-    renderAttachment(children: ReactNode, props: { item: AttachmentItem; }) {
-        return <AttachmentContext.Provider value={props.item}>{children}</AttachmentContext.Provider>;
->>>>>>> 89b0fd2a5 (Update index.tsx)
     },
     renderEmbed(this: EmbedComponent) {
         return <EmbedContext.Provider value={this.props.embed}>{this.__render()}</EmbedContext.Provider>;

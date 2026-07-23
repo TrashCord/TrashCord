@@ -216,7 +216,6 @@ export default definePlugin({
                 match: /#{intl::USER_SETTINGS_RESET_PROFILE_THEME}\).+?}\)(?=\])(?<=color:(\i),.{0,500}?color:(\i),.{0,500}?)/,
                 replace: "$&,$self.addCopy3y3Button({primary:$1,accent:$2})"
             }
-<<<<<<< HEAD
         },
         // 2026-03-wysiwyg-user-profile-editing
         {
@@ -227,8 +226,6 @@ export default definePlugin({
                     replace: "$&,$self.addCopy3y3Button()"
                 }
             ]
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
     ],
 
@@ -257,14 +254,8 @@ export default definePlugin({
             }}
             color={Button.Colors.PRIMARY}
             size={Button.Sizes.XLARGE}
-<<<<<<< HEAD
         >
             Copy 3y3
         </Button>;
-=======
-            className={Margins.left16}
-        >Copy 3y3
-        </Button >;
->>>>>>> 89b0fd2a5 (Update index.tsx)
     }, { noop: true }),
 });

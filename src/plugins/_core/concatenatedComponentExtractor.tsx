@@ -6,21 +6,13 @@
 
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-<<<<<<< HEAD
 import { setColorPicker, setCreateScroller, setNewCustomizationSection } from "@webpack/common";
-=======
-import { setColorPicker, setCreateScroller } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 export default definePlugin({
     name: "ConcatenatedComponentExtractor",
     description: "Extract components that have been concatenated by the bundler",
     authors: [Devs.sadan],
-<<<<<<< HEAD
     tags: ["Developers", "Utility"],
-=======
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
     required: true,
 
     patches: [
@@ -37,7 +29,6 @@ export default definePlugin({
                 match: /(?=function (\i)\(\i,\i,\i\)\{.{0,20}?return \i\.forwardRef\(function\(\i,\i\)\{let\{[^}]+?="ltr",orientation:)/,
                 replace: "$self.setCreateScroller($1);"
             }
-<<<<<<< HEAD
         },
         {
             find: '("UserProfileModalV2EditingPanel")',
@@ -47,15 +38,10 @@ export default definePlugin({
                     replace: "$&$self.setNewCustomizationSection($1);"
                 }
             ]
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
     ],
 
     setCreateScroller,
     setColorPicker,
-<<<<<<< HEAD
     setNewCustomizationSection
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 });

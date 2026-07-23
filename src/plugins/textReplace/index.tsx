@@ -26,11 +26,7 @@ import { HeadingSecondary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { Span } from "@components/Span";
 import { TooltipContainer } from "@components/TooltipContainer";
-<<<<<<< HEAD
 import { Devs, EquicordDevs, SUPPORT_CHANNEL_IDS } from "@utils/constants";
-=======
-import { Devs, EquicordDevs } from "@utils/constants";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { classNameFactory } from "@utils/index";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
@@ -184,10 +180,7 @@ function normalizeRule(rule: Rule) {
 
 function TextReplace({ title, description, rulesArray, isRegex = false }: TextReplaceProps) {
     const [searchQuery, setSearchQuery] = useState("");
-<<<<<<< HEAD
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     function onClickRemove(index: number) {
         rulesArray.splice(index, 1);
@@ -216,7 +209,6 @@ function TextReplace({ title, description, rulesArray, isRegex = false }: TextRe
         return acc;
     }, []);
 
-<<<<<<< HEAD
     const handleDrop = (index: number) => (e: React.DragEvent) => {
         e.preventDefault();
         if (draggedIndex === null || draggedIndex === index || searchQuery) return;
@@ -225,8 +217,6 @@ function TextReplace({ title, description, rulesArray, isRegex = false }: TextRe
         setDraggedIndex(null);
     };
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     return (
         <>
             <div>
@@ -243,7 +233,6 @@ function TextReplace({ title, description, rulesArray, isRegex = false }: TextRe
                     <Paragraph>No rules match your search criteria.</Paragraph>
                 )}
                 {filteredRules.map(({ rule, index }) =>
-<<<<<<< HEAD
                     <div
                         key={rule.id}
                         onDragOver={e => e.preventDefault()}
@@ -318,66 +307,6 @@ function TextReplace({ title, description, rulesArray, isRegex = false }: TextRe
                             </div>
                         </ExpandableSection>
                     </div>
-=======
-                    <ExpandableSection
-                        key={rule.id}
-                        renderContent={() => (
-                            <>
-                                <div className={cl("input-grid")}>
-                                    <TextRow
-                                        label="Name"
-                                        description="An optional name to help you identify this rule."
-                                        value={rule.name ?? ""}
-                                        onChange={e => onChange(e, index, "name")}
-                                    />
-                                    <TextRow
-                                        label="Find"
-                                        description={isRegex ? "The regex pattern" : "The text to replace"}
-                                        value={rule.find}
-                                        onChange={e => onChange(e, index, "find")}
-                                    />
-                                    <TextRow
-                                        label="Replace"
-                                        description="The text to replace the found text with"
-                                        value={rule.replace}
-                                        onChange={e => onChange(e, index, "replace")}
-                                    />
-                                    <TextRow
-                                        label="Only if includes"
-                                        description="Optionally, only apply this rule if the message includes this text."
-                                        value={rule.onlyIfIncludes}
-                                        onChange={e => onChange(e, index, "onlyIfIncludes")}
-                                    />
-                                </div>
-                                <div style={{ marginTop: "0.25em" }}>
-                                    <Select
-                                        options={scopeOptions}
-                                        isSelected={e => e === rule.scope}
-                                        select={e => onChange(e, index, "scope")}
-                                        serialize={e => e}
-                                    />
-                                </div>
-                                {isRegex && renderFindError(rule.find)}
-                                <Button
-                                    className={cl("delete-button")}
-                                    variant="dangerPrimary"
-                                    onClick={() => onClickRemove(index)}
-                                >
-                                    Delete Rule
-                                </Button>
-                            </>
-                        )}
-                    >
-                        <Paragraph weight="medium" size="md">
-                            {rule.name
-                                ? rule.name
-                                : isEmptyRule(rule)
-                                    ? `Empty Rule ${index + 1}`
-                                    : `Rule ${index + 1} - ${rule.find}`
-                            }
-                        </Paragraph>
-                    </ExpandableSection>
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 )}
                 <Button
                     onClick={() => {
@@ -451,10 +380,7 @@ function modifyIncomingMessage(message: Message) {
 const TEXT_REPLACE_RULES_EXEMPT_CHANNEL_IDS = [
     "1102784112584040479", // Vencord's Text Replace Rules Channel
     "1419347113745059961", // Equicord's Requests Channel
-<<<<<<< HEAD
     ...SUPPORT_CHANNEL_IDS
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 ];
 
 export default definePlugin({

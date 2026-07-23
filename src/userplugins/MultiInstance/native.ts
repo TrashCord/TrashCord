@@ -1,533 +1,446 @@
 /*
- * Nightcord — MultiInstance native.ts
- *
- * Token injection: robust method via session setPreloads.
- * We create a TEMPORARY preload script in a file that
- * we pass to ses.setPreloads([...]) — this script runs in
- * the main world BEFORE any page JS, guaranteeing that
- * localStorage.token is set before Discord reads it.
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BrowserWindow, screen, session, nativeImage, app, ipcMain, systemPreferences, Session } from "electron";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { app, BrowserWindow, nativeImage, session, shell } from "electron";
+import discordIcon from "file://../../../browser/icon.png?base64";
 import { join } from "path";
 
-// Inlined from nightcord/main/mediaPermissions.ts
-function registerMediaPermissionsForSession(ses: Session) {
-    ses.setPermissionCheckHandler((_webContents, permission, _requestingOrigin, details) => {
-        if (permission === "media") {
-            return true;
-        }
-        return true;
-    });
-
-    ses.setPermissionRequestHandler(async (_webContents, permission, callback, details) => {
-        if (permission === "media") {
-            let granted = true;
-
-            if (process.platform === "darwin" && "mediaTypes" in details) {
-                if (details.mediaTypes?.includes("audio")) {
-                    granted &&= await systemPreferences.askForMediaAccess("microphone");
-                }
-                if (details.mediaTypes?.includes("video")) {
-                    granted &&= await systemPreferences.askForMediaAccess("camera");
-                }
-            }
-
-            return callback(granted);
-        }
-
-        callback(true);
-    });
+export interface NativeResult {
+    ok: boolean;
+    error?: string;
 }
 
-const openWindows = new Map<string, BrowserWindow>();
+export type InstanceMode = "detached" | "grouped";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Intercepts window control IPCs for a multi-instance.
-//
-// Native Discord uses ipcMain.handle("DISCORD_WINDOW_CLOSE" | "DISCORD_WINDOW_MINIMIZE" | ...)
-// These handlers are registered GLOBALLY by Discord on ipcMain, so they
-// catch all events from all windows and call injectedGetWindow(key)
-// which always returns the main window.
-//
-// To work around this, we use webContents.ipc.handle on the webContents
-// of each multi-instance window — these handlers are LOCAL to that webContents
-// and take priority over global ipcMain handlers for that sender.
-// ─────────────────────────────────────────────────────────────────────────────
+export interface InstanceUser {
+    id: string;
+    username: string;
+    globalName?: string | null;
+    avatarUrl: string;
+}
 
-function registerWindowControlIpc(win: BrowserWindow): () => void {
-    const wc = win.webContents as any; // webContents.ipc existe depuis Electron 20
+export interface InstanceStatus {
+    id: string;
+    mode: InstanceMode;
+    user?: InstanceUser;
+}
 
-    // Native Discord channels (discovered in _core_extracted/bundle.js)
-    const CLOSE     = "DISCORD_WINDOW_CLOSE";
-    const MINIMIZE  = "DISCORD_WINDOW_MINIMIZE";
-    const MAXIMIZE  = "DISCORD_WINDOW_MAXIMIZE";
-    const RESTORE   = "DISCORD_WINDOW_RESTORE";
-    const FULLSCREEN = "DISCORD_WINDOW_TOGGLE_FULLSCREEN";
+const DISCORD_DOMAINS = ["discord.com", "ptb.discord.com", "canary.discord.com"] as const;
+const DISCORD_HOSTS = new Set<string>(DISCORD_DOMAINS);
+const DISCORD_ATTACHMENT_HOSTS = new Set(["cdn.discordapp.com", "media.discordapp.net"]);
+const EXTERNAL_HOSTS = new Set(["discord.com", "ptb.discord.com", "canary.discord.com", "support.discord.com", "discord.gg"]);
+const PROFILE_ID_RE = /^[a-z0-9_-]{1,32}$/i;
+const DISCORD_USER_ID_RE = /^\d{17,20}$/;
+const DISCORD_ICON = nativeImage.createFromDataURL(`data:image/png;base64,${discordIcon}`);
+const openWindows = new Map<string, {
+    ses: Electron.Session;
+    win: BrowserWindow;
+    saveSession: boolean;
+    mode: InstanceMode;
+    user?: InstanceUser;
+}>();
+const configuredSessions = new Set<string>();
 
-    // webContents.ipc.handle takes priority over ipcMain.handle for this sender
-    const handleClose     = () => { if (!win.isDestroyed()) win.close(); };
-    const handleMinimize  = () => { if (!win.isDestroyed()) win.minimize(); };
-    const handleMaximize  = () => {
-        if (win.isDestroyed()) return;
-        if (win.isMaximized()) win.unmaximize(); else win.maximize();
-    };
-    const handleRestore   = () => { if (!win.isDestroyed()) win.restore(); };
-    const handleFullscreen = () => { if (!win.isDestroyed()) win.setFullScreen(!win.isFullScreen()); };
+type LocalIpc = {
+    handle(channel: string, listener: () => void): void;
+    removeHandler(channel: string): void;
+};
+
+type DiscordDomain = typeof DISCORD_DOMAINS[number];
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function normalizeProfileId(value: unknown) {
+    if (typeof value !== "string") return null;
+
+    const profileId = value.trim();
+    if (!PROFILE_ID_RE.test(profileId)) return null;
+
+    return profileId.toLowerCase();
+}
+
+function normalizeDisplayName(value: unknown, fallback: string) {
+    if (typeof value !== "string") return fallback;
+
+    const displayName = value.trim().replace(/\s+/g, " ").slice(0, 64);
+    return displayName || fallback;
+}
+
+function normalizeDomain(value: unknown): DiscordDomain {
+    return typeof value === "string" && DISCORD_HOSTS.has(value)
+        ? value as DiscordDomain
+        : "discord.com";
+}
+
+function normalizeInstanceMode(value: unknown): InstanceMode {
+    return value === "grouped" ? "grouped" : "detached";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+function normalizeInstanceUser(value: unknown): InstanceUser | undefined {
+    if (!isRecord(value)) return;
+
+    const user = value;
+    if (
+        typeof user.id !== "string" ||
+        !DISCORD_USER_ID_RE.test(user.id) ||
+        typeof user.username !== "string" ||
+        !user.username.trim() ||
+        user.username.length > 64 ||
+        typeof user.avatarUrl !== "string"
+    ) return;
 
     try {
-        // webContents.ipc.handle (Electron 20+)
-        wc.ipc.handle(CLOSE,      handleClose);
-        wc.ipc.handle(MINIMIZE,   handleMinimize);
-        wc.ipc.handle(MAXIMIZE,   handleMaximize);
-        wc.ipc.handle(RESTORE,    handleRestore);
-        wc.ipc.handle(FULLSCREEN, handleFullscreen);
+        const avatarUrl = new URL(user.avatarUrl);
+        if (
+            avatarUrl.protocol !== "https:" ||
+            !DISCORD_ATTACHMENT_HOSTS.has(avatarUrl.hostname) ||
+            !avatarUrl.pathname.startsWith("/avatars/") &&
+            !avatarUrl.pathname.startsWith("/embed/avatars/")
+        ) return;
     } catch {
-        // Fallback: global ipcMain.handle with sender filter
-        // (less clean but works on Electron < 20)
-        //
-        // IMPORTANT: DISCORD_WINDOW_TOGGLE_FULLSCREEN is already registered globally
-        // by the main patcher. We do NOT re-register it here to avoid
-        // "Attempted to register a second handler" which crashes Discord on startup.
-        const guardedHandle = (fn: () => void) => (event: Electron.IpcMainInvokeEvent) => {
-            if (BrowserWindow.fromWebContents(event.sender) !== win) return;
-            fn();
-        };
-        // removeHandler first to avoid crash in case of double call
-        ipcMain.removeHandler(CLOSE);
-        ipcMain.removeHandler(MINIMIZE);
-        ipcMain.removeHandler(MAXIMIZE);
-        ipcMain.removeHandler(RESTORE);
-        // DO NOT register FULLSCREEN - handled globally by the patcher
-        ipcMain.handle(CLOSE,     guardedHandle(handleClose));
-        ipcMain.handle(MINIMIZE,  guardedHandle(handleMinimize));
-        ipcMain.handle(MAXIMIZE,  guardedHandle(handleMaximize));
-        ipcMain.handle(RESTORE,   guardedHandle(handleRestore));
-        return () => {
-            ipcMain.removeHandler(CLOSE);
-            ipcMain.removeHandler(MINIMIZE);
-            ipcMain.removeHandler(MAXIMIZE);
-            ipcMain.removeHandler(RESTORE);
-        };
+        return;
     }
 
-    // Returns the cleanup for webContents.ipc
-    return () => {
-        try {
-            wc.ipc.removeHandler(CLOSE);
-            wc.ipc.removeHandler(MINIMIZE);
-            wc.ipc.removeHandler(MAXIMIZE);
-            wc.ipc.removeHandler(RESTORE);
-            wc.ipc.removeHandler(FULLSCREEN);
-        } catch { }
+    return {
+        id: user.id,
+        username: user.username.trim(),
+        globalName: typeof user.globalName === "string" && user.globalName.trim()
+            ? user.globalName.trim().slice(0, 64)
+            : undefined,
+        avatarUrl: user.avatarUrl
     };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Creates the preload script that injects the token
-// ─────────────────────────────────────────────────────────────────────────────
+function getDiscordUrl(domain: DiscordDomain) {
+    return `https://${domain}/channels/@me`;
+}
 
-function createTokenPreload(token: string): string {
-    // Temporary directory in userData
-    const dir = join(app.getPath("userData"), "nightcord-mi-preloads");
-    mkdirSync(dir, { recursive: true });
-
-    const safeToken = JSON.stringify(token); // properly escapes the token
-
-    const script = `
-// Nightcord MultiInstance — token preload
-// Runs in the main world BEFORE Discord
-(function() {
-    const TOKEN = ${safeToken};
+function isDiscordUrl(url: string) {
     try {
-        // Sets the token in localStorage
-        Object.defineProperty(window, '__nightcord_token', { value: TOKEN, writable: false });
-
-        // Patch localStorage.getItem to always return the token if requested
-        const _origGetItem = Storage.prototype.getItem;
-        const _origSetItem = Storage.prototype.setItem;
-
-        Storage.prototype.getItem = function(key) {
-            if (this === localStorage && key === "token") {
-                return JSON.stringify(TOKEN);
-            }
-            return _origGetItem.call(this, key);
-        };
-
-        // Pre-fill as well
-        try { localStorage.setItem("token", JSON.stringify(TOKEN)); } catch(_) {}
-
-        console.log("[NightcordMI] Token preload active ✓");
-    } catch(e) {
-        console.warn("[NightcordMI] Preload error:", e);
+        const parsed = new URL(url);
+        return parsed.protocol === "https:" && DISCORD_HOSTS.has(parsed.hostname);
+    } catch {
+        return false;
     }
-})();
-`;
-
-    const filePath = join(dir, `token-preload-${Date.now()}.js`);
-    writeFileSync(filePath, script, "utf-8");
-    return filePath;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Opens a new isolated Discord window
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Detached icon counter: rotates from 1 to 5
-let iconCounter = 1;
-
-// Path to the detached icons folder (multi-instance-icons/ in dist)
-function getDetachedIconDir(): string {
-    // In production: {app_dir}/multi-instance-icons/
-    // In dev: Desktop/lolll/
-    const exeDir = join(process.execPath, "..")
-    const prodDir = join(exeDir, "multi-instance-icons");
-    if (existsSync(prodDir)) return prodDir;
-    // Fallback dev : Desktop/lolll
-    const desktopDir = join(app.getPath("desktop"), "lolll");
-    if (existsSync(desktopDir)) return desktopDir;
-    return prodDir;
-}
-
-export async function openInstanceWindow(
-    _: any,
-    token: string,
-    userId: string,
-    detached = false,
-    username = ""
-): Promise<{ ok: boolean; error?: string; }> {
+function isDiscordPopoutUrl(url: string) {
     try {
-        // Window already open -> focus
-        const existing = openWindows.get(userId);
-        if (existing && !existing.isDestroyed()) {
-            existing.show();
-            existing.focus();
-            return { ok: true };
+        const parsed = new URL(url);
+        return parsed.protocol === "https:" &&
+            parsed.pathname === "/popout" &&
+            (DISCORD_HOSTS.has(parsed.hostname) || parsed.hostname === "discord.gg");
+    } catch {
+        return false;
+    }
+}
+
+function isDiscordAttachmentUrl(url: string) {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === "https:" &&
+            DISCORD_ATTACHMENT_HOSTS.has(parsed.hostname) &&
+            (parsed.pathname.startsWith("/attachments/") || parsed.pathname.startsWith("/ephemeral-attachments/"));
+    } catch {
+        return false;
+    }
+}
+
+function isAllowedExternalUrl(url: string) {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === "https:" && EXTERNAL_HOSTS.has(parsed.hostname);
+    } catch {
+        return false;
+    }
+}
+
+function removeBlockingHeaders(responseHeaders: Record<string, string[]> | undefined) {
+    const headers = { ...(responseHeaders ?? {}) };
+
+    for (const key of Object.keys(headers)) {
+        const normalized = key.toLowerCase();
+
+        if (
+            normalized === "content-security-policy" ||
+            normalized === "content-security-policy-report-only" ||
+            normalized === "permissions-policy" ||
+            normalized === "feature-policy"
+        ) {
+            delete headers[key];
+        }
+    }
+
+    return headers;
+}
+
+function configureSession(partition: string, ses: Electron.Session) {
+    if (configuredSessions.has(partition)) return;
+    configuredSessions.add(partition);
+
+    ses.webRequest.onHeadersReceived((details, callback) => {
+        callback({ responseHeaders: removeBlockingHeaders(details.responseHeaders) });
+    });
+
+    ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        const requestingUrl = details.requestingUrl || webContents.getURL();
+
+        if (!isDiscordUrl(requestingUrl)) {
+            callback(false);
+            return;
         }
 
-        // Unique ID per instance - Windows groups windows by AppUserModelId
-        // By giving a different ID to each window, they don't get grouped
-        const uniqueAppId = `nightcord.instance.${userId}.${Date.now()}`;
+        callback(["clipboard-read", "display-capture", "fullscreen", "media", "notifications"].includes(permission));
+    });
+}
 
-        // Icon: rotation 1→2→3→4→5→1→... from multi-instance-icons/
-        let currentIconPath = "";
-        const iconDir = getDetachedIconDir();
-        currentIconPath = join(iconDir, `${iconCounter}.ico`);
-        if (!existsSync(currentIconPath)) currentIconPath = "";
-        iconCounter = iconCounter >= 5 ? 1 : iconCounter + 1;
+function registerWindowControls(win: BrowserWindow) {
+    const localIpc = (win.webContents as { ipc?: LocalIpc; }).ipc;
+    if (!localIpc) return () => undefined;
 
-        // Isolated Electron session per userId
-        const partition = `persist:nightcord-mi-${userId}`;
-        const ses = session.fromPartition(partition, { cache: true });
+    const handlers = {
+        DISCORD_WINDOW_CLOSE: () => {
+            if (!win.isDestroyed()) win.close();
+        },
+        DISCORD_WINDOW_MINIMIZE: () => {
+            if (!win.isDestroyed()) win.minimize();
+        },
+        DISCORD_WINDOW_MAXIMIZE: () => {
+            if (win.isDestroyed()) return;
+            if (win.isMaximized()) win.unmaximize();
+            else win.maximize();
+        },
+        DISCORD_WINDOW_RESTORE: () => {
+            if (!win.isDestroyed()) win.restore();
+        },
+        DISCORD_WINDOW_TOGGLE_FULLSCREEN: () => {
+            if (!win.isDestroyed()) win.setFullScreen(!win.isFullScreen());
+        }
+    };
 
-        ses.webRequest.onHeadersReceived((details, callback) => {
-            const headers = { ...details.responseHeaders };
-            for (const key of Object.keys(headers)) {
-                const low = key.toLowerCase();
-                if (low === "content-security-policy" || low === "permissions-policy" || low === "feature-policy") {
-                    delete headers[key];
-                }
-            }
-            callback({ responseHeaders: headers });
-        });
+    for (const [channel, handler] of Object.entries(handlers)) {
+        localIpc.handle(channel, handler);
+    }
 
-        registerMediaPermissionsForSession(ses);
+    return () => {
+        for (const channel of Object.keys(handlers)) {
+            localIpc.removeHandler(channel);
+        }
+    };
+}
 
-        const preloadPath = createTokenPreload(token);
-        ses.setPreloads([preloadPath]);
+function focusWindow(win: BrowserWindow) {
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+}
+
+export async function openInstance(
+    _event: Electron.IpcMainInvokeEvent,
+    rawProfileId: unknown,
+    rawDisplayName: unknown,
+    rawSaveSession: unknown = true,
+    rawDomain: unknown = "discord.com",
+    rawBlockExternalTokenAccess: unknown = false,
+    rawPerformanceMode: unknown = false,
+    rawMode: unknown = "detached"
+): Promise<NativeResult> {
+    const profileId = normalizeProfileId(rawProfileId);
+    if (!profileId) return { ok: false, error: "Invalid instance profile." };
+
+    const displayName = normalizeDisplayName(rawDisplayName, "Secondary Discord");
+    const blockExternalTokenAccess = rawBlockExternalTokenAccess === true;
+    const performanceMode = rawPerformanceMode === true;
+    const saveSession = !blockExternalTokenAccess && rawSaveSession !== false;
+    const domain = normalizeDomain(rawDomain);
+    const mode = normalizeInstanceMode(rawMode);
+    const existing = openWindows.get(profileId);
+
+    if (existing && !existing.win.isDestroyed()) {
+        if (existing.mode !== mode) {
+            return { ok: false, error: `Close this instance before reopening it as ${mode}.` };
+        }
+
+        if (blockExternalTokenAccess && existing.saveSession) {
+            return { ok: false, error: "Close this instance before opening it with token protection." };
+        }
+
+        focusWindow(existing.win);
+        return { ok: true };
+    }
+
+    try {
+        const savedPartition = `persist:discord-mi-${profileId}`;
+        if (blockExternalTokenAccess) {
+            const savedSes = session.fromPartition(savedPartition, { cache: true });
+            await savedSes.clearStorageData();
+            await savedSes.clearCache();
+            configuredSessions.delete(savedPartition);
+        }
+
+        const partition = saveSession
+            ? savedPartition
+            : `discord-mi-${profileId}-${Date.now()}`;
+        const ses = session.fromPartition(partition, { cache: !blockExternalTokenAccess });
+        configureSession(partition, ses);
 
         const win = new BrowserWindow({
             width: 1280,
             height: 800,
             minWidth: 940,
             minHeight: 500,
-            parent: undefined,
-            skipTaskbar: false,
-            frame: false,
-            transparent: false,
-            titleBarStyle: "hidden",
+            title: displayName,
             autoHideMenuBar: true,
-            darkTheme: true,
             backgroundColor: "#313338",
-            title: `Nightcord [${username || userId}]`,
-            icon: currentIconPath || undefined,
+            darkTheme: true,
+            icon: mode === "detached" ? DISCORD_ICON : undefined,
+            show: false,
             webPreferences: {
                 preload: join(__dirname, "preload.js"),
                 contextIsolation: true,
                 nodeIntegration: false,
                 sandbox: false,
-                session: ses,
-                webSecurity: false,
-            },
+                backgroundThrottling: performanceMode,
+                session: ses
+            }
         });
 
-        // CRITICAL: setAppDetails MUST be called immediately after new BrowserWindow,
-        // before the window is shown. This is what prevents Windows from grouping
-        // the windows together in the taskbar.
-        if (process.platform === "win32") {
-            try {
-                win.setAppDetails({
-                    appId: uniqueAppId,
-                    appIconPath: currentIconPath || undefined,
-                    relaunchDisplayName: `Nightcord [${username || userId}]`,
-                });
-            } catch (err) {
-                console.warn("[NightcordMI] setAppDetails failed:", err);
-            }
+        const cleanupWindowControls = registerWindowControls(win);
+        const { webContents } = win;
+
+        openWindows.set(profileId, { ses, win, saveSession, mode });
+
+        if (process.platform === "win32" && mode === "detached") {
+            win.setAppDetails({
+                appId: `${app.name}.multiInstance.${profileId}`,
+                relaunchDisplayName: displayName
+            });
         }
 
-        openWindows.set(userId, win);
-
-        win.on("enter-html-full-screen", () => {
-            win.setFullScreen(true);
-        });
-        win.on("leave-html-full-screen", () => {
-            win.setFullScreen(false);
-        });
-
-        // Before close: unregister service workers and cut the gateway
-        // to stop all push notifications
-        win.on("close", () => {
-            wc.executeJavaScript(`
-                (async () => {
-                    try {
-                        const regs = await navigator.serviceWorker.getRegistrations();
-                        for (const r of regs) await r.unregister();
-                    } catch(e) {}
-                    try {
-                        // Cut the Discord gateway connection
-                        const ws = window.__NIGHTCORD_GW_WS__;
-                        if (ws && ws.readyState <= 1) ws.close(4000, 'window_close');
-                    } catch(e) {}
-                })();
-            `).catch(() => {});
-        });
-
-        // Register window control IPC handlers (DISCORD_WINDOW_*) on this webContents
-        // Must be done BEFORE Discord loads its JS (dom-ready)
-        const wc = win.webContents;
-        const cleanupIpc = registerWindowControlIpc(win);
-
+        win.once("ready-to-show", () => focusWindow(win));
         win.once("closed", () => {
-            cleanupIpc();
-            openWindows.delete(userId);
-            // Clean up the session's service workers to permanently cut notifications
-            ses.clearStorageData({ storages: ["serviceworkers"] }).catch(() => {});
-        });
+            cleanupWindowControls();
+            openWindows.delete(profileId);
+            configuredSessions.delete(partition);
 
-        // Flash when there are notifications
-        wc.on("page-title-updated", (e, title) => {
-            if (process.platform === "win32") {
-                if (/^\(\d+\)/.test(title)) win.flashFrame(true);
-                else win.flashFrame(false);
+            if (!saveSession) {
+                void ses.clearStorageData();
+                void ses.clearCache();
             }
         });
+        win.on("enter-html-full-screen", () => win.setFullScreen(true));
+        win.on("leave-html-full-screen", () => win.setFullScreen(false));
 
-        // Token injection
-        const safeToken = JSON.stringify(token);
-        const injectJs = `(function(){ try { localStorage.setItem("token", ${safeToken}); } catch(e) {} })();`;
-        wc.on("dom-ready", () => wc.executeJavaScript(injectJs).catch(() => { }));
-        wc.on("did-finish-load", () => wc.executeJavaScript(injectJs).catch(() => { }));
-        wc.on("did-navigate", () => wc.executeJavaScript(injectJs).catch(() => { }));
+        webContents.on("will-navigate", (event, url) => {
+            if (isDiscordAttachmentUrl(url)) {
+                event.preventDefault();
+                webContents.downloadURL(url);
+                return;
+            }
 
-        // Window title
-        wc.on("page-title-updated", (e, title) => {
-            const cleanTitle = title.replace(/^\(\d+\)\s*/, "").replace(/\s*\[.*\]$/, "");
-            win.setTitle(`${cleanTitle} [${username || userId}]`);
-            e.preventDefault();
+            if (!isDiscordUrl(url)) event.preventDefault();
         });
 
-        wc.on("will-navigate", (e, url) => {
-            if (!/^https:\/\/(ptb\.|canary\.)?discord\.com/.test(url)) e.preventDefault();
-        });
+        webContents.setWindowOpenHandler(({ url }) => {
+            if (isDiscordPopoutUrl(url)) {
+                return { action: isDiscordUrl(url) ? "allow" : "deny" };
+            }
 
-        wc.setWindowOpenHandler(({ url }) => {
-            if (url.startsWith("http")) require("electron").shell.openExternal(url);
+            if (isDiscordAttachmentUrl(url)) {
+                webContents.downloadURL(url);
+                return { action: "deny" };
+            }
+
+            if (isAllowedExternalUrl(url)) {
+                void shell.openExternal(url);
+            }
+
             return { action: "deny" };
         });
 
-        await win.loadURL("https://discord.com/channels/@me");
+        webContents.on("page-title-updated", (event, title) => {
+            const cleanTitle = title.replace(/^\(\d+\)\s*/, "").trim();
+            win.setTitle(cleanTitle ? `${cleanTitle} (${displayName})` : displayName);
+            event.preventDefault();
+        });
+
+        await win.loadURL(getDiscordUrl(domain));
         return { ok: true };
-    } catch (e: any) {
-        return { ok: false, error: e?.message ?? String(e) };
+    } catch (error) {
+        return { ok: false, error: getErrorMessage(error) };
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// "Grouped" windows — same group as Nightcord in the taskbar
-// Principle: we do NOT touch setAppDetails => the window inherits the AppId
-// of the main process (com.nightcord.app), Windows groups it automatically
-// ─────────────────────────────────────────────────────────────────────────────
-
-const openGroupedWindows = new Map<string, BrowserWindow>();
-
-export async function openInstanceWindowGrouped(
-    _: any,
-    token: string,
-    userId: string,
-    username = ""
-): Promise<{ ok: boolean; error?: string; }> {
-    try {
-        // Focus if already open
-        const existing = openGroupedWindows.get(userId);
-        if (existing && !existing.isDestroyed()) {
-            existing.show();
-            existing.focus();
-            return { ok: true };
-        }
-
-        // Isolated session per userId
-        const partition = `persist:nightcord-mi-${userId}`;
-        const ses = session.fromPartition(partition, { cache: true });
-
-        ses.webRequest.onHeadersReceived((details, callback) => {
-            const headers = { ...details.responseHeaders };
-            for (const key of Object.keys(headers)) {
-                const low = key.toLowerCase();
-                if (low === "content-security-policy" || low === "permissions-policy" || low === "feature-policy") {
-                    delete headers[key];
-                }
-            }
-            callback({ responseHeaders: headers });
-        });
-
-        registerMediaPermissionsForSession(ses);
-
-        const preloadPath = createTokenPreload(token);
-        ses.setPreloads([preloadPath]);
-
-        const win = new BrowserWindow({
-            width: 1280,
-            height: 800,
-            minWidth: 940,
-            minHeight: 500,
-            parent: undefined,
-            skipTaskbar: false,
-            frame: false,
-            transparent: false,
-            titleBarStyle: "hidden",
-            autoHideMenuBar: true,
-            darkTheme: true,
-            backgroundColor: "#313338",
-            title: `Nightcord [${username || userId}]`,
-            webPreferences: {
-                preload: join(__dirname, "preload.js"),
-                contextIsolation: true,
-                nodeIntegration: false,
-                sandbox: false,
-                session: ses,
-                webSecurity: false,
-            },
-        });
-
-        openGroupedWindows.set(userId, win);
-
-        win.on("enter-html-full-screen", () => {
-            win.setFullScreen(true);
-        });
-        win.on("leave-html-full-screen", () => {
-            win.setFullScreen(false);
-        });
-
-        // Before close: unregister service workers and cut the gateway
-        win.on("close", () => {
-            wc.executeJavaScript(`
-                (async () => {
-                    try {
-                        const regs = await navigator.serviceWorker.getRegistrations();
-                        for (const r of regs) await r.unregister();
-                    } catch(e) {}
-                    try {
-                        const ws = window.__NIGHTCORD_GW_WS__;
-                        if (ws && ws.readyState <= 1) ws.close(4000, 'window_close');
-                    } catch(e) {}
-                })();
-            `).catch(() => {});
-        });
-
-        // Register window control IPC handlers for this grouped instance
-        const wc = win.webContents;
-        const cleanupIpc = registerWindowControlIpc(win);
-
-        win.once("closed", () => {
-            cleanupIpc();
-            openGroupedWindows.delete(userId);
-            ses.clearStorageData({ storages: ["serviceworkers"] }).catch(() => {});
-        });
-
-        wc.on("page-title-updated", (e, title) => {
-            if (process.platform === "win32") {
-                if (/^\(\d+\)/.test(title)) win.flashFrame(true);
-                else win.flashFrame(false);
-            }
-        });
-
-        const safeToken = JSON.stringify(token);
-        const injectJs = `(function(){ try { localStorage.setItem("token", ${safeToken}); } catch(e) {} })();`;
-        wc.on("dom-ready", () => wc.executeJavaScript(injectJs).catch(() => {}));
-        wc.on("did-finish-load", () => wc.executeJavaScript(injectJs).catch(() => {}));
-        wc.on("did-navigate", () => wc.executeJavaScript(injectJs).catch(() => {}));
-
-        wc.on("page-title-updated", (e, title) => {
-            const cleanTitle = title.replace(/^\(\d+\)\s*/, "").replace(/\s*\[.*\]$/, "");
-            win.setTitle(`${cleanTitle} [${username || userId}]`);
-            e.preventDefault();
-        });
-
-        wc.on("will-navigate", (e, url) => {
-            if (!/^https:\/\/(ptb\.|canary\.)?discord\.com/.test(url)) e.preventDefault();
-        });
-
-        wc.setWindowOpenHandler(({ url }) => {
-            if (url.startsWith("http")) require("electron").shell.openExternal(url);
-            return { action: "deny" };
-        });
-
-        await win.loadURL("https://discord.com/channels/@me");
-        return { ok: true };
-    } catch (e: any) {
-        return { ok: false, error: e?.message ?? String(e) };
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Split screen: positions the two windows side by side
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function arrangeSplit(_: any, userId: string): Promise<void> {
-    try {
-        const secondWin = openWindows.get(userId);
-        if (!secondWin || secondWin.isDestroyed()) return;
-
-        const allWins = BrowserWindow.getAllWindows();
-        const mainWin = allWins.find(w => w !== secondWin && !w.isDestroyed());
-        if (!mainWin) return;
-
-        const display = screen.getDisplayMatching(mainWin.getBounds());
-        const { x, y, width, height } = display.workArea;
-        const half = Math.floor(width / 2);
-
-        mainWin.setBounds({ x, y, width: half, height }, true);
-        secondWin.setBounds({ x: x + half, y, width: width - half, height }, true);
-        secondWin.show();
-        secondWin.focus();
-    } catch (e) {
-        console.error("[NightcordMI] arrangeSplit error:", e);
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// List / close instances
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function getOpenInstances(_: any): Promise<string[]> {
+export async function getOpenInstances(_event: Electron.IpcMainInvokeEvent): Promise<InstanceStatus[]> {
     return [...openWindows.entries()]
-        .filter(([, w]) => !w.isDestroyed())
-        .map(([id]) => id);
+        .filter(([, { win }]) => !win.isDestroyed())
+        .map(([id, { mode, user }]) => ({ id, mode, user }));
 }
 
-export async function closeInstance(_: any, userId: string): Promise<void> {
-    const win = openWindows.get(userId);
-    if (win && !win.isDestroyed()) win.close();
+export async function reportInstanceUser(
+    event: Electron.IpcMainInvokeEvent,
+    rawUser: unknown
+): Promise<NativeResult> {
+    const entry = [...openWindows.values()].find(({ win }) => !win.isDestroyed() && win.webContents.id === event.sender.id);
+    if (!entry) return { ok: true };
+
+    entry.user = normalizeInstanceUser(rawUser);
+    return { ok: true };
+}
+
+export async function closeInstance(
+    _event: Electron.IpcMainInvokeEvent,
+    rawProfileId: unknown
+): Promise<NativeResult> {
+    const profileId = normalizeProfileId(rawProfileId);
+    if (!profileId) return { ok: false, error: "Invalid instance profile." };
+
+    const entry = openWindows.get(profileId);
+    if (!entry || entry.win.isDestroyed()) return { ok: true };
+
+    entry.win.close();
+    return { ok: true };
+}
+
+export async function closeAllInstances(_event: Electron.IpcMainInvokeEvent): Promise<NativeResult> {
+    for (const { win } of openWindows.values()) {
+        if (!win.isDestroyed()) win.close();
+    }
+
+    return { ok: true };
+}
+
+export async function clearSavedSession(
+    _event: Electron.IpcMainInvokeEvent,
+    rawProfileId: unknown
+): Promise<NativeResult> {
+    const profileId = normalizeProfileId(rawProfileId);
+    if (!profileId) return { ok: false, error: "Invalid instance profile." };
+
+    const entry = openWindows.get(profileId);
+    if (entry && !entry.win.isDestroyed()) {
+        return { ok: false, error: "Close this instance before clearing its saved session." };
+    }
+
+    try {
+        const partition = `persist:discord-mi-${profileId}`;
+        const ses = session.fromPartition(partition, { cache: true });
+
+        await ses.clearStorageData();
+        await ses.clearCache();
+        configuredSessions.delete(partition);
+
+        return { ok: true };
+    } catch (error) {
+        return { ok: false, error: getErrorMessage(error) };
+    }
 }

@@ -20,10 +20,7 @@ export interface TrackData {
     artist?: string;
 
     appleMusicLink?: string;
-<<<<<<< HEAD
     appleMusicArtistLink?: string;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     songLink?: string;
 
     albumArtwork?: string;
@@ -39,15 +36,12 @@ const enum AssetImageType {
     Disabled = "Disabled"
 }
 
-<<<<<<< HEAD
 const enum LinkType {
     Album = "Album",
     Artist = "Artist",
     Disabled = "Disabled"
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 const applicationId = "1239490006054207550";
 
 let updateInterval: NodeJS.Timeout | undefined;
@@ -120,7 +114,6 @@ const settings = definePluginSettings({
         description: "Activity state format string",
         default: "{artist} · {album}"
     },
-<<<<<<< HEAD
     detailsLink: {
         type: OptionType.SELECT,
         description: "Activity details link",
@@ -139,8 +132,6 @@ const settings = definePluginSettings({
             { label: "Disabled", value: LinkType.Disabled }
         ],
     },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     largeImageType: {
         type: OptionType.SELECT,
         description: "Activity assets large image type",
@@ -155,7 +146,6 @@ const settings = definePluginSettings({
         description: "Activity assets large text format string",
         default: "{album}"
     },
-<<<<<<< HEAD
     largeImageLink: {
         type: OptionType.SELECT,
         description: "Activity assets large image link",
@@ -165,8 +155,6 @@ const settings = definePluginSettings({
             { label: "Disabled", value: LinkType.Disabled }
         ],
     },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     smallImageType: {
         type: OptionType.SELECT,
         description: "Activity assets small image type",
@@ -181,7 +169,6 @@ const settings = definePluginSettings({
         description: "Activity assets small text format string",
         default: "{artist}"
     },
-<<<<<<< HEAD
     smallImageLink: {
         type: OptionType.SELECT,
         description: "Activity assets small image link",
@@ -191,8 +178,6 @@ const settings = definePluginSettings({
             { label: "Disabled", value: LinkType.Disabled }
         ],
     },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 });
 
 function customFormat(formatStr: string, data: TrackData) {
@@ -202,7 +187,6 @@ function customFormat(formatStr: string, data: TrackData) {
         .replaceAll("{artist}", data.artist ?? "");
 }
 
-<<<<<<< HEAD
 function getLink(type: LinkType, data: TrackData) {
     return type === LinkType.Album
         ? data.appleMusicLink
@@ -211,8 +195,6 @@ function getLink(type: LinkType, data: TrackData) {
             : undefined;
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 function getImageAsset(type: AssetImageType, data: TrackData) {
     const source = type === AssetImageType.Album
         ? data.albumArtwork
@@ -273,19 +255,13 @@ export default definePlugin({
         if (settings.store.largeImageType !== AssetImageType.Disabled) {
             assets.large_image = largeImageAsset;
             if (!isRadio) assets.large_text = customFormat(settings.store.largeTextString, trackData);
-<<<<<<< HEAD
             assets.large_url = getLink(settings.store.largeImageLink, trackData);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
 
         if (settings.store.smallImageType !== AssetImageType.Disabled) {
             assets.small_image = smallImageAsset;
             if (!isRadio) assets.small_text = customFormat(settings.store.smallTextString, trackData);
-<<<<<<< HEAD
             assets.small_url = getLink(settings.store.smallImageLink, trackData);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
 
         const buttons: ActivityButton[] = [];
@@ -310,11 +286,8 @@ export default definePlugin({
             name: customFormat(settings.store.nameString, trackData),
             details: customFormat(settings.store.detailsString, trackData),
             state: isRadio ? undefined : customFormat(settings.store.stateString, trackData),
-<<<<<<< HEAD
             details_url: getLink(settings.store.detailsLink, trackData),
             state_url: getLink(settings.store.stateLink, trackData),
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
             timestamps: (trackData.playerPosition && trackData.duration && settings.store.enableTimestamps) ? {
                 start: Date.now() - (trackData.playerPosition * 1000),

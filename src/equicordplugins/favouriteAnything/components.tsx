@@ -7,17 +7,12 @@
 import { BaseText } from "@components/BaseText";
 import { Button } from "@components/Button";
 import { LazyComponentWrapper } from "@utils/lazyReact";
-<<<<<<< HEAD
 import { Embed, ListRow, Message, MessageAttachment, ScrollerBaseRef } from "@vencord/discord-types";
-=======
-import { Message, MessageAttachment, ScrollerBaseRef } from "@vencord/discord-types";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { ChannelType } from "@vencord/discord-types/enums";
 import { findByCodeLazy, findComponentByCode, findComponentByCodeLazy, findCssClassesLazy, proxyLazyWebpack } from "@webpack";
 import { ChannelStore, ExpressionPickerStore, ListScrollerThin, lodash, PermissionsBits, PermissionStore, React, useCallback, useEffect, useMemo, useRef, useState, useStateFromStores } from "@webpack/common";
 import { ReactNode } from "react";
 
-<<<<<<< HEAD
 import { SignedUrlsStore } from "./stores";
 import { AttachmentContextProviderProps, AttachmentItem, AttachmentsComponentProps, CustomItemFormat, FavoriteButtonProps, FavouriteItemFormat, FilePickerItemProps, FilePickerProps, ManaSearchBarProps, MessageComponentClass } from "./types";
 import { cl, defs, hasPermission, ImageUtils, sendAttachment, transformAttachment, useFavourites, useListScroller, useResizeObserver } from "./utils";
@@ -25,12 +20,6 @@ import { cl, defs, hasPermission, ImageUtils, sendAttachment, transformAttachmen
 export const EmbedContext = proxyLazyWebpack(() => React.createContext<null | Embed>(null));
 export const EmbedMosaicContext = proxyLazyWebpack(() => React.createContext<null | number>(null));
 const AttachmentContext = proxyLazyWebpack(() => React.createContext<null | AttachmentItem>(null));
-=======
-import { AttachmentContext, EmbedContext, EmbedMosaicContext } from ".";
-import { SignedUrlsStore } from "./stores";
-import { AttachmentItem, AttachmentsComponentProps, CustomItemFormat, FavoriteButtonProps, FavouriteItemFormat, FilePickerItemProps, FilePickerProps, ManaSearchBarProps, MessageComponentClass } from "./types";
-import { cl, defs, hasPermission, ImageUtils, sendAttachment, useFavourites, useListScroller, useResizeObserver } from "./utils";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const ManaSearchBar = findComponentByCodeLazy<ManaSearchBarProps>("#{intl::SEARCH}),ref");
 const FavoriteButton = findComponentByCodeLazy<FavoriteButtonProps>("#{intl::GIF_TOOLTIP_ADD_TO_FAVORITES}");
@@ -84,11 +73,8 @@ export const AttachmentPreview = proxyLazyWebpack(() => {
     };
 });
 
-<<<<<<< HEAD
 const noopRender = () => null;
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export function FilePicker({ onSelectItem }: FilePickerProps) {
     const listRef = useRef<ScrollerBaseRef>(null);
 
@@ -105,15 +91,10 @@ export function FilePicker({ onSelectItem }: FilePickerProps) {
     const [rowHeights, handleResize] = useListScroller();
 
     const handleSubmit = useCallback((url: string) => onSelectItem({ url }), []);
-<<<<<<< HEAD
     const handleChange = useCallback((query: string) => ExpressionPickerStore.setSearchQuery(query), []);
     const handleClear = useCallback(() => ExpressionPickerStore.setSearchQuery(""), []);
 
     const renderRow = useCallback(({ row }: ListRow) => {
-=======
-
-    const renderRow = (row: number) => {
->>>>>>> 89b0fd2a5 (Update index.tsx)
         const item = favs?.[row];
         if (!item) return null;
 
@@ -128,16 +109,12 @@ export function FilePicker({ onSelectItem }: FilePickerProps) {
                 onSubmit={handleSubmit}
             />
         );
-<<<<<<< HEAD
     }, [favs, channel, count, handleResize, handleSubmit]);
 
     const rowHeight = useCallback(
         (_: number, row: number) => (favs?.[row] && rowHeights.get(favs[row].url)) ?? 100,
         [favs, rowHeights]
     );
-=======
-    };
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     useEffect(() => void listRef.current?.scrollToTop(), [query]);
 
@@ -148,13 +125,8 @@ export function FilePicker({ onSelectItem }: FilePickerProps) {
                     autoFocus
                     placeholder="Search files"
                     query={query}
-<<<<<<< HEAD
                     onChange={handleChange}
                     onClear={handleClear}
-=======
-                    onChange={query => ExpressionPickerStore.setSearchQuery(query)}
-                    onClear={() => ExpressionPickerStore.setSearchQuery("")}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 />
             </div>
             {count > 0 ? (
@@ -163,15 +135,9 @@ export function FilePicker({ onSelectItem }: FilePickerProps) {
                         ref={listRef}
                         sections={[count]}
                         sectionHeight={0}
-<<<<<<< HEAD
                         rowHeight={rowHeight}
                         renderSection={noopRender}
                         renderRow={renderRow}
-=======
-                        rowHeight={(_, row) => (favs?.[row] && rowHeights.get(favs[row].url)) ?? 100}
-                        renderSection={() => null}
-                        renderRow={({ row }) => renderRow(row)}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     />
                 </div>
             ) : (
@@ -314,7 +280,6 @@ export function EmbedAccessory() {
     );
 }
 
-<<<<<<< HEAD
 export function AttachmentContextProvider({ attachment, component, children }: AttachmentContextProviderProps) {
     const attachmentItem: AttachmentItem | null = useMemo(() => {
         if (component) {
@@ -358,8 +323,6 @@ export function AttachmentContextProvider({ attachment, component, children }: A
     return <AttachmentContext.Provider value={attachmentItem}>{children}</AttachmentContext.Provider>;
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 const visualMediaFormats: Partial<Record<AttachmentItem["type"], FavouriteItemFormat>> = Object.freeze({
     IMAGE: FavouriteItemFormat.IMAGE,
     VIDEO: FavouriteItemFormat.VIDEO,
@@ -371,12 +334,8 @@ export function AttachmentAccessory() {
 
     const props: FavoriteButtonProps | null = useMemo(() => {
         if (!attachment?.downloadUrl) return null;
-<<<<<<< HEAD
         const { originalItem, type, downloadUrl, srcIsAnimated } = attachment;
         const width = attachment.width || 600, height = attachment.height || 400;
-=======
-        const { originalItem, type, downloadUrl, width = 600, height = 400, srcIsAnimated } = attachment;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
         // Do not render the custom accessory if the original attachment component already has a gif accessory
         const isAnimated = ImageUtils.isAnimated({

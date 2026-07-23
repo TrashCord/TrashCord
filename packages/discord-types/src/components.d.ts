@@ -66,10 +66,15 @@ export interface TooltipProps {
     tooltipClassName?: string;
     tooltipContentClassName?: string;
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     delay?: number;
 =======
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+
+    delay?: number;
+>>>>>>> upstream/main
 }
 
 export type Tooltip = ComponentType<TooltipProps> & {
@@ -548,11 +553,17 @@ export type ColorPicker = ComponentType<{
     disabled?: boolean;
 }>;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> upstream/main
 
 export type ComponentSection = ComponentType<PropsWithChildren<{
     heading?: string;
     disabled?: boolean;
     showNitroIcon?: boolean;
 }>>;
+<<<<<<< HEAD
 =======
 >>>>>>> 89b0fd2a5 (Update index.tsx)
+=======
+>>>>>>> upstream/main

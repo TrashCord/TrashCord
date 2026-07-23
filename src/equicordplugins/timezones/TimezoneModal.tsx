@@ -6,10 +6,6 @@
 
 import * as DataStore from "@api/DataStore";
 import { HeadingSecondary } from "@components/Heading";
-<<<<<<< HEAD
-=======
-import { classNameFactory } from "@utils/css";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Margins } from "@utils/margins";
 import { RenderModalProps } from "@vencord/discord-types";
 import { Modal, SearchableSelect, useEffect, useMemo, useState } from "@webpack/common";
@@ -22,11 +18,6 @@ export async function setUserTimezone(userId: string, timezone: string | null) {
     await DataStore.set(DATASTORE_KEY, timezones);
 }
 
-<<<<<<< HEAD
-=======
-const cl = classNameFactory("vc-timezone-");
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export function SetTimezoneModal({ userId, modalProps, database }: { userId: string, modalProps: RenderModalProps; database?: boolean; }) {
     const [currentValue, setCurrentValue] = useState<string | null>(null);
 

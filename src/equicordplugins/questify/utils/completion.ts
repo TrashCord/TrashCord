@@ -89,10 +89,7 @@ const sendHeartbeat = findByCodeLazy(".QUESTS_HEARTBEAT(") as (options: {
     terminal?: boolean;
     executableFingerprint?: unknown;
 }) => Promise<void>;
-<<<<<<< HEAD
 const getApplicationProxyTicket = findByCodeLazy("APPLICATION_PROXY_TICKET", "body.ticket") as (applicationId: string, channelId?: string) => Promise<string>;
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export const enrollInQuest = findByCodeLazy('type:"QUESTS_ENROLL_BEGIN",') as (questId: string, options: QuestEnrollmentMetadata) => Promise<QuestEnrollResult>;
 const getQuestOrbQuantity = findByCodeLazy("premiumOrbQuantity??", "orbQuantity") as (
     config: Quest["config"],
@@ -104,7 +101,6 @@ function resolveQuestCTA(taskType?: QuestTaskType): string | undefined {
     return !taskType ? undefined : [QuestTaskType.ACHIEVEMENT_IN_ACTIVITY, QuestTaskType.PLAY_ACTIVITY, QuestTaskType.WATCH_VIDEO].includes(taskType) ? QuestCTA.START_QUEST : QuestCTA.ACCEPT_QUEST;
 }
 
-<<<<<<< HEAD
 async function getActivityReferrer(appId: string): Promise<string | undefined> {
     try {
         const proxyTicket = await getApplicationProxyTicket(appId);
@@ -120,8 +116,6 @@ async function getActivityReferrer(appId: string): Promise<string | undefined> {
     }
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export function makeEnrollmentData(args: QuestButtonAnalyticsArgs): QuestEnrollmentMetadata {
     return {
         questContent: args.analyticsCtxQuestContent,
@@ -935,11 +929,7 @@ async function runAchievementQuest(quest: Quest, entry: AutoCompleteEntry, targe
         return false;
     }
 
-<<<<<<< HEAD
     const result = await QuestifyNative.complete(appId, authCode, target.adjusted, quest.id, await getActivityReferrer(appId));
-=======
-    const result = await QuestifyNative.complete(appId, authCode, target.adjusted);
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const success = result.success === true;
 
     setQuestAutoCompleteProgress(quest, success ? target.adjusted : 0);

@@ -9,43 +9,26 @@ import "./styles.css";
 import { Settings, useSettings } from "@api/Settings";
 import { BaseText } from "@components/BaseText";
 import ErrorBoundary from "@components/ErrorBoundary";
-<<<<<<< HEAD
 import { Link } from "@components/Link";
 import { Notice } from "@components/Notice";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { PluginDependencyList } from "@components/settings/tabs/plugins";
 import { PluginCard } from "@components/settings/tabs/plugins/PluginCard";
 import { ChangeList } from "@utils/ChangeList";
 import { classNameFactory } from "@utils/css";
 import { useForceUpdater } from "@utils/react";
-<<<<<<< HEAD
 import { RenderModalProps } from "@vencord/discord-types";
 import { closeModal, Modal, openModal, Tooltip, useMemo } from "@webpack/common";
-import { ReactNode } from "react";
-=======
-import type { RenderModalProps } from "@vencord/discord-types";
-import { findComponentByCodeLazy } from "@webpack";
-import { closeModal, Modal, openModal, Tooltip, useMemo } from "@webpack/common";
 import type { ReactNode } from "react";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import Plugins from "~plugins";
 
 import { getNewPlugins, getNewSettings, KnownPluginSettingsMap, writeKnownSettings } from "./knownSettings";
 
 const cl = classNameFactory("vc-new-plugins-");
-<<<<<<< HEAD
-
-let hasSeen = false;
-=======
 const DISCORD_LOCK_UNLOCKED_EVENT = "vencord-discordlock-unlocked";
-
-const Checkbox = findComponentByCodeLazy('"data-toggleable-component":"checkbox');
 
 let hasSeen = false;
 let pendingOpen = false;
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 interface ModalComponentProps {
     modalProps: RenderModalProps;
@@ -145,7 +128,6 @@ function NewPluginsModal({ modalProps, newPlugins, newSettings }: ModalComponent
                     <BaseText size="lg" weight="semibold" className={cl("title")}>
                         New Plugins and Settings ({totalCount})
                     </BaseText>
-<<<<<<< HEAD
                 </div>
             }
             subtitle={
@@ -158,12 +140,6 @@ function NewPluginsModal({ modalProps, newPlugins, newSettings }: ModalComponent
                         Equicord is Open Source Software. If you enjoy using it, consider supporting us <Link href="https://github.com/sponsors/thororen1234" target="_blank" rel="noopener noreferrer">here</Link>.
                     </Notice.Info>
                 </>
-=======
-                    <BaseText size="sm" className={cl("description")}>
-                        New plugins have been added since your last visit. Enable any you'd like or continue to dismiss.
-                    </BaseText>
-                </div>
->>>>>>> 89b0fd2a5 (Update index.tsx)
             }
             actions={[
                 {
@@ -184,17 +160,7 @@ function NewPluginsModal({ modalProps, newPlugins, newSettings }: ModalComponent
                 {pluginCards}
                 {requiredPluginCards}
             </div>
-<<<<<<< HEAD
         </Modal >
-    );
-}
-
-export async function openNewPluginsModal() {
-    const newPlugins = await getNewPlugins();
-    const newSettings = await getNewSettings();
-    if ((newPlugins.size || newSettings.size) && !hasSeen) {
-=======
-        </Modal>
     );
 }
 
@@ -225,7 +191,7 @@ export async function openNewPluginsModal() {
             deferUntilDiscordUnlock();
             return;
         }
->>>>>>> 89b0fd2a5 (Update index.tsx)
+
         hasSeen = true;
         const modalKey = openModal(modalProps => (
             <ErrorBoundary noop onError={() => closeModal(modalKey)}>

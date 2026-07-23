@@ -199,11 +199,7 @@ export default definePlugin({
         {
             find: "POPOUT)},children:",
             replacement: {
-<<<<<<< HEAD
                 match: /(?<=getUser\(\i\.ownerId\).{0,100})className:\i\.\i,onClick:function\(\i\)\{\(0,\i\.\i\)\(\i,/,
-=======
-                match: /(?<=getUser\(\i\.ownerId\).{0,100})className:\i\.\i,onClick:\i=>\{\(0,\i\.\i\)\((\i),/,
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 replace: "draggable:!0,onDragStart:e=>$self.onChannelDragStart(e,{id:arguments[0]?.thread?.id,guild_id:arguments[0]?.thread?.guild_id}),$&"
             }
         },
@@ -220,11 +216,7 @@ export default definePlugin({
             find: ']="BADGES"',
             replacement: {
                 match: /(?="data-username-has-gradient")/,
-<<<<<<< HEAD
                 replace: "draggable:!0,onDragStart:e=>$self.onUserDragStart(e,arguments[0].message?.author),\"data-dragify-user\":!0,\"data-user-id\":arguments[0].message?.author?.id,"
-=======
-                replace: "draggable:!0,onDragStart:e=>$self.onUserDragStart(e,arguments[0].author),\"data-dragify-user\":!0,\"data-user-id\":arguments[0].author.id,"
->>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         },
         // Call avatars (DM/group call tiles)
@@ -390,17 +382,10 @@ export default definePlugin({
         if (inspection.hasAttachment) return;
 
         const rawUserId =
-<<<<<<< HEAD
             user?.id
             ?? user?.userId
             ?? user?.user?.id
             ?? inspection.authorId
-=======
-            inspection.authorId
-            ?? user?.id
-            ?? user?.userId
-            ?? user?.user?.id
->>>>>>> 89b0fd2a5 (Update index.tsx)
             ?? inspection.userId
             ?? null;
         const userId = rawUserId?.trim();

@@ -168,11 +168,7 @@ export default definePlugin({
     patches: [
         {
             // Same find as ReviewDB
-<<<<<<< HEAD
             find: '"UserProfilePopout");',
-=======
-            find: "#{intl::USER_PROFILE_FRIEND_REQUEST_TOAST}",
->>>>>>> 89b0fd2a5 (Update index.tsx)
             replacement: {
                 match: /userId:\i\.id,guild:\i\}\)(?=])/,
                 replace: "$&,$self.profilePopoutComponent(arguments[0])"

@@ -2,15 +2,10 @@
     display: none;
 }
 
-<<<<<<< HEAD
 
 /* non-deleted messages can have deleted attachments */
 .messagelogger-deleted-attachment,
 .messagelogger-deleted :is(.emoji,
-=======
-.messagelogger-deleted :is(.messagelogger-deleted-attachment,
-    .emoji,
->>>>>>> 89b0fd2a5 (Update index.tsx)
     [data-type="sticker"],
     [class*="embedIframe"],
     [class*="embedSpotify"],
@@ -114,8 +109,4 @@
 .messagelogger-diff-disabled .messagelogger-diff-removed [class*="emojiContainer"]::after,
 .messagelogger-diff-disabled .messagelogger-diff-removed img.emoji::after {
     display: none !important;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 89b0fd2a5 (Update index.tsx)

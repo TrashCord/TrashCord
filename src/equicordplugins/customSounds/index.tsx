@@ -9,19 +9,12 @@ import "./styles.css";
 import { AudioProcessor, PreprocessAudioData } from "@api/AudioPlayer";
 import { get as getFromDataStore } from "@api/DataStore";
 import { definePluginSettings } from "@api/Settings";
-<<<<<<< HEAD
 import { Button } from "@components/Button";
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Heading } from "@components/Heading";
 import { Devs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import definePlugin, { OptionType, StartAt } from "@utils/types";
-<<<<<<< HEAD
 import { React, showToast, TextInput } from "@webpack/common";
-=======
-import { Button, React, showToast, TextInput } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 import { getAllAudio, getAudioDataURI } from "./audioStore";
 import { SoundOverrideComponent } from "./SoundOverrideComponent";
@@ -333,7 +326,6 @@ const settings = definePluginSettings({
             return (
                 <div>
                     <div className="vc-custom-sounds-buttons">
-<<<<<<< HEAD
                         <Button variant="primary" onClick={triggerFileUpload}>Import</Button>
                         <Button variant="secondary" onClick={downloadSettings}>Export</Button>
                         <Button variant="dangerPrimary" onClick={resetOverrides}>Reset All</Button>
@@ -343,17 +335,6 @@ const settings = definePluginSettings({
                             ref={fileInputRef}
                             type="file"
                             accept=".json"
-=======
-                        <Button color={Button.Colors.BRAND} onClick={triggerFileUpload}>Import</Button>
-                        <Button color={Button.Colors.PRIMARY} onClick={downloadSettings}>Export</Button>
-                        <Button color={Button.Colors.RED} onClick={resetOverrides}>Reset All</Button>
-                        <Button color={Button.Colors.WHITE} onClick={debugCustomSounds}>Debug</Button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".json"
-                            style={{ display: "none" }}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                             onChange={handleSettingsUpload}
                         />
                     </div>

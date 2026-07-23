@@ -6,27 +6,16 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
-<<<<<<< HEAD
 import { CopyIdIcon, ImageIcon } from "@components/Icons";
 import { copyToClipboard } from "@utils/clipboard";
 import { Devs } from "@utils/constants";
 import { getCurrentChannel, getCurrentGuild, getIntlMessage, openImageModal } from "@utils/discord";
-=======
-import { ImageIcon } from "@components/Icons";
-import { copyToClipboard } from "@utils/clipboard";
-import { Devs } from "@utils/constants";
-import { getCurrentChannel, getCurrentGuild, openImageModal } from "@utils/discord";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { isTruthy } from "@utils/guards";
 import { classes } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Guild, PopoutProps, Role } from "@vencord/discord-types";
 import { findByCodeLazy, findByPropsLazy, findCssClassesLazy } from "@webpack";
-<<<<<<< HEAD
 import { ContextMenuApi, GuildRoleStore, Menu, PermissionStore, Popout, useRef } from "@webpack/common";
-=======
-import { GuildRoleStore, Menu, PermissionStore, Popout, useRef } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { ComponentType } from "react";
 
 const GuildSettingsActions = findByPropsLazy("open", "selectRole", "updateGuild");
@@ -195,7 +184,6 @@ export function buildExtraRoleContextMenuItems(role: Role, guild: Guild, popoutR
     return { before, after };
 }
 
-<<<<<<< HEAD
 export function openRoleContextMenu(event: React.MouseEvent<HTMLElement>, { guildId, id: roleId }: { guildId: string; id: string; }) {
     const guild = getCurrentGuild();
     if (!guild || guild.id !== guildId) return;
@@ -253,24 +241,6 @@ export default definePlugin({
             }
         }
     ],
-=======
-export default definePlugin({
-    name: "BetterRoleContext",
-    description: "Adds options to copy role color / edit role / view role icon when right clicking roles in the user profile",
-    tags: ["Roles", "Appearance"],
-    authors: [Devs.Ven, Devs.goodbee],
-    dependencies: ["UserSettingsAPI"],
-
-    settings,
-
-    patches: [{
-        find: ".ROLE_MENTION)",
-        replacement: {
-            match: /function (\i)(?=.+?renderPopout:.{0,20}\1,\{guildId:\i,channelId:\i)/,
-            replace: "$self.RoleMembers=$1;$&"
-        }
-    }],
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
     start() {
         // DeveloperMode needs to be enabled for the context menu to be shown

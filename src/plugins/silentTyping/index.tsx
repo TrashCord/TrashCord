@@ -23,7 +23,6 @@ import { plugins } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
 import { openPluginModal } from "@components/settings";
 import { Devs, EquicordDevs } from "@utils/constants";
-<<<<<<< HEAD
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel } from "@vencord/discord-types";
@@ -36,11 +35,6 @@ function triggerChatToggleRerender() {
         listener();
     }
 }
-=======
-import definePlugin, { OptionType } from "@utils/types";
-import { Channel } from "@vencord/discord-types";
-import { ChannelStore, FluxDispatcher, Menu, React } from "@webpack/common";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const settings = definePluginSettings({
     enabledGlobally: {
@@ -103,7 +97,6 @@ const settings = definePluginSettings({
         description: "If enabled, the plugin will hide your typing from others in any DMs/channels/guilds not listed in \"Disabled Locations\" below. If disabled, the plugin will show your typing to others for any DMs/channels/guilds not listed in \"Enabled Locations\" below.",
         default: true,
     },
-<<<<<<< HEAD
     alwaysEnableInActiveVoiceChat: {
         type: OptionType.BOOLEAN,
         description: "Always allow your typing indicator to show when typing in a voice channel you are connected to.",
@@ -119,8 +112,6 @@ const settings = definePluginSettings({
         description: "Temporarily allow your typing indicator to show for this many seconds after sending a message in a DM or Group DM. If the typing indicator is already visible in the channel, this setting will have no effect.",
         default: 0,
     },
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     enabledLocations: {
         type: OptionType.STRING,
         description: "Enable functionality for these IDs. Accepts a comma separated list of DM IDs, channel IDs, and guild IDs. Only used if \"Default Hidden\" is disabled.",
@@ -158,12 +149,9 @@ const SilentTypingChatToggle: ChatBarButtonFactory = ({ channel, type }) => {
         defaultHidden,
         enabledLocations,
         disabledLocations,
-<<<<<<< HEAD
         alwaysEnableInActiveVoiceChat,
         temporaryEnableThresholdServers,
         temporaryEnableThresholdDirectMessages,
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         chatIconLeftClickAction,
         chatIconMiddleClickAction,
         chatIconRightClickAction,
@@ -173,18 +161,14 @@ const SilentTypingChatToggle: ChatBarButtonFactory = ({ channel, type }) => {
         "defaultHidden",
         "enabledLocations",
         "disabledLocations",
-<<<<<<< HEAD
         "alwaysEnableInActiveVoiceChat",
         "temporaryEnableThresholdServers",
         "temporaryEnableThresholdDirectMessages",
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         "chatIconLeftClickAction",
         "chatIconMiddleClickAction",
         "chatIconRightClickAction",
     ]);
 
-<<<<<<< HEAD
     const forceUpdate = useForceUpdater();
 
     useEffect(() => {
@@ -195,14 +179,11 @@ const SilentTypingChatToggle: ChatBarButtonFactory = ({ channel, type }) => {
         };
     }, []);
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const validChat = ["normal", "sidebar"].some(x => type.analyticsName === x);
 
     if (!validChat || !chatIcon) return null;
 
     const effectiveList = getEffectiveList();
-<<<<<<< HEAD
     const isLocallyDisallowed = isExplicitlyDisallowed(channel);
     const allowedLocallyImplicitly = isImplicitlyAllowed(channel);
     const location = channel.guild_id && effectiveList.includes(channel.guild_id) ? "Guild" : effectiveList.includes(channel.id) ? "Channel" : "Global";
@@ -214,13 +195,6 @@ const SilentTypingChatToggle: ChatBarButtonFactory = ({ channel, type }) => {
                 ? "Typing Temporarily Visible In This Channel Due To A Recent Message"
                 : isLocallyDisallowed
                     ? `Typing Hidden (${location})` : `Typing Visible (${location})`
-=======
-    const enabledLocally = enabledGlobally && checkEnabled(channel);
-    const location = channel.guild_id && effectiveList.includes(channel.guild_id) ? "Guild" : effectiveList.includes(channel.id) ? "Channel" : "Global";
-
-    const tooltip = enabledGlobally ? (
-        enabledLocally ? `Typing Hidden (${location})` : `Typing Visible (${location})`
->>>>>>> 89b0fd2a5 (Update index.tsx)
     ) : "Typing Visible (Global)";
 
     function performAction(action: string): void {
@@ -260,11 +234,7 @@ const SilentTypingChatToggle: ChatBarButtonFactory = ({ channel, type }) => {
             }}>
             <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style={{ scale: "1.2" }}>
                 <path fill="currentColor" mask={`url(#silent-typing-msg-mask-${channel.id})`} d="M18.333 15.556H1.667a1.667 1.667 0 0 1 -1.667 -1.667v-10a1.667 1.667 0 0 1 1.667 -1.667h16.667a1.667 1.667 0 0 1 1.667 1.667v10a1.667 1.667 0 0 1 -1.667 1.667M4.444 6.25V4.861a0.417 0.417 0 0 0 -0.417 -0.417H2.639a0.417 0.417 0 0 0 -0.417 0.417V6.25a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V4.861a0.417 0.417 0 0 0 -0.417 -0.417H5.973a0.417 0.417 0 0 0 -0.417 0.417V6.25a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V4.861a0.417 0.417 0 0 0 -0.417 -0.417h-1.389a0.417 0.417 0 0 0 -0.417 0.417V6.25a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V4.861a0.417 0.417 0 0 0 -0.417 -0.417h-1.389a0.417 0.417 0 0 0 -0.417 0.417V6.25a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V4.861a0.417 0.417 0 0 0 -0.417 -0.417h-1.389a0.417 0.417 0 0 0 -0.417 0.417V6.25a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m-11.667 3.333V8.194a0.417 0.417 0 0 0 -0.417 -0.417H4.306a0.417 0.417 0 0 0 -0.417 0.417V9.583a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V8.194a0.417 0.417 0 0 0 -0.417 -0.417H7.639a0.417 0.417 0 0 0 -0.417 0.417V9.583a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V8.194a0.417 0.417 0 0 0 -0.417 -0.417h-1.389a0.417 0.417 0 0 0 -0.417 0.417V9.583a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m3.333 0V8.194a0.417 0.417 0 0 0 -0.417 -0.417h-1.389a0.417 0.417 0 0 0 -0.417 0.417V9.583a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m-11.667 3.333v-1.389a0.417 0.417 0 0 0 -0.417 -0.417H2.639a0.417 0.417 0 0 0 -0.417 0.417V12.917a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417m10 0v-1.389a0.417 0.417 0 0 0 -0.417 -0.417H5.973a0.417 0.417 0 0 0 -0.417 0.417V12.917a0.417 0.417 0 0 0 0.417 0.417h8.056a0.417 0.417 0 0 0 0.417 -0.417m3.333 0v-1.389a0.417 0.417 0 0 0 -0.417 -0.417h-1.389a0.417 0.417 0 0 0 -0.417 0.417V12.917a0.417 0.417 0 0 0 0.417 0.417h1.389a0.417 0.417 0 0 0 0.417 -0.417" transform="translate(2, 3)" />
-<<<<<<< HEAD
                 {(isLocallyDisallowed && !allowedLocallyImplicitly) && (
-=======
-                {(enabledLocally) && (
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     <>
                         <mask id={`silent-typing-msg-mask-${channel.id}`}>
                             <path fill="#fff" d="M0 0h24v24H0Z"></path>
@@ -304,7 +274,6 @@ function getEffectiveList(): string[] {
     }
 }
 
-<<<<<<< HEAD
 function isImplicitlyAllowed(channel: string | Channel): number {
     const resolvedChannel = typeof channel === "string" ? ChannelStore.getChannel(channel) : channel;
 
@@ -348,19 +317,6 @@ function isExplicitlyDisallowed(channel: string | Channel): boolean {
         return !effectiveChannels.includes(guildID) && !effectiveChannels.includes(channelID);
     } else {
         return effectiveChannels.includes(guildID) || effectiveChannels.includes(channelID);
-=======
-function checkEnabled(channel: string | Channel): boolean {
-    if (!settings.store.enabledGlobally) return false;
-
-    const channelId = typeof channel === "string" ? channel : channel.id;
-    const guildId = typeof channel === "string" ? ChannelStore.getChannel(channelId)?.guild_id : channel.guild_id;
-    const effectiveChannels = getEffectiveList();
-
-    if (settings.store.defaultHidden) {
-        return !effectiveChannels.includes(guildId) && !effectiveChannels.includes(channelId);
-    } else {
-        return effectiveChannels.includes(guildId) || effectiveChannels.includes(channelId);
->>>>>>> 89b0fd2a5 (Update index.tsx)
     }
 }
 
@@ -430,16 +386,12 @@ export default definePlugin({
     contextMenus: {
         "textarea-context": ChatBarContextCheckbox
     },
-<<<<<<< HEAD
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     chatBarButton: {
         icon: SilentTypingChatIcon,
         render: SilentTypingChatToggle
     },
 
-<<<<<<< HEAD
     flux: {
         VOICE_STATE_UPDATES({ voiceStates }) {
             const state = voiceStates?.[0];
@@ -478,8 +430,6 @@ export default definePlugin({
         }
     },
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
     patches: [
         {
             find: '.dispatch({type:"TYPING_START_LOCAL"',
@@ -605,14 +555,10 @@ export default definePlugin({
     ],
 
     async startTyping(channelId: string) {
-<<<<<<< HEAD
         if (isExplicitlyDisallowed(channelId) && !isImplicitlyAllowed(channelId)) {
             return;
         }
 
-=======
-        if (checkEnabled(channelId)) return;
->>>>>>> 89b0fd2a5 (Update index.tsx)
         FluxDispatcher.dispatch({ type: "TYPING_START_LOCAL", channelId });
     },
 });

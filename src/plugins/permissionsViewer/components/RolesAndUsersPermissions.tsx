@@ -18,11 +18,7 @@
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
-<<<<<<< HEAD
 import { CopyIdIcon, InfoIcon, OwnerCrownIcon } from "@components/Icons";
-=======
-import { InfoIcon, OwnerCrownIcon } from "@components/Icons";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { buildExtraRoleContextMenuItems } from "@plugins/betterRoleContext";
 import { cl, getGuildPermissionSpecMap, loadGetGuildPermissionSpecMap } from "@plugins/permissionsViewer/utils";
 import { copyToClipboard } from "@utils/clipboard";
@@ -33,11 +29,7 @@ import { findByCodeLazy } from "@webpack";
 import { ContextMenuApi, FluxDispatcher, GuildMemberStore, GuildRoleStore, i18n, Menu, Modal, openModalLazy, PermissionsBits, ScrollerThin, Text, Tooltip, useEffect, useMemo, useRef, UserStore, useState, useStateFromStores } from "@webpack/common";
 
 import { settings } from "..";
-<<<<<<< HEAD
 import { PermissionAllowedIcon, PermissionDeniedIcon } from "./icons";
-=======
-import { PermissionAllowedIcon, PermissionDefaultIcon, PermissionDeniedIcon } from "./icons";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 type GetRoleIconData = (role: Role, size: number) => { customIconSrc?: string; unicodeEmoji?: UnicodeEmoji; };
 const getRoleIconData: GetRoleIconData = findByCodeLazy("convertSurrogateToName", "customIconSrc", "unicodeEmoji");
@@ -168,7 +160,6 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
                     </ScrollerThin>
                     <div className={cl("modal-divider")} />
                     <ScrollerThin className={cl("modal-perms")} orientation="auto">
-<<<<<<< HEAD
                         {Object.values(PermissionsBits).map(bit => {
                             const overrideType = (() => {
                                 const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
@@ -207,39 +198,6 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
                                 </div>
                             );
                         })}
-=======
-                        {Object.values(PermissionsBits).map(bit => (
-                            <div key={bit} className={cl("modal-perms-item")}>
-                                <div className={cl("modal-perms-item-icon")}>
-                                    {(() => {
-                                        const { permissions, overwriteAllow, overwriteDeny } = selectedItem;
-
-                                        if (permissions)
-                                            return (permissions & bit) === bit
-                                                ? PermissionAllowedIcon()
-                                                : PermissionDeniedIcon();
-
-                                        if (overwriteAllow && (overwriteAllow & bit) === bit)
-                                            return PermissionAllowedIcon();
-                                        if (overwriteDeny && (overwriteDeny & bit) === bit)
-                                            return PermissionDeniedIcon();
-
-                                        return PermissionDefaultIcon();
-                                    })()}
-                                </div>
-                                <Text variant="text-md/normal">{guildPermissionSpecMap[String(bit)].title}</Text>
-
-                                <Tooltip text={
-                                    (() => {
-                                        const { description } = guildPermissionSpecMap[String(bit)];
-                                        return typeof description === "function" ? i18n.intl.format(description, {}) : description;
-                                    })()
-                                }>
-                                    {props => <InfoIcon {...props} />}
-                                </Tooltip>
-                            </div>
-                        ))}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     </ScrollerThin>
                 </div>
             )}
@@ -247,18 +205,6 @@ function RolesAndUsersPermissionsComponent({ permissions, guild, modalProps, hea
     );
 }
 
-<<<<<<< HEAD
-=======
-function IDIcon() {
-    return (
-        <svg width="18" height="18" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M15.3 14.48c-.46.45-1.08.67-1.86.67h-1.39V9.2h1.39c.78 0 1.4.22 1.86.67.46.45.68 1.22.68 2.31 0 1.1-.22 1.86-.68 2.31Z" />
-            <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M5 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3H5Zm1 15h2.04V7.34H6V17Zm4-9.66V17h3.44c1.46 0 2.6-.42 3.38-1.25.8-.83 1.2-2.02 1.2-3.58s-.4-2.75-1.2-3.58c-.79-.83-1.92-1.25-3.38-1.25H10Z" />
-        </svg>
-    );
-}
-
->>>>>>> 89b0fd2a5 (Update index.tsx)
 function ViewAsRoleIcon() {
     return (
         <svg width="18" height="18" viewBox="0 0 24 24">
@@ -283,11 +229,7 @@ function RoleContextMenu({ guild, roleId, onClose }: { guild: Guild; roleId: str
             <Menu.MenuItem
                 id={cl("copy-role-id")}
                 label={getIntlMessage("COPY_ID_ROLE")}
-<<<<<<< HEAD
                 icon={CopyIdIcon}
-=======
-                icon={IDIcon}
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 action={() => copyToClipboard(roleId)}
             />
 

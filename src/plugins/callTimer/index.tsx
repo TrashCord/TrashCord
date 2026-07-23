@@ -136,25 +136,11 @@ export default definePlugin({
             ]
         },
         {
-<<<<<<< HEAD
             find: '"RTCConnectionMenu"',
             replacement: {
                 match: /("RTCConnectionMenu".{0,200}?lineClamp:1,children:)(\i)(?=,|}\))/,
                 replace: "$1[$2,$self.renderConnectionTimer({ channelId: this?.props?.channel?.id })]"
             }
-=======
-            find: "renderConnectionStatus(){",
-            replacement: [
-                {
-                    match: /(renderConnectionStatus\(\).{0,1000}?lineClamp:1,children:)(\i)(?=,|}\))/,
-                    replace: "$1[$2,$self.renderConnectionTimer({ channelId: this?.props?.channel?.id })]"
-                },
-                {
-                    match: /("RTCConnectionMenu".{0,200}?lineClamp:1,children:)(\i)(?=,|}\))/,
-                    replace: "$1[$2,$self.renderConnectionTimer({ channelId: this?.props?.channel?.id })]"
-                }
-            ]
->>>>>>> 89b0fd2a5 (Update index.tsx)
         },
     ],
 

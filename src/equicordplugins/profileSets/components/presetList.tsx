@@ -68,11 +68,8 @@ export function PresetList({
                     onUpdate();
                 };
 
-<<<<<<< HEAD
                 const showMoveOptions = actualIndex > 0 || actualIndex < allPresets.length - 1 || currentPage > 1;
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 return (
                     <div
                         key={actualIndex}
@@ -197,11 +194,7 @@ export function PresetList({
                                                     }}
                                                 />
                                             )}
-<<<<<<< HEAD
                                             {showMoveOptions && <Menu.MenuSeparator />}
-=======
-                                            <Menu.MenuSeparator />
->>>>>>> 89b0fd2a5 (Update index.tsx)
                                             <Menu.MenuItem
                                                 id="delete"
                                                 label="Delete"

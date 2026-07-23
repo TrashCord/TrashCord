@@ -57,7 +57,6 @@ function setPendingChanges(payload: Record<string, unknown>, guildId?: string) {
     dispatch("USER_PROFILE_SETTINGS_SET_PENDING_CHANGES", guildId ? { guildId, ...payload } : payload);
 }
 
-<<<<<<< HEAD
 function openProfileImagePreview(
     uploadType: "AVATAR" | "BANNER",
     image: Extract<ImageInput, { imageUri: string; }>,
@@ -73,8 +72,6 @@ function openProfileImagePreview(
     });
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 function isNonEmptyString(value: unknown): value is string {
     return typeof value === "string" && value.length > 0;
 }
@@ -357,7 +354,6 @@ export async function loadPresetAsPending(preset: ProfilePreset, guildId?: strin
                             description: `profilesets-${preset.name ?? "preset"}`
                         }
                         : avatarValue;
-<<<<<<< HEAD
                 const avatarImageUri = avatarPayload != null && "imageUri" in Object(avatarPayload)
                     ? (avatarPayload as { imageUri?: unknown; }).imageUri
                     : null;
@@ -366,9 +362,6 @@ export async function loadPresetAsPending(preset: ProfilePreset, guildId?: strin
                 } else {
                     setPending({ pendingAvatar: avatarPayload });
                 }
-=======
-                setPending({ pendingAvatar: avatarPayload });
->>>>>>> 89b0fd2a5 (Update index.tsx)
             }
         }
 
@@ -380,7 +373,6 @@ export async function loadPresetAsPending(preset: ProfilePreset, guildId?: strin
                     description: `profilesets-${preset.name ?? "preset"}`
                 }
                 : preset.bannerDataUrl;
-<<<<<<< HEAD
 
             const bannerImageUri = bannerPayload != null && "imageUri" in Object(bannerPayload)
                 ? (bannerPayload as { imageUri?: unknown; }).imageUri
@@ -390,9 +382,6 @@ export async function loadPresetAsPending(preset: ProfilePreset, guildId?: strin
             } else {
                 setPending({ pendingBanner: bannerPayload });
             }
-=======
-            setPending({ pendingBanner: bannerPayload });
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
 
         if (!options.skipBio && preset?.bio !== current?.bio) {

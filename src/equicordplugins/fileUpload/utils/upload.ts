@@ -23,11 +23,7 @@ const Native = IS_DISCORD_DESKTOP
     ? VencordNative.pluginHelpers.FileUpload as PluginNative<typeof import("../native")>
     : null;
 
-<<<<<<< HEAD
 export const logger = new Logger("FileUpload", "#7cb7ff");
-=======
-const logger = new Logger("FileUpload", "#7cb7ff");
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 function toProxyUrl(url: string): string {
     const corsProxyUrl = normalizeCorsProxyUrl((settings.store as { corsProxyUrl?: string; }).corsProxyUrl);
@@ -452,7 +448,6 @@ async function uploadToNest(fileBlob: Blob, filename: string): Promise<string> {
     throw new Error("No URL returned from upload");
 }
 
-<<<<<<< HEAD
 type EncryptingHostUrlStyle = "query" | "param" | "fakelink" | "embed";
 
 function parseEncryptingHostDomains(raw: string): string[] {
@@ -564,8 +559,6 @@ async function uploadToEncryptingHost(fileBlob: Blob, filename: string): Promise
     return url;
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 export function isConfigured(): boolean {
     const {
         serviceType,
@@ -583,11 +576,8 @@ export function isConfigured(): boolean {
             return Boolean(nestToken);
         case ServiceType.EZHOST:
             return Boolean((settings.store as { ezHostKey?: string; }).ezHostKey);
-<<<<<<< HEAD
         case ServiceType.ENCRYPTINGHOST:
             return Boolean((settings.store as { encryptingHostKey?: string; }).encryptingHostKey);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         case ServiceType.S3:
             return isS3Configured();
         case ServiceType.CATBOX:
@@ -604,11 +594,8 @@ export function isConfigured(): boolean {
             return true;
         case ServiceType.PIXELVAULT:
             return Boolean((settings.store as { pixelVaultKey?: string; }).pixelVaultKey);
-<<<<<<< HEAD
         case ServiceType.WEBDAV:
             return Boolean((settings.store as { webdavUrl?: string; }).webdavUrl);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         case ServiceType.SHAREX:
             try {
                 parseShareXConfigFromSettings();
@@ -987,7 +974,6 @@ async function uploadToPixelDrain(fileBlob: Blob, filename: string): Promise<str
     return `https://pixeldrain.com/u/${data.id}`;
 }
 
-<<<<<<< HEAD
 function buildWebdavAuthHeader(): string | null {
     const { webdavUsername, webdavPassword } = settings.store as {
         webdavUsername?: string;
@@ -1142,8 +1128,6 @@ async function uploadToWebdav(fileBlob: Blob, filename: string): Promise<string>
     return await createWebdavShare(relativePath, serverOrigin, filename);
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 async function uploadToService(serviceType: ServiceType, fileBlob: Blob, filename: string): Promise<string> {
     switch (serviceType) {
         case ServiceType.ZIPLINE:
@@ -1152,11 +1136,8 @@ async function uploadToService(serviceType: ServiceType, fileBlob: Blob, filenam
             return uploadToNest(fileBlob, filename);
         case ServiceType.EZHOST:
             return uploadToEzHost(fileBlob, filename);
-<<<<<<< HEAD
         case ServiceType.ENCRYPTINGHOST:
             return uploadToEncryptingHost(fileBlob, filename);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         case ServiceType.S3:
             return uploadToS3(fileBlob, filename, Native, uploadRequestWithTimeout);
         case ServiceType.CATBOX:
@@ -1181,11 +1162,8 @@ async function uploadToService(serviceType: ServiceType, fileBlob: Blob, filenam
             return uploadToPixelVault(fileBlob, filename);
         case ServiceType.PIXELDRAIN:
             return uploadToPixelDrain(fileBlob, filename);
-<<<<<<< HEAD
         case ServiceType.WEBDAV:
             return uploadToWebdav(fileBlob, filename);
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
         default:
             throw new Error("Unknown service type");
     }
@@ -1296,7 +1274,6 @@ function finalizeUploadedUrl(url: string): string {
     }
 }
 
-<<<<<<< HEAD
 function getAllowedExtensions(): Set<string> | null {
     const raw = (settings.store as { uploadAllowedFileTypes?: string; }).uploadAllowedFileTypes?.trim();
     if (!raw) return null;
@@ -1316,8 +1293,6 @@ export function isFileTypeAllowed(file: File): boolean {
     return allowed.has(ext);
 }
 
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
 function getFilenameExtension(filename: string): string | undefined {
     const dotIndex = filename.lastIndexOf(".");
     if (dotIndex < 1 || dotIndex === filename.length - 1) return undefined;
@@ -1326,11 +1301,7 @@ function getFilenameExtension(filename: string): string | undefined {
     return ext.length <= 10 ? ext : undefined;
 }
 
-<<<<<<< HEAD
 async function notifyUploadSuccess(finalUrl: string, forceSend?: boolean): Promise<void> {
-=======
-async function notifyUploadSuccess(finalUrl: string): Promise<void> {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     if (settings.store.autoCopy) {
         if (!finalUrl || !finalUrl.trim()) {
             showToast("Upload successful, but no URL was available to copy", Toasts.Type.MESSAGE);
@@ -1348,11 +1319,7 @@ async function notifyUploadSuccess(finalUrl: string): Promise<void> {
         showToast("Upload successful", Toasts.Type.SUCCESS);
     }
 
-<<<<<<< HEAD
     const autoSend = forceSend || Boolean((settings.store as { autoSend?: boolean; }).autoSend);
-=======
-    const autoSend = Boolean((settings.store as { autoSend?: boolean; }).autoSend);
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const autoFormat = Boolean((settings.store as { autoFormat?: boolean; }).autoFormat);
     if (autoSend) {
         insertTextIntoChatInputBox(autoFormat ? `<${finalUrl}>` : finalUrl);
@@ -1484,22 +1451,14 @@ async function normalizeUploadBlob(blob: Blob, sourceUrl?: string): Promise<{ bl
     };
 }
 
-<<<<<<< HEAD
 async function uploadPreparedBlob(blob: Blob, sourceUrl?: string, forceSend?: boolean): Promise<string> {
-=======
-async function uploadPreparedBlob(blob: Blob, sourceUrl?: string): Promise<void> {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     const primary = settings.store.serviceType as ServiceType;
     const { blob: normalizedBlob, filename } = await normalizeUploadBlob(blob, sourceUrl);
     setUploadState({ fileName: filename, status: "File ready, starting upload...", percent: 4 });
     const uploadedUrl = await uploadWithFallbacks(normalizedBlob, filename, primary);
     const finalUrl = applyEmbedProxy(finalizeUploadedUrl(uploadedUrl));
-<<<<<<< HEAD
     await notifyUploadSuccess(finalUrl, forceSend);
     return finalUrl;
-=======
-    await notifyUploadSuccess(finalUrl);
->>>>>>> 89b0fd2a5 (Update index.tsx)
 }
 
 export async function uploadFile(url: string): Promise<void> {
@@ -1587,7 +1546,6 @@ export async function uploadPickedFile(): Promise<void> {
     const file = await chooseFile("*/*");
     if (!file) return;
 
-<<<<<<< HEAD
     if (!isFileTypeAllowed(file)) {
         showToast("File type not allowed by current filter", Toasts.Type.FAILURE);
         return;
@@ -1597,12 +1555,6 @@ export async function uploadPickedFile(): Promise<void> {
 }
 
 export async function uploadProvidedFiles(files: readonly File[], forceSend?: boolean): Promise<void> {
-=======
-    await uploadProvidedFiles([file]);
-}
-
-export async function uploadProvidedFiles(files: readonly File[]): Promise<void> {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     if (isUploading) {
         showToast("Upload already in progress", Toasts.Type.MESSAGE);
         return;
@@ -1615,11 +1567,7 @@ export async function uploadProvidedFiles(files: readonly File[]): Promise<void>
 
     if (!files.length) return;
 
-<<<<<<< HEAD
     const uploadFiles = files.filter(file => Boolean(file) && isFileTypeAllowed(file));
-=======
-    const uploadFiles = files.filter(file => Boolean(file));
->>>>>>> 89b0fd2a5 (Update index.tsx)
     if (!uploadFiles.length) return;
 
     isUploading = true;
@@ -1643,11 +1591,7 @@ export async function uploadProvidedFiles(files: readonly File[]): Promise<void>
                 canCancel: true
             });
 
-<<<<<<< HEAD
             await uploadPreparedBlob(file, undefined, forceSend);
-=======
-            await uploadPreparedBlob(file);
->>>>>>> 89b0fd2a5 (Update index.tsx)
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";

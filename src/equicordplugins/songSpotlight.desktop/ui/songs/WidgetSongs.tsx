@@ -21,11 +21,7 @@ import { JSX } from "react";
 
 import Song from ".";
 
-<<<<<<< HEAD
 interface WidgetSongsProps {
-=======
-export interface WidgetSongsProps {
->>>>>>> 89b0fd2a5 (Update index.tsx)
     user: User;
 }
 
