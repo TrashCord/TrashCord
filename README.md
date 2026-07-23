@@ -1,6 +1,6 @@
-# [<img src="https://github.com/zFrxncesck1/zFrxncesck1/blob/main/host/icons/TrashCord_icon.png" width="40" align="left" alt="TrashCord">](https://github.com/zFrxncesck1/TrashCord) TrashCord
+# [<img src="https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true" width="40" align="left" alt="TrashCord">](https://github.com/TrashCord/TrashCord) TrashCord
 
-[![Equibop](https://img.shields.io/badge/TrashCordInstaller-grey?style=flat)](https://github.com/zFrxncesck1/TrashCordInstaller)
+[![Equibop](https://img.shields.io/badge/TrashCordInstaller-grey?style=flat)](https://github.com/TrashCord/TrashCordInstaller)
 [![My Discord](https://img.shields.io/discord/981560666915745842?color=768AD4&label=Discord&logo=discord&logoColor=white)](https://discord.gg/WhEJFWxNnX)
 
 **TrashCord** is an underground fork of Equicord & Vencord, built for those who create without limits.  
@@ -57,7 +57,7 @@ npm i -g pnpm
 ### Clone the repository
 
 ```shell
-git clone https://github.com/zFrxncesck1/TrashCord
+git clone https://github.com/TrashCord/TrashCord
 cd TrashCord
 ```
 
@@ -129,7 +129,7 @@ There are no known cases of bans for using Vencord/Equicord/TrashCord, but avoid
 
 ## Development & Contributions
 
-For bug reports or suggestions, use [Issues](https://github.com/zFrxncesck1/TrashCord/issues).
+For bug reports or suggestions, use [Issues](https://github.com/TrashCord/TrashCord/issues).
 
 ---
 

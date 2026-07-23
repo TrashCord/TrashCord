@@ -110,7 +110,7 @@ export function PluginCard({ plugin, disabled, onRestartNeeded, onMouseEnter, on
         },
         {
             condition: isUserPlugin,
-            src: "https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true",
+            src: "https://github.com/TrashCord/main/blob/main/host/icons/TrashGangPage_icon.png?raw=true",
             alt: "User",
             title: "User Plugin"
         }

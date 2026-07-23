@@ -91,7 +91,7 @@ let NightcordBadges = {} as Record<string, Array<{
     uuid: string;
     visible: boolean;
 }>>;
-const TrashCordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+let TrashCordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 
 async function loadBadges(url: string, noCache = false) {
     const init = {} as RequestInit;
@@ -103,15 +103,15 @@ async function loadBadges(url: string, noCache = false) {
 async function loadAllBadges(noCache = false) {
     const vencordBadges = await loadBadges("https://badges.vencord.dev/badges.json", noCache);
     const equicordBadges = await loadBadges("https://badge.equicord.org/badges.json", noCache);
+    const TrashCordBadges = await loadBadges("https://raw.githubusercontent.com/TrashCord/main/refs/heads/main/host/files/badges.json", noCache);
     const illegalcordBadges = await loadBadges("https://raw.githubusercontent.com/ImHisako/ImHisako/refs/heads/main/Images/badges.json", noCache);
     const nightcordBadges = await loadBadges("https://api.nightcord.st/badges", noCache);
-    // const TrashCordBadges = await loadBadges("https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/refs/heads/main/host/files/badges.json", noCache);
 
     DonorBadges = vencordBadges;
     EquicordDonorBadges = equicordBadges;
+    TrashCordDonorBadges = TrashCordBadges;
     IllegalcordDonorBadges = illegalcordBadges;
     NightcordBadges = nightcordBadges;
-    // TrashCordDonorBadges = TrashCordBadges;
 }
 
 let intervalId: any;

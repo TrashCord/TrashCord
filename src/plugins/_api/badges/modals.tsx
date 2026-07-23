@@ -236,7 +236,7 @@ export function TrashCordDonorModal(badge: DonorBadgeModalProps) {
     openModal(props => (
         <ErrorBoundary noop onError={() => {
             props.onClose();
-            VencordNative.native.openExternal("https://github.com/sponsors/zFrxncesck1");
+            VencordNative.native.openExternal("https://github.com/sponsors/zFry1");
         }}>
             <Modal
                 {...props}
