@@ -25,11 +25,7 @@ import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
 import { Heading } from "@components/Heading";
-<<<<<<< HEAD
 import { CloudDownloadIcon, CloudUploadIcon, SkullIcon } from "@components/Icons";
-=======
-import { CloudDownloadIcon, CloudUploadIcon } from "@components/Icons";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 import { Link } from "@components/Link";
 import { Notice } from "@components/Notice";
 import { Paragraph } from "@components/Paragraph";
@@ -52,10 +48,6 @@ function VencordIcon() {
 
 const RefreshIcon = findComponentByCodeLazy("M4 12a8 8 0 0 1 14.93-4H15");
 const TrashIcon = findComponentByCodeLazy("2.81h8.36a3");
-<<<<<<< HEAD
-=======
-const SkullIcon = findComponentByCodeLazy("m13.47 1 .07.04c.45.06");
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 function validateUrl(url: string) {
     try {
@@ -101,11 +93,7 @@ function CloudTab() {
         <SettingsTab>
             <Heading className={Margins.top16}>Cloud Integration</Heading>
             <Paragraph className={Margins.bottom16}>
-<<<<<<< HEAD
-                Equicord's cloud integration allows you to sync your settings across multiple devices and Discord installations. Your data is securely stored and can be easily restored at any time.
-=======
                 TrashCord's cloud integration allows you to sync your settings across multiple devices and Discord installations. Your data is securely stored and can be easily restored at any time.
->>>>>>> 89b0fd2a5 (Update index.tsx)
             </Paragraph>
 
             <Notice.Info className={Margins.bottom16}>
@@ -176,11 +164,7 @@ function CloudTab() {
 
             <Heading className={Margins.top20}>Settings Sync</Heading>
             <Paragraph className={Margins.bottom16}>
-<<<<<<< HEAD
-                Synchronize your Equicord settings to the cloud. This makes it easy to keep your configuration consistent across multiple devices without manual import/export.
-=======
                 Synchronize your TrashCord settings to the cloud. This makes it easy to keep your configuration consistent across multiple devices without manual import/export.
->>>>>>> 89b0fd2a5 (Update index.tsx)
             </Paragraph>
 
             <FormSwitch
@@ -272,11 +256,7 @@ function CloudTab() {
                     })}
                 >
                     <Flex gap="8px" alignItems="center">
-<<<<<<< HEAD
                         <SkullIcon />
-=======
-                        <SkullIcon color="currentColor" />
->>>>>>> 89b0fd2a5 (Update index.tsx)
                         Delete Cloud Account
                     </Flex>
                 </Button>

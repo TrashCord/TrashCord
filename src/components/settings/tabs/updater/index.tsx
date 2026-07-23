@@ -88,20 +88,12 @@ function Updater() {
             <EquibopSection />
             <Heading className={Margins.top16}>Update Preferences</Heading>
             <Paragraph className={Margins.bottom20}>
-<<<<<<< HEAD
-                Control how Equicord keeps itself up to date. You can choose to update automatically in the background or be notified when new updates are available.
-=======
                 Control how TrashCord keeps itself up to date. You can choose to update automatically in the background or be notified when new updates are available.
->>>>>>> 89b0fd2a5 (Update index.tsx)
             </Paragraph>
 
             <FormSwitch
                 title="Automatically update"
-<<<<<<< HEAD
-                description="When enabled, Equicord will automatically download and install updates in the background without asking for confirmation. You'll need to restart Discord to apply the changes."
-=======
                 description="When enabled, TrashCord will automatically download and install updates in the background without asking for confirmation. You'll need to restart Discord to apply the changes."
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 value={settings.autoUpdate}
                 onChange={(v: boolean) => settings.autoUpdate = v}
                 hideBorder
@@ -110,11 +102,7 @@ function Updater() {
                 value={settings.autoUpdateNotification}
                 onChange={(v: boolean) => settings.autoUpdateNotification = v}
                 title="Get notified when an automatic update completes"
-<<<<<<< HEAD
-                description="Receive a notification when Equicord finishes downloading an update in the background, so you know when to restart Discord."
-=======
                 description="Receive a notification when TrashCord finishes downloading an update in the background, so you know when to restart Discord."
->>>>>>> 89b0fd2a5 (Update index.tsx)
                 disabled={!settings.autoUpdate}
                 hideBorder
             />

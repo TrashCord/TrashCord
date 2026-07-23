@@ -16,9 +16,8 @@ Check out the full list in the [`src/plugins`](./src/plugins), [`src/equicordplu
 
 ---
 
-<<<<<<< HEAD
 ## Installation / Uninstallation
-=======
+
 Windows
 
 - [GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl.exe)
@@ -40,7 +39,6 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/Equicord/Equicord/refs/hea
 ```
 
 ## Installing Equicord Devbuild
->>>>>>> upstream/main
 
 ### Dependencies
 - [Git](https://git-scm.com/download)
@@ -102,9 +100,8 @@ Special thanks to:
 - [ImHisako](https://github.com/ImHisako) for [Illegalcord](https://github.com/ImHisako/Illegalcord) – inspiration and code contributions
 - [TRASH GANG](https://trash-gang.com) for the underground spirit
 
-<<<<<<< HEAD
 ---
-=======
+
 ## Star History
 
 <a href="https://star-history.com/#Equicord/Equicord&Timeline">
@@ -114,7 +111,6 @@ Special thanks to:
     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Equicord/Equicord&type=Timeline&sealed_token=64drv2U7WiV6dQ5VRbOZdxHT3mRzxUzhVvfm5qt1VRpGjVPje0PbObjibX2FYe4zd-h36lCAGZ873gAgb_5_tAzUBixUVbtaLHqy1fNH6PkQP_PqPdKztatlI2s17T9IUFzRyhYynmJ1-H4idFFzEAMN1gRZlVvvmJ71P0LovJPOIqTT7uHIubWcHzxC" />
   </picture>
 </a>
->>>>>>> upstream/main
 
 ## Disclaimer
 

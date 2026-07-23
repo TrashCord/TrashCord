@@ -101,11 +101,7 @@ function createEquicordMenuItems(): MenuItemConstructorOptions[] {
                     click: () => openAboutWindow()
                 },
                 {
-<<<<<<< HEAD
-                    label: cachedUpdateAvailable ? "Update Equicord" : "Check for Updates",
-=======
                     label: cachedUpdateAvailable ? "Update TrashCord" : "Check for Updates",
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     click: () => sendToRenderer(IpcEvents.TRAY_CHECK_UPDATES)
                 },
                 {

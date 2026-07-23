@@ -33,25 +33,14 @@ import { MacOSVibrancySettings } from "./MacVibrancySettings";
 import { NotificationSection } from "./NotificationSettings";
 import { WindowsMaterialSettings } from "./WindowsMaterialSettings";
 
-<<<<<<< HEAD
-const DEFAULT_DONATE_IMAGE = "https://cdn.discordapp.com/emojis/1026533090627174460.png";
-const SHIGGY_DONATE_IMAGE = "https://equicord.org/assets/favicon.png";
+const DEFAULT_DONATE_IMAGE = "https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true";
+const SHIGGY_DONATE_IMAGE = "https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true";
 
-const VENNIE_DONATOR_IMAGE = "https://cdn.discordapp.com/emojis/1238120638020063377.png";
-const COZY_CONTRIB_IMAGE = "https://cdn.discordapp.com/emojis/1026533070955872337.png";
-
-const DONOR_BACKGROUND_IMAGE = "https://media.discordapp.net/stickers/1311070116305436712.png?size=2048";
-const CONTRIB_BACKGROUND_IMAGE = "https://media.discordapp.net/stickers/1311070166481895484.png?size=2048";
-=======
-const DEFAULT_DONATE_IMAGE = "https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/main/host/icons/TrashCord_icon.png";
-const SHIGGY_DONATE_IMAGE = "https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/main/host/icons/TrashCord_icon.png";
-
-const VENNIE_DONATOR_IMAGE = "https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/main/host/icons/TrashCord_icon.png";
-const COZY_CONTRIB_IMAGE = "https://raw.githubusercontent.com/zFrxncesck1/zFrxncesck1/main/host/icons/TrashCord_icon.png";
+const VENNIE_DONATOR_IMAGE = "https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true";
+const COZY_CONTRIB_IMAGE = "https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true";
 
 const DONOR_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?size=2048";
 const CONTRIB_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?size=2048";
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 const cl = classNameFactory("vc-vencord-tab-");
 
@@ -182,17 +171,10 @@ function EquicordSettings() {
                     subtitle="Thank you for donating!"
                     description={
                         isEquicordDonor(user?.id) && isVencordDonor(user?.id)
-<<<<<<< HEAD
-                            ? "All Vencord users can see your Vencord donor badge, and Equicord users can see your Equicord donor badge. To change your Vencord donor badge, contact @vending.machine. For your Equicord donor badge, make a ticket in Equicord's server."
+                            ? "All Vencord/Equicord users can see your Vencord/Equicord donor badge, and TrashCord users can see your TrashCord donor badge. To change your Vencord donor badge, contact @vending.machine. For your TrashCord donor badge, make a ticket in TrashCord's server."
                             : isVencordDonor(user?.id)
-                                ? "All Vencord users can see your badge! You can manage your perks by messaging @vending.machine."
-                                : "All Equicord users can see your badge! You can manage your perks by making a ticket in Equicord's server."
-=======
-                            ? "All Vencord users can see your Vencord donor badge, and TrashCord users can see your TrashCord donor badge. To change your Vencord donor badge, contact @vending.machine. For your TrashCord donor badge, make a ticket in TrashCord's server."
-                            : isVencordDonor(user?.id)
-                                ? "All Vencord users can see your badge! You can manage your perks by messaging @vending.machine."
-                                : "All TrashCord users can see your badge! You can manage your perks by making a ticket in TrashCord's server."
->>>>>>> 89b0fd2a5 (Update index.tsx)
+                                ? "All Vencord/Equicord users can see your badge! You can manage your perks by messaging @vending.machine or Equicord's server."
+                                : "All TrashCord users can see your badge!"
                     }
                     cardImage={VENNIE_DONATOR_IMAGE}
                     backgroundImage={DONOR_BACKGROUND_IMAGE}
@@ -203,11 +185,7 @@ function EquicordSettings() {
             ) : (
                 <SpecialCard
                     title="Support the Project"
-<<<<<<< HEAD
-                    description="Please consider supporting the development of Equicord by donating!"
-=======
                     description="Please consider supporting the development of TrashCord by donating!"
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     cardImage={donateImage}
                     backgroundImage={DONOR_BACKGROUND_IMAGE}
                     backgroundColor="#c3a3ce"
@@ -219,11 +197,7 @@ function EquicordSettings() {
                 <SpecialCard
                     title="Contributions"
                     subtitle="Thank you for contributing!"
-<<<<<<< HEAD
-                    description="Since you've contributed to Equicord you now have a cool new badge!"
-=======
                     description="Since you've contributed to TrashCord you now have a cool new badge!"
->>>>>>> 89b0fd2a5 (Update index.tsx)
                     cardImage={COZY_CONTRIB_IMAGE}
                     backgroundImage={CONTRIB_BACKGROUND_IMAGE}
                     backgroundColor="#EDCC87"
@@ -286,12 +260,8 @@ function EquicordSettings() {
 
             <Heading className={Margins.top20}>Client Settings</Heading>
             <Paragraph className={Margins.bottom16}>
-<<<<<<< HEAD
-                Configure how Equicord behaves and integrates with Discord. These settings affect the Discord client's appearance and behavior.
-=======
                 Configure how TrashCord behaves and integrates with Discord. These settings affect the Discord client's appearance and behavior.
->>>>>>> 89b0fd2a5 (Update index.tsx)
-            </Paragraph>
+            </Paragraph >
             <Notice.Info className={Margins.bottom20} style={{ width: "100%" }}>
                 You can customize where this settings section appears in Discord's settings menu by configuring the{" "}
                 <a
@@ -307,20 +277,12 @@ function EquicordSettings() {
 
             <MacOSVibrancySettings />
             <WindowsMaterialSettings />
-<<<<<<< HEAD
-
-=======
->>>>>>> 89b0fd2a5 (Update index.tsx)
             <NotificationSection />
         </SettingsTab >
     );
 }
 
-<<<<<<< HEAD
-export default wrapTab(EquicordSettings, "Equicord Settings");
-=======
 export default wrapTab(EquicordSettings, "TrashCord Settings");
->>>>>>> 89b0fd2a5 (Update index.tsx)
 
 export function isEquicordDonor(userId: string): boolean {
     const donorBadges = BadgeAPI.getEquicordDonorBadges(userId);

@@ -1301,9 +1301,8 @@ export const EquicordDevs = Object.freeze({
     zfrancesck1: {
         name: "zfrancesck1",
         id: 456195985404592149n,
-        github: "zfrxncesck1"
+        github: "zFry1"
     },
->>>>>>> 89b0fd2a5 (Update index.tsx)
     Leon135: {
         name: "Leon135",
         id: 309275452231385088n
@@ -1422,7 +1421,7 @@ export const TrashCordDevs = /* #__PURE__*/ Object.freeze({
     zfrancesck1: {
         name: "zfrancesck1",
         id: 456195985404592149n,
-        github: "zfrxncesck1"
+        github: "zFry1"
     },
     d3ad_d3sc3nt: {
         name: "d3ad_d3sc3nt",

@@ -424,11 +424,7 @@ export default function PluginSettings() {
                             { label: "Show Equicord", value: SearchStatus.EQUICORD },
                             { label: "Show Vencord", value: SearchStatus.VENCORD },
                             { label: "Show New", value: SearchStatus.NEW },
-<<<<<<< HEAD
-                            hasUserPlugins && { label: "Show UserPlugins", value: SearchStatus.USER_PLUGINS },
-=======
                             hasUserPlugins && { label: "Show TrashCord", value: SearchStatus.USER_PLUGINS },
->>>>>>> 89b0fd2a5 (Update index.tsx)
                             { label: "Show API Plugins", value: SearchStatus.API_PLUGINS },
                         ].filter(isTruthy)}
                         serialize={String}
