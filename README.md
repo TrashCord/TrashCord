@@ -1,4 +1,4 @@
-# [<img src="https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true" width="40" align="left" alt="TrashCord">](https://github.com/TrashCord/TrashCord) TrashCord
+# [<img src="https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true" width="40" align="left" alt="TrashCord">](https://github.com/zFrxncesck1/TrashCord) TrashCord
 
 [![Equibop](https://img.shields.io/badge/TrashCordInstaller-grey?style=flat)](https://github.com/TrashCord/TrashCordInstaller)
 [![My Discord](https://img.shields.io/discord/981560666915745842?color=768AD4&label=Discord&logo=discord&logoColor=white)](https://discord.gg/WhEJFWxNnX)
@@ -11,34 +11,30 @@ No censorship, no arbitrary rules: every plugin is welcome, every idea takes sha
 
 ### Included Plugins
 
-All Equicord plugins plus custom ones made for TrashCord.  
+All Vencord and Equicord plugins plus custom ones made for TrashCord.
+**That’s over 850+ plugins in total**.
 Check out the full list in the [`src/plugins`](./src/plugins), [`src/equicordplugins`](./src/equicordplugins) and [`src/userplugins`](./src/userplugins) folders.
 
 ---
 
-## Installation / Uninstallation
+## Installation / Uninstallation [Working Progress]
 
 Windows
+- [GUI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.exe) 
+- [CLI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.exe)
 
-- [GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl.exe)
-- [CLI](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli.exe)
+~~MacOS~~ = **Doesn't Worked**
+- [~~GUI~~](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.MacOS.zip)
 
-MacOS
+Linux 
+- [GUI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller-x11)
+- [CLI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstallerCli-linux)
 
-- [X64 GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-darwin-x64.zip)
-- [ARM64 GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-darwin-arm64.zip)
+---
 
-Linux
+## Installing TrashCord Devbuild
 
-- [GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-x11)
-- [CLI](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-Linux)
-- [AUR](https://aur.archlinux.org/packages?O=0&K=equicord)
-
-```shell
-bash -c "$(curl -sS https://raw.githubusercontent.com/Equicord/Equicord/refs/heads/main/misc/install.sh)"
-```
-
-## Installing Equicord Devbuild
+<details>
 
 ### Dependencies
 - [Git](https://git-scm.com/download)
@@ -90,6 +86,8 @@ pnpm buildWeb
 
 You'll find the ZIP file in the `dist` folder. Follow your browser’s guide for installing custom extensions.
 
+</details>
+
 ---
 
 ## Credits
@@ -101,16 +99,6 @@ Special thanks to:
 - [TRASH GANG](https://trash-gang.com) for the underground spirit
 
 ---
-
-## Star History
-
-<a href="https://star-history.com/#Equicord/Equicord&Timeline">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Equicord/Equicord&type=Timeline&theme=dark&sealed_token=64drv2U7WiV6dQ5VRbOZdxHT3mRzxUzhVvfm5qt1VRpGjVPje0PbObjibX2FYe4zd-h36lCAGZ873gAgb_5_tAzUBixUVbtaLHqy1fNH6PkQP_PqPdKztatlI2s17T9IUFzRyhYynmJ1-H4idFFzEAMN1gRZlVvvmJ71P0LovJPOIqTT7uHIubWcHzxC" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Equicord/Equicord&type=Timeline&sealed_token=64drv2U7WiV6dQ5VRbOZdxHT3mRzxUzhVvfm5qt1VRpGjVPje0PbObjibX2FYe4zd-h36lCAGZ873gAgb_5_tAzUBixUVbtaLHqy1fNH6PkQP_PqPdKztatlI2s17T9IUFzRyhYynmJ1-H4idFFzEAMN1gRZlVvvmJ71P0LovJPOIqTT7uHIubWcHzxC" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Equicord/Equicord&type=Timeline&sealed_token=64drv2U7WiV6dQ5VRbOZdxHT3mRzxUzhVvfm5qt1VRpGjVPje0PbObjibX2FYe4zd-h36lCAGZ873gAgb_5_tAzUBixUVbtaLHqy1fNH6PkQP_PqPdKztatlI2s17T9IUFzRyhYynmJ1-H4idFFzEAMN1gRZlVvvmJ71P0LovJPOIqTT7uHIubWcHzxC" />
-  </picture>
-</a>
 
 ## Disclaimer
 
