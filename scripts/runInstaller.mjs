@@ -25,13 +25,12 @@ import { Readable } from "stream";
 import { finished } from "stream/promises";
 import { fileURLToPath } from "url";
 
-const BASE_URL = "https://github.com/ImHisako/IllegalcordInstaller/releases/latest/download/";
+const BASE_URL = "https://github.com/Equicord/Equilotl/releases/latest/download/";
 const INSTALLER_PATH_DARWIN = "Equilotl.app/Contents/MacOS/Equilotl";
 const INSTALLER_APP_DARWIN = "Equilotl.app";
 
 const BASE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FILE_DIR = join(BASE_DIR, "dist", "Installer");
-const LOCAL_INSTALLER_DIR = join(BASE_DIR, "IllegalcordInstaller", "dist");
 const ETAG_FILE = join(FILE_DIR, "etag.txt");
 
 function getFilename() {
@@ -56,15 +55,6 @@ function getFilename() {
 
 async function ensureBinary() {
     const filename = getFilename();
-    const localFile = process.platform === "darwin"
-        ? join(LOCAL_INSTALLER_DIR, INSTALLER_PATH_DARWIN)
-        : join(LOCAL_INSTALLER_DIR, filename);
-
-    if (existsSync(localFile)) {
-        console.log("Using local installer " + localFile);
-        return localFile;
-    }
-
     console.log("Downloading " + filename);
 
     mkdirSync(FILE_DIR, { recursive: true });
@@ -83,7 +73,7 @@ async function ensureBinary() {
 
     const res = await fetch(BASE_URL + filename, {
         headers: {
-            "User-Agent": "Illegalcord (https://github.com/ImHisako/Illegalcord)",
+            "User-Agent": "Equicord (https://github.com/Equicord/Equicord)",
             "If-None-Match": etag
         }
     });

@@ -193,8 +193,8 @@ export default definePlugin({
         const equicordEntries: SettingsLayoutNode[] = [
             buildEntry({
                 key: "equicord_main",
-                title: "Illegalcord",
-                panelTitle: "Illegalcord Settings",
+                title: "TrashCord",
+                panelTitle: "TrashCord Settings",
                 Component: VencordTab,
                 Icon: MainSettingsIcon
             }),
@@ -248,7 +248,7 @@ export default definePlugin({
         const equicordSection: SettingsLayoutNode = {
             key: "equicord_section",
             type: LayoutTypes.SECTION,
-            useTitle: () => "Illegalcord Settings",
+            useTitle: () => "TrashCord Settings",
             buildLayout: () => equicordEntries
         };
 
