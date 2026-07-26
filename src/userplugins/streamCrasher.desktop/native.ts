@@ -9,14 +9,14 @@ const KEYBIND_SIGNAL_PATH = join(app.getPath("temp"), "vc-sc-keybind.signal");
 
 const HTML_WHITE = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#fff;overflow:hidden}</style></head><body></body></html>";
 
-const HTML_FLASHING = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}</style></head><body><script>var v=0;window.__tick=function(){document.body.style.background=v?\"#fff\":\"#000\";v^=1;};window.__tick();</script></body></html>";
+const HTML_FLASHING = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;animation:f .12s steps(1) infinite}@keyframes f{0%,49.9%{background:#000}50%,100%{background:#fff}}</style></head></html>";
 
-const HTML_COLORS = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}</style></head><body><script>var c=[\"#f00\",\"#ff8000\",\"#ff0\",\"#0f0\",\"#0ff\",\"#00f\"];var i=0;window.__tick=function(){document.body.style.background=c[i];i=(i+1)%c.length;};window.__tick();</script></body></html>";
+const HTML_COLORS = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;animation:c 1.2s steps(6) infinite}@keyframes c{0%{background:#f00}17%{background:#ff8000}33%{background:#ff0}50%{background:#0f0}67%{background:#0ff}83%{background:#00f}100%{background:#f00}}</style></head></html>";
 
-const HTML_STATIC = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;width:100%;height:100%;background:#000}canvas{display:block;width:100%;height:100%;image-rendering:pixelated}</style></head><body><canvas id=\"c\"></canvas><script>var cv=document.getElementById(\"c\");var ctx=cv.getContext(\"2d\");cv.width=160;cv.height=90;var img=ctx.createImageData(cv.width,cv.height);var data=img.data;window.__tick=function(){for(var i=0;i<data.length;i+=4){var v=Math.random()*255|0;data[i]=data[i+1]=data[i+2]=v;data[i+3]=255;}ctx.putImageData(img,0,0);};window.__tick();window.__tick();</script></body></html>";
+const HTML_STATIC = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;width:100%;height:100%;background:#000}canvas{display:block;width:100%;height:100%;image-rendering:pixelated}</style></head><body><canvas id=\"c\"></canvas><script>var cv=document.getElementById(\"c\");var ctx=cv.getContext(\"2d\",{alpha:false});cv.width=128;cv.height=72;var img=ctx.createImageData(cv.width,cv.height);var data=img.data;function draw(){for(var i=0;i<data.length;i+=4){var v=Math.random()*255|0;data[i]=data[i+1]=data[i+2]=v;data[i+3]=255;}ctx.putImageData(img,0,0);}draw();setInterval(draw,130);</script></body></html>";
 
 function imageHtml(src: string): string {
-    return "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;width:100%;height:100%;background:#000}img{width:100%;height:100%;object-fit:fill;display:block}</style></head><body><img id=\"i\" src=\"" + src + "\"><script>window.__tick=function(){var el=document.getElementById(\"i\");var s=el.getAttribute(\"src\");el.removeAttribute(\"src\");el.setAttribute(\"src\",s);};</script></body></html>";
+    return "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;width:100%;height:100%;background:#000}img{width:100%;height:100%;object-fit:fill;display:block}</style></head><body><img id=\"i\" src=\"" + src + "\"><script>var el=document.getElementById(\"i\");var s=el.getAttribute(\"src\");setInterval(function(){el.removeAttribute(\"src\");el.setAttribute(\"src\",s);},3000);</script></body></html>";
 }
 
 const Modes: Record<string, string> = {
@@ -24,13 +24,6 @@ const Modes: Record<string, string> = {
     white: HTML_WHITE,
     colors: HTML_COLORS,
     static: HTML_STATIC
-};
-
-const TICK_INTERVALS: Record<string, number> = {
-    flashing: 120,
-    colors: 200,
-    static: 130,
-    image: 2500
 };
 
 try {
@@ -42,7 +35,6 @@ let cachedSourceId: string | null = null;
 let activeMode: string | null = null;
 let creating = false;
 let blockerId: number | null = null;
-let tickTimer: NodeJS.Timeout | null = null;
 
 function startBlocker() {
     if (blockerId === null) {
@@ -57,24 +49,10 @@ function stopBlocker() {
     }
 }
 
-function startTicking(mode: string) {
-    stopTicking();
-    const interval = TICK_INTERVALS[mode];
-    if (!interval) return;
-    tickTimer = setInterval(() => {
-        if (isWindowAlive()) crashedWindow!.webContents.executeJavaScript("window.__tick&&window.__tick();").catch(() => {});
-    }, interval);
-}
-
-function stopTicking() {
-    if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
-}
-
 function resetState() {
     crashedWindow = null;
     cachedSourceId = null;
     activeMode = null;
-    stopTicking();
     stopBlocker();
 }
 
@@ -124,21 +102,21 @@ async function fetchAsDataUri(url: string): Promise<string | null> {
     }
 }
 
-async function buildModeHtml(mode: string): Promise<{ html: string; needsFile: boolean; tickKey: string; }> {
+async function buildModeHtml(mode: string): Promise<{ html: string; needsFile: boolean; }> {
     if (mode === "image") {
         const url = getImageUrl();
-        if (!url) return { html: HTML_FLASHING, needsFile: false, tickKey: "flashing" };
+        if (!url) return { html: HTML_FLASHING, needsFile: false };
         if (isLocalPath(url)) {
-            return { html: imageHtml(normaliseLocalPath(url)), needsFile: true, tickKey: "image" };
+            return { html: imageHtml(normaliseLocalPath(url)), needsFile: true };
         }
         const dataUri = await fetchAsDataUri(url);
-        return { html: imageHtml(dataUri ?? url), needsFile: false, tickKey: "image" };
+        return { html: imageHtml(dataUri ?? url), needsFile: true };
     }
     if (mode === "bsod") {
         const dataUri = await fetchAsDataUri(bsodUrl);
-        return { html: imageHtml(dataUri ?? bsodUrl), needsFile: false, tickKey: "" };
+        return { html: imageHtml(dataUri ?? bsodUrl), needsFile: true };
     }
-    return { html: Modes[mode] ?? HTML_FLASHING, needsFile: false, tickKey: mode in TICK_INTERVALS ? mode : "" };
+    return { html: Modes[mode] ?? HTML_FLASHING, needsFile: false };
 }
 
 function loadCrashContent(html: string, needsFile: boolean) {
@@ -167,12 +145,11 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
 
     if (mode === "freeze") {
         if (isWindowAlive()) crashedWindow!.hide();
-        stopTicking();
         stopBlocker();
         return "-1";
     }
 
-    const { html, needsFile, tickKey } = await buildModeHtml(mode);
+    const { html, needsFile } = await buildModeHtml(mode);
     const modeKey = mode === "image" ? `image:${getImageUrl()}` : mode;
 
     if (isWindowAlive()) {
@@ -182,7 +159,6 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
         }
         crashedWindow!.showInactive();
         startBlocker();
-        startTicking(tickKey);
         return cachedSourceId;
     }
 
@@ -225,7 +201,6 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
     cachedSourceId = await findSourceId();
     creating = false;
     startBlocker();
-    startTicking(tickKey);
     return cachedSourceId;
 }
 
@@ -234,23 +209,20 @@ export async function updateCrashMode(_e: IpcMainInvokeEvent) {
 
     if (mode === "freeze") {
         if (isWindowAlive()) crashedWindow!.hide();
-        stopTicking();
         stopBlocker();
         return;
     }
 
     if (!isWindowAlive()) return;
 
-    const { html, needsFile, tickKey } = await buildModeHtml(mode);
+    const { html, needsFile } = await buildModeHtml(mode);
     activeMode = mode === "image" ? `image:${getImageUrl()}` : mode;
     loadCrashContent(html, needsFile);
     crashedWindow?.showInactive();
     startBlocker();
-    startTicking(tickKey);
 }
 
 export function stopCrashSource(_e: IpcMainInvokeEvent) {
-    stopTicking();
     stopBlocker();
     if (!isWindowAlive()) return;
     crashedWindow?.hide();

@@ -6,7 +6,7 @@ import { UserAreaButton } from "@api/UserArea";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { ApplicationStreamingStore, Menu, Popout, showToast, Toasts, useLayoutEffect, useMemo, useRef, UserStore, useStateFromStores, VoiceActions } from "@webpack/common";
+import { ApplicationStreamingStore, Menu, Popout, showToast, Toasts, useMemo, useRef, UserStore, useStateFromStores, VoiceActions } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.StreamCrasher as PluginNative<typeof import("./native")>;
 const ApplicationStreamingSettingsStore = findStoreLazy("ApplicationStreamingSettingsStore");
@@ -143,8 +143,13 @@ let lastCrashSourceId: string | null = null;
 let currentUpdate: Promise<void> | null = null;
 let pendingState: boolean | null = null;
 let crashUpdateInProgress = false;
+let savedQuality: { preset: number; resolution: number; frameRate: number; } | null = null;
 
 function setLastSourceId(sourceId: string | null, qualityOptions?: any): boolean {
+    // Mentre il crasher è attivo ignoriamo qualsiasi qualityOptions in arrivo:
+    // è la nostra sorgente finta oppure l'adattamento automatico di Discord
+    // sul contenuto quasi statico, non un dato affidabile da ripristinare dopo.
+    if (settings.store.isEnabled) return false;
     if (!sourceId || sourceId === crashSourceId || sourceId === lastCrashSourceId || crashUpdateInProgress) return false;
     lastSourceId = sourceId;
     if (qualityOptions?.frameRate > 0) lastQualityOptions = qualityOptions;
@@ -194,12 +199,23 @@ async function doUpdateStream(isEnabled: boolean) {
         }
 
         crashUpdateInProgress = true;
+
+        if (isEnabled && !savedQuality) {
+            const s = ApplicationStreamingSettingsStore?.getState?.() ?? {};
+            savedQuality = {
+                preset: s.preset ?? 2,
+                resolution: s.resolution ?? 720,
+                frameRate: (s.fps && s.fps > 0) ? s.fps : 60
+            };
+        }
+
         const sourceId = await getSourceId(isEnabled);
         if (!sourceId) { crashUpdateInProgress = false; return; }
 
         const type = sourceId.includes(":") ? sourceId.split(":")[0] : "screen";
         const sound = isEnabled ? false : (ApplicationStreamingSettingsStore?.getState?.()?.soundshareEnabled ?? false);
-        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 60 } : resolveRestoreQuality();
+        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 60 } : (savedQuality ?? resolveRestoreQuality());
+        if (!isEnabled) savedQuality = null;
 
         VoiceActions.setGoLiveSource({
             desktopSettings: { sourceId, type, sound },
@@ -436,15 +452,6 @@ function CrashButton() {
         () => ApplicationStreamingStore.getActiveStreamForUser(userId) != null
     );
 
-    useLayoutEffect(() => {
-        if (isStreaming && settings.store.autoDisableOnStream !== false && settings.store.isEnabled) {
-            suppressStateChange = true;
-            settings.store.isEnabled = false;
-            suppressStateChange = false;
-            isEnabledCache = false;
-        }
-    }, [isStreaming]);
-
     if (!isStreaming) return null;
 
     return (
@@ -483,15 +490,6 @@ function CrashButtonAccount() {
         [ApplicationStreamingStore],
         () => ApplicationStreamingStore.getActiveStreamForUser(userId) != null
     );
-
-    useLayoutEffect(() => {
-        if (isStreaming && settings.store.autoDisableOnStream !== false && settings.store.isEnabled) {
-            suppressStateChange = true;
-            settings.store.isEnabled = false;
-            suppressStateChange = false;
-            isEnabledCache = false;
-        }
-    }, [isStreaming]);
 
     if (!isStreaming) return null;
 
