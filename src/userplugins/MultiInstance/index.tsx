@@ -587,7 +587,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
                                                         onChange={setEditingName}
                                                     />
                                                 </div>
-                                                <Button size="small" disabled={isBusy} onClick={() => saveRename(profile)}>
+                                                <Button size="small" variant="positive" disabled={isBusy} onClick={() => saveRename(profile)}>
                                                     Save
                                                 </Button>
                                                 <Button size="small" variant="secondary" disabled={isBusy} onClick={() => setEditingId(null)}>
@@ -611,7 +611,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
                                     </div>
                                 </div>
                                 <div className="vc-multi-instance-actions">
-                                    <Button size="small" disabled={isBusy || isEditing} onClick={() => void openInstance(profile, mode)}>
+                                    <Button size="small" variant="positive" disabled={isBusy || isEditing} onClick={() => void openInstance(profile, mode)}>
                                         {isOpen ? "Focus" : "Open"}
                                     </Button>
                                     <Button size="small" variant="secondary" disabled={isBusy} onClick={event => openInstanceMenu(event, profile, status)}>
@@ -636,7 +636,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
                                 onChange={setNewName}
                             />
                         </div>
-                        <Button size="small" onClick={addInstance}>
+                        <Button size="small" variant="positive" onClick={addInstance}>
                             Add profile
                         </Button>
                     </div>
@@ -669,10 +669,10 @@ export default definePlugin({
     name: "MultiInstance",
     description: "Opens extra Discord windows with separate Discord sessions.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
-    dependencies: ["HeaderBarAPI"],
-    tags: ["Utility", "Privacy"],
+    tags: ["Utility"],
     enabledByDefault: false,
     managedStyle,
+    dependencies: ["HeaderBarAPI"],
     settings,
     headerBarButton: {
         icon: MultiInstanceIcon,

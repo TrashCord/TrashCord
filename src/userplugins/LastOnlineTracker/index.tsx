@@ -2,61 +2,34 @@ import definePlugin, { OptionType } from "@utils/types";
 import { definePluginSettings } from "@api/Settings";
 import { React, ReactDOM } from "@webpack/common";
 import { findByPropsLazy } from "@webpack";
-import { DataStore } from "@api/index";
-import { addContextMenuPatch, removeContextMenuPatch, findGroupChildrenByChildId } from "@api/ContextMenu";
 import { addMemberListDecorator, removeMemberListDecorator } from "@api/MemberListDecorators";
-import { Menu } from "@webpack/common";
 
 const PresenceStore = findByPropsLazy("getStatus", "getActivities");
-const STORE_KEY = "lastOnlineTracker_data";
 
 const settings = definePluginSettings({
-    persist: {
-        type: OptionType.BOOLEAN,
-        default: false,
-        description: "keep last-seen after restart. off by default - saved times don't refresh until that person goes offline again, so they can go stale"
-    }
+    label: {
+        type: OptionType.SELECT,
+        description: "text shown before the time",
+        options: [
+            { label: "Active", value: "Active", default: true },
+            { label: "Last seen", value: "Last seen" },
+            { label: "Online", value: "Online" },
+            { label: "Seen", value: "Seen" },
+        ],
+    },
+    timeFormat: {
+        type: OptionType.SELECT,
+        description: "how the time is shown",
+        options: [
+            { label: "Relative (5m ago)", value: "relative", default: true },
+            { label: "Exact (2:34 PM)", value: "exact" },
+        ],
+    },
 });
 
 const lastSeen = new Map<string, number>();
-let loaded = false;
-let ready = false;
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
-
-async function load() {
-    if (!settings.store.persist || loaded) return;
-    loaded = true;
-    try {
-        const saved = await DataStore.get(STORE_KEY);
-        if (saved && typeof saved === "object")
-            for (const [id, ts] of Object.entries(saved as Record<string, unknown>))
-                if (typeof ts === "number" && ts > 0) lastSeen.set(id, ts);
-    } catch (e) { console.error("LastOnlineTracker load failed", e); }
-}
-
-async function persistNow() {
-    if (!settings.store.persist) return;
-    try { await DataStore.set(STORE_KEY, Object.fromEntries(lastSeen)); }
-    catch (e) { console.error("LastOnlineTracker save failed", e); }
-}
-
-function save() {
-    if (!settings.store.persist) return;
-    clearTimeout(saveTimer!);
-    saveTimer = setTimeout(persistNow, 1500);
-}
-
-function flushSave() {
-    if (!saveTimer) return;
-    clearTimeout(saveTimer);
-    saveTimer = null;
-    void persistNow();
-}
-
-function mark(id: string) {
-    lastSeen.set(id, Date.now());
-    save();
-}
+const seenOnline = new Set<string>();
+let warnedOnce = false;
 
 function ago(ms: number) {
     const s = ms / 1000; if (s < 60) return `${s | 0}s ago`;
@@ -65,9 +38,21 @@ function ago(ms: number) {
     const d = h / 24; return d < 7 ? `${d | 0}d ago` : `${(d / 7) | 0}w ago`;
 }
 
+function formatTime(ts: number) {
+    return settings.store.timeFormat === "exact"
+        ? new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+        : ago(Date.now() - ts);
+}
+
 function isOffline(id: string) {
     try { return (PresenceStore.getStatus(id) ?? "online") === "offline"; }
-    catch { return false; }
+    catch (e) {
+        if (!warnedOnce) {
+            warnedOnce = true;
+            console.warn("LastOnlineTracker: status check broke, plugin probably needs an update", e);
+        }
+        return false;
+    }
 }
 
 function BelowNameText({ userId }: { userId: string; }) {
@@ -95,29 +80,21 @@ function BelowNameText({ userId }: { userId: string; }) {
 
     const ts = lastSeen.get(userId);
     const show = ts !== undefined && isOffline(userId);
+
     return (
         <>
             <span ref={anchorRef} style={{ display: "none" }} />
-            {slot && ReactDOM.createPortal(show ? `Active ${ago(Date.now() - ts!)}` : "", slot)}
+            {slot && ReactDOM.createPortal(
+                show
+                    ? <span title={new Date(ts!).toLocaleString()}>
+                        {settings.store.label} {formatTime(ts!)}
+                    </span>
+                    : "",
+                slot
+            )}
         </>
     );
 }
-
-const ctxPatch = (_: string, children: any[], props: any) => {
-    const id = props?.user?.id ?? props?.guildMember?.userId;
-    if (!id || !isOffline(id)) return;
-    const ts = lastSeen.get(id);
-    if (ts === undefined) return;
-    const group = findGroupChildrenByChildId("user-profile", children)
-        ?? findGroupChildrenByChildId("mark-as-read", children)
-        ?? children;
-    group.push(
-        <Menu.MenuSeparator key="los-sep" />,
-        <Menu.MenuItem key="los-item" id="los-item" disabled
-            label={`Active ${ago(Date.now() - ts)}`}
-            subtext={`Last online: ${new Date(ts).toLocaleString()}`} />
-    );
-};
 
 export default definePlugin({
     name: "LastOnlineTracker",
@@ -125,22 +102,20 @@ export default definePlugin({
     authors: [{ name: "k1ng_op", id: 641266820187160576n }],
     tags: ["Friends", "Utility"],
     enabledByDefault: false,
-    dependencies: ["MemberListDecoratorsAPI", "ContextMenuAPI"],
+    dependencies: ["MemberListDecoratorsAPI"],
     settings,
-
     flux: {
         PRESENCE_UPDATES({ updates }: { updates?: Array<{ user: { id: string }; status: string; clientStatus?: Record<string, string>; }>; }) {
-            if (!ready || !updates) return;
-            for (const { user, status, clientStatus } of updates)
-                if (status === "offline" && !Object.keys(clientStatus ?? {}).length) mark(user.id);
+            if (!updates) return;
+            for (const { user, status, clientStatus } of updates) {
+                const offline = status === "offline" && !Object.keys(clientStatus ?? {}).length;
+                if (!offline) { seenOnline.add(user.id); continue; }
+                if (seenOnline.delete(user.id)) lastSeen.set(user.id, Date.now());
+            }
         }
     },
 
-    async start() {
-        await load();
-        ready = false;
-        setTimeout(() => { ready = true; }, 4000);
-
+    start() {
         document.getElementById("los-style")?.remove();
         const style = document.createElement("style");
         style.id = "los-style";
@@ -158,32 +133,19 @@ export default definePlugin({
             const id = (props as any).user?.id;
             return id ? <BelowNameText userId={id} /> : null;
         });
-        addContextMenuPatch("user-context", ctxPatch);
-        addContextMenuPatch("gdm-context", ctxPatch);
     },
 
     stop() {
-        flushSave();
         document.getElementById("los-style")?.remove();
         document.querySelectorAll(".los-slot").forEach(el => el.remove());
         removeMemberListDecorator("LastOnlineTracker");
-        removeContextMenuPatch("user-context", ctxPatch);
-        removeContextMenuPatch("gdm-context", ctxPatch);
-        ready = false;
-        loaded = false;
-        if (!settings.store.persist) lastSeen.clear();
+        seenOnline.clear();
+        lastSeen.clear();
     },
 
     getTracked() {
         const out: Record<string, string> = {};
         lastSeen.forEach((ts, id) => out[id] = ago(Date.now() - ts));
         console.table(out);
-        return out;
-    },
-
-    async clearAll() {
-        lastSeen.clear();
-        flushSave();
-        await DataStore.del(STORE_KEY);
     },
 });
