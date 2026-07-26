@@ -181,7 +181,7 @@ interface DonorBadgeModalProps {
     iconSrc?: string;
 }
 
-export function TrashCordDonorModal(badge: DonorBadgeModalProps) {
+export function IllegalcordDonorModal(badge: DonorBadgeModalProps) {
     openModal(props => (
         <ErrorBoundary noop onError={() => {
             props.onClose();
@@ -200,7 +200,7 @@ export function TrashCordDonorModal(badge: DonorBadgeModalProps) {
                     >
                         <Flex justifyContent="center" alignItems="center" gap="0.5em">
                             <Heart />
-                            TrashCord Supporter
+                            Illegalcord Supporter
                         </Flex>
                     </Heading>
                 }
@@ -223,7 +223,7 @@ export function TrashCordDonorModal(badge: DonorBadgeModalProps) {
                             </Paragraph>
                         )}
                         <Paragraph className={Margins.top20}>
-                            Thank you for supporting TrashCord development! Your contribution helps keep this project alive and thriving.
+                            Thank you for supporting Illegalcord development! Your contribution helps keep this project alive and thriving.
                         </Paragraph>
                     </div>
                 </div>
