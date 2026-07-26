@@ -213,7 +213,7 @@ export default definePlugin({
             !IS_UPDATER_DISABLED && UpdaterTab && buildEntry({
                 key: "equicord_updater",
                 title: "Updater",
-                panelTitle: "Illegalcord Updater",
+                panelTitle: "TrashCord Updater",
                 Component: UpdaterTab,
                 Icon: UpdaterIcon
             }),
@@ -226,7 +226,7 @@ export default definePlugin({
             buildEntry({
                 key: "equicord_cloud",
                 title: "Cloud",
-                panelTitle: "Illegalcord Cloud",
+                panelTitle: "TrashCord Cloud",
                 Component: CloudTab,
                 Icon: CloudIcon
             }),
