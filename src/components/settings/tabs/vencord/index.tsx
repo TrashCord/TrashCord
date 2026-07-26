@@ -40,7 +40,7 @@ const VENNIE_DONATOR_IMAGE = "https://github.com/TrashCord/main/blob/main/host/i
 const COZY_CONTRIB_IMAGE = "https://github.com/TrashCord/main/blob/main/host/icons/TrashCord_icon.png?raw=true";
 
 const DONOR_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?size=2048";
-const CONTRIB_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?size=2048";
+const CONTRIB_BACKGROUND_IMAGE = "https://raw.githubusercontent.com/TrashCord/main/refs/heads/main/host/images/urumagod.jpg?size=2048";
 
 const cl = classNameFactory("vc-vencord-tab-");
 
