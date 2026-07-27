@@ -17,15 +17,17 @@
 */
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { updateMessage } from "@api/MessageUpdater";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import type { Message } from "@vencord/discord-types";
 import { MessageFlags } from "@vencord/discord-types/enums";
 import { findByPropsLazy, findLazy } from "@webpack";
-import { ChannelStore, Constants, Menu, PermissionsBits, PermissionStore, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, Constants, FluxDispatcher, Menu, MessageStore, PermissionsBits, PermissionStore, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
 
 const uniqueIdProp = findLazy(m => typeof m.uniqueId === "function");
 const { getUserMaxFileSize } = findByPropsLazy("getUserMaxFileSize");
+const MessageActions = findByPropsLazy("patchMessageAttachments");
 
 const MODIFIABLE_TYPES = new Set([0, 19]);
 
@@ -37,9 +39,7 @@ const CirclePlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-const canModifyCache = new WeakMap<Message, boolean>();
-
-const computeCanModify = (msg: Message) => {
+const canModify = (msg: Message) => {
     if (msg.deleted || UserStore.getCurrentUser().id !== msg.author.id) return false;
     if (msg.hasFlag(MessageFlags.IS_VOICE_MESSAGE) || !MODIFIABLE_TYPES.has(msg.type)) return false;
 
@@ -47,15 +47,6 @@ const computeCanModify = (msg: Message) => {
     if (channel?.guild_id && !PermissionStore.can(PermissionsBits.SEND_MESSAGES, channel)) return false;
 
     return true;
-};
-
-const canModify = (msg: Message) => {
-    let cached = canModifyCache.get(msg);
-    if (cached === undefined) {
-        cached = computeCanModify(msg);
-        canModifyCache.set(msg, cached);
-    }
-    return cached;
 };
 
 const openFilePicker = (onPicked: (files: FileList) => void) => {
@@ -71,6 +62,30 @@ const openFilePicker = (onPicked: (files: FileList) => void) => {
 
     input.click();
 };
+
+const waitForRawAttachments = (channelId: string, messageId: string, timeoutMs = 8000): Promise<any[] | null> =>
+    new Promise(resolve => {
+        let settled = false;
+
+        const finish = (value: any[] | null) => {
+            if (settled) return;
+            settled = true;
+            FluxDispatcher.unsubscribe("MESSAGE_UPDATE", listener);
+            resolve(value);
+        };
+
+        const listener = (event: any) => {
+            if (event.message?.id !== messageId || event.message?.channel_id !== channelId) return;
+
+            const atts = event.message.attachments;
+            if (!Array.isArray(atts) || atts.some((a: any) => !a?.url)) return;
+
+            finish(atts);
+        };
+
+        FluxDispatcher.subscribe("MESSAGE_UPDATE", listener);
+        setTimeout(() => finish(null), timeoutMs);
+    });
 
 const addAttachments = async (channelId: string, messageId: string, files: FileList, attachments: any[]) => {
     const maxFileSize = getUserMaxFileSize(UserStore.getCurrentUser());
@@ -110,26 +125,36 @@ const addAttachments = async (channelId: string, messageId: string, files: FileL
 
     const newAttachments = await Promise.all(uploadPromises);
 
-    await RestAPI.patch({
-        url: Constants.Endpoints.MESSAGE(channelId, messageId),
-        body: {
-            attachments: [
-                ...attachments,
-                ...newAttachments
-            ]
+    const rawAttachmentsPromise = waitForRawAttachments(channelId, messageId);
+
+    await MessageActions.patchMessageAttachments(channelId, messageId, [
+        ...attachments.map(a => ({ id: a.id })),
+        ...newAttachments
+    ]);
+
+    const rawAttachments = await rawAttachmentsPromise;
+    if (rawAttachments) {
+        const cached = MessageStore.getMessage(channelId, messageId);
+        if (cached && cached.attachments.length !== rawAttachments.length) {
+            updateMessage(channelId, messageId, { attachments: rawAttachments });
         }
-    });
+    }
 
     showToast("Attachments added successfully!", Toasts.Type.SUCCESS);
 };
 
 const removeLastAttachment = async (channelId: string, messageId: string, attachments: any[]) => {
-    await RestAPI.patch({
-        url: Constants.Endpoints.MESSAGE(channelId, messageId),
-        body: {
-            attachments: attachments.slice(0, -1)
+    const rawAttachmentsPromise = waitForRawAttachments(channelId, messageId);
+
+    await MessageActions.patchMessageAttachments(channelId, messageId, attachments.slice(0, -1).map(a => ({ id: a.id })));
+
+    const rawAttachments = await rawAttachmentsPromise;
+    if (rawAttachments) {
+        const cached = MessageStore.getMessage(channelId, messageId);
+        if (cached && cached.attachments.length !== rawAttachments.length) {
+            updateMessage(channelId, messageId, { attachments: rawAttachments });
         }
-    });
+    }
 
     showToast("Attachment removed!", Toasts.Type.SUCCESS);
 };
@@ -186,8 +211,6 @@ function buildPopoverDescriptor(msg: Message) {
     };
 }
 
-const popoverCache = new WeakMap<Message, ReturnType<typeof buildPopoverDescriptor>>();
-
 export default definePlugin({
     name: "AddAttachments",
     description: "Allows you to add attachments to a pre-existing message of yours",
@@ -203,11 +226,7 @@ export default definePlugin({
         required: true,
         icon: () => <CirclePlusIcon />,
         render(msg: Message) {
-            if (popoverCache.has(msg)) return popoverCache.get(msg)!;
-
-            const descriptor = buildPopoverDescriptor(msg);
-            popoverCache.set(msg, descriptor);
-            return descriptor;
+            return buildPopoverDescriptor(msg);
         }
     }
 });
