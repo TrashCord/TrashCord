@@ -3,8 +3,8 @@
 [![Equibop](https://img.shields.io/badge/TrashCordInstaller-grey?style=flat)](https://github.com/TrashCord/TrashCordInstaller)
 [![My Discord](https://img.shields.io/discord/981560666915745842?color=768AD4&label=Discord&logo=discord&logoColor=white)](https://discord.gg/WhEJFWxNnX)
 
-**TrashCord** is an underground fork of Equicord & Vencord, built for those who create without limits.  
-Inspired by the **TRASH GANG** – design, music, experimentation.  
+**TrashCord** is an underground fork of Equicord & Vencord, built for those who create without limits.
+Inspired by the **TRASH GANG** – design, music, experimentation.
 No censorship, no arbitrary rules: every plugin is welcome, every idea takes shape.
 
 ---
@@ -20,13 +20,13 @@ Check out the full list in the [`src/plugins`](./src/plugins), [`src/equicordplu
 ## Installation / Uninstallation ["Working Progress"]
 
 Windows
-- [GUI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.exe) 
+- [GUI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.exe)
 - [CLI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.exe)
 
 ~~MacOS~~ = **Doesn't Worked**
 - [~~GUI~~](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller.MacOS.zip)
 
-Linux 
+Linux
 - [GUI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstaller-x11)
 - [CLI](https://github.com/TrashCord/TrashCordInstaller/releases/latest/download/TrashCordInstallerCli-linux)
 
