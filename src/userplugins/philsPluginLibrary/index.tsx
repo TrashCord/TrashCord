@@ -22,25 +22,9 @@ import definePlugin from "@utils/types";
 const plugin = definePlugin({
     name: "PhilsPluginLibrary",
     description: "A library for phil's plugins",
-    authors: [Devs.phil],
     tags: ["Utility", "Voice", "Developers"],
     enabledByDefault: true,
-    required: true,
-    patches: [
-        {
-            find: "Unknown frame rate",
-            replacement: [
-                {
-                    match: /(switch\((.{0,10})\).{0,1000})(throw Error\(.{0,100}?Unknown resolution.{0,100}?\))(?=})/,
-                    replace: "$1return $2"
-                },
-                {
-                    match: /(switch\((.{0,10})\).{0,1000})(throw Error\(.{0,100}?Unknown frame rate.{0,100}?\))(?=})/,
-                    replace: "$1return $2"
-                }
-            ]
-        }
-    ]
+    authors: [Devs.phil]
 });
 
 export default plugin;

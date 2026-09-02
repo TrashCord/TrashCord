@@ -347,7 +347,6 @@ export default definePlugin({
     managedStyle,
     dependencies: ["UserAreaAPI"],
     settings,
-    settingsAboutComponent: SafeSoundPadSettings,
     userAreaButton: {
         icon: SoundPadIcon,
         render: SoundPadUserAreaButton

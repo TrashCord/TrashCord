@@ -146,7 +146,6 @@ export default definePlugin({
     tags: ["Chat", "Fun", "Utility"],
     enabledByDefault: false,
     settings,
-
     onBeforeMessageSend(_channelId, messageObj) {
         if (!messageObj.content) return;
 

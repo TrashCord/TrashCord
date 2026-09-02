@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import managedStyle from "./styles.css?managed";
-
-import type { MessageObject, MessageOptions } from "@api/MessageEvents";
+import type { MessageObject, SendMessageOptions } from "@api/MessageEvents";
 import { ClockIcon } from "@components/Icons";
 import SettingsPlugin from "@plugins/_core/settings";
 import { Devs } from "@utils/constants";
@@ -36,7 +34,7 @@ function cleanupExpiredDrafts(now = Date.now()) {
     }
 }
 
-function createPendingDraft(channelId: string, messageObj: MessageObject, options: MessageOptions) {
+function createPendingDraft(channelId: string, messageObj: MessageObject, options: SendMessageOptions) {
     cleanupExpiredDrafts();
 
     const content = options.content ?? messageObj.content ?? "";
@@ -52,7 +50,7 @@ function createPendingDraft(channelId: string, messageObj: MessageObject, option
         hasText: normalizedContent.length > 0,
         mediaHint: (options.uploads?.length ?? 0) > 0 || hasMediaLinks(content),
         uploadSignature: makeUploadSignature({ uploads: options.uploads }),
-        replyMessageId: options.replyOptions?.messageReference?.message_id,
+        replyMessageId: options.messageReference?.message_id,
     });
 }
 
@@ -256,13 +254,12 @@ export default definePlugin({
     name: "SendTrail",
     description: "Tracks your newly sent messages, lets you select them, and purges them in a dedicated TrashCord settings page.",
     authors: [Devs.clrxxo],
-    dependencies: ["Settings", "MessageEventsAPI"],
+    tags: ["Chat", "Utility"],
     enabledByDefault: false,
     managedStyle,
-    tags: ["Chat", "Utility"],
     requiresRestart: false,
+    dependencies: ["Settings", "MessageEventsAPI"],
     settings,
-
     start() {
         registerSendTrailSettingsTab();
     },

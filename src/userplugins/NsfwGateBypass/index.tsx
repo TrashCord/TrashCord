@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { EquicordDevs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
 import { filters, find } from "@webpack";
@@ -15,17 +16,12 @@ export default definePlugin({
     name: "NSFWGateBypass",
     description: "Forces 'Verified Adult' status, unlocks Stages, and clears all invite blocks.",
     authors: [
-        {
-            name: "dxrx99",
-            id: 1463629522359423152n
-        },
-        {
-            name: "omaw",
-            id: 1474576133088481351n
-        }
+        EquicordDevs.dxrx99,
+        EquicordDevs.omawAlt
     ],
     tags: ["Privacy", "Servers"],
     enabledByDefault: false,
+
     patches: [
         {
             find: "#{intl::AGE_GATE_AGE_VERIFIED}",

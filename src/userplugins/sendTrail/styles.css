@@ -498,8 +498,8 @@
 .vc-send-trail-pagination-nav-chevron {
     width: 7px;
     height: 7px;
-    border-top: 1.5px solid currentColor;
-    border-right: 1.5px solid currentColor;
+    border-top: 1.5px solid currentcolor;
+    border-right: 1.5px solid currentcolor;
     transform: rotate(45deg);
 }
 
@@ -833,7 +833,7 @@
 }
 
 .vc-send-trail-record-open-icon {
-    color: currentColor;
+    color: currentcolor;
 }
 
 .vc-send-trail-record-content {
@@ -1010,14 +1010,14 @@
     }
 }
 
-@media (max-width: 920px) {
+@media (width <= 920px) {
     .vc-send-trail-toolbar-field-search {
         grid-column: auto;
         max-width: none;
     }
 }
 
-@media (max-width: 760px) {
+@media (width <= 760px) {
     .vc-send-trail-history-shell-header,
     .vc-send-trail-history-filter-header,
     .vc-send-trail-history-controls-row,

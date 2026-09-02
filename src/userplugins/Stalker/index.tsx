@@ -7,6 +7,7 @@
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
+import { EquicordDevs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import type { Message, User } from "@vencord/discord-types";
@@ -278,12 +279,11 @@ export default definePlugin({
     name: "Stalker",
     description: "Notifies you whenever a person does something.",
     authors: [
-        { name: "Reycko", id: 1123725368004726794n },
+        EquicordDevs.Reycko,
         { name: "irritably", id: 928787166916640838n }
     ],
-    tags: ["Friends", "Utility"],
+    tags: ["Friends"],
     enabledByDefault: false,
-
     contextMenus: {
         "user-context": patchUserContext,
     },

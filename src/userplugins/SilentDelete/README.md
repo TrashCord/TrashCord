@@ -30,7 +30,7 @@ git clone https://github.com/Vendicated/Vencord
 cd Vencord
 pnpm install --frozen-lockfile
 ```
-3. Navigate to the `src` folder in the cloned Vencord repository, create a new folder called `userplugins` if it dosen't already exist.
+3. Navigate to the `src/userplugins` folder in the cloned TrashCord repository.
 
 3. Download `silentDelete.tsx` from the repository and move it to the `userplugins` folder.
 

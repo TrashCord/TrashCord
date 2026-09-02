@@ -8,11 +8,14 @@ import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessa
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { addMessagePopoverButton as addButton, removeMessagePopoverButton as removeButton } from "@api/MessagePopover";
 import { definePluginSettings } from "@api/Settings";
+import { EquicordDevs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, Constants, Menu, RestAPI, UserStore } from "@webpack/common";
+
+import { SilentEditIcon, startSilentEdit } from "../SilentEdit";
 
 interface SilentDeleteMessage extends Message {
     deleted?: boolean;
@@ -120,6 +123,14 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
                 color="danger"
                 action={() => silentDeleteMessage(message.channel_id, message.id)}
                 icon={SilentDeleteIcon}
+            />,
+            <Menu.MenuItem
+                id="silent-edit"
+                key="silent-edit"
+                label="Silent Edit"
+                color="danger"
+                action={() => startSilentEdit(message)}
+                icon={SilentEditIcon}
             />
         );
         return;
@@ -142,15 +153,14 @@ export default definePlugin({
     name: "SilentDelete",
     description: "\"Silently\" deletes a message. Bypass message loggers by replacing the message with a placeholder.",
     authors: [
-        { name: "Aurick", id: 1348025017233047634n },
-        { name: "appleflyer", id: 1209096766075703368n },
-        { name: "irritably", id: 928787166916640838n }
+        EquicordDevs.Aurick,
+        EquicordDevs.appleflyer,
+        EquicordDevs.irritably
     ],
     tags: ["Chat", "Privacy"],
     enabledByDefault: false,
-    dependencies: ["MessagePopoverAPI", "CommandsAPI"],
+    dependencies: ["MessagePopoverAPI", "CommandsAPI", "SilentEdit"],
     settings,
-
     contextMenus: {
         "message": messageContextMenuPatch
     },

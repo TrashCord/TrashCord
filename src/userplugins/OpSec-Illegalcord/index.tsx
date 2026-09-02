@@ -553,10 +553,7 @@ const onBeforeMessageSend: MessageSendListener = (_, message, options) => {
 export default definePlugin({
     name: "OpSec",
     description: "Safely autocorrects outgoing messages without touching links, mentions, or code.",
-    authors: [
-        { name: "Solace", id: 1472732509241479218n },
-        { name: "irritably", id: 928787166916640838n }
-    ],
+    authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
     dependencies: ["MessageEventsAPI"],

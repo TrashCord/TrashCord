@@ -18,7 +18,6 @@ export type SurveillanceEventType =
     | "message"
     | "message_delete"
     | "message_edit"
-    | "profile_update"
     | "reaction_add"
     | "reaction_remove"
     | "reaction_remove_all"
@@ -49,35 +48,18 @@ export interface SurveillanceEvent {
     channelName?: string;
     guildId?: string;
     guildName?: string;
-    avatarUrl?: string;
     content?: string;
     before?: string;
     after?: string;
-    attachments?: MessageAttachmentSnapshot[];
-    links?: string[];
-    identityHistory?: IdentityHistoryEntry[];
-    voiceParticipants?: VoiceParticipantSnapshot[];
     metadata?: Record<string, string | number | boolean | null>;
+    voiceParticipants?: VoiceParticipant[];
 }
 
-export interface IdentityHistoryEntry {
-    field: string;
-    value: string | null;
-    timestamp: number;
-    guildId?: string;
-    guildName?: string;
-}
-
-export interface MessageAttachmentSnapshot {
-    id: string;
-    filename: string;
-    url: string;
-    proxyUrl?: string;
-    contentType?: string;
-    size: number;
-    width?: number;
-    height?: number;
-    spoiler: boolean;
+export interface VoiceParticipant {
+    userId: string;
+    username: string;
+    displayName: string;
+    isFriend: boolean;
 }
 
 export interface MessageSnapshot {
@@ -86,8 +68,6 @@ export interface MessageSnapshot {
     channelId: string;
     guildId?: string;
     content: string;
-    attachments?: MessageAttachmentSnapshot[];
-    links?: string[];
 }
 
 export interface VoiceState {
@@ -105,17 +85,3 @@ export interface VoiceState {
 }
 
 export type VoiceStateFlag = "deaf" | "mute" | "selfDeaf" | "selfMute" | "selfStream" | "selfVideo" | "suppress";
-
-export interface VoiceParticipantSnapshot {
-    userId: string;
-    username: string;
-    tag?: string;
-    avatarUrl?: string;
-    mute: boolean;
-    deaf: boolean;
-    selfMute: boolean;
-    selfDeaf: boolean;
-    selfVideo: boolean;
-    selfStream: boolean;
-    suppress: boolean;
-}

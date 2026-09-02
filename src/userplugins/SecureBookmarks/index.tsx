@@ -59,12 +59,13 @@ export default definePlugin({
     dependencies: ["EquicordToolbox"],
     reporterTestable: ReporterTestable.None,
     settings,
-
     contextMenus: {
         message: addBookmarkMenu
     },
 
     toolboxActions() {
+        if (settings.store.hideFromToolbox) return null;
+
         return renderSecureBookmarksToolboxMenu();
     },
 
