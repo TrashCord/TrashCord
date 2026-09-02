@@ -11,10 +11,10 @@ import { Logger } from "@utils/Logger";
 import { isObject, parseUrl } from "@utils/misc";
 import definePlugin from "@utils/types";
 import { MessageAttachment } from "@vencord/discord-types";
-import { ChannelStore, ConfirmModal, DraftType, openModal, showToast, Toasts, UploadHandler } from "@webpack/common";
+import { ChannelStore, ConfirmModal, DraftType, openModal, SelectedChannelStore, showToast, Toasts, UploadHandler } from "@webpack/common";
 
-const FILE_NAME = "illegalcord-config.json";
-const FORMAT = "illegalcord-shared-config";
+const FILE_NAME = "trashcord-config.json";
+const FORMAT = "trashcord-shared-config";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const SENSITIVE_KEYS = /(?:api.?keys?|tokens?|secrets?|passwords?|passphrases?|credentials?|webhooks?(?:.?urls?)?|cookies?|authorization|bearer|sessions?|userhash|usernames?|userids?)$/i;
 const SENSITIVE_VALUES = /(?:discord(?:app)?\.com\/api\/webhooks\/\d+\/[^\s"']+|[?&](?:api.?key|token|secret|password|auth)=[^&\s"']+|https?:\/\/[^/\s:@]+:[^@\s/]+@)/i;
@@ -182,6 +182,8 @@ export default definePlugin({
                 const data = createSharedConfig();
                 if (data.length > MAX_FILE_SIZE) throw new Error("The configuration is too large to share.");
 
+                const channel = context.channel ?? ChannelStore.getChannel(SelectedChannelStore.getChannelId());
+                
                 await UploadHandler.promptToUpload(
                     [new File([data], FILE_NAME, { type: "application/json" })],
                     context.channel,

@@ -162,7 +162,7 @@ const settings = definePluginSettings({
     disableSpellChecker: {
         type: OptionType.BOOLEAN,
         description: "Disable Electron's spell checker to save some memory.",
-        default: false,
+        default: true,
         onChange: applySettings
     }
 });
@@ -172,7 +172,7 @@ export default definePlugin({
     description: "Adaptively reduces memory used by Discord's Electron processes while in the background.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Utility", "Performance"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     searchTerms: ["memory", "ram", "electron", "performance"],
     settings,
     commands: [

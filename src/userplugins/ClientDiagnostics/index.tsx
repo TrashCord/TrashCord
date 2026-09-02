@@ -195,7 +195,7 @@ const settings = definePluginSettings({
     showApiPlugins: {
         type: OptionType.BOOLEAN,
         description: "Include internal API plugins in the table.",
-        default: false
+        default: true
     },
     refreshMs: {
         type: OptionType.SLIDER,
@@ -217,7 +217,7 @@ const settings = definePluginSettings({
     lagNotifications: {
         type: OptionType.BOOLEAN,
         description: "Send a notification when a plugin may make Discord lag.",
-        default: true,
+        default: false,
         onChange: syncLagNotifications
     }
 });

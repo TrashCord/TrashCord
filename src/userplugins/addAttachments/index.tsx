@@ -216,7 +216,7 @@ export default definePlugin({
     description: "Allows you to add attachments to a pre-existing message of yours",
     authors: [Devs.RoScripter999, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Chat", "Utility"],
-    enabledByDefault: false,
+    enabledByDefault: true,
 
     contextMenus: {
         "message": messageContextMenuPatch
