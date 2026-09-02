@@ -183,10 +183,10 @@ export default definePlugin({
                 if (data.length > MAX_FILE_SIZE) throw new Error("The configuration is too large to share.");
 
                 const channel = context.channel ?? ChannelStore.getChannel(SelectedChannelStore.getChannelId());
-                
+
                 await UploadHandler.promptToUpload(
                     [new File([data], FILE_NAME, { type: "application/json" })],
-                    context.channel,
+                    channel,
                     DraftType.ChannelMessage
                 );
             } catch (error) {
