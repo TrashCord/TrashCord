@@ -11,7 +11,6 @@ import { Flex } from "@components/Flex";
 import { HeadingSecondary } from "@components/Heading";
 import { CloudDownloadIcon, CloudIcon, CloudUploadIcon, FolderIcon, UpdaterIcon } from "@components/Icons";
 import { Paragraph } from "@components/Paragraph";
-import { EquicordDevs } from "@utils/constants";
 import { insertTextIntoChatInputBox } from "@utils/discord";
 import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
@@ -310,7 +309,7 @@ const channelAttachMenuPatch: NavContextMenuPatchCallback = children => {
 export default definePlugin({
     name: "FloeP2PService",
     description: "Shares files and folders through Floe P2P CLI sessions.",
-    authors: [EquicordDevs.irritably],
+    authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Chat", "Utility", "Privacy", "Commands"],
     enabledByDefault: false,
     dependencies: ["CommandsAPI"],
