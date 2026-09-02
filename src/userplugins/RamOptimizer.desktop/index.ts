@@ -172,7 +172,7 @@ export default definePlugin({
     description: "Adaptively reduces memory used by Discord's Electron processes while in the background.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Utility", "Performance"],
-    enabledByDefault: true,
+    enabledByDefault: false,
     searchTerms: ["memory", "ram", "electron", "performance"],
     settings,
     commands: [
