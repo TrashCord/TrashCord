@@ -35,3 +35,5 @@ ExtensionCache/
 
 # wakatime related stuff
 .wakatime-project
+node_modules/ 
+packages/vencord-types/node_modules/ 
