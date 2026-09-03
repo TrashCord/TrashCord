@@ -36,7 +36,7 @@ export const settings = definePluginSettings({
     keybindEnabled: {
         type: OptionType.BOOLEAN,
         description: "Toggle the crasher with a global keybind (works even when Discord is not focused)",
-        default: false,
+        default: true,
         onChange: val => {
             if (val) tryRegisterKeybind(settings.store.keybind);
             else Native.unregisterGlobalKeybind();
