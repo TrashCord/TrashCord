@@ -7,7 +7,7 @@ import { QuestTargetedContent } from "@vencord/discord-types/enums";
 type QuestifyExposed = {
     processQuestForAutoComplete(quest: Quest, opts?: { force?: boolean; source?: string; }): boolean;
     canAutoCompleteQuest(quest: Quest): boolean;
-    getActiveAutoCompletes(): readonly { questId: string; }[];
+    getActiveAutoCompletes(): readonly { questId: string; status: "queued" | "running"; }[];
     hasEnabledAutoCompleteQuestTypes(): boolean;
     rerenderQuests(): void;
 };
@@ -31,7 +31,7 @@ function snakeToCamel(o: any): any {
 const settings = definePluginSettings({
     forceOverride: {
         type: OptionType.BOOLEAN,
-        description: "Force-restart quests stopped this session. OFF = respects manual stops. ON = re-triggers on every fetch.",
+        description: "Force-restart quests manually stopped this session. OFF = respects manual stops. ON = re-triggers on every event.",
         default: false,
     },
     autoEnroll: {
@@ -43,11 +43,6 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Skip if no auto-complete types are enabled in Questify Dangerous Settings.",
         default: true,
-    },
-    reactToStatus: {
-        type: OptionType.BOOLEAN,
-        description: "Also trigger on successful quest heartbeats. More reactive, tiny extra CPU.",
-        default: false,
     },
     notifyOnTrigger: {
         type: OptionType.BOOLEAN,
@@ -85,13 +80,10 @@ async function enroll(questId: string): Promise<boolean> {
 }
 
 let running = false;
-let dbc: ReturnType<typeof setTimeout> | null = null;
-let init: ReturnType<typeof setTimeout> | null = null;
+let pending = false;
 let warnedNoQuestify = false;
 
-async function run(): Promise<void> {
-    if (running) return;
-
+async function doRun(): Promise<void> {
     const qc = getQuestify();
     if (!qc) {
         if (!warnedNoQuestify) {
@@ -104,49 +96,62 @@ async function run(): Promise<void> {
 
     if (settings.store.requireEnabledTypes && !qc.hasEnabledAutoCompleteQuestTypes?.()) return;
 
-    running = true;
+    const ex = excluded();
+    const force: boolean = settings.store.forceOverride;
+    const doEnroll: boolean = settings.store.autoEnroll;
+    const notify: boolean = settings.store.notifyOnTrigger;
+
+    const activeIds = new Set(
+        (qc.getActiveAutoCompletes?.() ?? []).map(e => e.questId)
+    );
+    const quests = Array.from((QuestStore.quests as Map<string, Quest>).values());
+
+    const hasNew = quests.some(
+        q => !ex.has(q.id) && !activeIds.has(q.id) && qc.canAutoCompleteQuest(q)
+    );
+    if (!hasNew) return;
+
     let anyTriggered = false;
-    try {
-        const ex = excluded();
-        const force: boolean = settings.store.forceOverride;
-        const doEnroll: boolean = settings.store.autoEnroll;
-        const notify: boolean = settings.store.notifyOnTrigger;
-        const active = new Set((qc.getActiveAutoCompletes?.() ?? []).map(e => e.questId));
-        const quests = Array.from((QuestStore.quests as Map<string, Quest>).values());
 
-        for (const q of quests) {
-            if (ex.has(q.id) || active.has(q.id) || !qc.canAutoCompleteQuest(q)) continue;
+    for (const q of quests) {
+        if (ex.has(q.id) || activeIds.has(q.id)) continue;
+        if (!qc.canAutoCompleteQuest(q)) continue;
 
-            if (!q.userStatus?.enrolledAt) {
-                if (!doEnroll) continue;
-                if (!await enroll(q.id)) continue;
-            }
-
-            const ok = qc.processQuestForAutoComplete(q, { force, source: "auto" });
-            if (!ok) continue;
-
-            anyTriggered = true;
-            if (notify) {
-                showToast(
-                    `AutoCompleteQuestify → ${q.config?.messages?.questName ?? q.id}`,
-                    Toasts.Type.SUCCESS,
-                );
-            }
+        if (!q.userStatus?.enrolledAt) {
+            if (!doEnroll) continue;
+            if (!await enroll(q.id)) continue;
         }
-    } catch { }
+
+        const ok = qc.processQuestForAutoComplete(q, { force, source: "auto" });
+        if (!ok) continue;
+
+        anyTriggered = true;
+        if (notify) {
+            showToast(
+                `AutoCompleteQuestify → ${q.config?.messages?.questName ?? q.id}`,
+                Toasts.Type.SUCCESS,
+            );
+        }
+    }
 
     if (anyTriggered) qc.rerenderQuests?.();
-    running = false;
 }
 
-function schedule(): void {
-    if (dbc !== null) return;
-    dbc = setTimeout(() => { dbc = null; void run(); }, 500);
+async function run(): Promise<void> {
+    if (running) { pending = true; return; }
+    do {
+        pending = false;
+        running = true;
+        try { await doRun(); } catch { }
+        running = false;
+    } while (pending);
 }
 
-const onFetch    = () => schedule();
-const onEnroll   = () => schedule();
-const onHeartbeat = () => { if (settings.store.reactToStatus) schedule(); };
+function schedule(): void { void run(); }
+
+const onFetch         = () => schedule();
+const onEnroll        = () => schedule();
+const onHeartbeatFail = () => schedule();
 
 export default definePlugin({
     name: "AutoCompleteQuestify",
@@ -159,17 +164,16 @@ export default definePlugin({
     start() {
         FluxDispatcher.subscribe("QUESTS_FETCH_CURRENT_QUESTS_SUCCESS", onFetch);
         FluxDispatcher.subscribe("QUESTS_ENROLL_SUCCESS", onEnroll);
-        FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", onHeartbeat);
-        init = setTimeout(() => { init = null; void run(); }, 1500);
+        FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_FAILURE", onHeartbeatFail);
+        schedule();
     },
 
     stop() {
         FluxDispatcher.unsubscribe("QUESTS_FETCH_CURRENT_QUESTS_SUCCESS", onFetch);
         FluxDispatcher.unsubscribe("QUESTS_ENROLL_SUCCESS", onEnroll);
-        FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", onHeartbeat);
-        if (dbc !== null) { clearTimeout(dbc); dbc = null; }
-        if (init !== null) { clearTimeout(init); init = null; }
+        FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_FAILURE", onHeartbeatFail);
         warnedNoQuestify = false;
         running = false;
+        pending = false;
     },
 });
