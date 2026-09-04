@@ -97,26 +97,21 @@ async function doRun(): Promise<void> {
     if (settings.store.requireEnabledTypes && !qc.hasEnabledAutoCompleteQuestTypes?.()) return;
 
     const ex = excluded();
-    const force: boolean = settings.store.forceOverride;
-    const doEnroll: boolean = settings.store.autoEnroll;
-    const notify: boolean = settings.store.notifyOnTrigger;
-
     const activeIds = new Set(
         (qc.getActiveAutoCompletes?.() ?? []).map(e => e.questId)
     );
-    const quests = Array.from((QuestStore.quests as Map<string, Quest>).values());
 
-    const hasNew = quests.some(
-        q => !ex.has(q.id) && !activeIds.has(q.id) && qc.canAutoCompleteQuest(q)
-    );
-    if (!hasNew) return;
+    const eligible = (Array.from((QuestStore.quests as Map<string, Quest>).values()))
+        .filter(q => !ex.has(q.id) && !activeIds.has(q.id) && qc.canAutoCompleteQuest(q));
 
+    if (eligible.length === 0) return;
+
+    const force: boolean = settings.store.forceOverride;
+    const doEnroll: boolean = settings.store.autoEnroll;
+    const notify: boolean = settings.store.notifyOnTrigger;
     let anyTriggered = false;
 
-    for (const q of quests) {
-        if (ex.has(q.id) || activeIds.has(q.id)) continue;
-        if (!qc.canAutoCompleteQuest(q)) continue;
-
+    for (const q of eligible) {
         if (!q.userStatus?.enrolledAt) {
             if (!doEnroll) continue;
             if (!await enroll(q.id)) continue;
