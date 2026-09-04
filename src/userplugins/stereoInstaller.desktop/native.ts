@@ -1270,7 +1270,7 @@ async function scheduleWorker(actionName: "Patch" | "Revert", sourceDir: string,
     await writeFile(workerScript, usePowershellWorker ? POWERSHELL_WORKER_SOURCE : WORKER_SOURCE, "utf8");
     await writeFile(configPath, JSON.stringify(config), "utf8");
     if (usePowershellWorker) {
-        await writeFile(launcherScript, windowsLauncherSource(workerExecutable, workerScript, configPath, logPath()), "utf8");
+        await writeFile(launcherScript, windowsLauncherSource(workerExecutable, workerScript, configPath, logPath(), actionName === "Patch" ? "Applying patch" : "Removing patch"), "utf8");
     }
 
     log.info(`Logging actions to: ${logPath()}`);
@@ -1376,8 +1376,14 @@ function powershellPath(): string {
     return existsSync(candidate) ? candidate : "powershell.exe";
 }
 
-function windowsLauncherSource(powershellExecutable: string, workerScript: string, configPath: string, logPathValue: string): string {
+function windowsLauncherSource(powershellExecutable: string, workerScript: string, configPath: string, logPathValue: string, actionLabel: string): string {
     return `@echo off
+title StereoInstaller
+color 0B
+echo ==========================================
+echo   StereoInstaller
+echo   ${actionLabel}, please wait...
+echo ==========================================
 setlocal
 set "POWERSHELL=${powershellExecutable}"
 set "SCRIPT=${workerScript}"
