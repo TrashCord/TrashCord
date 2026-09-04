@@ -96,6 +96,10 @@ let altListenerId = 0;
 let voidSolverTask: VoidSolverTaskResult | undefined;
 const queue: ClaimRequest[] = [];
 
+function log(...a: any[]) { if (settings.store.debugLogs) console.log("[NitroSniper]", ...a); }
+function warn(...a: any[]) { if (settings.store.debugLogs) console.warn("[NitroSniper]", ...a); }
+function err(...a: any[]) { if (settings.store.debugLogs) console.error("[NitroSniper]", ...a); }
+
 function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)); }
 function jitter(min: number, max: number) { return min + Math.floor(Math.random() * Math.max(1, max - min)); }
 
@@ -436,6 +440,12 @@ const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         description: "Send a test message to the configured webhook.",
         component: TestWebhookButton
+    },
+    debugLogs: {
+        type: OptionType.BOOLEAN,
+        description: "Log NitroSniper activity to the console.",
+        default: false,
+        restartNeeded: false
     }
 });
 
@@ -465,6 +475,7 @@ function buildLocationLabel(r: ClaimRequest): string {
 function notifySuccess(request: ClaimRequest, giftType: string | null, task?: VoidSolverTaskResult) {
     successes++;
     const location = buildLocationLabel(request);
+    log(`Redeemed ${request.code} (${successes}/${attempts})`);
     if (settings.store.notifySuccess) {
         showToast(`🎉 Nitro ${successes}/${attempts} | ${buildSummary(request.code.slice(0, 16), giftType, location)}`, Toasts.Type.SUCCESS);
     }
@@ -475,14 +486,15 @@ function notifySuccess(request: ClaimRequest, giftType: string | null, task?: Vo
         successAudio.currentTime = 0;
         successAudio.play().catch(() => {});
     }
-    void sendClaimWebhook(settings.store.webhookUrl, "claimed", request, giftType, task).catch(() => {});
+    void sendClaimWebhook(settings.store.webhookUrl, "claimed", request, giftType, task).catch(e => err("claim webhook failed", e));
 }
 
 function notifyFailure(request: ClaimRequest, reason: string, giftType: string | null = null, task?: VoidSolverTaskResult) {
+    log(`Failed ${request.code}: ${reason}`);
     if (settings.store.notifyFail) {
         showToast(`Failed | ${buildSummary(request.code.slice(0, 16), giftType, reason)}`, Toasts.Type.FAILURE);
     }
-    void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType, task).catch(() => {});
+    void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType, task).catch(e => err("failure webhook failed", e));
 }
 
 function extractGiftType(body: any): string | null {
@@ -507,7 +519,7 @@ async function precheck(code: string): Promise<{ ok: boolean; reason?: string; g
         if (body?.expires_at && Date.parse(body.expires_at) < Date.now()) return { ok: false, reason: "expired", giftType };
         return { ok: true, giftType };
     } catch (e: any) {
-        if (isCaptchaError(e?.body)) return { ok: true, giftType: null };
+        if (isCaptchaError(e?.body)) { warn("captcha on precheck, skipping"); return { ok: true, giftType: null }; }
         if (e?.status === 404) return { ok: false, reason: "invalid", giftType: null };
         return { ok: true, giftType: null };
     }
@@ -541,6 +553,7 @@ async function redeemCode(request: ClaimRequest, isRetry = false, giftTypePromis
         notifySuccess(request, resolvedGiftType, voidSolverTask);
     } catch (e: any) {
         if (isCaptchaError(e?.body)) {
+            warn(`captcha detected for ${request.code}`);
             showToast("NitroSniper: captcha - solving automatically...", Toasts.Type.FAILURE);
             GiftActions?.redeemGiftCode?.({
                 code: request.code,
@@ -551,6 +564,7 @@ async function redeemCode(request: ClaimRequest, isRetry = false, giftTypePromis
         }
         if (e?.status === 429) {
             const retryAfter = ((e?.body?.retry_after ?? 5) * 1000) + 250;
+            warn(`rate limited, retrying ${request.code} in ${retryAfter}ms`);
             showToast(`NitroSniper: rate limited, retrying in ${Math.ceil(retryAfter / 1000)}s...`, Toasts.Type.FAILURE);
             await sleep(retryAfter);
             await redeemCode(request, true, pendingGiftType);
@@ -596,14 +610,16 @@ async function listenForNightyAltGifts() {
     const listenerId = ++altListenerId;
     try {
         const error = await native.startNightyAltDetection();
-        if (error) return;
+        if (error) { warn(error); return; }
 
         while (listenerId === altListenerId) {
             const detection = await native.waitForNightyGiftCode();
             if (!detection || listenerId !== altListenerId) return;
             enqueueNightyDetection(detection);
         }
-    } catch {}
+    } catch (e) {
+        err("nighty alt detection failed", e);
+    }
 }
 
 export default definePlugin({
@@ -646,6 +662,7 @@ export default definePlugin({
         );
         voidSolverTask = result.task;
         if (!result.success || !result.token) {
+            warn(result.error ?? "captcha solve failed");
             return showCaptcha(props);
         }
 
