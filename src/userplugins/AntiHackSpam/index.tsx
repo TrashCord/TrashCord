@@ -38,7 +38,7 @@ const RestAPI              = findByPropsLazy("post", "del", "patch");
 const SearchActions        = findByPropsLazy("searchMessages", "fetchMessages");
 const PrivateChannelsStore = findByPropsLazy("getSortedPrivateChannels");
 
-const DEF_BLACKLIST = "cdn.discordapp.com,u.to"; // steamcommunity.com
+const DEF_BLACKLIST = "cdn.discordapp.com,u.to";
 const DEF_WHITELIST = "discord.com,discord.gg,media.discordapp.net,tenor.com,giphy.com,store.steampowered.com,google.com,youtube.com,spotify.com,open.spotify.com";
 
 const settings = definePluginSettings({
@@ -59,7 +59,7 @@ const settings = definePluginSettings({
     },
     requireMentions: {
         type: OptionType.BOOLEAN,
-        description: "Skip messages with zero effective mentions — requires mention+attachment/link in the SAME message",
+        description: "Skip messages with zero effective mentions - requires mention+attachment/link in the SAME message",
         default: true,
     },
     requireAttachmentsOrLinks: {
@@ -84,7 +84,7 @@ const settings = definePluginSettings({
     },
     spamImageHashes: {
         type: OptionType.STRING,
-        description: "Comma-separated CDN image hash fragments for purge — ⚠️ Discord changes hashes on re-upload",
+        description: "Comma-separated CDN image hash fragments for purge - ⚠️ Discord changes hashes on re-upload",
         default: "b859ab74,2a97e2fb,10aa26b3,ea80b33a",
     },
     blacklistDomains: {
@@ -99,12 +99,12 @@ const settings = definePluginSettings({
     },
     deleteCooldownMs: {
         type: OptionType.NUMBER,
-        description: "Delay between bulk-delete API calls (ms) — raise on slow PCs",
+        description: "Delay between bulk-delete API calls (ms) - raise on slow PCs",
         default: 1200,
     },
     maxPagesPerChannel: {
         type: OptionType.NUMBER,
-        description: "Max pages (x100 msgs) per channel during purge — more = thorough but slower",
+        description: "Max pages (x100 msgs) per channel during purge - more = thorough but slower",
         default: 10,
     },
 });
@@ -112,8 +112,6 @@ const settings = definePluginSettings({
 const tsRings      = new Map<string, Float64Array>();
 const tsHeads      = new Map<string, number>();
 const tsCounts     = new Map<string, number>();
-let   ringHead     = 0;
-let   ringCount    = 0;
 let   cachedUid    = "";
 const blocked      = new Set<string>();
 const channelBuf   = new Map<string, string[]>();
@@ -247,6 +245,8 @@ async function deleteMessage(channelId: string, id: string): Promise<void> {
 const idle: (cb: () => void) => void =
     typeof requestIdleCallback !== "undefined" ? requestIdleCallback : cb => setTimeout(cb, 0);
 
+const BLOCK_TTL_MS = 30_000;
+
 function blockIds(cid: string, ids: string[]): void {
     for (const id of ids) {
         blocked.add(id);
@@ -254,6 +254,7 @@ function blockIds(cid: string, ids: string[]): void {
     }
     if (settings.store.autoDelete)
         for (const id of ids) idle(() => deleteMessage(cid, id));
+    setTimeout(() => { for (const id of ids) blocked.delete(id); }, BLOCK_TTL_MS);
 }
 
 function onMessage({ message: msg }: { message: Message }): void {
@@ -270,7 +271,7 @@ function onMessage({ message: msg }: { message: Message }): void {
     if (isPurging(msg.channel_id)) {
         if (hasSuspiciousContent(msg)) {
             blockIds(msg.channel_id, [msg.id]);
-            showToast("⚠️ AntiHackSpam: purge mode active — message removed!", Toasts.Type.FAILURE);
+            showToast("⚠️ AntiHackSpam: purge mode active - message removed!", Toasts.Type.FAILURE);
         }
         return;
     }
@@ -418,8 +419,8 @@ async function purgeSpamMessages(
 
     purgeRunning = false;
     const finalMsg = abortPurge
-        ? `🛑 Stopped — ${deleted} deleted.`
-        : `✅ Finished — ${deleted} deleted, ${errors} error(s).`;
+        ? `🛑 Stopped - ${deleted} deleted.`
+        : `✅ Finished - ${deleted} deleted, ${errors} error(s).`;
 
     notifyListeners(finalMsg, deleted, true);
     showToast(finalMsg, abortPurge ? Toasts.Type.MESSAGE : Toasts.Type.SUCCESS);
@@ -533,7 +534,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                     <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Image Hashes</Forms.FormTitle>
                     <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
                         Comma-separated hash fragments matched against CDN attachments.
-                        ⚠️ Discord changes hashes on re-upload — older messages may not match.
+                        ⚠️ Discord changes hashes on re-upload - older messages may not match.
                     </Forms.FormText>
                     <TextInput value={hashes} onChange={setHashes} placeholder="b859ab74,2a97e2fb,…" disabled={running} />
                 </Forms.FormSection>
@@ -554,7 +555,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                 <Forms.FormSection>
                     <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Whitelisted Domains</Forms.FormTitle>
                     <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
-                        These domains are never treated as spam — whitelist always overrides blacklist.
+                        These domains are never treated as spam - whitelist always overrides blacklist.
                     </Forms.FormText>
                     <TextInput value={whitelist} onChange={setWhitelist} placeholder="discord.com,tenor.com,…" disabled={running} />
                 </Forms.FormSection>
@@ -600,7 +601,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                         onClick={start}
                         disabled={!hashes.trim() && !blacklist.trim()}
                       >
-                        {done ? "✓ Done — Run Again" : "🗑️ Start Purge"}
+                        {done ? "✓ Done - Run Again" : "🗑️ Start Purge"}
                       </Button>
                 }
                 <Button color={Button.Colors.TRANSPARENT} look={Button.Looks.LINK} onClick={modalProps.onClose}>
@@ -614,7 +615,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
 export default definePlugin({
     name: "AntiHackSpam",
     description: "Blocks & deletes spam from hacked account (image floods + mass mentions). Includes bulk-purge tool.",
-    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    authors: [{ name: "zfrxncesck1", id: 456195985404592149n }],
     tags: ["Chat", "Privacy", "Utility"],
     enabledByDefault: false,
     settings,
@@ -624,7 +625,7 @@ export default definePlugin({
             <div style={{ marginTop: 8 }}>
                 <Forms.FormText style={{ marginBottom: 10, color: "var(--text-normal, #dcddde)" }}>
                     ⚙️ Detection accuracy improves when <b>Require Mentions</b> and <b>Require Attachments or Links</b>
-                    are both enabled — spam is only flagged when mentions + image/blacklisted link appear in the <b>same message</b>.
+                    are both enabled - spam is only flagged when mentions + image/blacklisted link appear in the <b>same message</b>.
                     Messages with mentions alone (no image or blacklisted link) will never be flagged.
                 </Forms.FormText>
                 <Button
@@ -669,7 +670,6 @@ export default definePlugin({
         tsRings.clear();
         tsHeads.clear();
         tsCounts.clear();
-        ringHead = ringCount = 0;
         cachedUid = "";
         blocked.clear();
         channelBuf.clear();
