@@ -34,8 +34,8 @@ interface Message {
 }
 interface SearchHit { id: string; channel_id: string; author?: { id: string }; attachments?: Attachment[]; content?: string; }
 
-const RestAPI              = findByPropsLazy("post", "del", "patch");
-const SearchActions        = findByPropsLazy("searchMessages", "fetchMessages");
+const RestAPI              = findByPropsLazy("get", "post", "put", "patch", "del");
+const GuildChannelStore    = findByPropsLazy("getChannels", "getDefaultChannel");
 const PrivateChannelsStore = findByPropsLazy("getSortedPrivateChannels");
 
 const DEF_BLACKLIST = "cdn.discordapp.com,u.to";
@@ -84,7 +84,7 @@ const settings = definePluginSettings({
     },
     spamImageHashes: {
         type: OptionType.STRING,
-        description: "Comma-separated CDN image hash fragments for purge - ⚠️ Discord changes hashes on re-upload",
+        description: "Comma-separated attachment ID fragments or hash fragments to match CDN URLs - paste the numeric ID from a spam attachment's URL for a permanent match",
         default: "b859ab74,2a97e2fb,10aa26b3,ea80b33a",
     },
     blacklistDomains: {
@@ -96,6 +96,21 @@ const settings = definePluginSettings({
         type: OptionType.STRING,
         description: "Domains never treated as spam links (whitelist overrides blacklist)",
         default: DEF_WHITELIST,
+    },
+    keywordFilters: {
+        type: OptionType.STRING,
+        description: "Comma-separated text patterns (e.g. @everyone,@here) - instantly flagged when found together with an attachment or link, used in live detection + purge scan",
+        default: "@everyone,@here",
+    },
+    autoCleanHistory: {
+        type: OptionType.BOOLEAN,
+        description: "When live detection triggers, also scan and delete matching messages already sent earlier in that channel",
+        default: true,
+    },
+    autoCleanPages: {
+        type: OptionType.NUMBER,
+        description: "Max pages (x100 msgs) to check per channel during auto-cleanup - keep low on slow PCs",
+        default: 2,
     },
     deleteCooldownMs: {
         type: OptionType.NUMBER,
@@ -218,6 +233,23 @@ function getWlRe(): RegExp {
     return cachedWlRe!;
 }
 
+let cachedKwStr  = "";
+let cachedKwList: string[] = [];
+
+function getKeywords(): string[] {
+    if (cachedKwStr !== settings.store.keywordFilters) {
+        cachedKwStr  = settings.store.keywordFilters;
+        cachedKwList = cachedKwStr.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return cachedKwList;
+}
+
+function contentHasKeyword(content: string): boolean {
+    if (!content) return false;
+    const lc = content.toLowerCase();
+    return getKeywords().some(k => lc.includes(k));
+}
+
 function contentHasBlacklistedLink(content: string): boolean {
     if (!content) return false;
     const urls = content.match(/https?:\/\/[^\s<>]+/gi) ?? [];
@@ -257,38 +289,102 @@ function blockIds(cid: string, ids: string[]): void {
     setTimeout(() => { for (const id of ids) blocked.delete(id); }, BLOCK_TTL_MS);
 }
 
+let sweepingChannels = new Set<string>();
+
+async function autoSweepChannel(cid: string, excludeIds: string[]): Promise<void> {
+    if (!settings.store.autoCleanHistory) return;
+    if (sweepingChannels.has(cid)) return;
+    if (!RestAPI?.get) return;
+    sweepingChannels.add(cid);
+
+    const uid     = getUid();
+    const hashes  = getSpamHashes(settings.store.spamImageHashes);
+    const exclude = new Set(excludeIds);
+    const maxP    = Math.max(1, settings.store.autoCleanPages);
+    const delay   = settings.store.deleteCooldownMs;
+
+    try {
+        let before: string | undefined;
+        for (let page = 0; page < maxP; page++) {
+            const q: Record<string, string> = { limit: "100" };
+            if (before) q.before = before;
+
+            let res;
+            try { res = await RestAPI.get({ url: `/channels/${cid}/messages`, query: q }); }
+            catch { break; }
+
+            const msgs = (res?.body ?? []) as SearchHit[];
+            if (!msgs.length) break;
+            before = msgs[msgs.length - 1].id;
+
+            for (const m of msgs) {
+                if (m.author?.id !== uid) continue;
+                if (exclude.has(m.id) || blocked.has(m.id)) continue;
+
+                const content   = m.content ?? "";
+                const hasAttach = (m.attachments?.length ?? 0) > 0;
+                const isMatch   = hasSpamAttachment(m, hashes)
+                    || contentHasBlacklistedLink(content)
+                    || (hasAttach && contentHasKeyword(content));
+
+                if (!isMatch) continue;
+
+                blocked.add(m.id);
+                dispatchDelete(m.channel_id, m.id);
+                idle(() => deleteMessage(m.channel_id, m.id));
+                await sleep(delay);
+            }
+
+            if (msgs.length < 100) break;
+        }
+    } finally {
+        sweepingChannels.delete(cid);
+    }
+}
+
 function onMessage({ message: msg }: { message: Message }): void {
     if (msg.author.id !== getUid()) return;
 
-    // Blacklist exception: always block immediately, no settings respected
     if (contentHasBlacklistedLink(msg.content)) {
         blockIds(msg.channel_id, [msg.id]);
-        showToast("⚠️ AntiHackSpam: blacklisted link removed!", Toasts.Type.FAILURE);
+        showToast("⚠️ Plugin: blacklisted link removed.", Toasts.Type.FAILURE);
+        autoSweepChannel(msg.channel_id, [msg.id]);
         return;
     }
 
-    // Purge mode: block anything suspicious in this channel for PURGE_WINDOW ms
     if (isPurging(msg.channel_id)) {
         if (hasSuspiciousContent(msg)) {
             blockIds(msg.channel_id, [msg.id]);
-            showToast("⚠️ AntiHackSpam: purge mode active - message removed!", Toasts.Type.FAILURE);
+            showToast("⚠️ Plugin: purge mode active - message removed.", Toasts.Type.FAILURE);
         }
         return;
     }
 
     if (isCooled(msg.channel_id)) return;
 
-    const eff     = effectiveMentions(msg);
-    const hasLink = contentHasAnyNonWhitelistedLink(msg.content);
-    const hasFile = msg.attachments.length > 0;
-    const hasSus  = hasLink || hasFile;
+    const eff       = effectiveMentions(msg);
+    const hasLink   = contentHasAnyNonWhitelistedLink(msg.content);
+    const hasFile   = msg.attachments.length > 0;
+    const hasSus    = hasLink || hasFile;
+    const hasKeyword = contentHasKeyword(msg.content);
+
+    if (hasKeyword && hasSus) {
+        blockIds(msg.channel_id, [msg.id]);
+        startPurge(msg.channel_id);
+        showToast("⚠️ Plugin: keyword + attachment/link match - message blocked.", Toasts.Type.FAILURE);
+        autoSweepChannel(msg.channel_id, [msg.id]);
+        return;
+    }
 
     if (settings.store.requireMentions && eff === 0) return;
     if (settings.store.requireAttachmentsOrLinks && !hasSus) return;
 
-    bufferMsg(msg.channel_id, msg.id);
     const now = Date.now();
-    pushTsChan(msg.channel_id, now);
+    const alreadyBuffered = (channelBuf.get(msg.channel_id) ?? []).includes(msg.id);
+    if (!alreadyBuffered) {
+        bufferMsg(msg.channel_id, msg.id);
+        pushTsChan(msg.channel_id, now);
+    }
 
     const meetsThreshold = eff >= settings.store.minMentions &&
         (!settings.store.requireAttachmentsOrLinks || hasSus);
@@ -300,7 +396,11 @@ function onMessage({ message: msg }: { message: Message }): void {
         if (!toDelete.includes(msg.id)) toDelete.push(msg.id);
         blockIds(msg.channel_id, toDelete);
         startPurge(msg.channel_id);
-        showToast(`⚠️ AntiHackSpam: ${toDelete.length} spam message(s) blocked!`, Toasts.Type.FAILURE);
+        showToast(
+            `⚠️ Plugin: blocked ${toDelete.length} spam message(s) - your account may be hacked. Run a malware scan (Malwarebytes and AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC. This only blocks new spam, not messages sent before detection.`,
+            Toasts.Type.FAILURE,
+        );
+        autoSweepChannel(msg.channel_id, toDelete);
     }
 }
 
@@ -334,6 +434,7 @@ async function purgeSpamMessages(
     hashesRaw: string,
     blacklistRaw: string,
     whitelistRaw: string,
+    keywordsRaw: string,
     scanDMs: boolean,
     scanGuilds: boolean,
 ): Promise<void> {
@@ -342,16 +443,23 @@ async function purgeSpamMessages(
     purgeRunning = true;
     purgeDeleted = 0;
 
-    const uid    = getUid();
-    const hashes = getSpamHashes(hashesRaw);
-    const delay  = settings.store.deleteCooldownMs;
-    const maxP   = settings.store.maxPagesPerChannel;
-    const blRe   = makeDomainRe(blacklistRaw);
-    const wlRe   = makeDomainRe(whitelistRaw);
+    const uid      = getUid();
+    const hashes   = getSpamHashes(hashesRaw);
+    const delay    = settings.store.deleteCooldownMs;
+    const maxP     = settings.store.maxPagesPerChannel;
+    const blRe     = makeDomainRe(blacklistRaw);
+    const wlRe     = makeDomainRe(whitelistRaw);
+    const keywords = keywordsRaw.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
 
     function hitsBl(content: string): boolean {
         const urls = (content ?? "").match(/https?:\/\/[^\s<>]+/gi) ?? [];
         return urls.some(u => blRe.test(u) && !wlRe.test(u));
+    }
+
+    function hitsKeyword(content: string, hasAttachment: boolean): boolean {
+        if (!hasAttachment || !content || !keywords.length) return false;
+        const lc = content.toLowerCase();
+        return keywords.some(k => lc.includes(k));
     }
 
     if (!uid) {
@@ -375,11 +483,10 @@ async function purgeSpamMessages(
             for (const g of Object.values(GuildStore.getGuilds()) as { id: string }[]) {
                 if (abortPurge) break;
                 try {
-                    const res = await SearchActions.searchMessages({ guildId: g.id, authorId: uid, limit: 25 });
-                    for (const m of (res?.messages?.flat() ?? []) as SearchHit[])
-                        channelIds.add(m.channel_id);
+                    const chans = GuildChannelStore.getChannels(g.id);
+                    const selectable = (chans?.SELECTABLE ?? []) as { channel: { id: string } }[];
+                    for (const { channel } of selectable) channelIds.add(channel.id);
                 } catch { }
-                await sleep(300);
             }
         } catch { }
     }
@@ -403,7 +510,8 @@ async function purgeSpamMessages(
                 for (const m of msgs) {
                     if (abortPurge) break;
                     if (m.author?.id !== uid) continue;
-                    if (!hasSpamAttachment(m, hashes) && !hitsBl(m.content ?? "")) continue;
+                    const hasAttach = (m.attachments?.length ?? 0) > 0;
+                    if (!hasSpamAttachment(m, hashes) && !hitsBl(m.content ?? "") && !hitsKeyword(m.content ?? "", hasAttach)) continue;
                     deleted++;
                     notifyListeners(`🗑️ Deleting message ${deleted}…`, deleted, false);
                     await deleteMessage(m.channel_id, m.id);
@@ -485,6 +593,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
     const [hashes,    setHashes]    = React.useState(settings.store.spamImageHashes);
     const [blacklist, setBlacklist] = React.useState(settings.store.blacklistDomains);
     const [whitelist, setWhitelist] = React.useState(settings.store.whitelistDomains);
+    const [keywords,  setKeywords]  = React.useState(settings.store.keywordFilters);
 
     React.useEffect(() => {
         const listener = (s: string, d: number, isDone: boolean) => {
@@ -503,7 +612,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
         setDeleted(0);
         setStatus("Starting…");
         setRunning(true);
-        purgeSpamMessages(hashes, blacklist, whitelist, scanDMs, scanG);
+        purgeSpamMessages(hashes, blacklist, whitelist, keywords, scanDMs, scanG);
     }
 
     function stop() {
@@ -530,13 +639,27 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
             </ModalHeader>
 
             <ModalContent style={{ padding: "16px 16px 8px", overflowX: "hidden" }}>
+                <div style={{
+                    background: "rgba(250, 166, 26, 0.1)",
+                    border: "1px solid #faa61a",
+                    borderRadius: 6,
+                    padding: "10px 12px",
+                    marginBottom: 14,
+                    fontSize: 13,
+                    color: "var(--text-normal, #dcddde)",
+                }}>
+                    ⚠️ Experimental. This scan depends on internal Discord APIs that change over time and may miss
+                    messages, especially older ones or messages in servers with many channels. Always double-check
+                    important channels yourself after running it.
+                </div>
+
                 <Forms.FormSection>
                     <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Image Hashes</Forms.FormTitle>
                     <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
-                        Comma-separated hash fragments matched against CDN attachments.
-                        ⚠️ Discord changes hashes on re-upload - older messages may not match.
+                        Comma-separated hash fragments or attachment ID fragments matched against CDN URLs.
+                        Paste the numeric ID from a spam attachment's URL for a match that won't expire.
                     </Forms.FormText>
-                    <TextInput value={hashes} onChange={setHashes} placeholder="b859ab74,2a97e2fb,…" disabled={running} />
+                    <TextInput value={hashes} onChange={setHashes} placeholder="b859ab74,1548028513221615666,…" disabled={running} />
                 </Forms.FormSection>
 
                 <Forms.FormDivider style={{ margin: "12px 0" }} />
@@ -558,6 +681,17 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                         These domains are never treated as spam - whitelist always overrides blacklist.
                     </Forms.FormText>
                     <TextInput value={whitelist} onChange={setWhitelist} placeholder="discord.com,tenor.com,…" disabled={running} />
+                </Forms.FormSection>
+
+                <Forms.FormDivider style={{ margin: "12px 0" }} />
+
+                <Forms.FormSection>
+                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Keyword Filters</Forms.FormTitle>
+                    <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
+                        Comma-separated text patterns. A past message from you is deleted only when it also has an
+                        attachment - plain text matches alone are never touched.
+                    </Forms.FormText>
+                    <TextInput value={keywords} onChange={setKeywords} placeholder="@everyone,@here,…" disabled={running} />
                 </Forms.FormSection>
 
                 <Forms.FormDivider style={{ margin: "12px 0" }} />
@@ -634,6 +768,9 @@ export default definePlugin({
                 >
                     🧹 Open Purge Tool
                 </Button>
+                <Forms.FormText style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted, #72767d)" }}>
+                    ⚠️ Purge Tool is experimental and may not catch every old message.
+                </Forms.FormText>
             </div>
         );
     },
@@ -663,10 +800,12 @@ export default definePlugin({
     start() {
         cachedUid = "";
         FluxDispatcher.subscribe("MESSAGE_CREATE", onMessage);
+        FluxDispatcher.subscribe("MESSAGE_UPDATE", onMessage);
     },
 
     stop() {
         FluxDispatcher.unsubscribe("MESSAGE_CREATE", onMessage);
+        FluxDispatcher.unsubscribe("MESSAGE_UPDATE", onMessage);
         tsRings.clear();
         tsHeads.clear();
         tsCounts.clear();
@@ -675,10 +814,13 @@ export default definePlugin({
         channelBuf.clear();
         channelPurge.clear();
         channelCool.clear();
+        sweepingChannels.clear();
         abortPurge = true;
         purgeRunning = false;
         purgeListeners = [];
         cachedBlRe = cachedWlRe = null;
         cachedBlStr = cachedWlStr = "";
+        cachedKwStr = "";
+        cachedKwList = [];
     },
 });
