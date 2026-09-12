@@ -30,12 +30,12 @@ function useIsRunning() {
 }
 
 const settings = definePluginSettings({
-    muteAllDMs: {
+    muteAllDms: {
         type: OptionType.BOOLEAN,
         description: "Mute DMs instead of unmuting them when applying",
-        default: false,
+        default: true,
     },
-    includeGroupDMs: {
+    includeGroupDms: {
         type: OptionType.BOOLEAN,
         description: "Include group DMs in the action",
         default: true,
@@ -54,54 +54,24 @@ const settings = definePluginSettings({
     },
 });
 
-function getToken(): string {
-    return findByProps("getToken")?.getToken?.() ?? "";
+function getUpdateChannelOverrideSettings(): ((channelId: string, settings: Record<string, unknown>) => Promise<void>) | undefined {
+    return findByProps("updateChannelOverrideSettings")?.updateChannelOverrideSettings;
 }
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-async function patchChannelOverrides(overrides: Record<string, unknown>): Promise<void> {
-    const token = getToken();
-    if (!token) throw new Error("No token");
-
-    while (true) {
-        const res = await fetch("https://discord.com/api/v9/users/@me/guilds/settings", {
-            method: "PATCH",
-            headers: {
-                "Authorization": token,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ guilds: { "@me": { channel_overrides: overrides } } }),
-        });
-
-        if (res.ok) return;
-
-        if (res.status === 429) {
-            let waitMs = 3000;
-            try {
-                const body = await res.clone().json();
-                if (body.retry_after) waitMs = Math.ceil(body.retry_after * 1000) + 500;
-            } catch { }
-            await sleep(waitMs);
-            continue;
-        }
-
-        throw new Error(`HTTP ${res.status}`);
-    }
-}
-
 function buildOverride(): Record<string, unknown> {
     const s = settings.store;
     return {
-        muted: s.muteAllDMs,
-        mute_config: s.muteAllDMs ? { selected_time_window: s.duration, end_time: null } : null,
+        muted: s.muteAllDms,
+        mute_config: s.muteAllDms ? { selected_time_window: s.duration, end_time: null } : null,
     };
 }
 
 function getTargetChannelIds(): string[] {
     const s = settings.store;
     return ChannelStore.getSortedPrivateChannels()
-        .filter(c => c.type === CHANNEL_TYPE_DM || (s.includeGroupDMs && c.type === CHANNEL_TYPE_GROUP_DM))
+        .filter(c => c.type === CHANNEL_TYPE_DM || (s.includeGroupDms && c.type === CHANNEL_TYPE_GROUP_DM))
         .map(c => c.id);
 }
 
@@ -109,28 +79,33 @@ async function applyToAllDMs(): Promise<void> {
     if (isRunning) return;
     setRunning(true);
 
+    const update = getUpdateChannelOverrideSettings();
+    if (!update) {
+        setRunning(false);
+        Toasts.show({
+            message: "Could not find the internal update function.",
+            type: Toasts.Type.FAILURE,
+            id: Toasts.genId(),
+        });
+        return;
+    }
+
     const ids = getTargetChannelIds();
     const field = buildOverride();
-    const CHUNK = 200;
     let ok = 0, fail = 0;
 
-    for (let i = 0; i < ids.length; i += CHUNK) {
-        const chunk = ids.slice(i, i + CHUNK);
-        const overrides: Record<string, unknown> = {};
-        for (const id of chunk) overrides[id] = field;
-
+    for (const id of ids) {
         try {
-            await patchChannelOverrides(overrides);
-            ok += chunk.length;
+            await update(id, field);
+            ok++;
         } catch {
-            fail += chunk.length;
+            fail++;
         }
-
-        if (i + CHUNK < ids.length) await sleep(500);
+        await sleep(300);
     }
 
     setRunning(false);
-    const scope = settings.store.includeGroupDMs ? "DMs + group DMs" : "DMs only (group DMs excluded)";
+    const scope = settings.store.includeGroupDms ? "DMs + group DMs" : "DMs only (group DMs excluded)";
     Toasts.show({
         message: fail === 0
             ? `Applied to ${ok} DMs. Scope: ${scope}.`
@@ -141,7 +116,7 @@ async function applyToAllDMs(): Promise<void> {
 }
 
 export default definePlugin({
-    name: "AutoDMNotifications",
+    name: "AutoDMnotifications",
     description: "Mute or unmute notifications for all DMs (not servers), with the option to include or exclude group DMs.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["DM", "Notifications", "Mute", "Private", "Auto"],
