@@ -38,7 +38,7 @@ const RestAPI              = findByPropsLazy("get", "post", "put", "patch", "del
 const GuildChannelStore    = findByPropsLazy("getChannels", "getDefaultChannel");
 const PrivateChannelsStore = findByPropsLazy("getSortedPrivateChannels");
 
-const DEF_BLACKLIST = "cdn.discordapp.com,u.to";
+const DEF_BLACKLIST = "u.to";
 const DEF_WHITELIST = "discord.com,discord.gg,media.discordapp.net,tenor.com,giphy.com,store.steampowered.com,google.com,youtube.com,spotify.com,open.spotify.com";
 
 const settings = definePluginSettings({
@@ -99,7 +99,7 @@ const settings = definePluginSettings({
     },
     keywordFilters: {
         type: OptionType.STRING,
-        description: "Comma-separated text patterns (e.g. @everyone,@here) - instantly flagged when found together with an attachment or link, used in live detection + purge scan",
+        description: "Comma-separated text patterns (e.g. @everyone,@here) - in live detection, instantly flagged only when found together with BOTH an attachment/link AND a mention of a specific person; in purge scan, flagged with just an attachment",
         default: "@everyone,@here",
     },
     autoCleanHistory: {
@@ -457,15 +457,6 @@ function onMessage({ message: msg }: { message: Message }): void {
     const hasLink   = contentHasAnyNonWhitelistedLink(msg.content);
     const hasFile   = toArr(msg.attachments).length > 0;
     const hasSus    = hasLink || hasFile;
-    const hasKeyword = contentHasKeyword(msg.content);
-
-    if (hasKeyword && hasSus) {
-        blockIds(msg.channel_id, [msg.id]);
-        startPurge(msg.channel_id);
-        showToast("⚠️ Plugin: keyword + attachment/link match - message blocked.", Toasts.Type.FAILURE);
-        autoSweepChannel(msg.channel_id, [msg.id]);
-        return;
-    }
 
     if (hasSus) {
         const distinctChannels = markGlobalHit(msg.channel_id, Date.now());
@@ -779,7 +770,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                         Links from these domains are flagged as spam during live detection and deleted in purge scans.
                         ⚙️ More settings enabled = better detection accuracy.
                     </Forms.FormText>
-                    <TextInput value={blacklist} onChange={setBlacklist} placeholder="cdn.discordapp.com,u.to,…" disabled={running} />
+                    <TextInput value={blacklist} onChange={setBlacklist} placeholder="u.to,…" disabled={running} />
                 </Forms.FormSection>
 
                 <Forms.FormDivider style={{ margin: "12px 0" }} />
