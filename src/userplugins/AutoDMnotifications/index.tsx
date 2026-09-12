@@ -12,6 +12,10 @@ import { Button, ChannelStore, Forms, Toasts, useEffect, useState } from "@webpa
 const CHANNEL_TYPE_DM = 1;
 const CHANNEL_TYPE_GROUP_DM = 3;
 
+const TARGET_ALL = "all";
+const TARGET_DMS = "dms";
+const TARGET_GROUPS = "groups";
+
 let isRunning = false;
 const runningListeners = new Set<(v: boolean) => void>();
 
@@ -30,19 +34,18 @@ function useIsRunning() {
 }
 
 const settings = definePluginSettings({
-    muteAllDms: {
-        type: OptionType.BOOLEAN,
-        description: "Mute DMs instead of unmuting them when applying",
-        default: false,
-    },
-    includeGroupDms: {
-        type: OptionType.BOOLEAN,
-        description: "Include group DMs in the action",
-        default: false,
+    target: {
+        type: OptionType.SELECT,
+        description: "Which DMs this plugin should affect",
+        options: [
+            { label: "All DMs (1:1 + group)", value: TARGET_ALL, default: true },
+            { label: "1:1 DMs only", value: TARGET_DMS },
+            { label: "Group DMs only", value: TARGET_GROUPS },
+        ],
     },
     duration: {
         type: OptionType.SELECT,
-        description: "Mute duration",
+        description: "How long the mute lasts when you press Mute All",
         options: [
             { label: "15 minutes", value: 900 },
             { label: "1 hour", value: 3600 },
@@ -58,22 +61,32 @@ function getUpdateGuildNotificationSettings(): ((guildId: string, settings: Reco
     return findByProps("updateGuildNotificationSettings")?.updateGuildNotificationSettings;
 }
 
-function buildOverride(): Record<string, unknown> {
-    const s = settings.store;
+function buildOverride(muted: boolean): Record<string, unknown> {
     return {
-        muted: s.muteAllDms,
-        mute_config: s.muteAllDms ? { selected_time_window: s.duration, end_time: null } : null,
+        muted,
+        mute_config: muted ? { selected_time_window: settings.store.duration, end_time: null } : null,
     };
 }
 
+function targetLabel(): string {
+    const t = settings.store.target;
+    if (t === TARGET_DMS) return "1:1 DMs";
+    if (t === TARGET_GROUPS) return "group DMs";
+    return "DMs";
+}
+
 function getTargetChannelIds(): string[] {
-    const s = settings.store;
+    const t = settings.store.target;
     return ChannelStore.getSortedPrivateChannels()
-        .filter(c => c.type === CHANNEL_TYPE_DM || (s.includeGroupDms && c.type === CHANNEL_TYPE_GROUP_DM))
+        .filter(c => {
+            if (t === TARGET_DMS) return c.type === CHANNEL_TYPE_DM;
+            if (t === TARGET_GROUPS) return c.type === CHANNEL_TYPE_GROUP_DM;
+            return c.type === CHANNEL_TYPE_DM || c.type === CHANNEL_TYPE_GROUP_DM;
+        })
         .map(c => c.id);
 }
 
-async function applyToAllDMs(): Promise<void> {
+async function applyMute(muted: boolean): Promise<void> {
     if (isRunning) return;
     setRunning(true);
 
@@ -89,17 +102,15 @@ async function applyToAllDMs(): Promise<void> {
     }
 
     const ids = getTargetChannelIds();
-    const field = buildOverride();
+    const field = buildOverride(muted);
     const channelOverrides: Record<string, unknown> = {};
     for (const id of ids) channelOverrides[id] = field;
-
-    const scope = settings.store.includeGroupDms ? "DMs + group DMs" : "DMs only (group DMs excluded)";
 
     try {
         await update("@me", { channel_overrides: channelOverrides });
         setRunning(false);
         Toasts.show({
-            message: `Applied to ${ids.length} DMs. Scope: ${scope}.`,
+            message: `${muted ? "Muted" : "Unmuted"} ${ids.length} ${targetLabel()}.`,
             type: Toasts.Type.SUCCESS,
             id: Toasts.genId(),
         });
@@ -107,7 +118,7 @@ async function applyToAllDMs(): Promise<void> {
         setRunning(false);
         const errMsg = e instanceof Error ? e.message : String(e);
         Toasts.show({
-            message: `Failed to apply (${errMsg}). Scope: ${scope}.`,
+            message: `Failed to apply (${errMsg}).`,
             type: Toasts.Type.FAILURE,
             id: Toasts.genId(),
         });
@@ -116,7 +127,7 @@ async function applyToAllDMs(): Promise<void> {
 
 export default definePlugin({
     name: "AutoDMnotifications",
-    description: "Mute or unmute notifications for all DMs (not servers), with the option to include or exclude group DMs.",
+    description: "Mute or unmute notifications for all your DMs (not servers) in one click, targeting 1:1 DMs, group DMs, or both.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["DM", "Notifications", "Mute", "Private", "Auto"],
     enabledByDefault: false,
@@ -127,19 +138,34 @@ export default definePlugin({
         return (
             <Forms.FormSection>
                 <Forms.FormText style={{ marginBottom: 8 }}>
-                    {running
-                        ? "Applying, please wait…"
-                        : "Apply the mute state selected above to all your DMs."
-                    }
+                    Choose which DMs to target and, for muting, how long, using the settings below.
+                    Then press one of the buttons to apply it instantly to every matching DM.
                 </Forms.FormText>
-                <Button
-                    color={Button.Colors.BRAND}
-                    size={Button.Sizes.SMALL}
-                    disabled={running}
-                    onClick={applyToAllDMs}
-                >
-                    {running ? "Applying…" : "Apply to all DMs"}
-                </Button>
+                <Forms.FormText style={{ marginBottom: 8, opacity: 0.8 }}>
+                    {running ? "Applying…" : "Ready."}
+                </Forms.FormText>
+                <div style={{ display: "flex", gap: 8 }}>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        size={Button.Sizes.SMALL}
+                        disabled={running}
+                        onClick={() => {
+                            if (window.confirm(`Are you sure you want to mute all ${targetLabel()}?`)) applyMute(true);
+                        }}
+                    >
+                        Mute All
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        size={Button.Sizes.SMALL}
+                        disabled={running}
+                        onClick={() => {
+                            if (window.confirm(`Are you sure you want to unmute all ${targetLabel()}?`)) applyMute(false);
+                        }}
+                    >
+                        Unmute All
+                    </Button>
+                </div>
             </Forms.FormSection>
         );
     },
