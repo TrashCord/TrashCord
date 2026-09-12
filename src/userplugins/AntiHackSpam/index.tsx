@@ -10,10 +10,12 @@ import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import {
     Button,
+    Constants,
     FluxDispatcher,
     Forms,
     GuildStore,
     React,
+    RestAPI,
     Text,
     TextInput,
     Toasts,
@@ -44,7 +46,6 @@ interface SearchHit {
     mention_everyone?: boolean;
 }
 
-const RestAPI              = findByPropsLazy("get", "post", "put", "patch", "del");
 const GuildChannelStore    = findByPropsLazy("getChannels", "getDefaultChannel");
 const PrivateChannelsStore = findByPropsLazy("getSortedPrivateChannels");
 
@@ -353,8 +354,18 @@ function dispatchDelete(channelId: string, id: string): void {
     FluxDispatcher.dispatch({ type: "MESSAGE_DELETE", channelId, id });
 }
 
-async function deleteMessage(channelId: string, id: string): Promise<void> {
-    try { await RestAPI.del({ url: `/channels/${channelId}/messages/${id}` }); } catch { }
+async function deleteMessage(channelId: string, id: string): Promise<boolean> {
+    for (let i = 0; i < 4; i++) {
+        try {
+            await RestAPI.del({ url: Constants.Endpoints.MESSAGE(channelId, id) });
+            return true;
+        } catch (e: any) {
+            if (e?.status === 429)
+                await new Promise<void>(r => setTimeout(r, ((e?.body?.retry_after ?? 1) * 1000) + 200));
+            else return false;
+        }
+    }
+    return false;
 }
 
 const idle: (cb: () => void) => void =
