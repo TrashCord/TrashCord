@@ -33,7 +33,7 @@ const settings = definePluginSettings({
     muteAllDms: {
         type: OptionType.BOOLEAN,
         description: "Mute DMs instead of unmuting them when applying",
-        default: true,
+        default: false,
     },
     includeGroupDms: {
         type: OptionType.BOOLEAN,
