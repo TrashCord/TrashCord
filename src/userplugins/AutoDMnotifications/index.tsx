@@ -54,11 +54,9 @@ const settings = definePluginSettings({
     },
 });
 
-function getUpdateChannelOverrideSettings(): ((guildId: string, channelId: string, settings: Record<string, unknown>) => Promise<void>) | undefined {
-    return findByProps("updateChannelOverrideSettings")?.updateChannelOverrideSettings;
+function getUpdateGuildNotificationSettings(): ((guildId: string, settings: Record<string, unknown>) => Promise<void>) | undefined {
+    return findByProps("updateGuildNotificationSettings")?.updateGuildNotificationSettings;
 }
-
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 function buildOverride(): Record<string, unknown> {
     const s = settings.store;
@@ -79,7 +77,7 @@ async function applyToAllDMs(): Promise<void> {
     if (isRunning) return;
     setRunning(true);
 
-    const update = getUpdateChannelOverrideSettings();
+    const update = getUpdateGuildNotificationSettings();
     if (!update) {
         setRunning(false);
         Toasts.show({
@@ -92,29 +90,28 @@ async function applyToAllDMs(): Promise<void> {
 
     const ids = getTargetChannelIds();
     const field = buildOverride();
-    let ok = 0, fail = 0;
-    let lastError = "";
+    const channelOverrides: Record<string, unknown> = {};
+    for (const id of ids) channelOverrides[id] = field;
 
-    for (const id of ids) {
-        try {
-            await update("@me", id, field);
-            ok++;
-        } catch (e) {
-            fail++;
-            if (!lastError) lastError = e instanceof Error ? e.message : String(e);
-        }
-        await sleep(300);
-    }
-
-    setRunning(false);
     const scope = settings.store.includeGroupDms ? "DMs + group DMs" : "DMs only (group DMs excluded)";
-    Toasts.show({
-        message: fail === 0
-            ? `Applied to ${ok} DMs. Scope: ${scope}.`
-            : `Applied to ${ok} DMs, ${fail} failed (${lastError || "unknown error"}). Scope: ${scope}.`,
-        type: fail === 0 ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
-        id: Toasts.genId(),
-    });
+
+    try {
+        await update("@me", { channel_overrides: channelOverrides });
+        setRunning(false);
+        Toasts.show({
+            message: `Applied to ${ids.length} DMs. Scope: ${scope}.`,
+            type: Toasts.Type.SUCCESS,
+            id: Toasts.genId(),
+        });
+    } catch (e) {
+        setRunning(false);
+        const errMsg = e instanceof Error ? e.message : String(e);
+        Toasts.show({
+            message: `Failed to apply (${errMsg}). Scope: ${scope}.`,
+            type: Toasts.Type.FAILURE,
+            id: Toasts.genId(),
+        });
+    }
 }
 
 export default definePlugin({

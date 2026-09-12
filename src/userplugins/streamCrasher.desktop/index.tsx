@@ -146,9 +146,6 @@ let crashUpdateInProgress = false;
 let savedQuality: { preset: number; resolution: number; frameRate: number; } | null = null;
 
 function setLastSourceId(sourceId: string | null, qualityOptions?: any): boolean {
-    // Mentre il crasher è attivo ignoriamo qualsiasi qualityOptions in arrivo:
-    // è la nostra sorgente finta oppure l'adattamento automatico di Discord
-    // sul contenuto quasi statico, non un dato affidabile da ripristinare dopo.
     if (settings.store.isEnabled) return false;
     if (!sourceId || sourceId === crashSourceId || sourceId === lastCrashSourceId || crashUpdateInProgress) return false;
     lastSourceId = sourceId;
@@ -568,6 +565,11 @@ const StreamCrasherPlugin = definePlugin({
     },
 
     start() {
+        suppressStateChange = true;
+        settings.store.isEnabled = false;
+        suppressStateChange = false;
+        isEnabledCache = false;
+
         isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
         if (settings.store.keybindEnabled) tryRegisterKeybind(settings.store.keybind);
         syncKeybindLoop();
@@ -599,6 +601,7 @@ const StreamCrasherPlugin = definePlugin({
                 settings.store.isEnabled = false;
                 suppressStateChange = false;
                 isEnabledCache = false;
+                Native.stopCrashSource();
             } else if (isStreamingNow && settings.store.isEnabled) {
                 playToggleSound(true);
                 updateStream(true);

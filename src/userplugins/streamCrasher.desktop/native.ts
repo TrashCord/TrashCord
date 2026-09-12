@@ -71,10 +71,6 @@ function getImageUrl(): string | null {
     return RendererSettings.store.plugins?.StreamCrasher?.imageUrl || null;
 }
 
-function isPluginEnabled(): boolean {
-    return RendererSettings.store.plugins?.StreamCrasher?.enabled === true;
-}
-
 function isWindowAlive(): boolean {
     return crashedWindow !== null && !crashedWindow.isDestroyed();
 }
@@ -146,7 +142,7 @@ async function findSourceId(): Promise<string | null> {
 }
 
 export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string | null> {
-    if (!isPluginEnabled()) {
+    if (RendererSettings.store.plugins?.StreamCrasher?.enabled !== true) {
         if (isWindowAlive()) crashedWindow!.destroy();
         stopBlocker();
         return null;
@@ -198,8 +194,6 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
     crashedWindow.once("closed", () => resetState());
 
     await new Promise<void>(resolve => {
-        // 'closed' as escape hatch: if the window dies before ready-to-show the promise
-        // would hang forever without this, causing a silent deadlock
         crashedWindow?.once("closed", resolve);
         crashedWindow?.once("ready-to-show", resolve);
         if (needsFile) {
@@ -210,12 +204,10 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
         }
     });
 
-    // guard: window may have been destroyed during the await above
     if (!isWindowAlive()) { creating = false; return null; }
 
     await new Promise(r => setTimeout(r, 150));
 
-    // guard: window may have been destroyed during the 150ms wait
     if (!isWindowAlive()) { creating = false; return null; }
 
     crashedWindow!.showInactive();
@@ -246,7 +238,7 @@ export async function updateCrashMode(_e: IpcMainInvokeEvent) {
 export function stopCrashSource(_e: IpcMainInvokeEvent) {
     stopBlocker();
     if (!isWindowAlive()) return;
-    crashedWindow!.destroy(); // destroy (not hide) so resetState() fires via 'closed' and cachedSourceId is cleared
+    crashedWindow!.destroy();
 }
 
 let registeredAccelerator: string | null = null;
