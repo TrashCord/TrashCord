@@ -112,6 +112,31 @@ const settings = definePluginSettings({
         description: "Max pages (x100 msgs) to check per channel during auto-cleanup - keep low on slow PCs",
         default: 2,
     },
+    scamListEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Fetch the community Discord-AntiScam domain list and block links matching it (live + purge)",
+        default: true,
+    },
+    scamListUrl: {
+        type: OptionType.STRING,
+        description: "URL of the scam-domain JSON list (array of domain strings)",
+        default: "https://cdn.jsdelivr.net/gh/Discord-AntiScam/scam-links@main/list.json",
+    },
+    scamListRefreshHours: {
+        type: OptionType.NUMBER,
+        description: "Hours between re-downloads of the scam-domain list",
+        default: 12,
+    },
+    globalMinChannels: {
+        type: OptionType.NUMBER,
+        description: "Distinct channels/DMs with suspicious content within the global window before treating it as account-wide compromise (catches spam spread thin across many DMs/servers)",
+        default: 3,
+    },
+    globalWindowMs: {
+        type: OptionType.NUMBER,
+        description: "Rolling window (ms) for the cross-channel spread check",
+        default: 15000,
+    },
     deleteCooldownMs: {
         type: OptionType.NUMBER,
         description: "Delay between bulk-delete API calls (ms) - raise on slow PCs",
@@ -132,6 +157,7 @@ const blocked      = new Set<string>();
 const channelBuf   = new Map<string, string[]>();
 const channelPurge = new Map<string, number>();
 const channelCool  = new Map<string, number>();
+const recentChannelHits = new Map<string, number>();
 const CHAN_BUF_MAX = 30;
 const PURGE_WINDOW = 60_000;
 
@@ -160,6 +186,17 @@ function startPurge(cid: string): void {
     channelPurge.set(cid, Date.now() + PURGE_WINDOW);
     const h = settings.store.channelCooldownHours;
     if (h) channelCool.set(cid, Date.now() + PURGE_WINDOW + h * 3_600_000);
+}
+
+function markGlobalHit(cid: string, now: number): number {
+    recentChannelHits.set(cid, now);
+    const windowMs = settings.store.globalWindowMs;
+    let count = 0;
+    for (const [c, t] of recentChannelHits) {
+        if (now - t > windowMs) recentChannelHits.delete(c);
+        else count++;
+    }
+    return count;
 }
 
 function bufferMsg(cid: string, id: string): void {
@@ -199,9 +236,17 @@ function countRecentChan(cid: string, now: number, windowMs: number): number {
     return n;
 }
 
+function toArr<T>(x: any): T[] {
+    if (!x) return [];
+    if (Array.isArray(x)) return x;
+    if (typeof x.toArray === "function") return x.toArray();
+    if (typeof x[Symbol.iterator] === "function") return Array.from(x);
+    return [];
+}
+
 function effectiveMentions(msg: Message): number {
     const uid   = getUid();
-    const users = msg.mentions.filter(m => m.id !== uid).length;
+    const users = toArr<Mention>(msg.mentions).filter(m => m.id !== uid).length;
     const broad = (msg.mention_everyone || /@everyone|@here/.test(msg.content)) ? 1 : 0;
     return users + broad;
 }
@@ -250,6 +295,51 @@ function contentHasKeyword(content: string): boolean {
     return getKeywords().some(k => lc.includes(k));
 }
 
+let scamDomainSet: Set<string> = new Set();
+let scamListFetchedAt = 0;
+let scamListFetching  = false;
+
+async function refreshScamList(force = false): Promise<void> {
+    if (!settings.store.scamListEnabled) return;
+    if (scamListFetching) return;
+    const ttlMs = Math.max(1, settings.store.scamListRefreshHours) * 3_600_000;
+    if (!force && scamDomainSet.size && Date.now() - scamListFetchedAt < ttlMs) return;
+
+    scamListFetching = true;
+    try {
+        const res = await fetch(settings.store.scamListUrl);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data) && data.length) {
+            scamDomainSet    = new Set(data.map((d: unknown) => String(d).trim().toLowerCase()).filter(Boolean));
+            scamListFetchedAt = Date.now();
+        }
+    } catch { }
+    finally { scamListFetching = false; }
+}
+
+function extractHosts(content: string): string[] {
+    const urls = content.match(/https?:\/\/[^\s<>]+/gi) ?? [];
+    const hosts: string[] = [];
+    for (const u of urls) {
+        try { hosts.push(new URL(u).hostname.toLowerCase()); } catch { }
+    }
+    return hosts;
+}
+
+function hostMatchesScamSet(host: string): boolean {
+    if (!scamDomainSet.size) return false;
+    const parts = host.split(".");
+    for (let i = 0; i < parts.length - 1; i++)
+        if (scamDomainSet.has(parts.slice(i).join("."))) return true;
+    return false;
+}
+
+function contentHasScamLink(content: string): boolean {
+    if (!content || !scamDomainSet.size) return false;
+    return extractHosts(content).some(hostMatchesScamSet);
+}
+
 function contentHasBlacklistedLink(content: string): boolean {
     if (!content) return false;
     const urls = content.match(/https?:\/\/[^\s<>]+/gi) ?? [];
@@ -263,7 +353,7 @@ function contentHasAnyNonWhitelistedLink(content: string): boolean {
 }
 
 function hasSuspiciousContent(msg: Message): boolean {
-    return msg.attachments.length > 0 || contentHasAnyNonWhitelistedLink(msg.content);
+    return toArr(msg.attachments).length > 0 || contentHasAnyNonWhitelistedLink(msg.content);
 }
 
 function dispatchDelete(channelId: string, id: string): void {
@@ -325,6 +415,7 @@ async function autoSweepChannel(cid: string, excludeIds: string[]): Promise<void
                 const hasAttach = (m.attachments?.length ?? 0) > 0;
                 const isMatch   = hasSpamAttachment(m, hashes)
                     || contentHasBlacklistedLink(content)
+                    || contentHasScamLink(content)
                     || (hasAttach && contentHasKeyword(content));
 
                 if (!isMatch) continue;
@@ -345,9 +436,9 @@ async function autoSweepChannel(cid: string, excludeIds: string[]): Promise<void
 function onMessage({ message: msg }: { message: Message }): void {
     if (msg.author.id !== getUid()) return;
 
-    if (contentHasBlacklistedLink(msg.content)) {
+    if (contentHasBlacklistedLink(msg.content) || contentHasScamLink(msg.content)) {
         blockIds(msg.channel_id, [msg.id]);
-        showToast("⚠️ Plugin: blacklisted link removed.", Toasts.Type.FAILURE);
+        showToast("⚠️ Plugin: malicious/scam link removed.", Toasts.Type.FAILURE);
         autoSweepChannel(msg.channel_id, [msg.id]);
         return;
     }
@@ -364,7 +455,7 @@ function onMessage({ message: msg }: { message: Message }): void {
 
     const eff       = effectiveMentions(msg);
     const hasLink   = contentHasAnyNonWhitelistedLink(msg.content);
-    const hasFile   = msg.attachments.length > 0;
+    const hasFile   = toArr(msg.attachments).length > 0;
     const hasSus    = hasLink || hasFile;
     const hasKeyword = contentHasKeyword(msg.content);
 
@@ -374,6 +465,23 @@ function onMessage({ message: msg }: { message: Message }): void {
         showToast("⚠️ Plugin: keyword + attachment/link match - message blocked.", Toasts.Type.FAILURE);
         autoSweepChannel(msg.channel_id, [msg.id]);
         return;
+    }
+
+    if (hasSus) {
+        const distinctChannels = markGlobalHit(msg.channel_id, Date.now());
+        if (distinctChannels >= settings.store.globalMinChannels) {
+            blockIds(msg.channel_id, [msg.id]);
+            let swept = 0;
+            for (const cid of recentChannelHits.keys()) {
+                startPurge(cid);
+                if (swept < 5) { autoSweepChannel(cid, [msg.id]); swept++; }
+            }
+            showToast(
+                `⚠️ Plugin: spam detected across ${distinctChannels} channels/DMs at once - your account is very likely hacked. Run a malware scan (Malwarebytes & AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC.`,
+                Toasts.Type.FAILURE,
+            );
+            return;
+        }
     }
 
     if (settings.store.requireMentions && eff === 0) return;
@@ -414,7 +522,7 @@ function urlHit(url: string, hashes: Set<string>): boolean {
 }
 
 function hasSpamAttachment(msg: SearchHit, hashes: Set<string>): boolean {
-    return (msg.attachments ?? []).some(a => urlHit(a.url, hashes) || urlHit(a.proxy_url ?? "", hashes));
+    return toArr<Attachment>(msg.attachments).some(a => urlHit(a.url, hashes) || urlHit(a.proxy_url ?? "", hashes));
 }
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -442,6 +550,7 @@ async function purgeSpamMessages(
     abortPurge   = false;
     purgeRunning = true;
     purgeDeleted = 0;
+    await refreshScamList();
 
     const uid      = getUid();
     const hashes   = getSpamHashes(hashesRaw);
@@ -511,7 +620,7 @@ async function purgeSpamMessages(
                     if (abortPurge) break;
                     if (m.author?.id !== uid) continue;
                     const hasAttach = (m.attachments?.length ?? 0) > 0;
-                    if (!hasSpamAttachment(m, hashes) && !hitsBl(m.content ?? "") && !hitsKeyword(m.content ?? "", hasAttach)) continue;
+                    if (!hasSpamAttachment(m, hashes) && !hitsBl(m.content ?? "") && !contentHasScamLink(m.content ?? "") && !hitsKeyword(m.content ?? "", hasAttach)) continue;
                     deleted++;
                     notifyListeners(`🗑️ Deleting message ${deleted}…`, deleted, false);
                     await deleteMessage(m.channel_id, m.id);
@@ -801,6 +910,7 @@ export default definePlugin({
         cachedUid = "";
         FluxDispatcher.subscribe("MESSAGE_CREATE", onMessage);
         FluxDispatcher.subscribe("MESSAGE_UPDATE", onMessage);
+        refreshScamList();
     },
 
     stop() {
@@ -814,6 +924,7 @@ export default definePlugin({
         channelBuf.clear();
         channelPurge.clear();
         channelCool.clear();
+        recentChannelHits.clear();
         sweepingChannels.clear();
         abortPurge = true;
         purgeRunning = false;
@@ -822,5 +933,7 @@ export default definePlugin({
         cachedBlStr = cachedWlStr = "";
         cachedKwStr = "";
         cachedKwList = [];
+        scamDomainSet = new Set();
+        scamListFetchedAt = 0;
     },
 });
