@@ -53,6 +53,7 @@ function resetState() {
     crashedWindow = null;
     cachedSourceId = null;
     activeMode = null;
+    creating = false;
     stopBlocker();
 }
 
@@ -68,6 +69,10 @@ function getMode(): string {
 
 function getImageUrl(): string | null {
     return RendererSettings.store.plugins?.StreamCrasher?.imageUrl || null;
+}
+
+function isPluginEnabled(): boolean {
+    return RendererSettings.store.plugins?.StreamCrasher?.enabled === true;
 }
 
 function isWindowAlive(): boolean {
@@ -141,6 +146,12 @@ async function findSourceId(): Promise<string | null> {
 }
 
 export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string | null> {
+    if (!isPluginEnabled()) {
+        if (isWindowAlive()) crashedWindow!.destroy();
+        stopBlocker();
+        return null;
+    }
+
     const mode = getMode();
 
     if (mode === "freeze") {
@@ -187,6 +198,9 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
     crashedWindow.once("closed", () => resetState());
 
     await new Promise<void>(resolve => {
+        // 'closed' as escape hatch: if the window dies before ready-to-show the promise
+        // would hang forever without this, causing a silent deadlock
+        crashedWindow?.once("closed", resolve);
         crashedWindow?.once("ready-to-show", resolve);
         if (needsFile) {
             try { writeFileSync(TEMP_HTML_PATH, html, "utf-8"); } catch { }
@@ -196,8 +210,15 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
         }
     });
 
+    // guard: window may have been destroyed during the await above
+    if (!isWindowAlive()) { creating = false; return null; }
+
     await new Promise(r => setTimeout(r, 150));
-    crashedWindow.showInactive();
+
+    // guard: window may have been destroyed during the 150ms wait
+    if (!isWindowAlive()) { creating = false; return null; }
+
+    crashedWindow!.showInactive();
     cachedSourceId = await findSourceId();
     creating = false;
     startBlocker();
@@ -225,7 +246,7 @@ export async function updateCrashMode(_e: IpcMainInvokeEvent) {
 export function stopCrashSource(_e: IpcMainInvokeEvent) {
     stopBlocker();
     if (!isWindowAlive()) return;
-    crashedWindow?.hide();
+    crashedWindow!.destroy(); // destroy (not hide) so resetState() fires via 'closed' and cachedSourceId is cleared
 }
 
 let registeredAccelerator: string | null = null;
