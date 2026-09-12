@@ -23,6 +23,7 @@ import {
 
 interface Attachment { url: string; proxy_url?: string; }
 interface Mention    { id: string; }
+interface Embed { type?: string; url?: string; }
 interface Message {
     id: string;
     channel_id: string;
@@ -31,8 +32,17 @@ interface Message {
     attachments: Attachment[];
     mentions: Mention[];
     mention_everyone: boolean;
+    embeds?: Embed[];
 }
-interface SearchHit { id: string; channel_id: string; author?: { id: string }; attachments?: Attachment[]; content?: string; }
+interface SearchHit {
+    id: string;
+    channel_id: string;
+    author?: { id: string };
+    attachments?: Attachment[];
+    content?: string;
+    mentions?: Mention[];
+    mention_everyone?: boolean;
+}
 
 const RestAPI              = findByPropsLazy("get", "post", "put", "patch", "del");
 const GuildChannelStore    = findByPropsLazy("getChannels", "getDefaultChannel");
@@ -67,6 +77,11 @@ const settings = definePluginSettings({
         description: "Require image attachment OR blacklisted link in the same message as the mentions to flag",
         default: true,
     },
+    minAttachmentsPerMessage: {
+        type: OptionType.NUMBER,
+        description: "A message with this many attachments or more (default 3 = more than 2) is treated as spam-grade on its own, even with zero mentions - this is what lets image floods spread across many DMs/servers get caught, not just repeats in the same chat",
+        default: 3,
+    },
     channelCooldownHours: {
         type: OptionType.NUMBER,
         description: "Hours to ignore a channel after purge mode ends (0 = disabled)",
@@ -96,11 +111,6 @@ const settings = definePluginSettings({
         type: OptionType.STRING,
         description: "Domains never treated as spam links (whitelist overrides blacklist)",
         default: DEF_WHITELIST,
-    },
-    keywordFilters: {
-        type: OptionType.STRING,
-        description: "Comma-separated text patterns (e.g. @everyone,@here) - in live detection, instantly flagged only when found together with BOTH an attachment/link AND a mention of a specific person; in purge scan, flagged with just an attachment",
-        default: "@everyone,@here",
     },
     autoCleanHistory: {
         type: OptionType.BOOLEAN,
@@ -278,23 +288,6 @@ function getWlRe(): RegExp {
     return cachedWlRe!;
 }
 
-let cachedKwStr  = "";
-let cachedKwList: string[] = [];
-
-function getKeywords(): string[] {
-    if (cachedKwStr !== settings.store.keywordFilters) {
-        cachedKwStr  = settings.store.keywordFilters;
-        cachedKwList = cachedKwStr.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-    }
-    return cachedKwList;
-}
-
-function contentHasKeyword(content: string): boolean {
-    if (!content) return false;
-    const lc = content.toLowerCase();
-    return getKeywords().some(k => lc.includes(k));
-}
-
 let scamDomainSet: Set<string> = new Set();
 let scamListFetchedAt = 0;
 let scamListFetching  = false;
@@ -353,7 +346,7 @@ function contentHasAnyNonWhitelistedLink(content: string): boolean {
 }
 
 function hasSuspiciousContent(msg: Message): boolean {
-    return toArr(msg.attachments).length > 0 || contentHasAnyNonWhitelistedLink(msg.content);
+    return toArr(msg.attachments).length > 0 || toArr<Embed>(msg.embeds).length > 0 || contentHasAnyNonWhitelistedLink(msg.content);
 }
 
 function dispatchDelete(channelId: string, id: string): void {
@@ -379,6 +372,13 @@ function blockIds(cid: string, ids: string[]): void {
     setTimeout(() => { for (const id of ids) blocked.delete(id); }, BLOCK_TTL_MS);
 }
 
+function historicalEffectiveMentions(m: SearchHit): number {
+    const uid   = getUid();
+    const users = toArr<Mention>(m.mentions).filter(x => x.id !== uid).length;
+    const broad = (m.mention_everyone || /@everyone|@here/.test(m.content ?? "")) ? 1 : 0;
+    return users + broad;
+}
+
 let sweepingChannels = new Set<string>();
 
 async function autoSweepChannel(cid: string, excludeIds: string[]): Promise<void> {
@@ -387,11 +387,12 @@ async function autoSweepChannel(cid: string, excludeIds: string[]): Promise<void
     if (!RestAPI?.get) return;
     sweepingChannels.add(cid);
 
-    const uid     = getUid();
-    const hashes  = getSpamHashes(settings.store.spamImageHashes);
-    const exclude = new Set(excludeIds);
-    const maxP    = Math.max(1, settings.store.autoCleanPages);
-    const delay   = settings.store.deleteCooldownMs;
+    const uid       = getUid();
+    const hashes    = getSpamHashes(settings.store.spamImageHashes);
+    const exclude   = new Set(excludeIds);
+    const maxP      = Math.max(1, settings.store.autoCleanPages);
+    const delay     = settings.store.deleteCooldownMs;
+    const minAttach = settings.store.minAttachmentsPerMessage;
 
     try {
         let before: string | undefined;
@@ -411,12 +412,18 @@ async function autoSweepChannel(cid: string, excludeIds: string[]): Promise<void
                 if (m.author?.id !== uid) continue;
                 if (exclude.has(m.id) || blocked.has(m.id)) continue;
 
-                const content   = m.content ?? "";
-                const hasAttach = (m.attachments?.length ?? 0) > 0;
-                const isMatch   = hasSpamAttachment(m, hashes)
+                const content     = m.content ?? "";
+                const attachCount = toArr<Attachment>(m.attachments).length;
+                const hasAttach   = attachCount > 0;
+                const hasLink     = contentHasAnyNonWhitelistedLink(content);
+                const manyImages  = attachCount >= minAttach;
+                const hasMentions = historicalEffectiveMentions(m) > 0;
+
+                const isMatch = hasSpamAttachment(m, hashes)
                     || contentHasBlacklistedLink(content)
                     || contentHasScamLink(content)
-                    || (hasAttach && contentHasKeyword(content));
+                    || manyImages
+                    || ((hasAttach || hasLink) && hasMentions);
 
                 if (!isMatch) continue;
 
@@ -453,12 +460,14 @@ function onMessage({ message: msg }: { message: Message }): void {
 
     if (isCooled(msg.channel_id)) return;
 
-    const eff       = effectiveMentions(msg);
-    const hasLink   = contentHasAnyNonWhitelistedLink(msg.content);
-    const hasFile   = toArr(msg.attachments).length > 0;
-    const hasSus    = hasLink || hasFile;
+    const eff         = effectiveMentions(msg);
+    const hasLink     = contentHasAnyNonWhitelistedLink(msg.content);
+    const attachCount = toArr(msg.attachments).length + toArr<Embed>(msg.embeds).length;
+    const hasFile     = attachCount > 0;
+    const hasSus      = hasLink || hasFile;
+    const manyImages  = attachCount >= settings.store.minAttachmentsPerMessage;
 
-    if (hasSus) {
+    if (manyImages || (hasSus && eff > 0)) {
         const distinctChannels = markGlobalHit(msg.channel_id, Date.now());
         if (distinctChannels >= settings.store.globalMinChannels) {
             blockIds(msg.channel_id, [msg.id]);
@@ -475,7 +484,7 @@ function onMessage({ message: msg }: { message: Message }): void {
         }
     }
 
-    if (settings.store.requireMentions && eff === 0) return;
+    if (settings.store.requireMentions && eff === 0 && !manyImages) return;
     if (settings.store.requireAttachmentsOrLinks && !hasSus) return;
 
     const now = Date.now();
@@ -533,7 +542,6 @@ async function purgeSpamMessages(
     hashesRaw: string,
     blacklistRaw: string,
     whitelistRaw: string,
-    keywordsRaw: string,
     scanDMs: boolean,
     scanGuilds: boolean,
 ): Promise<void> {
@@ -549,17 +557,11 @@ async function purgeSpamMessages(
     const maxP     = settings.store.maxPagesPerChannel;
     const blRe     = makeDomainRe(blacklistRaw);
     const wlRe     = makeDomainRe(whitelistRaw);
-    const keywords = keywordsRaw.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const minAttach = settings.store.minAttachmentsPerMessage;
 
     function hitsBl(content: string): boolean {
         const urls = (content ?? "").match(/https?:\/\/[^\s<>]+/gi) ?? [];
         return urls.some(u => blRe.test(u) && !wlRe.test(u));
-    }
-
-    function hitsKeyword(content: string, hasAttachment: boolean): boolean {
-        if (!hasAttachment || !content || !keywords.length) return false;
-        const lc = content.toLowerCase();
-        return keywords.some(k => lc.includes(k));
     }
 
     if (!uid) {
@@ -610,8 +612,17 @@ async function purgeSpamMessages(
                 for (const m of msgs) {
                     if (abortPurge) break;
                     if (m.author?.id !== uid) continue;
-                    const hasAttach = (m.attachments?.length ?? 0) > 0;
-                    if (!hasSpamAttachment(m, hashes) && !hitsBl(m.content ?? "") && !contentHasScamLink(m.content ?? "") && !hitsKeyword(m.content ?? "", hasAttach)) continue;
+                    const attachCount = toArr<Attachment>(m.attachments).length;
+                    const hasAttach   = attachCount > 0;
+                    const hasLink     = contentHasAnyNonWhitelistedLink(m.content ?? "");
+                    const manyImages  = attachCount >= minAttach;
+                    const hasMentions = historicalEffectiveMentions(m) > 0;
+                    const isMatch = hasSpamAttachment(m, hashes)
+                        || hitsBl(m.content ?? "")
+                        || contentHasScamLink(m.content ?? "")
+                        || manyImages
+                        || ((hasAttach || hasLink) && hasMentions);
+                    if (!isMatch) continue;
                     deleted++;
                     notifyListeners(`🗑️ Deleting message ${deleted}…`, deleted, false);
                     await deleteMessage(m.channel_id, m.id);
@@ -693,7 +704,6 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
     const [hashes,    setHashes]    = React.useState(settings.store.spamImageHashes);
     const [blacklist, setBlacklist] = React.useState(settings.store.blacklistDomains);
     const [whitelist, setWhitelist] = React.useState(settings.store.whitelistDomains);
-    const [keywords,  setKeywords]  = React.useState(settings.store.keywordFilters);
 
     React.useEffect(() => {
         const listener = (s: string, d: number, isDone: boolean) => {
@@ -712,7 +722,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
         setDeleted(0);
         setStatus("Starting…");
         setRunning(true);
-        purgeSpamMessages(hashes, blacklist, whitelist, keywords, scanDMs, scanG);
+        purgeSpamMessages(hashes, blacklist, whitelist, scanDMs, scanG);
     }
 
     function stop() {
@@ -786,17 +796,6 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                 <Forms.FormDivider style={{ margin: "12px 0" }} />
 
                 <Forms.FormSection>
-                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Keyword Filters</Forms.FormTitle>
-                    <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
-                        Comma-separated text patterns. A past message from you is deleted only when it also has an
-                        attachment - plain text matches alone are never touched.
-                    </Forms.FormText>
-                    <TextInput value={keywords} onChange={setKeywords} placeholder="@everyone,@here,…" disabled={running} />
-                </Forms.FormSection>
-
-                <Forms.FormDivider style={{ margin: "12px 0" }} />
-
-                <Forms.FormSection>
                     <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Scan Targets</Forms.FormTitle>
                     {row("Scan DMs", scanDMs, setScanDMs)}
                     {row("Scan Servers", scanG, setScanG)}
@@ -858,9 +857,11 @@ export default definePlugin({
         return (
             <div style={{ marginTop: 8 }}>
                 <Forms.FormText style={{ marginBottom: 10, color: "var(--text-normal, #dcddde)" }}>
-                    ⚙️ Detection accuracy improves when <b>Require Mentions</b> and <b>Require Attachments or Links</b>
-                    are both enabled - spam is only flagged when mentions + image/blacklisted link appear in the <b>same message</b>.
-                    Messages with mentions alone (no image or blacklisted link) will never be flagged.
+                    ⚙️ Default behavior: a message is flagged when it has 3+ attachments (configurable via
+                    <b> Min Attachments</b>) OR a mention + attachment/link together, AND the same pattern repeats
+                    across multiple different chats within a short window (<b>Global Min Channels</b>/<b>Global Window</b>) -
+                    this is what catches spam spread thin across many DMs/servers, not just repeats in one chat.
+                    Everything is adjustable in the settings below.
                 </Forms.FormText>
                 <Button
                     color={Button.Colors.BRAND}
@@ -922,8 +923,6 @@ export default definePlugin({
         purgeListeners = [];
         cachedBlRe = cachedWlRe = null;
         cachedBlStr = cachedWlStr = "";
-        cachedKwStr = "";
-        cachedKwList = [];
         scamDomainSet = new Set();
         scamListFetchedAt = 0;
     },
