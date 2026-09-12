@@ -38,7 +38,7 @@ const settings = definePluginSettings({
     includeGroupDms: {
         type: OptionType.BOOLEAN,
         description: "Include group DMs in the action",
-        default: true,
+        default: false,
     },
     duration: {
         type: OptionType.SELECT,
@@ -54,7 +54,7 @@ const settings = definePluginSettings({
     },
 });
 
-function getUpdateChannelOverrideSettings(): ((channelId: string, settings: Record<string, unknown>) => Promise<void>) | undefined {
+function getUpdateChannelOverrideSettings(): ((guildId: string, channelId: string, settings: Record<string, unknown>) => Promise<void>) | undefined {
     return findByProps("updateChannelOverrideSettings")?.updateChannelOverrideSettings;
 }
 
@@ -93,13 +93,15 @@ async function applyToAllDMs(): Promise<void> {
     const ids = getTargetChannelIds();
     const field = buildOverride();
     let ok = 0, fail = 0;
+    let lastError = "";
 
     for (const id of ids) {
         try {
-            await update(id, field);
+            await update("@me", id, field);
             ok++;
-        } catch {
+        } catch (e) {
             fail++;
+            if (!lastError) lastError = e instanceof Error ? e.message : String(e);
         }
         await sleep(300);
     }
@@ -109,7 +111,7 @@ async function applyToAllDMs(): Promise<void> {
     Toasts.show({
         message: fail === 0
             ? `Applied to ${ok} DMs. Scope: ${scope}.`
-            : `Applied to ${ok} DMs, ${fail} failed. Scope: ${scope}.`,
+            : `Applied to ${ok} DMs, ${fail} failed (${lastError || "unknown error"}). Scope: ${scope}.`,
         type: fail === 0 ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
         id: Toasts.genId(),
     });
