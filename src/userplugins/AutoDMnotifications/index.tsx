@@ -33,7 +33,7 @@ const settings = definePluginSettings({
     muteAllDMs: {
         type: OptionType.BOOLEAN,
         description: "Mute DMs instead of unmuting them when applying",
-        default: true,
+        default: false,
     },
     includeGroupDMs: {
         type: OptionType.BOOLEAN,
@@ -130,17 +130,18 @@ async function applyToAllDMs(): Promise<void> {
     }
 
     setRunning(false);
+    const scope = settings.store.includeGroupDMs ? "DMs + group DMs" : "DMs only (group DMs excluded)";
     Toasts.show({
         message: fail === 0
-            ? `Applied to ${ok} DMs.`
-            : `Applied to ${ok} DMs, ${fail} failed.`,
+            ? `Applied to ${ok} DMs. Scope: ${scope}.`
+            : `Applied to ${ok} DMs, ${fail} failed. Scope: ${scope}.`,
         type: fail === 0 ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
         id: Toasts.genId(),
     });
 }
 
 export default definePlugin({
-    name: "AutoDMnotifications",
+    name: "AutoDMNotifications",
     description: "Mute or unmute notifications for all DMs (not servers), with the option to include or exclude group DMs.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["DM", "Notifications", "Mute", "Private", "Auto"],
