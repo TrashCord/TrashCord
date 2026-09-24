@@ -63,11 +63,11 @@ const DraggableItem = ({ uploadItem, index, moveItem, children }) => {
     );
 };
 
-const DraggableList = ({ channelId, draftType, keyboardModeEnabled, size, attachments, ignoredFilename }) => {
+const DraggableList = ({ channelId, draftType, keyboardModeEnabled, size, attachments, ignoredId }) => {
     const forceUpdate = useForceUpdater();
 
     for (let i = attachments.length - 1; i >= 0; i--) {
-        if (attachments[i].filename === ignoredFilename) {
+        if (attachments[i].id === ignoredId) {
             attachments.splice(i, 1);
         }
     }
@@ -99,9 +99,8 @@ const DraggableList = ({ channelId, draftType, keyboardModeEnabled, size, attach
 
 export default definePlugin({
     name: "ReorderAttachments",
-    description: "Allows you to reorder attachments before sending them",
     authors: [{ name: "Suffocate", id: 772601756776923187n }, Devs.sirphantom89],
-    tags: ["Chat", "Utility"],
+    tags: ["Chat", "Utility", "Accessibility"],
     enabledByDefault: false,
     managedStyle,
     patches: [
@@ -109,8 +108,8 @@ export default definePlugin({
             find: ')("attachments",',
             replacement: [
                 {
-                    match: /:(\i).map\(\i=>.*?(channelId:\i,.*?\i\.\i\.MEDIUM)},\i\.id\)\)(?<=\1=(\i).filter\(\i=>\i.filename!==(\i)\).{0,500})/,
-                    replace: ":$self.DraggableList({$2,attachments:$3,ignoredFilename:$4})"
+                    match: /:(\i).map\(\i=>.*?(channelId:\i,.*?\i\.\i\.MEDIUM)},\i\.id\)\)(?<=\1=(\i).filter\(\i=>\i\.id!==(\i)\).{0,500})/,
+                    replace: ":$self.DraggableList({$2,attachments:$3,ignoredId:$4})"
                 }
             ]
         },

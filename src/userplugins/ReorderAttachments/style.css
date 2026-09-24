@@ -2,7 +2,7 @@
     display: inline-flex;
     cursor: grab;
     pointer-events: auto;
-    transition: all 0.2s;
+    /*transition: all 0.2s;*/
 }
 
 /* the item left behind after you begin dragging it */
