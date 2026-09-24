@@ -101,7 +101,7 @@ export default definePlugin({
     name: "ReorderAttachments",
     authors: [{ name: "Suffocate", id: 772601756776923187n }, Devs.sirphantom89],
     tags: ["Chat", "Utility", "Accessibility"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     managedStyle,
     patches: [
         {
