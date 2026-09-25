@@ -28,7 +28,7 @@ const settings = definePluginSettings({
     suppressNotifications: {
         type: OptionType.BOOLEAN,
         description: "Recommended for use in DMs to prevent pinging users.",
-        default: false
+        default: true
     },
     interceptAllEdits: {
         type: OptionType.BOOLEAN,
