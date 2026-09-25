@@ -158,9 +158,10 @@ export default definePlugin({
         EquicordDevs.irritably
     ],
     tags: ["Chat", "Privacy"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     dependencies: ["MessagePopoverAPI", "CommandsAPI", "SilentEdit"],
     settings,
+
     contextMenus: {
         "message": messageContextMenuPatch
     },

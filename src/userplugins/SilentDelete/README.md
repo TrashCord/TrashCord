@@ -30,9 +30,9 @@ git clone https://github.com/Vendicated/Vencord
 cd Vencord
 pnpm install --frozen-lockfile
 ```
-3. Navigate to the `src/userplugins` folder in the cloned TrashCord repository.
+3. Navigate to the `src/illegalcordplugins` folder in the cloned Illegalcord repository.
 
-3. Download `silentDelete.tsx` from the repository and move it to the `userplugins` folder.
+3. Download `silentDelete.tsx` from the repository and move it to the `illegalcordplugins` folder.
 
 4. Build Vencord and inject Discord:
 

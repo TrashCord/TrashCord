@@ -126,7 +126,7 @@ export default definePlugin({
     description: "\"Silently\" edit a message without showing the edit tag and bypass Vencord's message logger.",
     authors: [EquicordDevs.Aurick],
     tags: ["Chat", "Privacy"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     dependencies: ["MessagePopoverAPI"],
     settings,
     async onBeforeMessageEdit(channelId, messageId, messageObj) {
