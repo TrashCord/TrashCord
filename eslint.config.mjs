@@ -13,7 +13,7 @@ import unusedImports from "eslint-plugin-unused-imports";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-    { ignores: ["dist", "browser", "packages/vencord-types", "src/userplugins/IGP/openpgp.min.mjs"] },
+    { ignores: ["dist", "browser", "packages/vencord-types", "src/userplugins/IGP/openpgp.min.mjs", "misc/bundle", "misc/scripts"] },
     {
         files: ["src/**/*.{tsx,ts,mts,mjs,js,jsx}", "eslint.config.mjs"],
         settings: {
