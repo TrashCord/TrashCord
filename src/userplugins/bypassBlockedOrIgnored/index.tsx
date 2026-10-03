@@ -8,7 +8,7 @@ import { Devs } from "@utils/constants";
 import { fetchUserProfile } from "@utils/discord";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { UserProfileActions, UserProfileStore } from "@webpack/common";
+import { openUserProfileModal, UserProfileStore } from "@webpack/common";
 
 import settings from "./settings";
 import { RelationshipStore } from "./stores";
@@ -119,7 +119,7 @@ export default definePlugin({
 
     openBlockedProfile(props) {
         props.onHide?.();
-        UserProfileActions.openUserProfileModal({
+        openUserProfileModal({
             userId: props.user.id,
             guildId: props.guildId,
             channelId: props.channelId,

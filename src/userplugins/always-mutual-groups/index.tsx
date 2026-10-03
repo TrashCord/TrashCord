@@ -9,7 +9,7 @@ import managedStyle from "./style.css?managed";
 import definePlugin from "@utils/types";
 import { Channel } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { ChannelStore, closeAllModals, IconUtils, NavigationRouter, RelationshipStore, UserProfileActions, UserStore } from "@webpack/common";
+import { ChannelStore, closeAllModals, IconUtils, NavigationRouter, RelationshipStore, UserStore } from "@webpack/common";
 
 const UserUtils = findByPropsLazy("getGlobalName");
 
@@ -79,7 +79,6 @@ function handleGroupClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     activeProfileUserId = null;
-    UserProfileActions.closeUserProfileModal();
     NavigationRouter.transitionTo(`/channels/@me/${channelId}`);
     closeAllModals();
 }
