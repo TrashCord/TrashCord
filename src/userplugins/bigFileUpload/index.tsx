@@ -392,7 +392,7 @@ export default definePlugin({
         {
             find: "Unexpected mismatch between files and file metadata",
             replacement: {
-                match: /(if\()(\(0,\i\.\i\)\(\i,\i\))(\)return void \i\(\i,\i\);)/,
+                match: /(if\()(\(0,\i\.\i\)\(\{files:\i,guildId:\i\}\))(\)return void \i\(\i,\i\);)/,
                 replace: "$1$self.shouldBypassDiscordUploadSizeCheck()?false:$2$3"
             }
         },
