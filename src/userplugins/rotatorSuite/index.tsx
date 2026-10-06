@@ -5,14 +5,14 @@
  */
 
 import { DataStore } from "@api/index";
-import { addUserAreaButton, removeUserAreaButton, UserAreaButton } from "@api/UserArea";
+import { UserAreaButton } from "@api/UserArea";
 import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
-import { Button, Forms, React, RestAPI, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, Forms, React, RestAPI, TextInput, showToast, UserStore } from "@webpack/common";
 
 const SK = "RS_v1";
 const AR_SK = "AvatarRotator_v6";
@@ -246,10 +246,10 @@ async function bcrApplyColor(hex: string): Promise<void> {
             await RestAPI.patch({ url: "/users/@me", body: { banner_color: hex } });
             if (!pluginActive) return;
             bcrCurrentColor = hex; bcrOnColorApplied?.(hex);
-            if (settings.store.bannerShowToast) Toasts.show({ message: `Banner → ${hex}`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+            if (settings.store.bannerShowToast) showToast(`Banner → ${hex}`, "success");
             await bcrSaveData();
         } catch (e: any) {
-            if (settings.store.bannerShowToast) Toasts.show({ message: `Banner failed: ${e?.body?.message ?? "Unknown"}`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            if (settings.store.bannerShowToast) showToast(`Banner failed: ${e?.body?.message ?? "Unknown"}`, "failure");
         }
     })();
     bcrApplyPromise = p;
@@ -1214,12 +1214,12 @@ function doGlobalStop(durationMs: number | null) {
         globalStopTimer = setTimeout(() => {
             isManualStop = false; globalStopEndTime = null; globalStopTimer = null;
             if (pluginActive && !wasInvisible) startAllRotators();
-            Toasts.show({ message: "All Rotators resumed (timer ended)", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+            showToast("All Rotators resumed (timer ended)", "success");
         }, durationMs);
     } else {
         globalStopEndTime = null;
     }
-    Toasts.show({ message: durationMs ? `Rotators stopped for ${formatStopDuration(durationMs)}` : "All Rotators stopped", type: Toasts.Type.MESSAGE, id: Toasts.genId() });
+    showToast(durationMs ? `Rotators stopped for ${formatStopDuration(durationMs)}` : "All Rotators stopped", "message");
 }
 
 function doGlobalResume() {
@@ -1227,7 +1227,7 @@ function doGlobalResume() {
     if (globalStopTimer) { clearTimeout(globalStopTimer); globalStopTimer = null; }
     globalStopEndTime = null;
     if (pluginActive) startAllRotators();
-    Toasts.show({ message: "All Rotators resumed", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+    showToast("All Rotators resumed", "success");
 }
 
 function getMyCurrentStatus(): string {
@@ -1249,11 +1249,11 @@ function startInvisibleWatcher() {
             wasInvisible = true;
             stopAllRotators();
             void applyOnCloseAll();
-            Toasts.show({ message: "Invisible detected - Rotators paused", type: Toasts.Type.MESSAGE, id: Toasts.genId() });
+            showToast("Invisible detected - Rotators paused", "message");
         } else if (!nowInvis && wasInvisible) {
             wasInvisible = false;
             if (!isManualStop && pluginActive) startAllRotators();
-            Toasts.show({ message: "Status visible - Rotators resumed", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+            showToast("Status visible - Rotators resumed", "success");
         }
     }, 3000);
 }
@@ -1271,7 +1271,7 @@ function startNitroWatcher() {
         if (arHasNitro()) {
             if (bcrRotatorTimer !== null) {
                 bcrStopRotator();
-                arToast("Nitro detected - ColorBanner paused. Disable Nitro Check in Banner tab to override.", Toasts.Type.FAILURE);
+                arToast("Nitro detected - ColorBanner paused. Disable Nitro Check in Banner tab to override.", "failure");
             }
         } else if (settings.store.bannerEnabled && bcrRotatorTimer === null && !isManualStop && !wasInvisible) {
             bcrStartRotator(false);
@@ -1292,7 +1292,7 @@ function startAvatarNitroWatcher() {
         const has = arHasNitro();
         if (has !== lastHasNitro) {
             lastHasNitro = has;
-            if (!has) arToast("No Nitro detected - GIFs excluded from avatar rotation.", Toasts.Type.FAILURE);
+            if (!has) arToast("No Nitro detected - GIFs excluded from avatar rotation.", "failure");
             else arToast("Nitro detected - GIFs re-included in avatar rotation.");
         }
         if (settings.store.avatarEnabled && !arRotatorTimer && arGetActive().length) arSchedule();
@@ -3121,9 +3121,9 @@ function arSfShuffle(len: number): number[] {
     return a;
 }
 
-function arToast(msg: string, type: Toasts.Type = Toasts.Type.SUCCESS) {
+function arToast(msg: string, type: "message" | "success" | "failure" = "success") {
     if (!settings.store.avatarShowToast) return;
-    Toasts.show({ message: msg, type, id: Toasts.genId() });
+    showToast(msg, type);
 }
 
 function arGetExt(data: string): string {
@@ -3302,7 +3302,7 @@ async function arApplyAvatarExec(entry: AvatarEntry): Promise<void> {
         arToast(`Avatar → ${entry.label}`);
     } catch (e: any) {
         const msg = e?.body?.errors?.avatar?._errors?.[0]?.message ?? e?.body?.message ?? e?.message ?? "Unknown";
-        arToast(`Failed: ${msg}`, Toasts.Type.FAILURE);
+        arToast(`Failed: ${msg}`, "failure");
     }
 }
 
@@ -3886,13 +3886,13 @@ function AvatarTab({ forceUpdate }: { forceUpdate: () => void }) {
 
     const handleAddUrl = async () => {
         const url = urlInput.trim();
-        if (!url) { arToast("Please enter a URL", Toasts.Type.FAILURE); return; }
+        if (!url) { arToast("Please enter a URL", "failure"); return; }
         let parsed: URL;
         try { parsed = new URL(url); if (!["http:", "https:"].includes(parsed.protocol)) throw new Error(); }
-        catch { arToast("Invalid URL - must start with http:// or https://", Toasts.Type.FAILURE); return; }
+        catch { arToast("Invalid URL - must start with http:// or https://", "failure"); return; }
         const label = labelInput.trim() || parsed.pathname.split("/").pop()?.replace(/\.[^.]+$/, "") || "Avatar";
         setLoading(true);
-        arToast("Fetching image…", Toasts.Type.MESSAGE);
+        arToast("Fetching image…", "message");
         try {
             const ctrl = new AbortController();
             const timeout = setTimeout(() => ctrl.abort(), 15000);
@@ -3906,11 +3906,11 @@ function AvatarTab({ forceUpdate }: { forceUpdate: () => void }) {
             if (blob.size > 50_000_000) throw new Error("Image too large (>50 MB)");
             const data = await arBlobToDataUrl(blob);
             if (!data.startsWith("data:image/")) throw new Error("Could not read image data");
-            arToast("Image loaded", Toasts.Type.SUCCESS);
+            arToast("Image loaded", "success");
             setLoading(false);
             arOpenCropFor(data, async (cropped, cropParams) => { const previewData = await arGenPreview(cropped, cropParams); commit([...arAvatars, { id: arUid(), label, data: cropped, cropParams, previewData }]); setUrlInput(""); setLabelInput(""); arToast(`Added "${label}"`); });
         } catch (e: any) {
-            arToast(e?.name === "AbortError" ? "Request timed out (15s)" : `Failed: ${e.message ?? "Unknown"}`, Toasts.Type.FAILURE);
+            arToast(e?.name === "AbortError" ? "Request timed out (15s)" : `Failed: ${e.message ?? "Unknown"}`, "failure");
             setLoading(false);
         }
     };
@@ -3924,7 +3924,7 @@ function AvatarTab({ forceUpdate }: { forceUpdate: () => void }) {
                 const data = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(files[0]); });
                 setLoading(false);
                 arOpenCropFor(data, async (cropped, cropParams) => { const previewData = await arGenPreview(cropped, cropParams); commit([...arAvatars, { id: arUid(), label: files[0].name.replace(/\.[^.]+$/, ""), data: cropped, cropParams, previewData }]); arToast("Added"); });
-            } catch { arToast("Failed to read file", Toasts.Type.FAILURE); setLoading(false); }
+            } catch { arToast("Failed to read file", "failure"); setLoading(false); }
         } else {
             const entries: AvatarEntry[] = [];
             for (const f of files) {
@@ -3942,8 +3942,8 @@ function AvatarTab({ forceUpdate }: { forceUpdate: () => void }) {
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0]; if (!f) return;
         setLoading(true);
-        try { const imp = await arImportJSON(f); if (!imp.length) arToast("No valid avatars in file", Toasts.Type.MESSAGE); else { commit([...arAvatars, ...imp]); arToast(`Imported ${imp.length}`); } }
-        catch { arToast("Import failed - invalid JSON", Toasts.Type.FAILURE); }
+        try { const imp = await arImportJSON(f); if (!imp.length) arToast("No valid avatars in file", "message"); else { commit([...arAvatars, ...imp]); arToast(`Imported ${imp.length}`); } }
+        catch { arToast("Import failed - invalid JSON", "failure"); }
         setLoading(false); e.target.value = "";
     };
 
@@ -5751,7 +5751,7 @@ export default definePlugin({
         closeBannerColor = closeStored.closeBannerColor ?? "#111214";
         try { localStorage.setItem(RS_CLOSE_LS, JSON.stringify({ closeStatusEnabled, closeStatusText, closeStatusEmoji, closeStatusType, closeClanEnabled, closeClanId, closeBannerEnabled, closeBannerColor })); } catch {}
 
-        try { addUserAreaButton("rotator-suite", () => <RSUserAreaButton />); } catch {}
+        Vencord.Api.UserArea.addUserAreaButton("rotator-suite", () => <RSUserAreaButton />);
 
         if (settings.store.autoStart) {
             startAllRotators();
@@ -5783,7 +5783,7 @@ export default definePlugin({
         bcrFavorites = []; bcrUsedFavs = []; bcrRandomBatch = []; bcrSeqBatch = [];
         bcrCachedHue = null; bcrGradientState = null; bcrMonoBaseHue = null;
         bcrCurrentColor = null; bcrOnColorApplied = null;
-        try { removeUserAreaButton("rotator-suite"); } catch {}
+        Vencord.Api.UserArea.removeUserAreaButton("rotator-suite");
         document.getElementById("rs-css")?.remove();
         wxStop();
         wxCache = null;
