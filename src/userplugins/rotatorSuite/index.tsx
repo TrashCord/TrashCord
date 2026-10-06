@@ -5,7 +5,7 @@
  */
 
 import { DataStore } from "@api/index";
-import { UserAreaButton } from "@api/UserArea";
+import { addUserAreaButton, removeUserAreaButton, UserAreaButton } from "@api/UserArea";
 import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
@@ -5751,7 +5751,7 @@ export default definePlugin({
         closeBannerColor = closeStored.closeBannerColor ?? "#111214";
         try { localStorage.setItem(RS_CLOSE_LS, JSON.stringify({ closeStatusEnabled, closeStatusText, closeStatusEmoji, closeStatusType, closeClanEnabled, closeClanId, closeBannerEnabled, closeBannerColor })); } catch {}
 
-        Vencord.Api.UserArea.addUserAreaButton("rotator-suite", () => <RSUserAreaButton />);
+        try { addUserAreaButton("rotator-suite", () => <RSUserAreaButton />); } catch {}
 
         if (settings.store.autoStart) {
             startAllRotators();
@@ -5783,7 +5783,7 @@ export default definePlugin({
         bcrFavorites = []; bcrUsedFavs = []; bcrRandomBatch = []; bcrSeqBatch = [];
         bcrCachedHue = null; bcrGradientState = null; bcrMonoBaseHue = null;
         bcrCurrentColor = null; bcrOnColorApplied = null;
-        Vencord.Api.UserArea.removeUserAreaButton("rotator-suite");
+        try { removeUserAreaButton("rotator-suite"); } catch {}
         document.getElementById("rs-css")?.remove();
         wxStop();
         wxCache = null;
