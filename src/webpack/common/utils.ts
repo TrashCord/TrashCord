@@ -91,7 +91,7 @@ export interface ToastOptions {
 
 export const Toasts: t.Toasts = mapMangledModuleLazy(".currentToastMap.has(", {
     show: filters.byCode(".currentToastMap.has("),
-    pop: filters.byCode(".delete(")
+    pop: filters.byCode(".delete("),
     create: (message: string, type?: t.ToastType, options?: ToastOptions) => createToast({ message, type, options } as any),
 });
 
