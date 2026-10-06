@@ -117,6 +117,10 @@ export const Toasts = {
     create: (message: string, type?: t.ToastType, options?: any) => createToast({ message, type, options } as any)
 };
 
+export function showToast(message: string, type: t.ToastType = "message", options?: any) {
+    Toasts.show(createToast({ message, type, options }));
+}
+
 const TOAST_STYLE_ID = "equicord-toast-fix-style";
 if (!document.getElementById(TOAST_STYLE_ID)) {
     const toastStyle = document.createElement("style");
@@ -144,10 +148,6 @@ if (!document.getElementById(TOAST_STYLE_ID)) {
         }
     `;
     document.head.appendChild(toastStyle);
-}
-
-export function showToast(message: string, type: t.ToastType = "message", options?: any) {
-    Toasts.show(createToast({ message, type, options }));
 }
 
 export const UserUtils = {
