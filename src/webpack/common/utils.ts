@@ -89,18 +89,36 @@ export interface ToastOptions {
     duration?: number;
 }
 
-export const Toasts: t.Toasts = mapMangledModuleLazy(".currentToastMap.has(", {
+const DiscordToasts: t.Toasts = mapMangledModuleLazy(".currentToastMap.has(", {
     show: filters.byCode(".currentToastMap.has("),
-    pop: filters.byCode(".delete("),
-    create: (message: string, type?: t.ToastType, options?: ToastOptions) => createToast({ message, type, options } as any),
+    pop: filters.byCode(".delete(")
 });
 
 export const createToast: t.createToast = findByCodeLazy('variant:"default",icon:', ".duration");
 
-/**
- * Show a simple toast. If you need more options, use Toasts.show manually
- */
-export function showToast(message: string, type: t.ToastType = "message", options?: ToastOptions) {
+export const Toasts = {
+    Type: {
+        MESSAGE: "message",
+        SUCCESS: "success",
+        FAILURE: "failure",
+        CUSTOM: "custom",
+        CLIP: "clip",
+        LINK: "link",
+        FORWARD: "forward",
+        BOOKMARK: "bookmark",
+        CLOCK: "clock"
+    } as const,
+    Position: { TOP: 0, BOTTOM: 1 } as const,
+    genId: () => (Math.random() || Math.random()).toString(36).slice(2),
+    show(data: any) {
+        DiscordToasts.show("text" in data ? data : createToast(data));
+    },
+    pop: (context?: string) => DiscordToasts.pop(context),
+    create: (message: string, type?: t.ToastType, options?: any) => createToast({ message, type, options } as any)
+};
+
+// 4. Funzione moderna showToast
+export function showToast(message: string, type: t.ToastType = "message", options?: any) {
     Toasts.show(createToast({ message, type, options }));
 }
 
