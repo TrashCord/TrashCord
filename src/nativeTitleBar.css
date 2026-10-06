@@ -6,7 +6,7 @@
     display: none !important;
 }
 
-# Toast Fix Style - by zFry
+/* Toast Fix Style - by zFry */
 
 [class*="toast"] {
     width: max-content !important;
