@@ -32,4 +32,5 @@ export type createToast = (data: ToastData) => NewToastData;
 export interface Toasts {
     show: showToast;
     pop: popToast;
+    create: createToast;
 }
