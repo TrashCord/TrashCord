@@ -117,7 +117,35 @@ export const Toasts = {
     create: (message: string, type?: t.ToastType, options?: any) => createToast({ message, type, options } as any)
 };
 
-// 4. Funzione moderna showToast
+const TOAST_STYLE_ID = "equicord-toast-fix-style";
+if (!document.getElementById(TOAST_STYLE_ID)) {
+    const toastStyle = document.createElement("style");
+    toastStyle.id = TOAST_STYLE_ID;
+    toastStyle.textContent = `
+        [class*="toast"] {
+            width: max-content !important;
+            min-width: 0 !important;
+            max-width: 95vw !important;
+        }
+
+        [class*="toast"] * {
+            min-width: 0 !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        [class*="toast"] [class*="text"],
+        [class*="toast"] [class*="message"] {
+            display: -webkit-box !important;
+            -webkit-box-orient: vertical !important;
+            -webkit-line-clamp: 2 !important;
+            overflow: hidden !important;
+        }
+    `;
+    document.head.appendChild(toastStyle);
+}
+
 export function showToast(message: string, type: t.ToastType = "message", options?: any) {
     Toasts.show(createToast({ message, type, options }));
 }
