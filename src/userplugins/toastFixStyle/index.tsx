@@ -10,6 +10,5 @@ export default definePlugin({
     enabledByDefault: true,
     required: true,
     hidden: true,
-    managedStyle,
-    settings
+    managedStyle
 });
