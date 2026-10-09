@@ -9,6 +9,7 @@ import { isPluginEnabled, plugins as Plugins } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { FluxDispatcher } from "@webpack/common";
+import { Devs } from "@utils/constants";
 
 type FluxHandler = (event: any) => void;
 
