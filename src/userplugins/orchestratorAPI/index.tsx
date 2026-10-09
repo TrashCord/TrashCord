@@ -7,7 +7,6 @@
 import { globalPatches, navPatches } from "@api/ContextMenu";
 import { isPluginEnabled, plugins as Plugins } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
-import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { FluxDispatcher } from "@webpack/common";
 
@@ -39,7 +38,7 @@ function fluxFan(actionType: string): FluxHandler {
         for (const handler of set) {
             try {
                 handler(event);
-            } catch { /* ignore */ }
+            } catch {}
         }
     };
 }
@@ -98,7 +97,7 @@ function startFluxBus() {
             if (!handler) continue;
             try {
                 originalUnsubscribe.call(FluxDispatcher, event, handler);
-            } catch { /* not subscribed yet */ }
+            } catch {}
             wrappedSubscribe.call(FluxDispatcher, event, handler);
         }
     }
@@ -115,12 +114,12 @@ function stopFluxBus() {
         if (fan) {
             try {
                 originalUnsubscribe.call(FluxDispatcher, actionType, fan);
-            } catch { /* already gone */ }
+            } catch {}
         }
         for (const handler of set) {
             try {
                 originalSubscribe.call(FluxDispatcher, actionType, handler);
-            } catch { /* ignore */ }
+            } catch {}
         }
     }
     fluxSubscribers.clear();
@@ -129,10 +128,12 @@ function stopFluxBus() {
     originalUnsubscribe = null;
 }
 
+const FAIL_LIMIT = 5;
+
 let hardeningActive = false;
 const wrappedToOriginal = new Map<Function, Function>();
-const failCounts = new WeakMap<Function, number>();
-const disabledPatches = new WeakSet<Function>();
+let failCounts = new WeakMap<Function, number>();
+let disabledPatches = new WeakSet<Function>();
 
 type NavPatch = (children: Array<any>, ...args: Array<any>) => void;
 type GlobalPatch = (navId: string, children: Array<any>, ...args: Array<any>) => void;
@@ -145,10 +146,11 @@ function makeHardenedNav(fn: NavPatch) {
         }
         try {
             fn(children, ...args);
+            if (failCounts.has(fn)) failCounts.delete(fn);
         } catch {
             const count = (failCounts.get(fn) ?? 0) + 1;
             failCounts.set(fn, count);
-            if (count >= 3) {
+            if (count >= FAIL_LIMIT) {
                 disabledPatches.add(fn);
             }
         }
@@ -165,10 +167,11 @@ function makeHardenedGlobal(fn: GlobalPatch) {
         }
         try {
             fn(navId, children, ...args);
+            if (failCounts.has(fn)) failCounts.delete(fn);
         } catch {
             const count = (failCounts.get(fn) ?? 0) + 1;
             failCounts.set(fn, count);
-            if (count >= 3) {
+            if (count >= FAIL_LIMIT) {
                 disabledPatches.add(fn);
             }
         }
@@ -216,6 +219,8 @@ function stopContextMenuHardening() {
         globalPatches.add(original as GlobalPatch);
     }
     wrappedToOriginal.clear();
+    failCounts = new WeakMap();
+    disabledPatches = new WeakSet();
 }
 
 export default definePlugin({
@@ -225,24 +230,23 @@ export default definePlugin({
     tags: ["Utility", "Developers"],
     enabledByDefault: true,
     required: true,
-    /* hidden: true, */
     settings,
 
     start() {
         try {
             if (settings.store.fluxBus) startFluxBus();
-        } catch { /* ignore */ }
+        } catch {}
         try {
             if (settings.store.contextMenuHardening) startContextMenuHardening();
-        } catch { /* ignore */ }
+        } catch {}
     },
 
     stop() {
         try {
             stopContextMenuHardening();
-        } catch { /* ignore */ }
+        } catch {}
         try {
             stopFluxBus();
-        } catch { /* ignore */ }
+        } catch {}
     },
 });
