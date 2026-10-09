@@ -118,8 +118,8 @@ export default definePlugin({
             find: "getAppSpinnerSources",
             predicate: () => settings.store.killLoadingSpinner,
             replacement: {
-                match: /let (\w+)=\w+\.\w+\.getAppSpinnerSources\(\),(\w+)=null!=\1\?\w+\(\1\):null/,
-                replace: (_, src, spinner) => `let ${src}=null,${spinner}=null`,
+                match: /getAppSpinnerSources:function\(\)\{return [^}]+\}/,
+                replace: "getAppSpinnerSources:function(){return null}",
             },
         },
         {
