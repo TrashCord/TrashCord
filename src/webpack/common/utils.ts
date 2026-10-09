@@ -111,14 +111,18 @@ export const Toasts = {
     Position: { TOP: 0, BOTTOM: 1 } as const,
     genId: () => (Math.random() || Math.random()).toString(36).slice(2),
     show(data: any) {
-        DiscordToasts.show("text" in data ? data : createToast(data));
+        if ("text" in data) {
+            DiscordToasts.show(data);
+        } else {
+            DiscordToasts.show(createToast(data.message, data.type, data.options));
+        }
     },
     pop: (context?: string) => DiscordToasts.pop(context),
-    create: (message: string, type?: t.ToastType, options?: any) => createToast({ message, type, options } as any)
+    create: (message: string, type?: t.ToastType, options?: ToastOptions) => createToast(message, type, options)
 };
 
-export function showToast(message: string, type: t.ToastType = "message", options?: any) {
-    Toasts.show(createToast({ message, type, options }));
+export function showToast(message: string, type: t.ToastType = "message", options?: ToastOptions) {
+    DiscordToasts.show(createToast(message, type, options));
 }
 
 export const UserUtils = {
