@@ -8,7 +8,7 @@ import definePlugin from "@utils/types";
 import { lodash } from "@webpack/common";
 
 const mergedStyles = new Set<HTMLStyleElement>();
-const absorbed = new Set<HTMLLinkElement>();
+const absorbed = new Map<HTMLLinkElement, HTMLStyleElement>();
 
 function linkCss(el: Element) {
     if (!(el instanceof HTMLLinkElement) || el.rel !== "stylesheet" || absorbed.has(el) || el.onload != null || el.sheet == null || el.media) return null;
@@ -33,10 +33,11 @@ function merge(run: [Element, string][]) {
     for (const [el] of run) {
         if (el instanceof HTMLStyleElement) {
             mergedStyles.delete(el);
+            for (const [link, owner] of absorbed) if (owner === el) absorbed.set(link, style);
             el.remove();
-        } else if (el instanceof HTMLLinkElement && el.sheet) {
-            el.sheet.disabled = true;
-            absorbed.add(el);
+        } else if (el instanceof HTMLLinkElement) {
+            absorbed.set(el, style);
+            el.remove();
         }
     }
 }
@@ -66,10 +67,10 @@ function onLoad(e: Event) {
 
 export default definePlugin({
     name: "FastRender",
-    description: "Tweak some things for a lighter Discord",
+    description: "Faster style recalculation by merging stylesheets",
     authors: [{ name: "nobody", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Performance", "Utility"],
-    enabledByDefault: true,
+    enabledByDefault: false,
     start() {
         scheduleCompact = lodash.debounce(() => {
             if (idleId !== undefined) cancelIdleCallback(idleId);
@@ -84,7 +85,7 @@ export default definePlugin({
         scheduleCompact = undefined;
         if (idleId !== undefined) cancelIdleCallback(idleId);
         document.removeEventListener("load", onLoad, true);
-        for (const link of absorbed) if (link.sheet) link.sheet.disabled = false;
+        for (const [link, style] of absorbed) style.before(link);
         for (const style of mergedStyles) style.remove();
         absorbed.clear();
         mergedStyles.clear();
