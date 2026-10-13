@@ -1,7 +1,16 @@
-import definePlugin, { OptionType, PluginSettingDef } from "@utils/types";
-import Patches from "./patches";
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { definePluginSettings } from "@api/Settings";
+import { Link } from "@components/Link";
+import { Devs } from "@utils/constants";
+import definePlugin, { OptionType, PluginSettingDef } from "@utils/types";
 import { Forms } from "@webpack/common";
+
+import Patches from "./patches";
 
 export const ParsedPatches = Object.entries(Patches).map(([patchName, { description, default: defaultValue, patches }]) => {
     return {
@@ -32,7 +41,7 @@ const settings = definePluginSettings(Object.fromEntries([
 export default definePlugin({
     name: "JunkCleanup",
     description: "Another plugin that cleans up common annoyances in Discord",
-    authors: [{ name: "Sqaaakoi", id: 0n }],
+    authors: [Devs.Sqaaakoi],
     tags: ["Appearance", "Utility", "Nitro", "Adblock", "Performance"],
     enabledByDefault: false,
     settings,
@@ -40,11 +49,7 @@ export default definePlugin({
     settingsAboutComponent: () => {
         return <div>
             <Forms.FormTitle>Total patch count: {ParsedPatches.length}</Forms.FormTitle>
-            <Forms.FormTitle style={{ marginBottom: 0 }}>
-                <a href="https://github.com/Sqaaakoi/vc-junkCleanup" target="_blank" rel="noreferrer">
-                    View repository on GitHub
-                </a>
-            </Forms.FormTitle>
+            <Forms.FormTitle style={{ marginBottom: 0 }}><Link href="https://github.com/Sqaaakoi/vc-junkCleanup">View repository on GitHub</Link></Forms.FormTitle>
         </div>;
     }
 });

@@ -12,6 +12,8 @@ import {
     set,
     setMany,
 } from "@api/DataStore";
+import { Settings } from "@api/Settings";
+import { sleep } from "@utils/misc";
 import { UserUtils, useState } from "@webpack/common";
 
 const NotesStore = createStore("UserNotesData", "UserNotesStore");
@@ -26,7 +28,9 @@ const cacheUsersNotes = async () => {
     });
 };
 
-cacheUsersNotes();
+// Settings is initialized before the plugins bundle evaluates; the plugin
+// registry itself is not, so read the enabled state from Settings directly.
+if (Settings.plugins.UserNotes?.enabled !== false) cacheUsersNotes();
 
 export const getUserNotes = (userId: string): string | undefined => {
     return usersNotes.get(userId);
@@ -77,7 +81,7 @@ const fetchUser = async (userId: string) => {
 
             if (!wait) break;
 
-            await new Promise(resolve => setTimeout(resolve, wait * 1000 + 50));
+            await sleep(wait * 1000 + 50);
         }
     }
 };

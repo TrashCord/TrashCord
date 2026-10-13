@@ -13,7 +13,6 @@ import { closeModal, Modals, openModalLazy } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 
 export const ModalRootdiv = LazyComponent(() => (Modals as any).ModalRoot);
-
 export const settings = definePluginSettings({
     BackgroundColor: {
         type: OptionType.STRING,
@@ -36,19 +35,18 @@ export const settings = definePluginSettings({
         description: "activate on idle",
         default: false
     }
-});
-
+}
+);
 let c = 0;
-
 function openThing() {
-    openModalLazy(async() => {
-        return ()=> (
+    openModalLazy(async () => {
+        return () => (
             <div className="custom-idle-div-page" style={{
                 backgroundColor: settings.store.BackgroundColor
             }}
-            onClick={()=>{
-                closeModal("idle-modal");
-            }}
+                onClick={() => {
+                    closeModal("idle-modal");
+                }}
             >
                 <h1>{settings.store.text}</h1>
             </div>
@@ -57,17 +55,16 @@ function openThing() {
         modalKey: "idle-modal"
     });
 }
-
 export default definePlugin({
     name: "IdlePage",
     description: "Shows a blank page when you go idle",
+    authors: [Devs.x2b],
     tags: ["Appearance", "Utility"],
     enabledByDefault: false,
-    authors: [Devs.x2b],
     managedStyle,
     settings,
     flux: {
-        IDLE: () =>{
+        IDLE: () => {
             if (settings.store.onIdle)
                 openThing();
         }
@@ -84,8 +81,9 @@ export default definePlugin({
             }
         }
     ],
+
     interval: undefined as ReturnType<typeof setInterval> | undefined,
-    start(){
+    start() {
         if (settings.store.onHomeClick)
             this.interval = setInterval(() => c = 0, 1000);
     },
@@ -93,18 +91,18 @@ export default definePlugin({
         clearInterval(this.interval);
         this.interval = undefined;
     },
-    startIdle(){
+    startIdle() {
         c++;
-        if(c === 3){
+        if (c === 3) {
             c = 0;
             openThing();
         }
     },
     commands: [
         {
-            name:"test",
-            description:"test command",
-            execute(){
+            name: "test",
+            description: "test command",
+            execute() {
                 openThing();
             }
         }

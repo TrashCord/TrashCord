@@ -27,7 +27,6 @@ export default definePlugin({
     authors: [Devs.x2b],
     tags: ["Privacy", "Utility"],
     enabledByDefault: false,
-
     contextMenus: contextMenus,
 
     patches: [
@@ -85,8 +84,3 @@ export default definePlugin({
         saveData();
     },
 });
-
-
-
-
-

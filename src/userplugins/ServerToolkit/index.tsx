@@ -102,8 +102,7 @@ const guildContextPatch: NavContextMenuPatchCallback = (children, props: { guild
 
 export default definePlugin({
     name: "ServerToolkit",
-    description: 
-        "All-in-one server utility. Right-click any guild for an X-Ray inspector and a powerful Duplicate/Clone modal (roles, channels, emojis, stickers, webhooks, server settings, optional overwrite of an existing target).",
+    description: "All-in-one server utility. Right-click any guild for an X-Ray inspector and a powerful Duplicate/Clone modal (roles, channels, emojis, stickers, webhooks, server settings, optional overwrite of an existing target).",
     authors: [Devs.sirphantom89],
     tags: ["Utility", "Servers", "Developers"],
     enabledByDefault: false,

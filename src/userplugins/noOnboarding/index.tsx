@@ -16,60 +16,160 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import definePlugin from "@utils/types";
+import { definePluginSettings } from "@api/Settings";
 import { Devs, EquicordDevs } from "@utils/constants";
-import { RestAPI } from "@webpack/common";
+import definePlugin, { OptionType } from "@utils/types";
+import { FluxDispatcher, GuildMemberStore, RestAPI, UserStore } from "@webpack/common";
+
+const settings = definePluginSettings({
+    randomAnswers: {
+        description: "Select a random option for every prompt instead of always the last one, mimicking manual clicks so strict servers verify the join",
+        default: true,
+        type: OptionType.BOOLEAN,
+        restartNeeded: false,
+    },
+});
 
 export default definePlugin({
     name: "NoOnboarding",
     description: "Bypasses Discord's onboarding process for quicker server entry.",
     authors: [EquicordDevs.omaw, Devs.Glitch],
-    enabledByDefault: false,
     tags: ["Privacy", "Utility"],
+    enabledByDefault: false,
+    settings,
     patches: [
         {
-            find: ",acceptInvite(",
+            // The onboarding screen is Suspense(GuildOnboardingPage), lazy-loaded via
+            // module 123071 on demand when the screen mounts. Unlike the render gate in
+            // module 202776 (a startup module that evaluates before any plugin patch
+            // registers, and so can never be intercepted), this lazy factory doesn't run
+            // until you actually hit onboarding — so a registered patch DOES land on it.
+            //
+            // The page component is `ec(e)`, which destructures {guildId} first and then
+            // calls a series of hooks. Injecting an early-return right after the opening
+            // brace runs before any hook, so it's rules-of-hooks safe: when you're already
+            // a member, render nothing instead of the onboarding flow.
+            //
+            // Rendering null alone leaves the parent gate mounted (it still sees the
+            // onboarding condition as true), which shows as a black screen — so we also
+            // kick off the bypass here, which clears the impersonation state the parent
+            // gate reads and lets the real channel view take over.
+            find: "getOnboardingPromptsForOnboarding(t)),",
             replacement: {
-                match: /INVITE_ACCEPT_SUCCESS.+?,(\i)=null!=.+?;/,
-                replace: (m, guildId) => `${m}$self.bypassOnboard(${guildId});`
-            }
-        },
-        {
-            find: "{joinGuild:",
-            replacement: {
-                match: /guildId:(\i),lurker:(\i).{0,20}}\)\);/,
-                replace: (m, guildId, lurker) => `${m}if(!${lurker})$self.bypassOnboard(${guildId});`
+                match: /function ec\(e\)\{/,
+                replace: "function ec(e){if($self.shouldSkip(e.guildId)){$self.autoBypass(e.guildId);return null;}"
             }
         }
     ],
+
+    shouldSkip(guildId: string) {
+        try {
+            const me = UserStore.getCurrentUser();
+            return !!me && !!guildId && GuildMemberStore.isMember(guildId, me.id);
+        } catch {
+            return false;
+        }
+    },
+
+    _gj: null as ((e: any) => void) | null,
+
+    // Guilds we've already auto-bypassed from the render patch, so re-renders
+    // of the (otherwise nulled) onboarding component don't spam the API.
+    _autoBypassed: new Set<string>(),
+
+    autoBypass(guildId: string) {
+        if (!guildId || this._autoBypassed.has(guildId)) return;
+        this._autoBypassed.add(guildId);
+        // Drop the NEW_MEMBER impersonation entry immediately so the parent
+        // render gate goes false and the channel view mounts instead of the
+        // now-nulled onboarding page (which would otherwise show as black).
+        FluxDispatcher.dispatch({ type: "IMPERSONATE_STOP", guildId });
+        this.bypassOnboard(guildId);
+    },
+
+    handleGuildJoin(e: any) {
+        // Ignore lurker/preview joins: the user isn't a member yet, so
+        // GET /onboarding 404s ("Unknown Guild") and an uncaught rejection
+        // can break the subsequent real join. Only bypass on a real join.
+        if (e?.lurker) return;
+        const guildId = e?.guildId;
+        if (guildId) {
+            this._autoBypassed.add(guildId);
+            this.bypassOnboard(guildId);
+        }
+    },
+
+    start() {
+        this._gj = this.handleGuildJoin.bind(this);
+        FluxDispatcher.subscribe("GUILD_JOIN", this._gj);
+    },
+
+    stop() {
+        if (this._gj) FluxDispatcher.unsubscribe("GUILD_JOIN", this._gj);
+        this._gj = null;
+    },
+
     bypassOnboard(guild_id: string) {
-        RestAPI.get({ url: `/guilds/${guild_id}/onboarding` }).then(res => {
-            const data = res.body;
-            if (!data?.prompts?.length) return;
+        RestAPI.get({ url: `/guilds/${guild_id}/onboarding` })
+            .then(res => {
+                const data = res.body;
+                if (!data?.prompts?.length) return;
 
-            const now = Math.floor(Date.now() / 1000);
-            const prompts_seen = {};
-            const responses_seen = {};
-            const responses: string[] = [];
+                const now = Math.floor(Date.now() / 1000);
+                const prompts_seen = {};
+                const responses_seen = {};
+                const responses: string[] = [];
+                const random = settings.store.randomAnswers;
 
-            for (const prompt of data.prompts) {
-                const options = prompt.options || [];
-                if (!options.length) continue;
-                prompts_seen[prompt.id] = now;
-                for (const opt of options) responses_seen[opt.id] = now;
-                responses.push(options[options.length - 1].id);
-            }
+                for (const prompt of data.prompts) {
+                    const options = prompt.options || [];
+                    if (!options.length) continue;
+                    prompts_seen[prompt.id] = now;
+                    for (const opt of options) responses_seen[opt.id] = now;
+                    // Random mode answers every prompt once (required or not) so the
+                    // payload looks like real engagement; legacy mode only answers
+                    // required prompts, always with the last option.
+                    if (!prompt.required && !random) continue;
+                    const idx = random
+                        ? Math.floor(Math.random() * options.length)
+                        : options.length - 1;
+                    responses.push(options[idx].id);
+                }
 
-            const payload = {
-                onboarding_responses: responses,
-                onboarding_prompts_seen: prompts_seen,
-                onboarding_responses_seen: responses_seen,
-            };
+                return RestAPI.post({
+                    url: `/guilds/${guild_id}/onboarding-responses`,
+                    body: {
+                        onboarding_responses: responses,
+                        onboarding_prompts_seen: prompts_seen,
+                        onboarding_responses_seen: responses_seen,
+                    }
+                }).then(res => {
+                    // Mirror Discord's own onboarding-submit flow: after the POST
+                    // succeeds it dispatches GUILD_ONBOARDING_UPDATE_RESPONSES_SUCCESS,
+                    // which updates the store the onboarding UI reads and unmounts it.
+                    // Without this, the server gate clears but the screen stays up.
+                    if (res?.body) {
+                        FluxDispatcher.dispatch({
+                            type: "GUILD_ONBOARDING_UPDATE_RESPONSES_SUCCESS",
+                            guildId: guild_id,
+                            options: res.body.onboarding_responses,
+                            prompts_seen: res.body.onboarding_prompts_seen,
+                            options_seen: res.body.onboarding_responses_seen,
+                        });
+                    }
 
-            RestAPI.post({
-                url: `/guilds/${guild_id}/onboarding-responses`,
-                body: payload
-            });
-        });
+                    // The onboarding render gate is:
+                    //   (isFullServerPreview(id) && isOnboardingEnabled(id)) || features.has(GUILD_ONBOARDING_HAS_PROMPTS)
+                    // Both preview selectors read the NEW_MEMBER impersonation entry
+                    // E[guildId] in the ImpersonateStore. IMPERSONATE_STOP is the only
+                    // action that deletes it, which drops the left side of the gate and
+                    // unmounts the screen now that we're a real member.
+                    FluxDispatcher.dispatch({
+                        type: "IMPERSONATE_STOP",
+                        guildId: guild_id,
+                    });
+                });
+            })
+            .catch(() => { /* not a member yet / no onboarding — ignore */ });
     }
 });

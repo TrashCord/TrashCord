@@ -13,12 +13,11 @@ import { FluxDispatcher, UserStore } from "@webpack/common";
 
 export default definePlugin({
     name: "Impersonate",
-    description: "Impersonate a user and have them send a \"message\"",
+    description: "Impersonate a user and have them send a message",
     authors: [Devs.x2b],
     tags: ["Chat", "Fun"],
     enabledByDefault: false,
     dependencies: ["CommandsAPI"],
-
     commands: [
         {
             name: "impersonate",
@@ -58,7 +57,6 @@ export default definePlugin({
                     const user = UserStore.getUser(args[0].value);
 
                     new Logger("Nigga").log(args);
-
 
                     if (delay) {
                         FluxDispatcher.dispatch({
@@ -119,8 +117,3 @@ export default definePlugin({
         }
     ]
 });
-
-
-
-
-

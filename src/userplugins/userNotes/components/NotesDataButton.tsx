@@ -4,25 +4,23 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { LazyComponent } from "@utils/react";
-import { filters, find } from "@webpack";
+import { findComponentByCodeLazy } from "@webpack";
 
 import { NotesDataIcon } from "./Icons";
 import { openNotesDataModal } from "./NotesDataModal";
 
-const HeaderBarIcon = LazyComponent(() => {
-    const filter = filters.byCode(".HEADER_BAR_BADGE");
-    return find(m => m.Icon && filter(m.Icon)).Icon;
-});
+const HeaderBarIcon = findComponentByCodeLazy("iconClassName", "badge", '"aria-haspopup":');
 
 export function OpenNotesDataButton() {
     return (
-        <HeaderBarIcon
-            className="vc-plugin-icon-button vc-notes-toolbox-button"
-            iconClassName="vc-plugin-icon-button"
-            onClick={() => openNotesDataModal()}
-            tooltip={"Open Notes Data"}
-            icon={NotesDataIcon}
-        />
+        <span className="vc-plugin-icon-button">
+            <HeaderBarIcon
+                className="vc-plugin-icon-button vc-notes-toolbox-button"
+                iconClassName="vc-plugin-icon-button"
+                onClick={() => openNotesDataModal()}
+                tooltip={"Open Notes Data"}
+                icon={NotesDataIcon}
+            />
+        </span>
     );
 }

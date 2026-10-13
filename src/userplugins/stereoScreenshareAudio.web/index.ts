@@ -7,7 +7,7 @@
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 
-let orig = {};
+const orig = {};
 
 const mungeSDP = sdp => {
     if (!sdp) return sdp;

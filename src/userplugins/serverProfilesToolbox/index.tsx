@@ -98,12 +98,11 @@ const IdentityActions = {
 
 export default definePlugin({
     name: "ServerProfilesToolbox",
-    authors: [Devs.x2b],
     description: "Adds a copy/paste/reset button to the server profiles editor",
+    authors: [Devs.x2b, Devs.nnenaza],
     tags: ["Servers", "Utility"],
     enabledByDefault: false,
     managedStyle,
-
     patchServerProfiles(guild: Guild) {
         const guildId = guild.id;
         const currentUser = UserStore.getCurrentUser();
@@ -117,10 +116,10 @@ export default definePlugin({
             savedProfile.pronouns = profile?.pronouns ?? null;
             savedProfile.bio = profile?.bio ?? null;
             savedProfile.themeColors = profile?.themeColors;
-            savedProfile.banner = profile?.banner ?? undefined;
-            savedProfile.avatar = selfMember.avatar;
+            savedProfile.banner = profile?.banner === null ? undefined : profile?.banner;
+            savedProfile.avatar = (selfMember as any).avatar ?? undefined;
             savedProfile.profileEffectId = profile?.profileEffectId;
-            savedProfile.avatarDecoration = selfMember.avatarDecoration;
+            savedProfile.avatarDecoration = (selfMember as any).avatarDecoration ?? undefined;
         };
 
         const paste = () => {

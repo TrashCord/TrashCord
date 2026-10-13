@@ -37,6 +37,7 @@ export default definePlugin({
     tags: ["Media", "Fun"],
     enabledByDefault: false,
     dependencies: ["MessageDecorationsAPI", "BadgeAPI"],
+    settings,
     start: async () => {
         enableStyle(style);
         useUsersProfileStore.getState().fetchBadges();
@@ -94,7 +95,6 @@ export default definePlugin({
             useUsersProfileStore.getState().fetch(data.userId, true);
         },
     },
-    settings,
     patches: [
         {
             find: "UserProfileStore",
@@ -112,6 +112,7 @@ export default definePlugin({
         },
         {
             find: "#{intl::USER_SETTINGS_RESET_PROFILE_THEME}",
+            noWarn: true,
             replacement: {
                 match: /#{intl::USER_SETTINGS_RESET_PROFILE_THEME}.+?}\)(?=\])(?=\])(?<=color:(\i),.{0,500}?color:(\i),.{0,500}?)/,
                 replace: "$&,$self.addCopy3y3Button({primary:$1,accent:$2})"
@@ -119,6 +120,7 @@ export default definePlugin({
         },
         {
             find: "DefaultCustomizationSections",
+            noWarn: true,
             replacement: {
                 match: /(?<=#{intl::USER_SETTINGS_AVATAR_DECORATION}\)},"decoration"\),)/,
                 replace: "$self.fakeProfileSection(),"
@@ -144,8 +146,8 @@ export default definePlugin({
             predicate: () => settings.store.voiceBackground,
             replacement: [
                 {
-                    match: /(?<=function\((\i),\i\)\{)(?=let.{20,40},style:)/,
-                    replace: "$1.style=$self.getVoiceBackgroundStyles($1);"
+                    match: /function \i?\s*\((\i)(?:,\i)?\)\{(?=let[^;]+?style:)/,
+                    replace: "$&$1.style=$self.getVoiceBackgroundStyles($1);"
                 }
             ]
         },

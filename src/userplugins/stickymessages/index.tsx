@@ -251,10 +251,9 @@ export default definePlugin({
     name: "StickyMessages",
     description: "js like sticky messages bot works by keepin da msg at the bottom.",
     authors: [Devs.x2b],
-    enabledByDefault: false,
     tags: ["Chat", "Utility"],
+    enabledByDefault: false,
     settings,
-
     headerBarButton: {
         render: StickyHeaderButton,
         icon: StickyIcon,

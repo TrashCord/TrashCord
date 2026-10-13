@@ -89,6 +89,14 @@ interface BackupSticker {
     format_type: number;
     url: string;
     managedStyle,
+    managedStyle,
+    managedStyle,
+    managedStyle,
+    managedStyle,
+    managedStyle,
+    managedStyle,
+    managedStyle,
+    managedStyle,
     tags: string;
     description: string;
 }

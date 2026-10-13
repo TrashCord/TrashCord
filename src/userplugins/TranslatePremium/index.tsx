@@ -168,6 +168,7 @@ export default definePlugin({
     authors: [Devs.x2b],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
+    dependencies: ["ContextMenuAPI"],
     settings,
     flux: {
         MESSAGE_CREATE: handleMessageCreate,

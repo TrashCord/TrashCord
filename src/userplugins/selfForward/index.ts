@@ -8,8 +8,8 @@ import definePlugin from "@utils/types";
 
 export default definePlugin({
     name: "SelfForward",
-    description: "shows the current channel in the message forward popup",
-    authors: [{ id: 1003477997728313405n, name: "Death" }],
+    description: "Adds the current channel to the forward list popup",
+    authors: [{ name: "VillainsRule", id: 0n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
     patches: [

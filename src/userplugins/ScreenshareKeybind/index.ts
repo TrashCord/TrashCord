@@ -6,8 +6,8 @@
 
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { ChannelStore, SelectedChannelStore } from "@webpack/common";
 import { findByCodeLazy, findByPropsLazy } from "@webpack";
+import { ChannelStore, SelectedChannelStore } from "@webpack/common";
 
 const getMediaEngine = findByPropsLazy("getMediaEngine");
 const getDesktopSources = findByCodeLazy("desktop sources");
@@ -50,8 +50,3 @@ export default definePlugin({
         });
     }
 });
-
-
-
-
-

@@ -29,7 +29,7 @@ import { autoAnalyzeMessage, extractUrlsFromMessage, manualAnalyzeUrls } from ".
 import { getModulesSync } from "./modularScanStore";
 import { settings } from "./settings";
 import { getThreat } from "./threatStore";
-import { initFilters, setCustomBlocklist,setCustomWhitelist } from "./urlFilter";
+import { initFilters, setCustomBlocklist, setCustomWhitelist } from "./urlFilter";
 import { extractCdnFileUrls, truncateUrl } from "./utils";
 
 async function genericAnalyze(messageId: string, url: string, analyzer: (url: string, silent: boolean) => Promise<any>, silent = false) {
@@ -532,8 +532,9 @@ export default definePlugin({
         MESSAGE_CREATE({ message, optimistic }: { message: Message; optimistic: boolean; }) {
             if (optimistic) return;
             if ((message as any).__vaAnalyzed) return;
+            if (!message.content && !message.embeds?.length && !message.components?.length && !message.attachments?.length) return;
             (message as any).__vaAnalyzed = true;
-            autoAnalyzeMessage(message);
+            setTimeout(() => autoAnalyzeMessage(message), 0);
         }
     },
 
@@ -548,11 +549,5 @@ export default definePlugin({
         "guild-header-popout": guildContextPatch
     },
 
-    renderMessageAccessory: props => {
-        if (!(props.message as any).__vaAnalyzed) {
-            (props.message as any).__vaAnalyzed = true;
-            autoAnalyzeMessage(props.message);
-        }
-        return <AnalysisAccessory message={props.message} />;
-    },
+    renderMessageAccessory: props => <AnalysisAccessory message={props.message} />,
 });
