@@ -1,0 +1,22 @@
+.vc-quoter-preview {
+    border-radius: 20px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.vc-quoter-loading {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    margin-bottom: 20px;
+    border-radius: 20px;
+    background: var(--background-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vc-quoter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}

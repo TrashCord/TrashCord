@@ -8,27 +8,66 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Menu } from "@webpack/common";
+import { ApplicationStreamingStore, ChannelStore, Menu, SelectedChannelStore, UserStore } from "@webpack/common";
 
 const MediaEngineActions = findByPropsLazy("toggleSelfMute");
 const NotificationSettingsStore = findByPropsLazy("getDisableAllSounds", "getState");
+const GatewaySocket = findByPropsLazy("getSocket");
 
-let updating = false;
-async function update() {
-    if (updating) return setTimeout(update, 125);
-    updating = true;
+let isFakeStreamActive = false;
+
+function hasActiveStream() {
+    return ApplicationStreamingStore?.getCurrentUserActiveStream?.() != null;
+}
+
+function isFakeStreamOn() {
+    return isFakeStreamActive && hasActiveStream();
+}
+
+function onGoLiveSource(e?: { settings?: { desktopSettings?: { sourceId?: string; }; }; }) {
+    if (e?.settings?.desktopSettings?.sourceId) isFakeStreamActive = false;
+}
+
+function sendFakeStreamState() {
+    try {
+        const channelId = SelectedChannelStore?.getVoiceChannelId?.();
+        if (!channelId) return;
+
+        const socket = GatewaySocket?.getSocket?.();
+        if (!socket) return;
+
+        const channel = ChannelStore?.getChannel?.(channelId);
+        const guildId = channel?.guild_id ?? null;
+
+        if (isFakeStreamActive) {
+            socket.send(18, {
+                type: guildId ? "guild" : "call",
+                guild_id: guildId,
+                channel_id: channelId,
+                preferred_region: null
+            });
+        } else {
+            const currentUserId = UserStore?.getCurrentUser()?.id;
+            if (!currentUserId) return;
+
+            const streamKey = guildId
+                ? `guild:${guildId}:${channelId}:${currentUserId}`
+                : `call:${channelId}:${currentUserId}`;
+            socket.send(19, { stream_key: streamKey });
+        }
+    } catch { }
+}
+
+function update() {
     const state = NotificationSettingsStore.getState();
     const toDisable: string[] = [];
     if (!state.disabledSounds.includes("mute")) toDisable.push("mute");
     if (!state.disabledSounds.includes("unmute")) toDisable.push("unmute");
 
     state.disabledSounds.push(...toDisable);
-    await new Promise(r => setTimeout(r, 50));
-    await MediaEngineActions.toggleSelfMute();
-    await new Promise(r => setTimeout(r, 100));
-    await MediaEngineActions.toggleSelfMute();
+    MediaEngineActions.toggleSelfMute();
+    MediaEngineActions.toggleSelfMute();
     state.disabledSounds = state.disabledSounds.filter((i: string) => !toDisable.includes(i));
-    updating = false;
 }
 
 export const settings = definePluginSettings({
@@ -59,16 +98,24 @@ const fakeVoiceState = {
 const StateKeys = ["selfDeaf", "selfMute", "selfVideo"];
 
 export default definePlugin({
-    name: "FakeMuteAndDeafen",
-    description: "You can fake mute and deafen yourself. You can continue speaking and being heard during this time.",
-    authors: [Devs.feelslove],
-    tags: ["Voice", "Privacy"],
-    enabledByDefault: false,
+    name: "FakeVoiceState",
+    description: "Fake mute, deafen, camera and stream while still being able to speak and be heard. Optional AutoMute when fake deafened.",
+    authors: [Devs.feelslove, { name: "zfrancesck1", id: 456195985404592149n }],
+    tags: ["Voice", "Privacy", "Fun"],
+    enabledByDefault: true,
     settings,
+    flux: {
+        MEDIA_ENGINE_SET_GO_LIVE_SOURCE: onGoLiveSource
+    },
+    stop() {
+        if (isFakeStreamOn()) {
+            isFakeStreamActive = false;
+            sendFakeStreamState();
+        }
+    },
     modifyVoiceState(e) {
-        for (let i = 0; i < StateKeys.length; i++) {
-            const stateKey = StateKeys[i];
-            e[stateKey] = fakeVoiceState[stateKey] || e[stateKey];
+        for (const key of StateKeys) {
+            e[key] = fakeVoiceState[key] || e[key];
         }
         return e;
     },
@@ -122,6 +169,21 @@ export default definePlugin({
                     action={() => {
                         fakeVoiceState.selfVideo = !fakeVoiceState.selfVideo;
                         update();
+                    }}
+                />,
+                <Menu.MenuCheckboxItem
+                    id="fake-stream"
+                    label="Fake Stream"
+                    checked={isFakeStreamOn()}
+                    disabled={hasActiveStream() && !isFakeStreamOn()}
+                    action={() => {
+                        if (isFakeStreamOn()) {
+                            isFakeStreamActive = false;
+                            sendFakeStreamState();
+                        } else if (!hasActiveStream()) {
+                            isFakeStreamActive = true;
+                            sendFakeStreamState();
+                        }
                     }}
                 />
             );
