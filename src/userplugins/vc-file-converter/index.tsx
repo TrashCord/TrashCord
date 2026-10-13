@@ -16,7 +16,7 @@ import { ffmpeg } from "./utils/converter";
 export default definePlugin({
     name: "FileConverter",
     description: "Convert and compress videos, audio and GIFs right in Discord",
-    authors: [{ name: "emily7305", id: 0n }],
+    authors: [{ name: "emily7305", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Media", "Utility"],
     enabledByDefault: false,
     managedStyle,

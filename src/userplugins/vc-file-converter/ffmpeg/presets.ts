@@ -91,7 +91,7 @@ export const PRESETS: Preset[] = [
         accepts: ["video"],
         ext: "mp4",
         mime: "video/mp4",
-        args: (i, o) => ["-i", i, "-map", "0", "-c", "copy", "-movflags", "+faststart", o],
+        args: (i, o) => ["-i", i, "-map", "0:v:0", "-map", "0:a?", "-sn", "-dn", "-c", "copy", "-movflags", "+faststart", o],
     },
     {
         id: "compress",

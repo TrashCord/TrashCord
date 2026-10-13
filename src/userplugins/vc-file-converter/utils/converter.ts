@@ -14,9 +14,7 @@ import { settings } from "../settings";
 
 export const logger = new Logger("FileConverter", "#e86fa8");
 
-export const ffmpeg = new FFmpegService({
-    onLog: line => logger.debug(line),
-});
+export const ffmpeg = new FFmpegService();
 
 // plugins can't request script-src, but connect-src is enough for the worker's eval fallback
 const CSP_DIRECTIVES = ["connect-src"];

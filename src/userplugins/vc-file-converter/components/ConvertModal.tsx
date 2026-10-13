@@ -130,18 +130,27 @@ function ConvertModal({ source, modalProps }: { source: ConvertSource; modalProp
             setInputSize(blob.size);
 
             setPhase({ name: "converting", progress: { ratio: 0, seconds: 0 } });
-            const file = await ffmpeg.convert(blob, info.filename, preset, {
-                presetOptions: getPresetOptions(),
-                signal: abort.signal,
-                onProgress: progress => {
-                    if (!abort.signal.aborted) setPhase({ name: "converting", progress });
-                },
-            });
+            let last = 0;
+             const file = await ffmpeg.convert(blob, info.filename, preset, {
+                 presetOptions: getPresetOptions(),
+                 signal: abort.signal,
+                 onProgress: progress => {
+                    const now = performance.now();
+                    if (abort.signal.aborted || (now - last < 250 && progress.ratio !== 1)) return;
+                    last = now;
+                    setPhase({ name: "converting", progress });
+                 },
+             });
 
             if (preset.mustShrink && file.size >= blob.size)
                 setPhase({ name: "not-smaller", file });
-            else
-                finish(file, blob.size);
+            else {
+                try {
+                    finish(file, blob.size);
+                } catch {
+                    modalProps.onClose();
+                }
+            }
         } catch (e) {
             // ignore errors that come in after cancelling
             if (e instanceof AbortError || abort.signal.aborted) return;

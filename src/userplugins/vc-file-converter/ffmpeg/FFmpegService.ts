@@ -63,6 +63,7 @@ export class FFmpegService {
     private pending = new Map<number, Pending>();
     private queue: Promise<unknown> = Promise.resolve();
     private jobCounter = 0;
+    private idleTimer: ReturnType<typeof setTimeout> | null = null;
 
     private progressListener: ((p: ConvertProgress) => void) | null = null;
     private logTail: string[] = [];
@@ -175,6 +176,7 @@ export class FFmpegService {
 
     private async runJob(input: Blob, filename: string, preset: Preset, { presetOptions, onProgress, signal }: ConvertOptions) {
         if (signal?.aborted) throw new AbortError();
+        if (this.idleTimer) clearTimeout(this.idleTimer);
 
         const onAbort = () => {
             this.failAll(new AbortError());
@@ -215,11 +217,16 @@ export class FFmpegService {
             // clean up the virtual files (might not exist, or the worker's already dead)
             if (this.worker) {
                 await Promise.allSettled([this.deleteFile(inPath), this.deleteFile(outPath)]);
+                if (this.worker) this.idleTimer = setTimeout(() => this.dispose(), 60000);
             }
         }
     }
 
     dispose() {
+        if (this.idleTimer) {
+            clearTimeout(this.idleTimer);
+            this.idleTimer = null;
+        }
         this.worker?.terminate();
         this.worker = null;
         this.loading = null;
