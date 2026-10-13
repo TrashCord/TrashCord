@@ -1,0 +1,9 @@
+{
+    // lives in <vencord>/src/userplugins/vc-file-converter
+    "extends": "../../../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "../../.."
+    },
+    "include": ["./**/*.ts", "./**/*.tsx", "../../../src/**/*.d.ts"],
+    "exclude": ["node_modules", "test"]
+}

@@ -1,14 +1,14 @@
 // UserRadar — k1ng_op
-// tracks watched users: msgs, edits, deletes, typing, profile/pfp, voice, status, activity, boosts, joins
+// tracks msgs, edits, deletes, typing, profile/pfp, voice, status, activity, joins
 
 import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu"
 import { DataStore, Notifications } from "@api/index"
 import { definePluginSettings } from "@api/Settings"
 import { getCurrentChannel, openUserProfile } from "@utils/discord"
-import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter, ModalCloseButton, ModalSize } from "@utils/modal"
 import definePlugin, { OptionType } from "@utils/types"
 import { findByProps } from "@webpack"
-import { Button, ChannelStore, Menu, MessageStore, React, RestAPI, Text, TextInput, Toasts, UserStore } from "@webpack/common"
+import { ChannelStore, Menu, MessageStore, Modal, openModal, React, RestAPI, Toasts, UserStore } from "@webpack/common"
+import type { JSX } from "react"
 
 import {
     addUser, camelize, displayName, featureOn,
@@ -18,7 +18,7 @@ import {
 
 import {
     GuildMemberEvent, MsgCreateEvent, MsgDeleteEvent, MsgUpdateEvent,
-    PresenceEvent, ProfileFetchEvent,
+    PresenceEvent,
     TypingEvent, VoiceStateEvent, WatchedUser
 } from "./types"
 
@@ -83,7 +83,7 @@ class ActivityStore {
         } catch (e) { console.error("[UserRadar] Failed to save activity log", e) }
     }
 
-    // batches rapid-fire addLog calls into one write instead of hitting DataStore every time
+    // batches rapid writes into one save
     private saveTimer: ReturnType<typeof setTimeout> | null = null
     private pendingSave: { resolve: () => void }[] = []
     private scheduleSave(): Promise<void> {
@@ -99,8 +99,7 @@ class ActivityStore {
             }, 1500)
         })
     }
-    // forces any pending debounced save to happen immediately — used before the plugin
-    // stops, or for actions the user expects to persist right away (delete, clear, import)
+    // forces the pending debounced save through immediately
     async flushSave() {
         if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null }
         const waiters = this.pendingSave
@@ -113,7 +112,7 @@ class ActivityStore {
         return this.cache[uid] || []
     }
 
-    // every mutation goes through this so addLog/removeLog/updateLog never interleave
+    // serializes writes so addLog/removeLog/updateLog never interleave
     private writeQueue: Promise<any> = Promise.resolve()
     private enqueue<T>(fn: () => Promise<T>): Promise<T> {
         const next = this.writeQueue.then(fn, fn)
@@ -173,8 +172,7 @@ class ActivityStore {
                     }
                 }
                 await this.load()
-                // merge by entry id instead of replacing the whole cache — otherwise a
-                // category-scoped export (messages only, etc.) would wipe every other category
+                // merge by id, don't replace whole cache — category export would wipe everything
                 for (const [uid, entries] of Object.entries(parsed as Record<string, ActivityEntry[]>)) {
                     if (!this.cache[uid]) this.cache[uid] = []
                     const existingIds = new Set(this.cache[uid].map(e => e.id))
@@ -212,7 +210,23 @@ class ActivityStore {
             if (!logs) return false
             this.cache[uid] = logs.filter(l => l.id !== logId)
             await this.save()
+            emitActivityRemove(uid, logId)
             return true
+        })
+    }
+
+    // bulk delete — e.g. "remove all typing cards" / "remove all status cards" for a user
+    async removeLogsWhere(uid: string, predicate: (log: ActivityEntry) => boolean): Promise<number> {
+        return this.enqueue(async () => {
+            await this.load()
+            const logs = this.cache[uid]
+            if (!logs) return 0
+            const toRemove = logs.filter(predicate)
+            if (toRemove.length === 0) return 0
+            this.cache[uid] = logs.filter(l => !predicate(l))
+            await this.save()
+            toRemove.forEach(l => emitActivityRemove(uid, l.id))
+            return toRemove.length
         })
     }
 }
@@ -228,6 +242,17 @@ export function onActivityUpdate(cb: (uid: string, entry: ActivityEntry) => void
 
 function emitActivityUpdate(uid: string, entry: ActivityEntry) {
     activityListeners.forEach(cb => cb(uid, entry))
+}
+
+const activityRemoveListeners = new Set<(uid: string, logId: string) => void>()
+
+export function onActivityRemove(cb: (uid: string, logId: string) => void) {
+    activityRemoveListeners.add(cb)
+    return () => activityRemoveListeners.delete(cb)
+}
+
+function emitActivityRemove(uid: string, logId: string) {
+    activityRemoveListeners.forEach(cb => cb(uid, logId))
 }
 
 export async function logUserActivity(
@@ -257,7 +282,7 @@ function logActivity(uid: string, type: string, icon: string, title: string, bod
 const profileCache:  Record<string, any>                          = {}
 const vcCache:       Record<string, string | null>                = {}
 const statusCache:   Record<string, string>                       = {}
-const activityCache: Record<string, string | null | undefined>    = {}
+const activityCache: Record<string, string[]>                     = {}
 const guildCache:    Record<string, Set<string>>                  = {}
 const vcJoinTime:    Record<string, number>                       = {}
 const clientCache:   Record<string, string | null>                = {}
@@ -268,13 +293,42 @@ const statusSessionCache: Record<string, { startTime: number; startStatus: strin
 
 const activeSessions: Record<string, { logId: string; startTime: number; channelId?: string; guildId?: string; metadata?: any }> = {}
 
+// pending "is typing" log per user+channel — MESSAGE_CREATE deletes it if they actually send.
+// stays if they don't.
+const pendingTypingLog: Record<string, { logId: string; ts: number }> = {}
+const TYPING_LOG_TTL_MS = 3 * 60 * 1000
+
+// persisted so a discord restart doesn't orphan whatever was mid-session
+const ACTIVE_SESSIONS_KEY = "UserRadar_ActiveSessions_v1"
+
+async function saveActiveSessions() {
+    try { await DataStore.set(ACTIVE_SESSIONS_KEY, JSON.stringify(activeSessions)) }
+    catch (e) { log.warn("[UserRadar] failed to save active sessions", e) }
+}
+
+async function loadActiveSessions(): Promise<Record<string, { logId: string; startTime: number; channelId?: string; guildId?: string; metadata?: any }>> {
+    try {
+        const data = await DataStore.get(ACTIVE_SESSIONS_KEY)
+        return data ? JSON.parse(data) : {}
+    } catch { return {} }
+}
+
+let _sessSaveTimer: ReturnType<typeof setTimeout> | null = null
+function scheduleSessionSave() {
+    if (_sessSaveTimer) return
+    _sessSaveTimer = setTimeout(() => { _sessSaveTimer = null; saveActiveSessions() }, 1000)
+}
+let _sessSaveInterval: ReturnType<typeof setInterval> | null = null
+
 const MAX_SESSION_AGE_MS = 24 * 60 * 60 * 1000  // 24h — a session stuck this long means the close event never arrived (client crash, force quit, etc)
 
 async function sweepStaleSessions() {
     const now = Date.now()
+    let touched = false
     for (const [sk, sess] of Object.entries(activeSessions)) {
         if (now - sess.startTime < MAX_SESSION_AGE_MS) continue
         delete activeSessions[sk]
+        touched = true
         try {
             await activityStore.updateLog(sk.split("_")[0], sess.logId, {
                 title: sess.metadata?.channel ? `Was in #${sess.metadata.channel}` : "Session ended",
@@ -283,6 +337,7 @@ async function sweepStaleSessions() {
             })
         } catch { }
     }
+    if (touched) scheduleSessionSave()
 }
 
 let pluginStartedAt = 0
@@ -352,6 +407,30 @@ function jumpTo(guildId?: string, channelId?: string, msgId?: string) {
     if (channelId) findByProps("selectChannel")?.selectChannel({ guildId: guildId ?? "@me", channelId, messageId: msgId })
 }
 
+// wipes all per-user caches when someone is removed from the watchlist —
+// otherwise re-adding compares against a stale baseline
+function purgeUserCaches(uid: string) {
+    delete profileCache[uid]
+    delete vcCache[uid]
+    delete statusCache[uid]
+    delete activityCache[uid]
+    delete guildCache[uid]
+    delete vcJoinTime[uid]
+    delete clientCache[uid]
+    delete cameraCache[uid]
+    delete streamCache[uid]
+    delete customStatusCache[uid]
+    delete statusSessionCache[uid]
+    // sessionKey always prefixes with "uid_", safe to match on that
+    for (const k of Object.keys(activeSessions)) {
+        if (k === uid || k.startsWith(`${uid}_`)) delete activeSessions[k]
+    }
+    scheduleSessionSave()
+    for (const k of Object.keys(_logDebounce)) {
+        if (k.includes(uid)) delete _logDebounce[k]
+    }
+}
+
 function getPinned(): string[] {
     try { return JSON.parse(settings.store.pinnedUsers || "[]") } catch { return [] }
 }
@@ -387,10 +466,18 @@ function notify(opts: { title: string; body: string; icon?: string; onClick?: ()
     if (inQuietHours(settings)) return
     if (settings.store.globalPresetMode === "silent") return
 
-    const key = `${opts._uid ?? ""}\x00${opts.title}\x00${opts.body}`
+    // title already has the name baked in, unique per user
+    const key = `${opts._uid ?? opts.title}\x00${opts.title}\x00${opts.body}`
     const now = Date.now()
     if (_notifDebounce[key] && now - _notifDebounce[key] < 1500) return
     _notifDebounce[key] = now
+
+    // sweep stale entries so this doesn't grow forever over a long session
+    if (Object.keys(_notifDebounce).length > 500) {
+        for (const k of Object.keys(_notifDebounce)) {
+            if (now - _notifDebounce[k] > 60000) delete _notifDebounce[k]
+        }
+    }
 
     if (settings.store.debugLog) log.info(`[notif] ${opts.title} — ${opts.body}`)
     Notifications.showNotification({ title: opts.title, body: opts.body, icon: opts.icon, onClick: opts.onClick })
@@ -400,7 +487,7 @@ function avatarUrl(id: string, hash?: string | null, size = 80): string {
     try {
         if (hash) return `https://cdn.discordapp.com/avatars/${id}/${hash}.${hash.startsWith("a_") ? "gif" : "webp"}?size=${size}`
         let i = 0
-        try { i = Number(BigInt(id) % BigInt(6)) } catch { i = parseInt(id.slice(-4), 10) % 6 || 0 }
+        try { i = Number((BigInt(id) >> 22n) % 6n) } catch { i = parseInt(id.slice(-4), 10) % 6 || 0 }
         return `https://cdn.discordapp.com/embed/avatars/${i}.png`
     } catch { return "https://cdn.discordapp.com/embed/avatars/0.png" }
 }
@@ -451,13 +538,14 @@ function checkProfileChanged(uid: string, fresh: any) {
             const oldAvatarUrl = oldAvatar ? avatarUrl(uid, oldAvatar, 256) : null
             const newAvatarUrl = newAvatar ? avatarUrl(uid, newAvatar, 256) : null
             notify({
-                title: `${dn} changed their avatar`,
-                body: "click to see new pfp",
+                _uid: uid,
+                title: newAvatar ? `${dn} changed their avatar` : `${dn} removed their avatar`,
+                body: newAvatar ? "click to see new pfp" : "reset to default",
                 icon: newAvatarUrl ?? undefined,
                 onClick: () => openUserProfile(uid),
             })
             logUserActivity(uid, "avatar", "🖼️",
-                `changed their avatar`,
+                newAvatar ? `changed their avatar` : `removed their avatar`,
                 "",
                 { metadata: { oldAvatar: oldAvatarUrl, newAvatar: newAvatarUrl } }
             ).catch(() => {})
@@ -491,9 +579,9 @@ function checkProfileChanged(uid: string, fresh: any) {
             const notifyBody = newVal
                 ? (oldVal ? `${oldVal} → ${newVal}` : newVal)
                 : `removed ${fieldLabel}`
-            const bodyText = ""  // shown via diff card instead
 
             notify({
+                _uid: uid,
                 title: `${dn} changed their ${fieldLabel}`,
                 body: notifyBody,
                 icon,
@@ -501,7 +589,7 @@ function checkProfileChanged(uid: string, fresh: any) {
             })
             logUserActivity(uid, actType, actIcon,
                 `changed their ${fieldLabel}`,
-                bodyText,
+                "",  // shown via diff card instead
                 { metadata: { field: f, before: oldVal, after: newVal } }
             ).catch(() => {})
         }
@@ -511,6 +599,41 @@ function checkProfileChanged(uid: string, fresh: any) {
 }
 
 let _pollRunning = false
+// fetches profile/status/activity right away for one freshly-added user instead
+// of waiting for the next 5-minute poll cycle to reach them
+async function fetchNewUserBaseline(uid: string) {
+    if (!pluginActive) return
+    try {
+        const presMod = findByProps("getStatus", "getActivities")
+        const status = presMod?.getStatus?.(uid)
+        if (status) statusCache[uid] = status
+        const acts: any[] = presMod?.getActivities?.(uid) ?? []
+        // must match actKeyOf()'s shape exactly (array of keys) — PRESENCE_UPDATES does
+        // `oldActKeys.includes(k)` and `for (const k of oldActKeys)` on this cache. a bare
+        // string here gets iterated char-by-char and substring-matched instead of key-matched,
+        // which fires garbage "stopped playing" notifs on the very next real presence tick.
+        const realActs = acts.filter((a: any) => a.type !== 4)
+        activityCache[uid] = realActs.map((a: any) => a.type === 2
+            ? `2\x00${a.name}\x00${a.details || ""}\x00${a.state || ""}`
+            : `${a.type}\x00${a.name}`)
+        const customAct = acts.find((a: any) => a.type === 4) ?? null
+        customStatusCache[uid] = customAct
+            ? [customAct.emoji?.name, customAct.state].filter(Boolean).join(" ") || null
+            : null
+        guildCache[uid] = new Set()
+
+        const { body } = await RestAPI.get({
+            url: `/users/${uid}/profile`,
+            query: { with_mutual_guilds: true, with_mutual_friends_count: false },
+        })
+        const data = camelize(body)
+        profileCache[uid] = data
+        if (Array.isArray(data.mutualGuilds)) {
+            guildCache[uid] = new Set(data.mutualGuilds.map((g: any) => g.id))
+        }
+    } catch { }
+}
+
 async function pollProfiles() {
     if (_pollRunning || !pluginActive) return
     _pollRunning = true
@@ -550,6 +673,46 @@ function injectStyles() {
         .ur-expand > div { overflow:hidden; }
         .ur-row-hover:hover { background:rgba(255,255,255,0.06); }
 
+        @keyframes ur-row-in { from { opacity:0; transform:translateY(6px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .ur-row { animation: ur-row-in .28s cubic-bezier(.2,.9,.3,1.2) both; transition: transform .2s cubic-bezier(.2,.8,.2,1.1), box-shadow .2s ease, background .2s ease, border-color .18s ease; }
+        .ur-row:hover { transform: translateY(-3px) scale(1.008); box-shadow: 0 14px 30px rgba(0,0,0,0.38); border-color: #3f4147; background: linear-gradient(135deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.1) 100%) !important; }
+        .ur-row:active { transform: translateY(-1px) scale(.995); }
+        .ur-row.open { box-shadow: 0 8px 22px rgba(0,0,0,0.3); }
+
+        .ur-row-avatar { transition: transform .2s cubic-bezier(.2,.8,.2,1.4); }
+        .ur-row:hover .ur-row-avatar { transform: scale(1.08); }
+
+        .ur-row-pin { transition: opacity .12s ease, color .12s ease, transform .22s cubic-bezier(.34,1.56,.64,1); }
+        .ur-row:hover .ur-row-pin { transform: scale(1.12); }
+
+        .ur-row-chevron { display:flex; align-items:center; justify-content:center; color:#949ba4; flex-shrink:0; opacity:.55; transition: transform .28s cubic-bezier(.4,0,.2,1), opacity .18s ease, color .18s ease; }
+        .ur-row:hover .ur-row-chevron { opacity:1; transform: scale(1.15); }
+        .ur-row-chevron.open { transform: rotate(180deg); opacity:1; color:#949cf4; }
+        .ur-row:hover .ur-row-chevron.open { transform: rotate(180deg) scale(1.15); }
+
+        .ur-badge-in { animation: ur-badge-in .25s cubic-bezier(.34,1.56,.64,1) both; transition: transform .18s cubic-bezier(.2,.8,.2,1.3); }
+        .ur-row:hover .ur-badge-in { transform: scale(1.07); }
+
+        .ur-activity-btn { transition: transform .22s cubic-bezier(.34,1.56,.64,1), background .18s ease, border-color .18s ease, box-shadow .22s ease; backdrop-filter: blur(8px) saturate(160%); -webkit-backdrop-filter: blur(8px) saturate(160%); }
+        .ur-activity-btn:hover { transform: translateY(-2px) scale(1.06); background: rgba(88,101,242,0.18) !important; border-color: rgba(88,101,242,0.5) !important; box-shadow: 0 6px 16px rgba(88,101,242,0.28); }
+        .ur-activity-btn:active { transform: translateY(0) scale(.95); }
+
+        @keyframes ur-pin-pop { 0% { transform:scale(.6) rotate(-20deg); } 60% { transform:scale(1.25) rotate(6deg); } 100% { transform:scale(1) rotate(0); } }
+        .ur-pin-pop { animation: ur-pin-pop .38s cubic-bezier(.34,1.56,.64,1) both; }
+
+        .ur-chip { transition: transform .12s cubic-bezier(.2,.8,.2,1), background .18s ease, color .18s ease; }
+        .ur-chip:active { transform: scale(.94); }
+
+        @keyframes ur-badge-in { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:scale(1); } }
+        .ur-badge-in { animation: ur-badge-in .25s cubic-bezier(.34,1.56,.64,1) both; }
+
+        .ur-icon-btn { transition: transform .14s cubic-bezier(.2,.8,.2,1.3), background .14s ease, color .14s ease; }
+        .ur-icon-btn:hover { transform: translateY(-1px) scale(1.08); }
+        .ur-icon-btn:active { transform: scale(.9); }
+
+        @keyframes ur-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .ur-float { animation: ur-float 3s ease-in-out infinite; }
+
         /* Discord-style thin scrollbar - only visible on hover */
         .ur-scrollbar::-webkit-scrollbar { width:4px; height:4px; }
         .ur-scrollbar::-webkit-scrollbar-track { background:transparent; }
@@ -588,6 +751,48 @@ function injectStyles() {
         /* Activity log modal specific - prevent horizontal scroll */
         .ur-activity-modal { overflow-x: hidden !important; }
         .ur-activity-modal * { max-width: 100%; box-sizing: border-box; }
+
+        /* glassmorphism helpers */
+        .ur-glass { backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+        .ur-badge-glass { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+        .ur-tab-btn { transition: transform 160ms cubic-bezier(.34,1.56,.64,1), background 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+        .ur-tab-btn:hover { transform: translateY(-1px) scale(1.03); }
+        .ur-tab-btn:active { transform: scale(.95); }
+
+        .ur-preset-card { transition: transform 200ms cubic-bezier(.34,1.56,.64,1), background 220ms ease, border-color 220ms ease, box-shadow 220ms ease; }
+        .ur-preset-card:hover { transform: translateY(-2px) scale(1.015); }
+        .ur-preset-card:active { transform: translateY(0) scale(.985); }
+
+        @keyframes ur-modal-in { from { opacity:0; transform:scale(.97) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        .ur-modal-in { animation: ur-modal-in .28s cubic-bezier(.2,.9,.3,1.1) both; }
+
+        @keyframes ur-status-pop { from { opacity:0; transform:scale(.4); } to { opacity:1; transform:scale(1); } }
+        .ur-status-dot { animation: ur-status-pop .3s cubic-bezier(.34,1.56,.64,1) both; transition: background 200ms ease, box-shadow 200ms ease; }
+
+        .ur-card-hover { transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms ease, border-color 180ms ease, background 180ms ease; }
+        .ur-card-hover:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+
+        @keyframes ur-log-in { from { opacity:0; transform:translateY(6px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .ur-log-card { animation: ur-log-in .26s cubic-bezier(.2,.9,.3,1.15) both; transition: transform .2s cubic-bezier(.2,.8,.2,1.1), box-shadow .2s ease, background .2s ease, border-color .18s ease; }
+        .ur-log-card:hover { transform: translateY(-3px) scale(1.008); box-shadow: 0 14px 30px rgba(0,0,0,0.38); border-color: #3f4147; background: linear-gradient(135deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.1) 100%) !important; }
+        .ur-log-card:active { transform: translateY(-1px) scale(.995); }
+        .ur-log-card.open { box-shadow: 0 8px 22px rgba(0,0,0,0.3); }
+
+        .ur-log-icon { transition: transform .22s cubic-bezier(.2,.8,.2,1.4), box-shadow .22s ease; }
+        .ur-log-card:hover .ur-log-icon { transform: scale(1.08) rotate(-4deg); }
+
+        .ur-log-chevron { display:flex; align-items:center; justify-content:center; color:#949ba4; flex-shrink:0; opacity:.55; transition: transform .28s cubic-bezier(.4,0,.2,1), opacity .18s ease, color .18s ease; }
+        .ur-log-card:hover .ur-log-chevron { opacity:1; }
+        .ur-log-chevron.open { transform: rotate(180deg); opacity:1; color:#949cf4; }
+
+        .ur-log-expand-in { animation: ur-fade-in .22s cubic-bezier(.4,0,.2,1) both; }
+
+        .ur-footer-btn { transition: transform .2s cubic-bezier(.34,1.56,.64,1), background .18s ease, border-color .18s ease, box-shadow .2s ease, color .18s ease; backdrop-filter: blur(10px) saturate(160%); -webkit-backdrop-filter: blur(10px) saturate(160%); }
+        .ur-footer-btn:hover { transform: translateY(-2px) scale(1.04); background: rgba(255,255,255,0.09) !important; border-color: #3f4147 !important; box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+        .ur-footer-btn:active { transform: translateY(0) scale(.94); }
+        .ur-footer-btn-danger:hover { background: rgba(218,55,60,0.2) !important; border-color: #da373c !important; box-shadow: 0 6px 16px rgba(218,55,60,0.3); }
+        .ur-footer-btn-primary:hover { background: #5865f2 !important; border-color: #5865f2 !important; color: #fff !important; box-shadow: 0 6px 18px rgba(88,101,242,0.4); }
     `
     document.head.appendChild(s)
 }
@@ -602,7 +807,7 @@ const CLIENT_EMOJI: Record<string, string> = {
 
 function resolveClient(cs?: Record<string, string> | null): string | null {
     if (!cs) return null
-    // priority order for the "primary" platform (used as the cache key / session tracking)
+    // priority order for the "primary" platform
     if (cs.mobile)   return "mobile"
     if (cs.desktop)  return "desktop"
     if (cs.web)      return "web"
@@ -612,9 +817,7 @@ function resolveClient(cs?: Record<string, string> | null): string | null {
     return first ?? null
 }
 
-// unlike resolveClient (which picks one "primary" platform for session tracking),
-// this returns every platform currently active — used only for display, so a user
-// on both desktop and mobile at once shows both instead of just one
+// returns every active platform, not just one — display only
 function resolveAllClients(cs?: Record<string, string> | null): string[] {
     if (!cs) return []
     return Object.keys(cs).filter(k => cs[k])
@@ -676,7 +879,7 @@ const ico = {
     catEdit:      () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"/></svg>,
     catDelete:    () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
     catTyping:    () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>,
-    catStatus:    () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+    catStatus:    () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" opacity="0.35"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>,
     catVoice:     () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>,
     catProfile:   () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
     catActivity:  () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
@@ -692,6 +895,43 @@ const ico = {
     calendar: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
 
 }
+
+// per-event icon + color for activity log cards
+const actIco = {
+    message:   { color: "#5865f2", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2 22V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6l-4 4z"/></svg> },
+    edit:      { color: "#f0b232", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
+    delete:    { color: "#da373c", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> },
+    typing:    { color: "#949cf4", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="4" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="20" cy="12" r="2.2"/></svg> },
+
+    listening: { color: "#c586f5", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18a3 3 0 1 1-3-3h1V5.5a1 1 0 0 1 .8-.98l9-2a1 1 0 0 1 1.2.98v9a3 3 0 1 1-2-2.83V6.7l-7 1.56V15a3 3 0 0 1-3 3v0z"/></svg> },
+    watching:  { color: "#9146ff", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="15" rx="2"/><path d="M8 21h8M12 19v2"/></svg> },
+    playing:   { color: "#f0b232", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9h4v2H8v2H6v-2H4V9h2V7h2v2zm9.5 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM17 3H7a5 5 0 0 0-5 5v6a5 5 0 0 0 5 5h.5a3 3 0 0 0 2.4-1.2l1.4-1.87a2 2 0 0 1 3.4 0l1.4 1.87A3 3 0 0 0 16.5 19H17a5 5 0 0 0 5-5V8a5 5 0 0 0-5-5z"/></svg> },
+    streaming: { color: "#da373c", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><circle cx="12" cy="10" r="1.5" fill="currentColor" stroke="none"/></svg> },
+    camera:    { color: "#23a55a", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> },
+    screen:    { color: "#ff5e5e", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><polyline points="8 12 11 9 13 11 16 8"/></svg> },
+
+    voice:     { color: "#23a55a", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg> },
+    vcMove:    { color: "#dbdee1", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> },
+
+    online:    { color: "#23a55a", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg> },
+    idle:      { color: "#f0b232", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36A5.389 5.389 0 0 1 17.5 12c-3.03 0-5.5-2.47-5.5-5.5 0-1.33.47-2.55 1.26-3.5A9.04 9.04 0 0 0 12 3z"/></svg> },
+    dnd:       { color: "#da373c", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/><rect x="7.5" y="10.8" width="9" height="2.4" rx="1.2" fill="#1e1f22"/></svg> },
+    offline:   { color: "#80848e", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/></svg> },
+    status:    { color: "#23a55a", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" opacity="0.35"/><circle cx="12" cy="12" r="4.5" fill="currentColor"/></svg> },
+    customStatus: { color: "#949cf4", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg> },
+
+    profile:   { color: "#ff6b6b", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+    avatar:    { color: "#ff6b6b", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="10" r="3"/><path d="M7 21c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg> },
+    banner:    { color: "#ff6b6b", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg> },
+    bio:       { color: "#ff6b6b", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg> },
+    username:  { color: "#ff6b6b", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2.5 12.5V2.5h10z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg> },
+    pronouns:  { color: "#ff6b6b", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg> },
+
+    join:      { color: "#23a55a", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg> },
+    leave:     { color: "#da373c", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/></svg> },
+
+    session:   { color: "#949ba4", Icon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+} as const
 
 const CtxEyeIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style={{ width: 18, height: 18 }}>
@@ -894,8 +1134,9 @@ function AddLabelInput({ label, setLabel, doAdd }: {
     return (
         <input
             placeholder='e.g. "bestie", "the rat", "ex"'
+            maxLength={50}
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            onChange={(e) => setLabel(e.target.value.slice(0, 50))}
             onKeyDown={(e) => { if (e.key === "Enter") doAdd() }}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -904,10 +1145,11 @@ function AddLabelInput({ label, setLabel, doAdd }: {
                 background: "#1e1f22",
                 borderRadius: 20,
                 border: `1px solid ${focused ? C.brand : "#3f4147"}`,
+                boxShadow: focused ? "0 0 0 3px rgba(88,101,242,0.18)" : "none",
                 height: 40,
                 boxSizing: "border-box",
                 padding: "0 14px",
-                transition: "border-color 150ms ease",
+                transition: "border-color 150ms ease, box-shadow 150ms ease",
                 width: "100%",
                 fontSize: 14,
                 color: "#dbdee1",
@@ -960,6 +1202,7 @@ function AddUserSection({ onAdded }: { onAdded: () => void }) {
     const doAdd = () => {
         if (lk.s !== "done") return
         addUser(settings, cleanId, label.trim().slice(0, 50))
+        fetchNewUserBaseline(cleanId)
         setRawId(""); setLabel(""); setLk({ s: "idle" })
         onAdded()
     }
@@ -1216,14 +1459,20 @@ const OV_GROUPS = {
 
 type OvTab = "messages" | "presence" | "profile"
 const OV_TAB_LABELS: Record<OvTab, string> = { messages: "Messages", presence: "Presence", profile: "Profile" }
+const OV_TAB_ICONS: Record<OvTab, () => JSX.Element> = {
+    messages: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M2 22V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6l-4 4z"/></svg>,
+    presence: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity=".25"/><circle cx="12" cy="12" r="5"/></svg>,
+    profile:  () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+}
 
 function LabelInput({ nick, setNick, saveNick }: { nick: string; setNick: (v: string) => void; saveNick: () => void }) {
     const [focused, setFocused] = React.useState(false)
     return (
         <input
             placeholder="label"
+            maxLength={50}
             value={nick}
-            onChange={(e) => setNick(e.target.value)}
+            onChange={(e) => setNick(e.target.value.slice(0, 50))}
             onBlur={() => { setFocused(false); saveNick() }}
             onFocus={() => setFocused(true)}
             onKeyDown={(e) => { if (e.key === "Enter") { setFocused(false); saveNick() } }}
@@ -1231,6 +1480,7 @@ function LabelInput({ nick, setNick, saveNick }: { nick: string; setNick: (v: st
                 background: C.bg1,
                 borderRadius: 20,
                 border: `1px solid ${focused ? C.brand : C.border}`,
+                boxShadow: focused ? "0 0 0 3px rgba(88,101,242,0.18)" : "none",
                 height: 26,
                 boxSizing: "border-box",
                 display: "flex",
@@ -1241,7 +1491,7 @@ function LabelInput({ nick, setNick, saveNick }: { nick: string; setNick: (v: st
                 margin: 0,
                 color: C.text,
                 outline: "none",
-                transition: "border-color 150ms ease",
+                transition: "border-color 150ms ease, box-shadow 150ms ease",
                 fontFamily: "inherit",
             }}
         />
@@ -1262,6 +1512,7 @@ function SearchInput({ query, setQuery }: { query: string; setQuery: (v: string)
                     background: "#1e1f22",
                     borderRadius: 20,
                     border: `1px solid ${focused ? C.brand : "#3f4147"}`,
+                    boxShadow: focused ? "0 0 0 3px rgba(88,101,242,0.18)" : "none",
                     height: 28,
                     boxSizing: "border-box",
                     padding: "0 28px 0 12px",
@@ -1270,7 +1521,7 @@ function SearchInput({ query, setQuery }: { query: string; setQuery: (v: string)
                     color: "#dbdee1",
                     outline: "none",
                     fontFamily: "inherit",
-                    transition: "border-color 150ms ease",
+                    transition: "border-color 150ms ease, box-shadow 150ms ease",
                 }}
             />
             <div style={{
@@ -1329,69 +1580,124 @@ function previewNotification(uid: string, type: string) {
     }
 
     const p = previews[type] || { title: `${dn}: ${type}`, body: "preview notification" }
-    Notifications.showNotification({ title: "[Preview] " + p.title, body: p.body, icon })
+    notify({ title: "[Preview] " + p.title, body: p.body, icon })
 }
 
-const ACTIVITY_ICONS: Record<ActivityType, string> = {
-    msg: "💬", edit: "✏️", delete: "🗑️", typing: "💭",
-    status: "⚪", activity: "🎮", voice: "🎙️",
-    join: "📥", leave: "📤", boost: "🚀",
-    profile: "👤", avatar: "🖼️", banner: "🏳️", bio: "📝",
-    username: "🏷️", displayname: "📛", pronouns: "🪪", custom_status: "💬",
-    online: "🟢",
-    offline: "⚫", idle: "🌙", dnd: "🔴",
-    game_start: "🎮", game_stop: "🛑", spotify: "🎵",
-    streaming: "📺", vc_join: "🔊", vc_leave: "🔇", vc_move: "↔️",
-    session: "⏱️",
+// known-good public logos — only apps i can confirm resolve, no guessing broken urls
+const MUSIC_APP_ICONS: Record<string, string> = {
+    "spotify":        "https://cdn.simpleicons.org/spotify/1ED760",
+    "apple music":    "https://cdn.simpleicons.org/applemusic/FA243C",
+    "youtube music":  "https://cdn.simpleicons.org/youtubemusic/FF0000",
+    "tidal":          "https://cdn.simpleicons.org/tidal/000000",
+    "deezer":         "https://cdn.simpleicons.org/deezer/FEAA2D",
+    "soundcloud":     "https://cdn.simpleicons.org/soundcloud/FF5500",
+    "pandora":        "https://cdn.simpleicons.org/pandora/224099",
+    "qobuz":          "https://cdn.simpleicons.org/qobuz/000000",
+    "last.fm":        "https://cdn.simpleicons.org/lastdotfm/D51007",
 }
 
-function getActivityIcon(entry: ActivityEntry): string {
+// one resolver for games and listening. only works when discord actually sends asset
+// data though — a lot of games (minecraft's xbox rpc included) send just an appId with
+// no assets, so the icon has to come from the app's own public record instead — see below
+const appIconCache: Record<string, string | null> = {}
+const _appIconFetching: Partial<Record<string, Promise<string | null>>> = {}
+
+async function fetchAppIcon(appId: string): Promise<string | null> {
+    if (appId in appIconCache) return appIconCache[appId]
+    if (_appIconFetching[appId]) return _appIconFetching[appId]
+    const p = (async () => {
+        try {
+            const { body } = await RestAPI.get({ url: `/applications/${appId}/rpc` })
+            const icon = body?.icon
+            const url = icon ? `https://cdn.discordapp.com/app-icons/${appId}/${icon}.png?size=128` : null
+            appIconCache[appId] = url
+            return url
+        } catch {
+            appIconCache[appId] = null
+            return null
+        } finally {
+            delete _appIconFetching[appId]
+        }
+    })()
+    _appIconFetching[appId] = p
+    return p
+}
+
+function resolveActivityImage(act: any): string {
+    const img = act.assets?.large_image || act.assets?.largeImage || ""
+    const appId = act.application_id || act.applicationId || ""
+    if (img.startsWith("spotify:")) return `https://i.scdn.co/image/${img.slice(8)}`
+    if (img.startsWith("twitch:")) return `https://static-cdn.jtvnw.net/previews-ttv/live_user_${img.slice(7)}-256x144.jpg`
+    if (img.startsWith("youtube:")) return `https://i.ytimg.com/vi/${img.slice(8)}/hqdefault.jpg`
+    if (img.startsWith("mp:external/")) return `https://media.discordapp.net/external/${img.slice(12)}`
+    if (img.startsWith("mp:app-asset/")) return `https://media.discordapp.net/app-assets/${img.slice(13)}`
+    if (img.startsWith("mp:")) return `https://media.discordapp.net/${img.slice(3)}`
+    if (img.startsWith("http")) return img
+    // some console-linked / embedded RPCs (Xbox, PlayStation, activity SDK games) send the
+    // media-proxy path without discord's "mp:" scheme in front — same asset, missing prefix.
+    // these got dropped straight to the controller icon before since they don't match any
+    // case above and always contain a "/", tripping the old blanket "!img.includes(':')" guard.
+    if (img.startsWith("external/")) return `https://media.discordapp.net/${img}`
+    if (img.startsWith("app-asset/")) return `https://media.discordapp.net/${img}`
+    if (appId && img && !img.includes(":")) return `https://cdn.discordapp.com/app-assets/${appId}/${img}.png`
+    if (act.type === 2) return MUSIC_APP_ICONS[(act.name || "").toLowerCase()] || ""
+    return ""
+}
+
+function getActivityIconKey(entry: ActivityEntry): keyof typeof actIco {
     const type = entry.type
-    const body = entry.body?.toLowerCase() || ""
-    const title = entry.title?.toLowerCase() || ""
     const meta = entry.metadata || {}
 
-    if (type === "session") {
+    // exact type first so a msg containing "spotify" isn't mis-tagged
+    if (type === "msg") return "message"
+    if (type === "edit") return "edit"
+    if (type === "delete") return "delete"
+    if (type === "typing") return "typing"
+    if (type === "profile") return "profile"
+    if (type === "avatar") return "avatar"
+    if (type === "banner") return "banner"
+    if (type === "bio") return "bio"
+    if (type === "username" || type === "displayname") return "username"
+    if (type === "pronouns") return "pronouns"
+    if (type === "custom_status") return "customStatus"
+    if (type === "join") return "join"
+    if (type === "leave") return "leave"
+    if (type === "vc_move") return "vcMove"
+    if (type === "game_start" || type === "game_stop") return "playing"
+    if (type === "spotify") return "listening"
+    if (type === "streaming") return "watching"
+    if (type === "online") return "online"
+    if (type === "offline") return "offline"
+    if (type === "idle") return "idle"
+    if (type === "dnd") return "dnd"
+
+    // camera/screenshare log as type "voice" while live, check metadata
+    if (type === "voice" || type === "vc_join" || type === "vc_leave") {
         const action = (meta.action || "").toLowerCase()
-        if (action.includes("listening") || meta.type === 2 || meta.trackId) return "🎵"
-        if (action.includes("voice") || body.includes("voice") || title.includes("voice")) return "🎙️"
-        if (action.includes("camera") || body.includes("camera") || title.includes("camera")) return "📷"
-        if (action.includes("stream") || action.includes("screen") || body.includes("screen") || title.includes("screen") || body.includes("stream")) return "🖥️"
-        if (action.includes("activity") || action.includes("game") || body.includes("game") || title.includes("game")) return "🎮"
-        return "⏱️"
+        if (action.includes("camera")) return "camera"
+        if (action.includes("stream") || action.includes("screen")) return "screen"
+        return "voice"
     }
 
-    const activityType = meta.type
-    const activityName = (meta.name || "").toLowerCase()
+    // activity/session are generic — real kind lives in metadata
+    if (type === "activity" || type === "session") {
+        const action = (meta.action || "").toLowerCase()
+        const activityType = meta.type
 
-    if (activityType === 2 || meta.trackId || body.includes("listening to") || activityName === "spotify") return "🎵"
-    if (body.includes("spotify") || title.includes("spotify")) return "🎵"
-    if (body.includes("apple music") || title.includes("apple music")) return "🎧"
-    if (body.includes("youtube music") || title.includes("youtube music")) return "🎶"
-    if (body.includes("soundcloud") || title.includes("soundcloud")) return "☁️"
+        if (action === "status_session") return "status"
+        if (action.includes("listening") || activityType === 2 || meta.trackId) return "listening"
+        if (action.includes("voice")) return "voice"
+        if (action.includes("camera")) return "camera"
+        if (action.includes("stream") || action.includes("screen")) return "screen"
+        if (action.includes("game") || activityType === 0) return "playing"
+        if (activityType === 1) return "watching"
 
-    if (type === "game_start" || type === "game_stop") return "🎮"
-    if (type === "activity" && activityType === 0) return "🎮"
-
-    if (activityType === 1 || body.includes("streaming")) return "📺"
-    if (body.includes("twitch") || title.includes("twitch")) return "📺"
-    if (body.includes("youtube") || title.includes("youtube")) return "▶️"
-
-    if (type === "status" || type === "online" || type === "offline" || type === "idle" || type === "dnd") {
-        if (body.includes("dnd") || title.includes("dnd") || title.includes("do not disturb")) return "🔴"
-        if (body.includes("online") || title.includes("online")) return "🟢"
-        if (body.includes("idle") || title.includes("idle")) return "🌙"
-        if (body.includes("offline") || title.includes("offline")) return "⚫"
-        if (entry.icon) return entry.icon
-        return "⚪"
+        return "session"
     }
 
-    if (body.includes("camera") || body.includes("video")) return "📷"
-    if (body.includes("screen") || body.includes("stream")) return "🖥️"
-    if (type === "vc_join" || type === "vc_leave" || type === "vc_move") return "🔊"
-    if (type === "voice") return "🎙️"
+    if (type === "status") return "status"
 
-    return ACTIVITY_ICONS[type] || "📌"
+    return "session"
 }
 
 function formatDuration(ms: number): string {
@@ -1422,6 +1728,7 @@ function formatDuration(ms: number): string {
 }
 
 const _albumColorCache: Record<string, string> = {}
+const ALBUM_CACHE_MAX = 300  // small hex strings, but cap it so long sessions don't grow this forever
 
 function extractAlbumColor(imageUrl: string): Promise<string> {
     if (_albumColorCache[imageUrl]) return Promise.resolve(_albumColorCache[imageUrl])
@@ -1493,6 +1800,8 @@ function extractAlbumColor(imageUrl: string): Promise<string> {
                 }
 
                 _albumColorCache[imageUrl] = hex
+                const keys = Object.keys(_albumColorCache)
+                if (keys.length > ALBUM_CACHE_MAX) delete _albumColorCache[keys[0]]
                 resolve(hex)
             } catch {
                 resolve("#1ed760")
@@ -1534,59 +1843,105 @@ function matchesCategory(log: ActivityEntry, category: ActivityType): boolean {
     return log.type === category
 }
 
-function LogCard({ log, expanded, onToggle, onDelete, userId }: {
+function ActivityCardIcon({ log }: { log: ActivityEntry }) {
+    const [failed, setFailed] = React.useState(false)
+    const isListening = log.metadata?.type === 2 || (log.metadata?.action || "").includes("listening")
+    const appLogo = isListening ? MUSIC_APP_ICONS[(log.metadata?.appName || "").toLowerCase()] : ""
+    const storedUrl = log.metadata?.iconUrl || log.metadata?.gameIconUrl || (isListening ? "" : log.metadata?.albumArtUrl) || ""
+    const appId = log.metadata?.applicationId || ""
+    // heals old entries logged before appIconCache existed
+    const [healedUrl, setHealedUrl] = React.useState(() => (appId ? appIconCache[appId] || "" : ""))
+    React.useEffect(() => {
+        if (storedUrl || !appId || healedUrl || appIconCache[appId] !== undefined) return
+        let live = true
+        fetchAppIcon(appId).then(url => { if (live && url) setHealedUrl(url) }).catch(() => {})
+        return () => { live = false }
+    }, [storedUrl, appId, healedUrl])
+    const realUrl = appLogo || storedUrl || healedUrl
+    const key = getActivityIconKey(log)
+    const { Icon, color } = actIco[key]
+    const showImg = realUrl && !failed
+    return (
+        <div data-ur-card-icon className="ur-log-icon" style={{
+            width: 42, height: 42, borderRadius: appLogo ? "50%" : 12,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, marginTop: 1, overflow: "hidden",
+            background: showImg ? C.bg1 : `${color}1c`,
+            border: appLogo ? "none" : `1px solid ${showImg ? C.border : color + "40"}`,
+            color,
+        }}>
+            {showImg
+                ? <img src={realUrl} onError={() => setFailed(true)} style={{ width: "100%", height: "100%", objectFit: appLogo ? "contain" : "cover", padding: appLogo ? 4 : 0 }} />
+                : <Icon />}
+        </div>
+    )
+}
+
+// on-avatar status badges — built from the provided status SVG set instead of flat
+// color dots. online/dnd/offline are complete self-contained badge shapes already;
+// idle's source asset is just the crescent glyph with no backing circle, so it gets
+// composited onto a solid circle here (crescent recolored to the card bg to "bite" it)
+// to read as a full badge like the other three, matching Discord's real idle icon.
+function StatusBadgeIcon({ status }: { status: string }) {
+    if (status === "online") {
+        return (
+            <svg viewBox="0 0 16 16" width="100%" height="100%">
+                <path d="M16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0C12.4183 0 16 3.58172 16 8Z" fill="#45a366" />
+            </svg>
+        )
+    }
+    if (status === "dnd") {
+        return (
+            <svg viewBox="0 0 16 16" width="100%" height="100%">
+                <path fillRule="evenodd" clipRule="evenodd" d="M8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16ZM5.24902 7C4.69674 7 4.24902 7.44772 4.24902 8C4.24902 8.55229 4.69674 9 5.24902 9H10.7499C11.3022 9 11.7499 8.55229 11.7499 8C11.7499 7.44772 11.3022 7 10.7499 7H5.24902Z" fill="#e00000" />
+            </svg>
+        )
+    }
+    if (status === "idle") {
+        return (
+            <svg viewBox="0 0 24 24" width="100%" height="100%" style={{ transform: "scaleX(-1)" }}>
+                <path d="M12.0557 3.59974C12.2752 3.2813 12.2913 2.86484 12.0972 2.53033C11.9031 2.19582 11.5335 2.00324 11.1481 2.03579C6.02351 2.46868 2 6.76392 2 12C2 17.5228 6.47715 22 12 22C17.236 22 21.5313 17.9764 21.9642 12.8518C21.9967 12.4664 21.8041 12.0968 21.4696 11.9027C21.1351 11.7086 20.7187 11.7248 20.4002 11.9443C19.4341 12.6102 18.2641 13 17 13C13.6863 13 11 10.3137 11 6.99996C11 5.73589 11.3898 4.56587 12.0557 3.59974Z" fill="#ffc04e" />
+            </svg>
+        )
+    }
+    // offline / invisible — hollow ring, same as Discord's real offline badge
+    return (
+        <svg viewBox="0 0 16 16" width="100%" height="100%">
+            <path fillRule="evenodd" clipRule="evenodd" d="M8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM0 8C0 3.58172 3.58172 0 8 0C12.4183 0 16 3.58172 16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8Z" fill="#84858d" />
+        </svg>
+    )
+}
+
+function LogCard({ log, expanded, onToggle, onDelete, userId, index }: {
     log: ActivityEntry
     expanded: boolean
     onToggle: () => void
     onDelete: (id: string) => void
     userId: string
+    index?: number
 }) {
     return (
             <div
                 key={log.id}
                 data-ur-card-body
+                className={`ur-log-card${expanded ? " open" : ""}`}
                 onClick={() => onToggle()}
                 style={{
                     display: "flex",
                     gap: 14,
                     padding: "14px 16px",
-                    borderRadius: 16,
-                    background: C.bg2,
-                    border: `1px solid ${C.border}`,
+                    borderRadius: 18,
+                    background: expanded
+                        ? "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.03) 100%)"
+                        : "linear-gradient(135deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.02) 100%)",
+                    border: `1px solid ${expanded ? C.bgEl : C.border}`,
                     marginBottom: 6,
                     cursor: "pointer",
-                    transition: "all 150ms ease",
                     minHeight: 56,
-                }}
-                onMouseEnter={e => {
-                    e.currentTarget.style.background = "#232428"
-                    e.currentTarget.style.borderColor = C.bgEl
-                }}
-                onMouseLeave={e => {
-                    e.currentTarget.style.background = C.bg2
-                    e.currentTarget.style.borderColor = C.border
+                    animationDelay: `${Math.min(index ?? 0, 12) * 22}ms`,
                 }}
             >
-                <div data-ur-card-icon style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    background: C.bg1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 20,
-                    flexShrink: 0,
-                    border: `1px solid ${C.border}`,
-                    marginTop: 1,
-                }}>
-                    {(() => {
-                        const ic = getActivityIcon(log)
-                        return typeof ic === "string" && (ic.startsWith("http") || ic.startsWith("/"))
-                            ? <img src={ic} style={{ width: 28, height: 28, borderRadius: 6, objectFit: "cover" }} onError={(e: any) => { e.target.style.display = "none" }} />
-                            : ic
-                    })()}
-                </div>
+                <ActivityCardIcon log={log} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                     {(() => {
                         // Check if this log entry has an ongoing active session
@@ -1623,7 +1978,7 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                     }}>
                         <span style={{ wordBreak: "break-word", flex: 1, minWidth: 0 }}>
                             {(() => {
-                                // While user is still in VC (session not closed yet), show "In #channel" instead of "joined #channel"
+                                // still in vc — show "In #channel" not "joined"
                                 const isLive = Object.values(activeSessions).some(s => s.logId === log.id)
                                 if (isLive && log.type === "voice" && log.metadata?.action === "joined") {
                                     return `In #${log.metadata.channel || "voice"}`
@@ -1649,6 +2004,9 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                             {new Date(log.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                             <span style={{ color: C.muted, fontWeight: 500 }}>· {timeAgo(log.ts)}</span>
                         </span>
+                        <div className={`ur-log-chevron${expanded ? " open" : ""}`} title={expanded ? "Collapse" : "Expand"}>
+                            <ico.chevron />
+                        </div>
                         <div
                             role="button"
                             title="Delete this entry"
@@ -1686,13 +2044,13 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                         </div>
                     </div>
                     {log.body && log.body !== log.title && log.type !== "activity" && log.type !== "session" && log.type !== "edit" && log.metadata?.action !== "status_session" && (
-                        <div data-ur-card-body-text={(log.type === "msg" || log.type === "edit" || log.type === "delete") ? "content" : "meta"} style={{
-                            fontSize: log.type === "msg" || log.type === "edit" || log.type === "delete" ? 14 : 13,
-                            color: log.type === "msg" || log.type === "edit" || log.type === "delete" ? C.text : C.muted,
+                        <div data-ur-card-body-text={(log.type === "msg" || log.type === "delete") ? "content" : "meta"} style={{
+                            fontSize: log.type === "msg" || log.type === "delete" ? 14 : 13,
+                            color: log.type === "msg" || log.type === "delete" ? C.text : C.muted,
                             lineHeight: 1.4,
                             wordBreak: "break-word",
-                            fontWeight: log.type === "msg" || log.type === "edit" || log.type === "delete" ? 500 : 400,
-                            marginTop: log.type === "msg" || log.type === "edit" || log.type === "delete" ? 2 : 0,
+                            fontWeight: log.type === "msg" || log.type === "delete" ? 500 : 400,
+                            marginTop: log.type === "msg" || log.type === "delete" ? 2 : 0,
                         }}>
                             {log.body}
                         </div>
@@ -1758,8 +2116,8 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                             )}
                         </div>
                     )}
-                    {expanded && (
-                        <div>
+                    <div className={`ur-expand${expanded ? " open" : ""}`}>
+                        <div className={expanded ? "ur-log-expand-in" : ""}>
                             {(log.channelId || log.guildId) && (
                                 <div
                                     onClick={(e) => { e.stopPropagation(); jumpTo(log.guildId, log.channelId, log.msgId) }}
@@ -1808,7 +2166,13 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                         alignItems: "center",
                                         gap: 6,
                                     }}>
-                                        <span>{ACTIVITY_ICONS[log.type] || "👤"}</span>
+                                        <span style={{ display: "flex", alignItems: "center", transform: "scale(0.7)" }}>
+                                            {(() => {
+                                                const key = getActivityIconKey(log)
+                                                const { Icon } = actIco[key]
+                                                return <Icon />
+                                            })()}
+                                        </span>
                                         <span>{FIELD_NAME[log.metadata.field ?? ""] ?? log.type.replace("_", " ")} change</span>
                                     </div>
                                     {/* Avatar images row */}
@@ -1909,14 +2273,14 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                     {log.metadata.song && (
                                         <div
                                             ref={(el: any) => {
-                                                if (!el || !log.metadata.albumArtUrl) return
+                                                if (!el || !log.metadata?.albumArtUrl) return
                                                 const cached = _albumColorCache[log.metadata.albumArtUrl]
                                                 if (cached) {
                                                     el.style.background = hexToRgba(cached, 0.06)
                                                     el.style.borderColor = hexToRgba(cached, 0.35)
                                                     return
                                                 }
-                                                extractAlbumColor(log.metadata.albumArtUrl).then((hex: string) => {
+                                                extractAlbumColor(log.metadata!.albumArtUrl!).then((hex: string) => {
                                                     if (el) {
                                                         el.style.background = hexToRgba(hex, 0.06)
                                                         el.style.borderColor = hexToRgba(hex, 0.35)
@@ -2065,14 +2429,21 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                                         </span>
                                                     )}
                                                 </div>
-                                                {(log.metadata.startTimestamp && log.metadata.endTimestamp) && (() => {
-                                                    const total = log.metadata.endTimestamp - log.metadata.startTimestamp
+                                                {(() => {
+                                                    // discord's own endTimestamp is optional and rarely sent outside spotify —
+                                                    // fall back to the plugin's own captured start/end wall-clock times
+                                                    const hasDiscordRange = log.metadata.startTimestamp && log.metadata.endTimestamp
+                                                    const startTs = hasDiscordRange ? log.metadata.startTimestamp : log.metadata.startTime
+                                                    const endTs = hasDiscordRange ? log.metadata.endTimestamp : (log.metadata.endTime || Date.now())
+                                                    if (!startTs) return null
+
+                                                    const total = endTs - startTs
                                                     const totalStr = formatDuration(total)
-                                                    // Calculate progress: if session ended, show full; if active, calculate from log time
+                                                    // full bar if ended, live calc if still going
                                                     const isSession = log.type === "session"
-                                                    const elapsed = isSession && log.metadata.endTime 
-                                                        ? log.metadata.endTime - log.metadata.startTimestamp 
-                                                        : Date.now() - log.metadata.startTimestamp
+                                                    const elapsed = isSession && log.metadata.endTime
+                                                        ? log.metadata.endTime - startTs
+                                                        : Date.now() - startTs
                                                     const progress = Math.min(100, Math.max(0, (elapsed / total) * 100))
                                                     const currentStr = formatDuration(Math.min(elapsed, total))
                                                     return (
@@ -2295,7 +2666,7 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                                             flexShrink: 0,
                                                             boxShadow: `0 0 0 3px ${ch.status === "online" ? "#23a55a30" : ch.status === "idle" ? "#f0b23230" : ch.status === "dnd" ? "#da373c30" : "#80848e30"}`,
                                                         }} />
-                                                        {i < log.metadata.statusTimeline.length - 1 && (
+                                                        {i < log.metadata!.statusTimeline.length - 1 && (
                                                             <div style={{
                                                                 position: "absolute",
                                                                 left: 4,
@@ -2306,7 +2677,7 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                                                 borderRadius: 1,
                                                             }} />
                                                         )}
-                                                        <div style={{ flex: 1, minWidth: 0, paddingBottom: i < log.metadata.statusTimeline.length - 1 ? 8 : 0 }}>
+                                                        <div style={{ flex: 1, minWidth: 0, paddingBottom: i < log.metadata!.statusTimeline.length - 1 ? 8 : 0 }}>
                                                             <div style={{
                                                                 display: "flex",
                                                                 alignItems: "center",
@@ -2358,7 +2729,7 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                                                     flexShrink: 0,
                                                                     boxShadow: `0 0 0 3px ${C.brandLight}30`,
                                                                 }} />
-                                                                {i < log.metadata.platformTimeline.length - 1 && (
+                                                                {i < log.metadata!.platformTimeline.length - 1 && (
                                                                     <div style={{
                                                                         position: "absolute",
                                                                         left: 4,
@@ -2369,7 +2740,7 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                                                         borderRadius: 1,
                                                                     }} />
                                                                 )}
-                                                                <div style={{ flex: 1, minWidth: 0, paddingBottom: i < log.metadata.platformTimeline.length - 1 ? 8 : 0 }}>
+                                                                <div style={{ flex: 1, minWidth: 0, paddingBottom: i < log.metadata!.platformTimeline.length - 1 ? 8 : 0 }}>
                                                                     <div style={{
                                                                         display: "flex",
                                                                         alignItems: "center",
@@ -2485,7 +2856,7 @@ function LogCard({ log, expanded, onToggle, onDelete, userId }: {
                                 </div>
                             )}
                         </div>
-                    )}
+                    </div>
                 </div>
 
             </div>
@@ -2500,6 +2871,10 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
     const [searchQuery, setSearchQuery] = React.useState("")
     const [sortMode, setSortMode] = React.useState<"newest" | "oldest">("newest")
     const [compact, setCompact] = React.useState(() => !!settings.store.compactLogView)
+    // only mount this many cards at first — rest load in on demand so opening
+    // the log with hundreds of entries doesn't freeze on a big DOM dump
+    const [visibleCount, setVisibleCount] = React.useState(60)
+    React.useEffect(() => { setVisibleCount(60) }, [activeFilters, searchQuery, sortMode])
 
     const toggleCompact = () => {
         const next = !compact
@@ -2519,13 +2894,17 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
             setLogs(prev => {
                 const existingIdx = prev.findIndex(l => l.id === entry.id)
                 if (existingIdx === -1) return [entry, ...prev]
-                // entry was updated (e.g. a voice/spotify session closing) — replace in place, don't duplicate
+                // replace in place so a closing session doesn't duplicate
                 const next = [...prev]
                 next.splice(existingIdx, 1)
                 return [entry, ...next]
             })
         })
-        return unsub
+        const unsubRemove = onActivityRemove((uid, logId) => {
+            if (uid !== userId) return
+            setLogs(prev => prev.filter(l => l.id !== logId))
+        })
+        return () => { unsub(); unsubRemove() }
     }, [userId])
 
     const toggleFilter = (key: ActivityType) => {
@@ -2539,6 +2918,20 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
 
     const clearFilters = () => {
         setActiveFilters(new Set())
+    }
+
+    const deleteCategory = async (cat: typeof ACTIVITY_CATEGORIES[number]) => {
+        const count = logs.filter(l => matchesCategory(l, cat.key)).length
+        if (count === 0) return
+        if (!confirm(`Delete all ${count} ${cat.label.toLowerCase()} cards for this user? This cannot be undone.`)) return
+        await activityStore.removeLogsWhere(userId, l => matchesCategory(l, cat.key))
+        setLogs(prev => prev.filter(l => !matchesCategory(l, cat.key)))
+        setActiveFilters(prev => {
+            if (!prev.has(cat.key)) return prev
+            const next = new Set(prev)
+            next.delete(cat.key)
+            return next
+        })
     }
 
     const filtered = React.useMemo(() => {
@@ -2567,14 +2960,16 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
         return sorted
     }, [logs, activeFilters, searchQuery, sortMode])
 
+    const visibleFiltered = React.useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
+
     const grouped = React.useMemo(() => {
-        return filtered.reduce((acc, log) => {
+        return visibleFiltered.reduce((acc, log) => {
             const date = new Date(log.ts).toLocaleDateString()
             if (!acc[date]) acc[date] = []
             acc[date].push(log)
             return acc
         }, {} as Record<string, ActivityEntry[]>)
-    }, [filtered])
+    }, [visibleFiltered])
 
     const categoryCounts = React.useMemo(() => {
         const counts: Record<string, number> = {}
@@ -2596,12 +2991,12 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
         let voiceMs = 0
         for (const l of todayLogs) {
             if (l.type === "session" && typeof l.metadata?.startTime === "number" && typeof l.metadata?.endTime === "number") {
-                // clamp to today's boundary in case the session started yesterday
+                // clamp to today in case it started yesterday
                 const start = Math.max(l.metadata.startTime, dayStartMs)
                 voiceMs += Math.max(0, l.metadata.endTime - start)
             }
         }
-        // add time from a session that's still ongoing (hasn't closed yet, so it has no log entry with endTime)
+        // include ongoing session time too
         for (const s of Object.values(activeSessions)) {
             if (s.logId && todayLogs.some(l => l.id === s.logId)) {
                 const start = Math.max(s.startTime, dayStartMs)
@@ -2624,7 +3019,7 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
     }
 
     return (
-        <div style={{ padding: "0 4px", overflowX: "hidden" }}>
+        <div style={{ padding: "0 4px" }}>
             {logs.length > 0 && (
                 <div style={{
                     display: "flex",
@@ -2632,19 +3027,19 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                     marginBottom: 12,
                     flexWrap: "wrap",
                 }}>
-                    <div style={{ flex: "1 1 auto", minWidth: 70, background: C.bg1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 10px" }}>
+                    <div className="ur-card-hover ur-glass" style={{ flex: "1 1 auto", minWidth: 70, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 16, padding: "8px 10px" }}>
                         <div style={{ fontSize: 16, fontWeight: 800, color: C.header }}>{todayStats.msgCount}</div>
                         <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>messages today</div>
                     </div>
-                    <div style={{ flex: "1 1 auto", minWidth: 70, background: C.bg1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 10px" }}>
+                    <div className="ur-card-hover ur-glass" style={{ flex: "1 1 auto", minWidth: 70, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 16, padding: "8px 10px" }}>
                         <div style={{ fontSize: 16, fontWeight: 800, color: C.header }}>{todayStats.voiceMs > 0 ? formatDuration(todayStats.voiceMs) : "0m"}</div>
                         <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>voice today</div>
                     </div>
-                    <div style={{ flex: "1 1 auto", minWidth: 70, background: C.bg1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 10px" }}>
+                    <div className="ur-card-hover ur-glass" style={{ flex: "1 1 auto", minWidth: 70, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 16, padding: "8px 10px" }}>
                         <div style={{ fontSize: 16, fontWeight: 800, color: C.header }}>{todayStats.statusChanges}</div>
                         <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>status changes</div>
                     </div>
-                    <div style={{ flex: "1 1 auto", minWidth: 70, background: C.bg1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 10px" }}>
+                    <div className="ur-card-hover ur-glass" style={{ flex: "1 1 auto", minWidth: 70, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 16, padding: "8px 10px" }}>
                         <div style={{ fontSize: 16, fontWeight: 800, color: C.header }}>{todayStats.total}</div>
                         <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>events today</div>
                     </div>
@@ -2652,13 +3047,13 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
             )}
 
             <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
-                <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+                <div className="ur-glass" style={{ position: "relative", flex: 1, minWidth: 0, borderRadius: 20 }}>
                     <input
                         placeholder="Search activity..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{
-                            background: C.bg1,
+                            background: "rgba(255,255,255,0.04)",
                             borderRadius: 20,
                             border: `1px solid ${C.border}`,
                             height: 32,
@@ -2691,13 +3086,14 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                 <div
                     role="button"
                     tabIndex={0}
+                    className="ur-chip ur-tab-btn ur-glass"
                     onClick={() => setSortMode(s => s === "newest" ? "oldest" : "newest")}
                     style={{
                         display: "flex", alignItems: "center", gap: 4,
                         padding: "0 10px",
                         borderRadius: 20,
                         cursor: "pointer",
-                        background: C.bg1,
+                        background: "rgba(255,255,255,0.04)",
                         border: `1px solid ${C.border}`,
                         color: C.muted,
                         fontSize: 11,
@@ -2705,11 +3101,11 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                         userSelect: "none",
                         height: 32,
                         boxSizing: "border-box",
-                        transition: "all 150ms ease",
+                        transition: "background 150ms ease, border-color 150ms ease, color 150ms ease",
                         flexShrink: 0,
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.color = C.text }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.08)" }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
                 >
                     {sortMode === "newest" ? <ico.sortDate /> : <ico.sortAz />}
                     {sortMode === "newest" ? "Newest" : "Oldest"}
@@ -2718,6 +3114,7 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                 <div
                     role="button"
                     tabIndex={0}
+                    className="ur-chip ur-tab-btn ur-glass"
                     title={compact ? "switch to normal view" : "switch to compact view"}
                     onClick={toggleCompact}
                     style={{
@@ -2725,16 +3122,16 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                         width: 32,
                         borderRadius: 20,
                         cursor: "pointer",
-                        background: compact ? `${C.brand}25` : C.bg1,
+                        background: compact ? `${C.brand}25` : "rgba(255,255,255,0.04)",
                         border: `1px solid ${compact ? C.brand : C.border}`,
                         color: compact ? C.brandLight : C.muted,
                         height: 32,
                         boxSizing: "border-box",
-                        transition: "all 150ms ease",
+                        transition: "background 150ms ease, border-color 150ms ease, color 150ms ease",
                         flexShrink: 0,
                     }}
-                    onMouseEnter={e => { if (!compact) { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.color = C.text } }}
-                    onMouseLeave={e => { if (!compact) { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted } }}
+                    onMouseEnter={e => { if (!compact) { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.08)" } }}
+                    onMouseLeave={e => { if (!compact) { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "rgba(255,255,255,0.04)" } }}
                 >
                     <ico.compact />
                 </div>
@@ -2747,11 +3144,12 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                     return (
                         <div
                             key={cat.key}
+                            className="ur-chip ur-tab-btn ur-glass"
                             onClick={() => toggleFilter(cat.key)}
                             style={{
                                 padding: "5px 10px",
-                                borderRadius: 12,
-                                background: isActive ? `${cat.color}25` : C.bg1,
+                                borderRadius: 16,
+                                background: isActive ? `${cat.color}25` : "rgba(255,255,255,0.04)",
                                 color: isActive ? cat.color : C.muted,
                                 fontSize: 11,
                                 fontWeight: 700,
@@ -2759,7 +3157,7 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 5,
-                                transition: "all 150ms ease",
+                                transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
                                 userSelect: "none",
                                 border: `1px solid ${isActive ? `${cat.color}60` : C.border}`,
                                 opacity: count === 0 ? 0.5 : 1,
@@ -2767,13 +3165,13 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                             }}
                             onMouseEnter={e => {
                                 if (!isActive) {
-                                    e.currentTarget.style.background = "rgba(255,255,255,0.04)"
+                                    e.currentTarget.style.background = "rgba(255,255,255,0.09)"
                                     e.currentTarget.style.color = C.text
                                 }
                             }}
                             onMouseLeave={e => {
                                 if (!isActive) {
-                                    e.currentTarget.style.background = C.bg1
+                                    e.currentTarget.style.background = "rgba(255,255,255,0.04)"
                                     e.currentTarget.style.color = C.muted
                                 }
                             }}
@@ -2803,6 +3201,29 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                             }}>
                                 {count}
                             </span>
+                            {count > 0 && (
+                                <span
+                                    className="ur-chip-trash"
+                                    title={`Delete all ${cat.label.toLowerCase()} cards`}
+                                    onClick={e => { e.stopPropagation(); deleteCategory(cat) }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: 14,
+                                        height: 14,
+                                        marginLeft: 1,
+                                        borderRadius: 4,
+                                        color: C.muted,
+                                        opacity: 0.55,
+                                        transition: "opacity 120ms ease, color 120ms ease",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = C.red }}
+                                    onMouseLeave={e => { e.currentTarget.style.opacity = "0.55"; e.currentTarget.style.color = C.muted }}
+                                >
+                                    <ico.trash />
+                                </span>
+                            )}
                         </div>
                     )
                 })}
@@ -2839,11 +3260,10 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                overflowX: "hidden",
                 paddingRight: 4,
             }}>
                 {Object.entries(grouped).map(([date, dayLogs]) => (
-                    <div key={`${date}-${Array.from(activeFilters).join(",")}-${sortMode}`} style={{ overflowX: "hidden" }}>
+                    <div key={date}>
                         <div data-ur-day-header style={{
                             fontSize: 10,
                             fontWeight: 800,
@@ -2862,7 +3282,7 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                             <span style={{ flex: 1, height: 1, background: C.border }} />
                             <span>{dayLogs.length} events</span>
                         </div>
-                        {dayLogs.map(log => (
+                        {dayLogs.map((log, i) => (
                             <LogCard
                                 key={log.id}
                                 log={log}
@@ -2870,10 +3290,39 @@ function UserRadarActivityTab({ userId }: { userId: string }) {
                                 onToggle={() => setExpandedId(expandedId === log.id ? null : log.id)}
                                 onDelete={(id) => setLogs(prev => prev.filter(l => l.id !== id))}
                                 userId={userId}
+                                index={i}
                             />
                         ))}
                     </div>
                 ))}
+                {filtered.length > visibleCount && (
+                    <button
+                        className="ur-tab-btn ur-chip"
+                        onClick={() => setVisibleCount(v => v + 60)}
+                        style={{
+                            alignSelf: "center",
+                            marginTop: 4,
+                            padding: "8px 16px",
+                            borderRadius: 20,
+                            background: C.bg1,
+                            border: `1px solid ${C.border}`,
+                            color: C.text,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            transition: "all 150ms ease",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.background = C.bg2 }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.bg1 }}
+                    >
+                        <ico.download />
+                        Load more · {filtered.length - visibleCount} left
+                    </button>
+                )}
                 {logs.length === 0 && (
                     <div style={{ textAlign: "center", padding: "40px 0", color: C.muted }}>
                         <div style={{
@@ -2923,7 +3372,10 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
         const unsub = onActivityUpdate((uid) => {
             if (uid === userId) setCount(activityStore.getLogs(userId).length)
         })
-        return unsub
+        const unsubRemove = onActivityRemove((uid) => {
+            if (uid === userId) setCount(activityStore.getLogs(userId).length)
+        })
+        return () => { unsub(); unsubRemove() }
     }, [userId])
 
     return (
@@ -2938,6 +3390,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                 {count} total events logged
             </span>
             <button
+                className="ur-tab-btn ur-chip"
                 onClick={() => {
                     const input = document.createElement("input")
                     input.type = "file"
@@ -2994,6 +3447,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                 Import
             </button>
             <select
+                className="ur-tab-btn"
                 value={exportCat}
                 onChange={(e) => setExportCat(e.target.value as ActivityType | "all")}
                 style={{
@@ -3017,6 +3471,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                 ))}
             </select>
             <button
+                className="ur-tab-btn ur-chip"
                 onClick={() => {
                     const userLogs = activityStore.getLogs(userId)
                     const scoped = exportCat === "all" ? userLogs : userLogs.filter(l => matchesCategory(l, exportCat))
@@ -3065,6 +3520,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                 Export
             </button>
             <button
+                className="ur-tab-btn ur-chip"
                 onClick={async () => {
                     if (count === 0) {
                         Toasts.show({
@@ -3123,7 +3579,12 @@ function ActivityBadge({ userId }: { userId: string }) {
                 setCount(activityStore.getLogs(userId).length)
             }
         })
-        return () => { mounted = false; unsub() }
+        const unsubRemove = onActivityRemove((uid) => {
+            if (uid === userId && mounted) {
+                setCount(activityStore.getLogs(userId).length)
+            }
+        })
+        return () => { mounted = false; unsub(); unsubRemove() }
     }, [userId])
 
     return (
@@ -3144,7 +3605,7 @@ function ActivityBadge({ userId }: { userId: string }) {
     )
 }
 
-function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinned, onTogglePin }: {
+function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinned, onTogglePin, index }: {
     user: WatchedUser
     refresh: () => void
     expandedId: string | null
@@ -3152,18 +3613,33 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
     onRemove: () => void
     isPinned?: boolean
     onTogglePin?: () => void
+    index?: number
 }) {
     const [nick,     setNick] = React.useState(user.nick || "")
     const expanded = expandedId === user.id
     const setExp = (v: boolean) => setExpandedId(v ? user.id : null)
     const [copied,   setCopy] = React.useState(false)
     const [ovTab,    setOvTab] = React.useState<OvTab>("messages")
+    const [liveStatus, setLiveStatus] = React.useState<string>(() => statusCache[user.id] || "offline")
+
+    React.useEffect(() => {
+        const presMod = findByProps("getStatus", "getActivities")
+        const tick = () => {
+            try {
+                const s = presMod?.getStatus?.(user.id)
+                if (s) setLiveStatus(s)
+            } catch { }
+        }
+        tick()
+        const iv = setInterval(tick, 4000)
+        return () => clearInterval(iv)
+    }, [user.id])
 
     const du   = UserStore.getUser(user.id)
     const name = displayName(du) || user.id
     const av   = du ? avatarUrl(du.id, (du as any).avatar, 64) : avatarUrl(user.id, null, 64)
 
-    const saveNick = () => { patchUser(settings, user.id, { nick: nick || "" }); refresh() }
+    const saveNick = () => { patchUser(settings, user.id, { nick: (nick || "").slice(0, 50) }); refresh() }
     const setOv = (key: keyof WatchedUser["overrides"], val: boolean | null) => {
         patchUser(settings, user.id, { overrides: { ...user.overrides, [key]: val } })
         refresh()
@@ -3178,7 +3654,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
         if (val === true) {
             Toasts.show({ type: Toasts.Type.SUCCESS, message: `${dn}: ${featLabel} enabled`, id: Toasts.genId() })
         } else if (val === false) {
-            Toasts.show({ type: Toasts.Type.DEFAULT, message: `${dn}: ${featLabel} disabled`, id: Toasts.genId() })
+            Toasts.show({ type: Toasts.Type.MESSAGE, message: `${dn}: ${featLabel} disabled`, id: Toasts.genId() })
         } else if (val === null) {
             Toasts.show({ type: Toasts.Type.SUCCESS, message: `${dn}: ${featLabel} reset to global`, id: Toasts.genId() })
         }
@@ -3240,7 +3716,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
         const label = getWatchedUser(settings, user.id)?.nick
         const u = UserStore.getUser(user.id)
         const name = displayName(u) || user.id
-        Toasts.show({ type: Toasts.Type.DEFAULT, message: `${label ? `${label} (${name})` : name}: all ${OV_TAB_LABELS[ovTab]} disabled`, id: Toasts.genId() })
+        Toasts.show({ type: Toasts.Type.MESSAGE, message: `${label ? `${label} (${name})` : name}: all ${OV_TAB_LABELS[ovTab]} disabled`, id: Toasts.genId() })
     }
 
     const applyPreset = (preset: "stalker" | "lite" | "silent") => {
@@ -3318,15 +3794,29 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
     const activePreset = detectPreset()
 
     return (
-        <div style={{ background: C.bg2, borderRadius: 20, marginBottom: 8, border: `1px solid ${isPinned ? C.brandLight + "60" : C.border}`, overflow: "hidden" }}>
+        <div className={`ur-row${expanded ? " open" : ""}`} style={{
+            borderRadius: 18,
+            marginBottom: 8,
+            animationDelay: `${Math.min(index ?? 0, 10) * 28}ms`,
+        }}>
+            <div className="ur-row-surface" style={{
+                background: expanded
+                    ? "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.03) 100%)"
+                    : "linear-gradient(135deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.02) 100%)",
+                border: `1px solid ${isPinned ? C.brandLight + "60" : expanded ? C.bgEl : C.border}`,
+                borderRadius: 18,
+                overflow: "hidden",
+            }}>
             <div className="ur-row-hover" onClick={() => setExp(!expanded)} style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer",
-                borderRadius: expanded ? "20px 20px 0 0" : 20, transition: "background 100ms",
+                borderRadius: expanded ? "18px 18px 0 0" : 18, transition: "background 100ms",
             }}>
                 <div
                     role="button"
                     title={isPinned ? "unpin" : "pin to top"}
                     onClick={(e: any) => { e.stopPropagation(); onTogglePin?.() }}
+                    className={`ur-row-pin${isPinned ? " ur-pin-pop" : ""}`}
+                    key={isPinned ? "pinned" : "unpinned"}
                     style={{
                         display: "flex", alignItems: "center", justifyContent: "center",
                         color: isPinned ? C.brandLight : C.muted,
@@ -3340,25 +3830,45 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                 >
                     {isPinned ? <ico.pin /> : <ico.pinOutline />}
                 </div>
-                <img src={av} style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0 }}
-                    onError={(e: any) => { e.target.src = FALLBACK_AV }} />
+                <div style={{ position: "relative", flexShrink: 0, width: 44, height: 44 }}>
+                    <img className="ur-row-avatar" src={av} style={{
+                        width: 44, height: 44, borderRadius: "50%", display: "block",
+                        // cuts a notch out of the avatar for the status badge to sit in,
+                        // same as real discord — center matches the badge below
+                        WebkitMaskImage: "radial-gradient(circle 8px at calc(100% - 7px) calc(100% - 7px), transparent 8px, #000 8.5px)",
+                        maskImage: "radial-gradient(circle 8px at calc(100% - 7px) calc(100% - 7px), transparent 8px, #000 8.5px)",
+                    }}
+                        onError={(e: any) => { e.target.src = FALLBACK_AV }} />
+                    <span className="ur-status-dot" style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        boxShadow: liveStatus === "online" ? "0 0 6px #23a55a80" : liveStatus === "idle" ? "0 0 6px #f0b23280" : liveStatus === "dnd" ? "0 0 6px #da373c80" : "none",
+                    }}>
+                        <StatusBadgeIcon status={liveStatus} />
+                    </span>
+                </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 15, fontWeight: 700, color: C.header }}>{name}</span>
                         {user.nick && (
-                            <span style={{ background: C.brandGrad, color: C.white, fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            <span className="ur-badge-in ur-badge-glass" style={{ background: `${C.brand}30`, color: C.white, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, textTransform: "uppercase", letterSpacing: 0.5, border: `1px solid ${C.brandLight}50`, boxShadow: `0 0 10px ${C.brand}30` }}>
                                 {user.nick}
                             </span>
                         )}
                         {settings.store.globalPresetMode === "custom" && activePreset !== "custom" && (
-                            <span style={{
+                            <span className="ur-badge-glass" style={{
                                 background: activePreset === "stalker" ? `${C.danger}25` : activePreset === "lite" ? `${C.brandLight}25` : `${C.muted}25`,
                                 color: activePreset === "stalker" ? C.danger : activePreset === "lite" ? C.brandLight : C.muted,
                                 fontSize: 9,
                                 fontWeight: 800,
-                                padding: "2px 7px",
-                                borderRadius: 6,
+                                padding: "3px 8px",
+                                borderRadius: 20,
                                 textTransform: "uppercase",
                                 letterSpacing: 0.5,
                                 border: `1px solid ${activePreset === "stalker" ? `${C.danger}60` : activePreset === "lite" ? `${C.brandLight}60` : `${C.muted}60`}`,
@@ -3385,8 +3895,10 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                         const name = displayName(u) || user.id;
                         const av = u ? avatarUrl(u.id, (u as any).avatar, 64) : avatarUrl(user.id, null, 64);
                         openModal(p => (
-                            <ModalRoot {...p} size={ModalSize.LARGE}>
-                                <ModalHeader separator={false}>
+                            <Modal
+                                {...p}
+                                size="lg"
+                                title={
                                     <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
                                         <img src={av} style={{ width: 36, height: 36, borderRadius: "50%" }} />
                                         <div>
@@ -3394,30 +3906,26 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                                             <div style={{ fontSize: 12, color: C.muted }}>Activity Log</div>
                                         </div>
                                     </div>
-                                    <ModalCloseButton onClick={p.onClose} />
-                                </ModalHeader>
-                                <ModalContent>
-                                    <div style={{ padding: "0 12px" }}>
-                                        <UserRadarActivityTab userId={user.id} />
-                                    </div>
-                                </ModalContent>
-                                <ModalFooter>
-                                    <ActivityLogFooter userId={user.id} />
-                                </ModalFooter>
-                            </ModalRoot>
+                                }
+                                preview={<ActivityLogFooter userId={user.id} />}
+                            >
+                                <div className="ur-modal-in" style={{ padding: "0 12px" }}>
+                                    <UserRadarActivityTab userId={user.id} />
+                                </div>
+                            </Modal>
                         ));
                     }}
                     title="Full Activity History"
+                    className="ur-activity-btn"
                     style={{
                         padding: "5px 12px",
                         borderRadius: 12,
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: "pointer",
-                        background: C.bg1,
+                        background: "rgba(255,255,255,0.05)",
                         color: C.text,
                         border: `1px solid ${C.border}`,
-                        transition: "all 150ms cubic-bezier(0.4,0,0.2,1)",
                         userSelect: "none",
                         letterSpacing: 0.3,
                         flexShrink: 0,
@@ -3427,14 +3935,6 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                         height: 28,
                         boxSizing: "border-box",
                     }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.background = C.hov;
-                        e.currentTarget.style.borderColor = C.bgEl;
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.background = C.bg1;
-                        e.currentTarget.style.borderColor = C.border;
-                    }}
                 >
                     <span style={{ display: "flex", alignItems: "center", opacity: 0.9 }}>
                         <ico.history />
@@ -3442,7 +3942,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                     <span>Activity</span>
                     <ActivityBadge userId={user.id} />
                 </div>
-<div style={{ color: C.muted, display: "flex", alignItems: "center", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 200ms cubic-bezier(.4,0,.2,1)" }}>
+                <div className={`ur-row-chevron${expanded ? " open" : ""}`}>
                     <ico.chevron />
                 </div>
 
@@ -3453,9 +3953,10 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                         { title: "remove",        icon: <ico.trash />,                          color: C.red,                     action: onRemove },
                     ].map(btn => (
                         <div key={btn.title} role="button" tabIndex={0} title={btn.title}
+                            className="ur-icon-btn"
                             onClick={btn.action}
                             onKeyDown={(e: any) => { if (e.key === "Enter") btn.action() }}
-                            style={{ color: btn.color, cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", alignItems: "center", transition: "background 100ms" }}
+                            style={{ color: btn.color, cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", alignItems: "center" }}
                             onMouseEnter={e => (e.currentTarget.style.background = btn.title === "remove" ? "rgba(218,55,60,0.12)" : C.hov)}
                             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                         >
@@ -3467,196 +3968,107 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
 
             <div className={`ur-expand${expanded ? " open" : ""}`}>
                 <div>
-                    <div style={{ padding: "12px 16px 14px", borderTop: `1px solid ${C.border}`, background: C.bg2 }}>
-
-                        <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center" }}>
-                            <div style={{ display: "flex", gap: 4, background: C.bg3, padding: 3, borderRadius: 20, border: `1px solid ${C.border}`, position: "relative" }}>
-                                {(["messages", "presence", "profile"] as OvTab[]).map(tab => (
-                                    <div
-                                        key={tab}
-                                        onClick={() => { setOvTab(tab) }}
-                                        style={{
-                                            padding: "5px 14px",
-                                            borderRadius: 16,
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            cursor: "pointer",
-                                            background: ovTab === tab ? C.brand : "transparent",
-                                            color: ovTab === tab ? C.white : C.muted,
-                                            transition: "all 200ms cubic-bezier(0.4,0,0.2,1)",
-                                            userSelect: "none",
-                                            letterSpacing: 0.3,
-                                            position: "relative",
-                                            zIndex: 2,
-                                            transform: ovTab === tab ? "scale(1.02)" : "scale(1)",
-                                        }}
-                                        onMouseEnter={e => {
-                                            if (ovTab !== tab) {
-                                                e.currentTarget.style.background = C.hov
-                                                e.currentTarget.style.color = C.text
-                                                e.currentTarget.style.transform = "scale(1.02)"
-                                            }
-                                        }}
-                                        onMouseLeave={e => {
-                                            if (ovTab !== tab) {
-                                                e.currentTarget.style.background = "transparent"
-                                                e.currentTarget.style.color = C.muted
-                                                e.currentTarget.style.transform = "scale(1)"
-                                            }
-                                        }}
+                    <div style={{ padding: "20px 16px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", background: "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.14) 100%)" }}>
+                        <div className="ur-glass" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, marginBottom: 18, background: "rgba(0,0,0,0.35)", padding: 4, borderRadius: 24, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content", minWidth: 300, position: "relative" }}>
+                            <div style={{
+                                position: "absolute",
+                                top: 4,
+                                bottom: 4,
+                                left: 4,
+                                width: "calc((100% - 8px) / 3)",
+                                transform: `translateX(${["messages", "presence", "profile"].indexOf(ovTab) * 100}%)`,
+                                background: "linear-gradient(135deg, #5865f2 0%, #7289da 100%)",
+                                borderRadius: 20,
+                                boxShadow: "0 2px 12px rgba(88,101,242,0.5), inset 0 1px 0 rgba(255,255,255,0.15)",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                transition: "transform 300ms cubic-bezier(0.34,1.2,0.4,1)",
+                                pointerEvents: "none",
+                                boxSizing: "border-box",
+                                zIndex: 1,
+                            }} />
+                            {(["messages", "presence", "profile"] as OvTab[]).map(tab => {
+                                const TabIcon = OV_TAB_ICONS[tab]
+                                const active = ovTab === tab
+                                return (
+                                    <div key={tab} className="ur-tab-btn" onClick={() => setOvTab(tab)} style={{
+                                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                        padding: "6px 14px", borderRadius: 20,
+                                        fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                        color: active ? "#fff" : C.muted,
+                                        position: "relative", zIndex: 2,
+                                        userSelect: "none",
+                                    }}
+                                        onMouseEnter={e => { if (!active) { e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.07)" } }}
+                                        onMouseLeave={e => { if (!active) { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "transparent" } }}
                                     >
+                                        <span style={{ opacity: active ? 1 : 0.6, display: "flex", transition: "opacity 200ms ease" }}><TabIcon /></span>
                                         {OV_TAB_LABELS[tab]}
                                     </div>
-                                ))}
-                            </div>
-                            <div style={{ flex: 1 }} />
+                                )
+                            })}
                         </div>
-
-                        <div style={{ marginTop: 0 }}>
-                                <div style={{ background: "#313338", borderRadius: 12, border: `1px solid #3f4147`, padding: "16px", marginBottom: 12 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.8, color: "#b5bac1" }}>
-                                            Quick Presets
+                        <div style={{ marginBottom: 18 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "rgba(255,255,255,0.25)", marginBottom: 10 }}>Quick presets</div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                                {([
+                                    { key: "stalker" as const, label: "Stalker", desc: "Every event", color: "#f04747", glow: "#f0474740" },
+                                    { key: "lite" as const,    label: "Lite",    desc: "Essentials only", color: C.brand, glow: "#5865f240" },
+                                    { key: "silent" as const,  label: "Silent",  desc: "No pings", color: "#949ba4", glow: "#949ba420" },
+                                ]).map(preset => {
+                                    const isActive = activePreset === preset.key
+                                    return (
+                                        <div key={preset.key} className="ur-preset-card ur-glass" onClick={() => applyPreset(preset.key)} style={{
+                                            flex: 1, cursor: "pointer", padding: "12px 14px", borderRadius: 18,
+                                            background: isActive ? `linear-gradient(145deg, ${preset.color}22 0%, ${preset.color}0d 100%)` : "rgba(255,255,255,0.03)",
+                                            border: `1px solid ${isActive ? preset.color + "70" : "rgba(255,255,255,0.06)"}`,
+                                            boxShadow: isActive ? `0 0 20px ${preset.glow}, inset 0 1px 0 rgba(255,255,255,0.08)` : "inset 0 1px 0 rgba(255,255,255,0.04)",
+                                            transition: "all 220ms cubic-bezier(0.4,0,0.2,1)",
+                                            backdropFilter: "blur(8px)",
+                                        }}
+                                            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)" } }}
+                                            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)" } }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
+                                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: preset.color, boxShadow: isActive ? `0 0 8px ${preset.color}` : "none", flexShrink: 0, transition: "box-shadow 220ms" }} />
+                                                <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? preset.color : C.text, transition: "color 220ms" }}>{preset.label}</span>
+                                            </div>
+                                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", lineHeight: 1.4 }}>{preset.desc}</div>
                                         </div>
-                                        <div style={{ fontSize: 11, color: "#949ba4" }}>
-                                            one-click tracking profiles
-                                        </div>
-                                    </div>
-                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                        {([
-                                            { key: "stalker" as const, label: "Stalker", desc: "Maximum tracking — every event", color: C.danger },
-                                            { key: "lite" as const, label: "Lite", desc: "Messages, deletes, typing, avatar, voice, status", color: C.brandLight },
-                                            { key: "silent" as const, label: "Silent", desc: "Log everything silently — no pings", color: C.muted },
-                                        ]).map(preset => {
-                                            const isActive = activePreset === preset.key
-                                            return (
-                                                <div
-                                                    key={preset.key}
-                                                    onClick={() => applyPreset(preset.key)}
-                                                    style={{
-                                                        cursor: "pointer",
-                                                        padding: "10px 14px",
-                                                        borderRadius: 14,
-                                                        transition: "all 150ms ease",
-                                                        border: `1px solid ${isActive ? preset.color : `${preset.color}40`}`,
-                                                        background: isActive ? `${preset.color}25` : `${preset.color}10`,
-                                                        flex: 1,
-                                                        minWidth: 120,
-                                                    }}
-                                                    onMouseEnter={e => {
-                                                        if (!isActive) {
-                                                            e.currentTarget.style.background = `${preset.color}20`
-                                                            e.currentTarget.style.borderColor = `${preset.color}60`
-                                                        }
-                                                    }}
-                                                    onMouseLeave={e => {
-                                                        if (!isActive) {
-                                                            e.currentTarget.style.background = `${preset.color}10`
-                                                            e.currentTarget.style.borderColor = `${preset.color}40`
-                                                        }
-                                                    }}
-                                                >
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                                                        {isActive && (
-                                                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: preset.color, boxShadow: `0 0 6px ${preset.color}`, display: "inline-block", flexShrink: 0 }} />
-                                                        )}
-                                                        <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, color: isActive ? preset.color : C.text }}>
-                                                            {preset.label}
-                                                        </span>
-                                                    </div>
-                                                    <div style={{ fontSize: 10, color: C.muted, lineHeight: 1.4 }}>
-                                                        {preset.desc}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 12 }}>
-                                    <div
-                                        onClick={enableAll}
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "rgba(255,255,255,0.25)" }}>Overrides</span>
+                            <div style={{ flex: 1 }} />
+                            <span onClick={enableAll} style={{ fontSize: 11, color: C.brandLight, cursor: "pointer", fontWeight: 600, marginRight: 12 }}
+                                onMouseEnter={e => { e.currentTarget.style.opacity = "0.7" }} onMouseLeave={e => { e.currentTarget.style.opacity = "1" }}>Enable All</span>
+                            <span onClick={disableAll} style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", cursor: "pointer", fontWeight: 600 }}
+                                onMouseEnter={e => { e.currentTarget.style.opacity = "0.7" }} onMouseLeave={e => { e.currentTarget.style.opacity = "1" }}>Disable All</span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            {OV_GROUPS[ovTab].map(row => {
+                                const isOn = isFeatureOn(user.id, row.key as any, row.gk)
+                                const isOv = (user.overrides as any)[row.key] !== null && (user.overrides as any)[row.key] !== undefined
+                                return (
+                                    <div key={row.key}
+                                        onClick={() => setOv(row.key as any, !isOn)}
                                         style={{
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            color: C.brandLight,
+                                            background: isOn ? "linear-gradient(135deg, rgba(88,101,242,0.14) 0%, rgba(88,101,242,0.06) 100%)" : "rgba(255,255,255,0.025)",
+                                            borderRadius: 16,
+                                            border: `1px solid ${isOn && isOv ? "rgba(88,101,242,0.5)" : "rgba(255,255,255,0.06)"}`,
+                                            boxShadow: isOn && isOv ? "0 0 16px rgba(88,101,242,0.18), inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.04)",
+                                            padding: "10px 12px",
                                             cursor: "pointer",
-                                            padding: "5px 12px",
-                                            borderRadius: 20,
-                                            border: `1px solid rgba(148,156,244,0.3)`,
-                                            background: "rgba(148,156,244,0.08)",
-                                            transition: "all 150ms ease",
-                                            height: 26,
-                                            boxSizing: "border-box",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            userSelect: "none",
+                                            transition: "all 220ms cubic-bezier(0.4,0,0.2,1)",
+                                            display: "flex", alignItems: "center", gap: 8,
+                                            position: "relative", overflow: "hidden",
+                                            backdropFilter: "blur(4px)",
                                         }}
-                                        onMouseEnter={e => {
-                                            e.currentTarget.style.background = "rgba(148,156,244,0.15)"
-                                            e.currentTarget.style.borderColor = "rgba(148,156,244,0.5)"
-                                        }}
-                                        onMouseLeave={e => {
-                                            e.currentTarget.style.background = "rgba(148,156,244,0.08)"
-                                            e.currentTarget.style.borderColor = "rgba(148,156,244,0.3)"
-                                        }}
-                                    >Enable All</div>
-                                    <div
-                                        onClick={disableAll}
-                                        style={{
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            color: C.muted,
-                                            cursor: "pointer",
-                                            padding: "5px 12px",
-                                            borderRadius: 20,
-                                            border: `1px solid rgba(148,163,184,0.2)`,
-                                            background: "rgba(148,163,184,0.05)",
-                                            transition: "all 150ms ease",
-                                            height: 26,
-                                            boxSizing: "border-box",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            userSelect: "none",
-                                        }}
-                                        onMouseEnter={e => {
-                                            e.currentTarget.style.background = "rgba(148,163,184,0.1)"
-                                            e.currentTarget.style.borderColor = "rgba(148,163,184,0.3)"
-                                        }}
-                                        onMouseLeave={e => {
-                                            e.currentTarget.style.background = "rgba(148,163,184,0.05)"
-                                            e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)"
-                                        }}
-                                    >Disable All</div>
-                                </div>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                    {OV_GROUPS[ovTab].map(row => {
-                                        const isOn = isFeatureOn(user.id, row.key as any, row.gk)
-                                        const isOv = (user.overrides as any)[row.key] !== null && (user.overrides as any)[row.key] !== undefined
-                                        return (
-                                            <div key={row.key}
-                                                onClick={() => setOv(row.key as any, !isOn)}
-                                                style={{
-                                                    background: "#313338",
-                                                    borderRadius: 12,
-                                                    border: `1px solid ${isOv ? "#5865f2" : "#3f4147"}`,
-                                                    padding: "10px 12px",
-                                                    cursor: "pointer",
-                                                    transition: "border-color 150ms ease, background 150ms ease",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: 8,
-                                                    height: 48,
-                                                    boxSizing: "border-box",
-                                                }}
-                                                onMouseEnter={e => {
-                                                    e.currentTarget.style.background = "#232428"
-                                                    e.currentTarget.style.borderColor = isOv ? "#949cf4" : "#3f4147"
-                                                }}
-                                                onMouseLeave={e => {
-                                                    e.currentTarget.style.background = "#313338"
-                                                    e.currentTarget.style.borderColor = isOv ? "#5865f2" : "#3f4147"
-                                                }}
-                                            >
+                                        onMouseEnter={e => { e.currentTarget.style.background = isOn ? "linear-gradient(135deg, rgba(88,101,242,0.2) 0%, rgba(88,101,242,0.1) 100%)" : "rgba(255,255,255,0.05)"; e.currentTarget.style.borderColor = isOn ? "rgba(88,101,242,0.6)" : "rgba(255,255,255,0.1)" }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = isOn ? "linear-gradient(135deg, rgba(88,101,242,0.14) 0%, rgba(88,101,242,0.06) 100%)" : "rgba(255,255,255,0.025)"; e.currentTarget.style.borderColor = isOn && isOv ? "rgba(88,101,242,0.5)" : "rgba(255,255,255,0.06)" }}
+                                    >
+                                        {isOn && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 2, background: "linear-gradient(180deg, #5865f2 0%, #7289da 100%)", borderRadius: "16px 0 0 16px", boxShadow: "0 0 10px #5865f2" }} />}
                                                 <div style={{ color: isOn ? C.brand : C.muted, display: "flex", alignItems: "center", flexShrink: 0, position: "relative" }}>
                                                     {isOn && (
                                                         <span className="ur-pulse" style={{
@@ -3752,17 +4164,17 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
                                             fontWeight: 500,
                                             transition: "color 150ms ease",
                                         }}
-                                        onMouseEnter={e => e.currentTarget.style.color = C.danger}
-                                        onMouseLeave={e => e.currentTarget.style.color = C.muted}
+                                        onMouseEnter={e => { e.currentTarget.style.color = C.danger }}
+                                        onMouseLeave={e => { e.currentTarget.style.color = C.muted }}
                                     >
                                         Reset to Default ↩
                                     </span>
                                 </div>
                             </div>
                     </div>
+                    </div>
                 </div>
             </div>
-        </div>
     )
 }
 
@@ -3848,11 +4260,11 @@ function GlobalPresetControl({ refresh }: { refresh: () => void }) {
                 Global Preset Mode
             </div>
 
-            <div style={{
+            <div className="ur-glass" style={{
                 display: "grid",
                 gridTemplateColumns: `repeat(${presets.length}, 1fr)`,
-                background: C.bg1,
-                borderRadius: 20,
+                background: "rgba(0,0,0,0.35)",
+                borderRadius: 22,
                 border: `1px solid ${C.border}`,
                 padding: 4,
                 position: "relative",
@@ -3864,10 +4276,11 @@ function GlobalPresetControl({ refresh }: { refresh: () => void }) {
                     left: 4,
                     width: `calc((100% - 8px) / ${presets.length})`,
                     transform: `translateX(${activeIndex * 100}%)`,
-                    background: presets[activeIndex].color + "20",
-                    border: `1.5px solid ${presets[activeIndex].color}60`,
-                    borderRadius: 16,
-                    transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms ease, border-color 200ms ease",
+                    background: `linear-gradient(145deg, ${presets[activeIndex].color}2a 0%, ${presets[activeIndex].color}10 100%)`,
+                    border: `1.5px solid ${presets[activeIndex].color}70`,
+                    borderRadius: 18,
+                    boxShadow: `0 0 20px ${presets[activeIndex].color}30, inset 0 1px 0 rgba(255,255,255,0.08)`,
+                    transition: "transform 320ms cubic-bezier(0.34,1.2,0.4,1), background 220ms ease, border-color 220ms ease, box-shadow 220ms ease",
                     pointerEvents: "none",
                     boxSizing: "border-box",
                     zIndex: 1,
@@ -3878,44 +4291,38 @@ function GlobalPresetControl({ refresh }: { refresh: () => void }) {
                     return (
                         <div
                             key={p.key}
+                            className="ur-tab-btn"
                             onClick={() => { settings.store.globalPresetMode = p.key; refresh() }}
                             style={{
-                                padding: "12px 6px",
-                                borderRadius: 16,
+                                padding: "12px 10px",
+                                borderRadius: 18,
                                 cursor: "pointer",
-                                textAlign: "center",
+                                textAlign: "left",
                                 position: "relative",
                                 zIndex: 2,
-                                transition: "background 150ms ease",
                                 userSelect: "none",
                             }}
                             onMouseEnter={e => {
-                                if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"
+                                if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"
                             }}
                             onMouseLeave={e => {
                                 e.currentTarget.style.background = "transparent"
                             }}
                         >
-                            <div style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: isActive ? p.color : C.muted,
-                                marginBottom: 4,
-                                transition: "color 200ms ease",
-                                whiteSpace: "nowrap",
-                            }}>
-                                {p.label}
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, boxShadow: isActive ? `0 0 8px ${p.color}` : "none", flexShrink: 0, transition: "box-shadow 220ms" }} />
+                                <span style={{ fontSize: 13, fontWeight: 700, color: isActive ? p.color : C.subheader, transition: "color 200ms ease", whiteSpace: "nowrap" }}>
+                                    {p.label}
+                                </span>
                             </div>
                             <div style={{
                                 fontSize: 10,
                                 color: isActive ? C.text : C.muted,
-                                opacity: isActive ? 1 : 0.6,
                                 lineHeight: 1.3,
-                                transition: "color 200ms ease, opacity 200ms ease",
+                                transition: "color 200ms ease",
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
-                                padding: "0 2px",
                             }}>
                                 {p.desc}
                             </div>
@@ -3979,7 +4386,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
         const sorted = sort === "az"
             ? [...list].sort((a, b) => (displayName(UserStore.getUser(a.id)) || a.id).localeCompare(displayName(UserStore.getUser(b.id)) || b.id))
             : [...list].sort((a, b) => b.addedAt - a.addedAt)
-        // pinned users always float to the top, keeping their relative sort order otherwise
+        // pinned users float to the top
         return [...sorted].sort((a, b) => {
             const ap = pinned.includes(a.id) ? 1 : 0
             const bp = pinned.includes(b.id) ? 1 : 0
@@ -3988,10 +4395,12 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
     }, [users, query, sort, pinned])
 
     return (
-        <ModalRoot {...modalProps} size={ModalSize.LARGE}>
-            <ModalHeader separator={false}>
-                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{
+        <Modal
+            {...modalProps}
+            size="lg"
+            title={
+                <div className="ur-fade-in" style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
+                    <div className="ur-pulse" style={{
                         width: 36,
                         height: 36,
                         borderRadius: 12,
@@ -4009,10 +4418,9 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                         <div style={{ fontSize: 12, color: C.muted }}>watchlist manager</div>
                     </div>
                 </div>
-                <ModalCloseButton onClick={modalProps.onClose} />
-            </ModalHeader>
-
-            <ModalContent>
+            }
+        >
+            <div className="ur-modal-in">
                 <div className="ur-scrollbar" style={{ padding: "0 16px", maxHeight: "60vh", overflowY: "auto" }}>
                     <AddUserSection onAdded={refresh} />
 
@@ -4026,6 +4434,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                         </div>
 
                         <div role="button" tabIndex={0}
+                            className="ur-chip"
                             onClick={() => setSort(s => s === "az" ? "date" : "az")}
                             title={sort === "az" ? "sort by date" : "sort a-z"}
                             style={{
@@ -4055,7 +4464,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
 
                     {users.length === 0 && (
                         <div className="ur-fade-in" style={{ textAlign: "center", padding: "48px 0" }}>
-                            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14, color: C.muted }}><ico.ghost /></div>
+                            <div className="ur-float" style={{ display: "flex", justifyContent: "center", marginBottom: 14, color: C.muted }}><ico.ghost /></div>
                             <div style={{ fontSize: 16, fontWeight: 700, color: C.header }}>nobody here yet</div>
                             <div style={{ fontSize: 13, color: C.muted, marginTop: 6 }}>add someone above to start tracking them</div>
                         </div>
@@ -4067,15 +4476,17 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                         </div>
                     )}
 
-                    {shown.map(u => (
+                    {shown.map((u, i) => (
                         <WatchedRow
                             key={u.id}
                             user={u}
+                            index={i}
                             refresh={refresh}
                             expandedId={expandedId}
                             setExpandedId={setExpandedId}
                             onRemove={() => {
                                 removeUser(settings, u.id)
+                                purgeUserCaches(u.id)
                                 if (settings.store.autoCleanupLogs) activityStore.clearLogs(u.id)
                                 if (getPinned().includes(u.id)) onTogglePin(u.id)
                                 refresh()
@@ -4085,9 +4496,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                         />
                     ))}
                 </div>
-            </ModalContent>
 
-            <ModalFooter>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: 8 }}>
                     <div style={{ display: "flex", gap: 8 }}>
                         <button
@@ -4105,7 +4514,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                                         let added = 0
                                         let skipped = 0
                                         for (const u of data) {
-                                            // must be a real discord snowflake (17-20 numeric digits), not any arbitrary string
+                                            // must be a real snowflake
                                             const id = typeof u?.id === "string" ? u.id.trim() : ""
                                             if (!/^\d{17,20}$/.test(id)) { skipped++; continue }
                                             if (isWatched(settings, id)) continue
@@ -4134,20 +4543,18 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                             style={{
                                 padding: "8px 16px",
                                 borderRadius: 20,
-                                background: C.bg1,
+                                background: "rgba(255,255,255,0.045)",
                                 border: `1px solid ${C.border}`,
                                 color: C.text,
                                 fontSize: 12,
                                 fontWeight: 700,
                                 cursor: "pointer",
                                 fontFamily: "inherit",
-                                transition: "all 150ms ease",
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 6,
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.background = C.bg2 }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.bg1 }}
+                            className="ur-footer-btn"
                         >
                             <ico.download />
                             Import
@@ -4180,20 +4587,18 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                             style={{
                                 padding: "8px 16px",
                                 borderRadius: 20,
-                                background: C.bg1,
+                                background: "rgba(255,255,255,0.045)",
                                 border: `1px solid ${C.border}`,
                                 color: C.text,
                                 fontSize: 12,
                                 fontWeight: 700,
                                 cursor: "pointer",
                                 fontFamily: "inherit",
-                                transition: "all 150ms ease",
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 6,
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = C.bgEl; e.currentTarget.style.background = C.bg2 }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.bg1 }}
+                            className="ur-footer-btn"
                         >
                             <ico.upload />
                             Export
@@ -4220,13 +4625,11 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                                 fontWeight: 700,
                                 cursor: "pointer",
                                 fontFamily: "inherit",
-                                transition: "all 150ms ease",
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 6,
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(218,55,60,0.15)" }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(218,55,60,0.08)" }}
+                            className="ur-footer-btn ur-footer-btn-danger"
                         >
                             <ico.clear />
                             Clear All Logs
@@ -4235,21 +4638,19 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
 
                     <button
                         onClick={modalProps.onClose}
+                        className="ur-footer-btn ur-footer-btn-primary"
                         style={{
                             borderRadius: 20, height: 32, padding: "0 18px",
-                            background: "transparent", color: C.text,
+                            background: "rgba(255,255,255,0.045)", color: C.text,
                             border: `1px solid ${C.border}`, fontSize: 13,
                             fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-                            transition: "background 150ms, border-color 150ms, color 150ms",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = C.brand; e.currentTarget.style.borderColor = C.brand; e.currentTarget.style.color = "#fff" }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text }}
                     >
                         close
                     </button>
                 </div>
-            </ModalFooter>
-        </ModalRoot>
+            </div>
+        </Modal>
     )
 }
 
@@ -4266,8 +4667,8 @@ const userCtxPatch: NavContextMenuPatchCallback = (children, { user }) => {
                 label={isW ? "Unwatch User" : "Watch User"}
                 icon={isW ? CtxEyeOffIcon : CtxEyeIcon}
                 action={() => {
-                    if (isW) { removeUser(settings, user.id); Toasts.show({ type: Toasts.Type.DEFAULT, message: `removed ${displayName(user)} from watchlist`, id: Toasts.genId() }) }
-                    else { addUser(settings, user.id); Toasts.show({ type: Toasts.Type.SUCCESS, message: `added ${displayName(user)} to watchlist`, id: Toasts.genId() }) }
+                    if (isW) { removeUser(settings, user.id); purgeUserCaches(user.id); Toasts.show({ type: Toasts.Type.MESSAGE, message: `removed ${displayName(user)} from watchlist`, id: Toasts.genId() }) }
+                    else { addUser(settings, user.id); fetchNewUserBaseline(user.id); Toasts.show({ type: Toasts.Type.SUCCESS, message: `added ${displayName(user)} to watchlist`, id: Toasts.genId() }) }
                 }}
 
             />
@@ -4293,8 +4694,8 @@ const msgCtxPatch: NavContextMenuPatchCallback = (children, { message }) => {
                 label={isW ? "remove author from watchlist" : "add author to watchlist"}
                 icon={isW ? CtxEyeOffIcon : CtxEyeIcon}
                 action={() => {
-                    if (isW) { removeUser(settings, message.author.id); Toasts.show({ type: Toasts.Type.DEFAULT, message: `removed ${displayName(message.author)} from watchlist`, id: Toasts.genId() }) }
-                    else { addUser(settings, message.author.id); Toasts.show({ type: Toasts.Type.SUCCESS, message: `added ${displayName(message.author)} to watchlist`, id: Toasts.genId() }) }
+                    if (isW) { removeUser(settings, message.author.id); purgeUserCaches(message.author.id); Toasts.show({ type: Toasts.Type.MESSAGE, message: `removed ${displayName(message.author)} from watchlist`, id: Toasts.genId() }) }
+                    else { addUser(settings, message.author.id); fetchNewUserBaseline(message.author.id); Toasts.show({ type: Toasts.Type.SUCCESS, message: `added ${displayName(message.author)} to watchlist`, id: Toasts.genId() }) }
                 }}
 
             />
@@ -4377,8 +4778,10 @@ function injectDMActivityButton() {
         const name = displayName(u) || recipientId
         const av = u ? avatarUrl(u.id, (u as any).avatar, 64) : avatarUrl(recipientId, null, 64)
         openModal(p => (
-            <ModalRoot {...p} size={ModalSize.LARGE}>
-                <ModalHeader separator={false}>
+            <Modal
+                {...p}
+                size="lg"
+                title={
                     <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
                         <img src={av} style={{ width: 36, height: 36, borderRadius: "50%" }} />
                         <div>
@@ -4386,17 +4789,13 @@ function injectDMActivityButton() {
                             <div style={{ fontSize: 12, color: C.muted }}>Activity Log</div>
                         </div>
                     </div>
-                    <ModalCloseButton onClick={p.onClose} />
-                </ModalHeader>
-                <ModalContent>
-                    <div style={{ padding: "0 12px" }}>
-                        <UserRadarActivityTab userId={recipientId} />
-                    </div>
-                </ModalContent>
-                <ModalFooter>
-                    <ActivityLogFooter userId={recipientId} />
-                </ModalFooter>
-            </ModalRoot>
+                }
+                preview={<ActivityLogFooter userId={recipientId} />}
+            >
+                <div className="ur-modal-in" style={{ padding: "0 12px" }}>
+                    <UserRadarActivityTab userId={recipientId} />
+                </div>
+            </Modal>
         ))
     }
 
@@ -4433,6 +4832,15 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
 
     let sessionJustEnded = false
 
+    // keeps a short window open so a duplicate presence event right after a
+    // real transition doesn't get mistaken for a fresh, unrelated change
+    const comingOnline = wasOffline && !isOffline
+    const goingOffline = !wasOffline && isOffline
+    const onlineStateChange = comingOnline || goingOffline
+    const transitionKey = `transition:${uid}`
+    if (onlineStateChange) _logDebounce[transitionKey] = Date.now()
+    const recentlyTransitioned = onlineStateChange || (Date.now() - (_logDebounce[transitionKey] || 0) < 3000)
+
     if (!isOffline && !isStartup) {
         if (!statusSessionCache[uid]) {
             statusSessionCache[uid] = {
@@ -4444,11 +4852,12 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
         }
     }
 
-    if (!isOffline && statusSessionCache[uid] && oldStatus !== newStatus && !isStartup) {
+    if (!isOffline && statusSessionCache[uid] && oldStatus !== undefined && oldStatus !== newStatus && !isStartup && !recentlyTransitioned) {
         statusSessionCache[uid]!.changes.push({ status: newStatus, ts: Date.now() })
         if (isFeatureOn(uid, "status", "globalStatus")) {
 
             notify({
+                _uid: uid,
                 title: `${dn} is now ${newStatus}`,
                 body: `was: ${STATUS_LABEL[oldStatus] || oldStatus}`,
                 icon,
@@ -4489,6 +4898,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
 
         if (isFeatureOn(uid, "status", "globalStatus")) {
             notify({
+                _uid: uid,
                 title: `${dn} went offline`,
                 body: durStr ? `Online for ${durStr}` : "",
                 icon,
@@ -4515,14 +4925,11 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
         sessionJustEnded = true
     }
 
-    const comingOnline = wasOffline && !isOffline
-    const goingOffline = !wasOffline && isOffline
-    const onlineStateChange = comingOnline || goingOffline
-
-    if (oldStatus !== undefined && oldStatus !== newStatus && isFeatureOn(uid, "status", "globalStatus") && !isStartup && !statusSessionCache[uid] && !sessionJustEnded && !onlineStateChange) {
+    if (oldStatus !== undefined && oldStatus !== newStatus && isFeatureOn(uid, "status", "globalStatus") && !isStartup && !statusSessionCache[uid] && !sessionJustEnded && !recentlyTransitioned) {
 
         const platLog = platformSuffixLog(uid)
         notify({
+            _uid: uid,
             title: `${dn} is now ${newStatus}`,
             body: `was: ${STATUS_LABEL[oldStatus] || oldStatus}`,
             icon,
@@ -4534,7 +4941,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
 
     const newClient = resolveClient((u as any).client_status ?? (u as any).clientStatus)
     const oldClient = clientCache[uid]
-    if (oldClient !== undefined && newClient !== null && oldClient !== newClient && !isStartup && !comingOnline) {
+    if (oldClient !== undefined && newClient !== null && oldClient !== newClient && !isStartup && !recentlyTransitioned) {
         clientCache[uid] = newClient
         if (statusSessionCache[uid]) {
             statusSessionCache[uid]!.platforms.push({ platform: newClient, ts: Date.now() })
@@ -4550,48 +4957,45 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
         clientCache[uid] = newClient
     }
 
-    const realAct = (u.activities || []).find((a: any) => a.type !== 4) ?? null
-    const newActKey = realAct
-        ? realAct.type === 2
-            ? `2\x00${realAct.name}\x00${realAct.details || ""}\x00${realAct.state || ""}`
-            : `${realAct.type}\x00${realAct.name}`
-        : null
-    const oldAct = activityCache[uid]
-    activityCache[uid] = newActKey
+    const actKeyOf = (a: any) => a.type === 2
+        ? `2\x00${a.name}\x00${a.details || ""}\x00${a.state || ""}`
+        : `${a.type}\x00${a.name}`
+    // spotify's very first presence tick sometimes has no details/state yet (track
+    // metadata hasn't loaded) — tracking that empty tick then the real one right after
+    // was making 2 cards + 2 notifs for the same song. skip the empty one entirely.
+    const rawActs = (u.activities || []).filter((a: any) => a.type !== 4 && !(a.type === 2 && !a.details))
+    const newActKeys = rawActs.map(actKeyOf)
+    const oldActKeys: string[] = activityCache[uid] || []
+    activityCache[uid] = newActKeys
 
-    if (oldAct !== undefined && oldAct !== newActKey && isFeatureOn(uid, "activity", "globalActivity") && !isStartup) {
+    if (isFeatureOn(uid, "activity", "globalActivity") && !isStartup) {
         const actPlatform = clientCache[uid] ? (CLIENT_LABEL_MAP[clientCache[uid]!] || clientCache[uid]) : undefined
+        const avatarIcon = icon
 
-
-        const [oldTypeStr, ...oldNameParts] = (oldAct || "").split("\x00")
-        const oldType = oldAct ? parseInt(oldTypeStr) : -1
-        const isOldListening = oldType === 2
-        const oldSongName   = isOldListening ? (oldNameParts[1] || "") : oldNameParts.join("\x00")
-        const oldArtistName = isOldListening ? (oldNameParts[2] || "").trim() : ""
+        // grab every field discord actually sends, exactly as it sends it
+        const captureFullMeta = (act: any) => ({
+            applicationId: act.application_id ?? act.applicationId ?? undefined,
+            flags: act.flags ?? undefined,
+            sessionId: act.session_id ?? act.sessionId ?? undefined,
+            syncId: act.sync_id ?? act.syncId ?? undefined,
+            party: act.party ? { id: act.party.id, size: act.party.size?.[0], max: act.party.size?.[1] } : undefined,
+            smallImage: resolveActivityImage({ ...act, assets: { large_image: act.assets?.small_image ?? act.assets?.smallImage } }) || undefined,
+            smallText: act.assets?.small_text ?? act.assets?.smallText ?? undefined,
+            largeText: act.assets?.large_text ?? act.assets?.largeText ?? undefined,
+            buttons: act.buttons ?? undefined,
+            url: act.url ?? undefined,
+        })
 
         const getSpotifyFields = (act: any) => {
-            const li = act.assets?.large_image || ""
             const song   = act.details || ""
             const artist = (act.state || "").replace(/;.*/, "").trim()
             const album  = act.assets?.large_text || act.assets?.largeText || ""
             const trackId = act.sync_id || ""
-            let albumArtUrl = ""
-            if (li.startsWith("spotify:")) albumArtUrl = `https://i.scdn.co/image/${li.replace("spotify:", "")}`
-            else if (li.startsWith("mp:")) albumArtUrl = `https://media.discordapp.net/${li.replace("mp:", "")}`
+            const albumArtUrl = resolveActivityImage(act)
             return { song, artist, album, trackId, albumArtUrl }
         }
 
-        const getGameIcon = (act: any) => {
-            const img = act.assets?.large_image || ""
-            const appId = act.application_id || ""
-            if (!img) return ""
-            if (img.startsWith("mp:external/")) return `https://media.discordapp.net/external/${img.slice(12)}`
-            if (img.startsWith("mp:app-asset/")) return `https://media.discordapp.net/app-assets/${img.slice(13)}`
-            if (img.startsWith("mp:")) return `https://media.discordapp.net/${img.slice(3)}`
-            if (img.startsWith("spotify:")) return `https://i.scdn.co/image/${img.slice(8)}`
-            if (appId && !img.includes(":")) return `https://cdn.discordapp.com/app-assets/${appId}/${img}.png`
-            return img
-        }
+        const getGameIcon = (act: any) => resolveActivityImage(act)
 
         const closeListening = async (songName: string, artistName: string) => {
             const sk = sessionKey(uid, "listening", `${songName}:${artistName}`)
@@ -4613,6 +5017,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                 }
             })
             delete activeSessions[sk]
+            scheduleSessionSave()
         }
 
         const closeActivity = async (sk: string, actName: string, type: number) => {
@@ -4633,6 +5038,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                 }
             })
             delete activeSessions[sk]
+            scheduleSessionSave()
         }
 
         const openListening = async (act: any) => {
@@ -4641,6 +5047,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
             const title = song && artist ? `${song} — ${artist}` : song || act.name
             const body  = song && artist ? `${song} by ${artist}${album ? ` · ${album}` : ""}` : song || act.name
             notify({
+                _uid: uid,
                 title: `${dn} is listening to ${song || act.name}`,
                 body,
                 icon,
@@ -4653,8 +5060,10 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                     song, 
                     artist, 
                     album, 
+                    trackId,
                     albumArtUrl, 
                     platform: actPlatform, 
+                    startTime: Date.now(),
                     startTimestamp: act.timestamps?.start,
                     endTimestamp: act.timestamps?.end,
                     action: "listening_start" 
@@ -4669,93 +5078,86 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                     song, 
                     artist, 
                     album, 
+                    trackId,
                     albumArtUrl, 
                     platform: actPlatform,
                     startTimestamp: act.timestamps?.start,
                     endTimestamp: act.timestamps?.end
                 } 
             }
+            scheduleSessionSave()
         }
 
         const openActivity = async (act: any) => {
             const verb = ACT_VERB[act.type] ?? "playing"
-            const icon = act.type === 1 ? "📺" : act.type === 3 ? "🎬" : act.type === 5 ? "🏆" : "🎮"
-            const sk = sessionKey(uid, "activity", `${act.type}:${act.name}`)
+            const emojiIcon = act.type === 1 ? "📺" : act.type === 3 ? "🎬" : act.type === 5 ? "🏆" : "🎮"
+            const sk = sessionKey(uid, "activity", actKeyOf(act))
             let desc = act.name || ""
             let body = `${verb} ${act.name}`
             if (act.type === 1 && act.details) { desc = `${act.name}: ${act.details}`; body = `streaming ${act.details}` }
             else if (act.details) { desc = `${act.name} — ${act.details}`; body = `${act.name}: ${act.details}${act.state ? ` · ${act.state}` : ""}` }
             const title = act.details ? `${verb} ${act.name} — ${act.details}` : `${verb} ${act.name}`
-            const iconUrl = getGameIcon(act)
+            const appId = act.application_id || act.applicationId || ""
+            let iconUrl = getGameIcon(act) || (appId ? appIconCache[appId] || "" : "")
             notify({
+                _uid: uid,
                 title: `${dn} is ${verb} ${act.name}`,
                 body: desc,
-                icon,
+                icon: avatarIcon,
                 onClick: () => openUserProfile(uid),
             })
-            const entry = await logUserActivity(uid, "activity", icon, title, body, {
-                metadata: { 
-                    type: act.type,
-                    appName: act.name,
-                    name: act.name, 
-                    details: act.details, 
-                    state: act.state, 
-                    platform: actPlatform, 
-                    gameIconUrl: iconUrl,
-                    startTimestamp: act.timestamps?.start,
-                    endTimestamp: act.timestamps?.end,
-                    action: "activity_start" 
-                }
+            const meta = {
+                type: act.type,
+                appName: act.name,
+                name: act.name, details: act.details, state: act.state,
+                platform: actPlatform,
+                gameIconUrl: iconUrl,
+                iconUrl,
+                startTime: Date.now(),
+                startTimestamp: act.timestamps?.start,
+                endTimestamp: act.timestamps?.end,
+                ...captureFullMeta(act),
+            }
+            const entry = await logUserActivity(uid, "activity", emojiIcon, title, body, {
+                metadata: { ...meta, action: "activity_start" }
             })
-            activeSessions[sk] = { 
-                logId: entry.id, 
-                startTime: Date.now(), 
-                metadata: { 
-                    type: act.type,
-                    appName: act.name,
-                    name: act.name, 
-                    platform: actPlatform, 
-                    gameIconUrl: iconUrl,
-                    startTimestamp: act.timestamps?.start,
-                    endTimestamp: act.timestamps?.end
-                } 
+            activeSessions[sk] = { logId: entry.id, startTime: Date.now(), metadata: meta }
+            scheduleSessionSave()
+            // no icon yet, app unconfirmed — fetch and patch the card once it's in
+            if (!iconUrl && appId && appIconCache[appId] === undefined) {
+                fetchAppIcon(appId).then(url => {
+                    if (!url) return
+                    const live = activeSessions[sk]
+                    const patchedMeta = { ...meta, gameIconUrl: url, iconUrl: url }
+                    if (live && live.logId === entry.id) live.metadata = patchedMeta
+                    activityStore.updateLog(uid, entry.id, { metadata: patchedMeta }).catch(() => {})
+                }).catch(() => {})
             }
         }
 
-        if (realAct && !oldAct) {
-            if (realAct.type === 2) await openListening(realAct)
-            else await openActivity(realAct)
-        }
-        else if (!realAct && oldAct) {
-            if (isOldListening) {
-                await closeListening(oldSongName, oldArtistName)
+        for (const k of oldActKeys) {
+            if (newActKeys.includes(k)) continue
+            const [typeStr, ...parts] = k.split("\x00")
+            const type = parseInt(typeStr)
+            if (type === 2) {
+                await closeListening(parts[1] || "", (parts[2] || "").trim())
             } else {
-                const sk = sessionKey(uid, "activity", oldAct)
-                await closeActivity(sk, oldSongName, oldType)
+                const actName = parts.join("\x00")
+                await closeActivity(sessionKey(uid, "activity", k), actName, type)
                 notify({
-                    title: `${dn} stopped ${ACT_VERB[oldType] ?? "playing"} ${oldSongName}`,
+                    _uid: uid,
+                    title: `${dn} stopped ${ACT_VERB[type] ?? "playing"} ${actName}`,
                     body: "",
-                    icon,
+                    icon: avatarIcon,
                     onClick: () => openUserProfile(uid),
                 })
             }
         }
-        else if (realAct && oldAct) {
-            if (realAct.type === 2 && isOldListening) {
-                await closeListening(oldSongName, oldArtistName)
-                await openListening(realAct)
-            } else if (realAct.type === 2) {
-                const oldSk = sessionKey(uid, "activity", oldAct)
-                await closeActivity(oldSk, oldSongName, oldType)
-                await openListening(realAct)
-            } else if (isOldListening) {
-                await closeListening(oldSongName, oldArtistName)
-                await openActivity(realAct)
-            } else {
-                const oldSk = sessionKey(uid, "activity", oldAct)
-                await closeActivity(oldSk, oldSongName, oldType)
-                await openActivity(realAct)
-            }
+        for (let idx = 0; idx < rawActs.length; idx++) {
+            if (oldActKeys.includes(newActKeys[idx])) continue
+            const act = rawActs[idx]
+            if (act.type === 2) await openListening(act)
+            else await openActivity(act)
         }
     }
 
@@ -4767,12 +5169,14 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
             : null
         const oldCustomStatus = customStatusCache[uid]
 
-        // skip on connect/disconnect — discord clears activities before/after status flips,
-        // so a real disconnect can look identical to a manual "remove status"
-        if (onlineStateChange) {
-            // don't touch the cache here — preserve old value so the next real change compares right
+        // skip whenever either side of this tick is offline/invisible — multi-tick
+        // reconnect sequences can outlast a fixed timer, so check live state instead
+        const statusUnstable = isOffline || wasOffline || recentlyTransitioned
+
+        if (statusUnstable) {
+            // leave cache alone so the next real change compares right
         } else if (oldCustomStatus !== undefined && oldCustomStatus !== newCustomStatus && newCustomStatus === null) {
-            // status "removed" — hold off and confirm it's real, a disconnect blip fixes itself within ~2s
+            // hold off — a disconnect blip fixes itself in ~2s
             const holdKey = `cs-hold:${uid}`
             _logDebounce[holdKey] = Date.now()
             setTimeout(() => {
@@ -4782,6 +5186,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                 if (isOfflineStatus(statusCache[uid])) return // they're offline now, definitely a disconnect
                 customStatusCache[uid] = null
                 notify({
+                    _uid: uid,
                     title: `${dn} changed their status`,
                     body: "removed custom status",
                     icon,
@@ -4798,11 +5203,12 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                 ? (oldCustomStatus ? `${oldCustomStatus} → ${newCustomStatus}` : newCustomStatus)
                 : "removed custom status"
             // dedupe — discord fires this twice in a row sometimes
-            const _ldk = `cs:${uid}:${oldCustomStatus}:${newCustomStatus}`
+            const _ldk = `cs-change:${uid}`
             const _ldt = Date.now()
             if (!_logDebounce[_ldk] || _ldt - _logDebounce[_ldk] > 2000) {
                 _logDebounce[_ldk] = _ldt
                 notify({
+                    _uid: uid,
                     title: `${dn} changed their status`,
                     body: bodyText,
                     icon,
@@ -4815,7 +5221,7 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
                 ).catch(() => {})
             }
         } else {
-            // first time seeing this user, or status genuinely unchanged — keep cache fresh
+            // unchanged or first-seen — just refresh the cache
             customStatusCache[uid] = newCustomStatus
         }
     }
@@ -4823,8 +5229,8 @@ async function handlePresenceUpdate(uid: string, u: any, isStartup: boolean) {
 
 export default definePlugin({
     name: "UserRadar",
-    description: "track watched users and get notified on messages, edits, deletes, typing, profile/avatar changes, voice, status, activity, boosts, and server joins",
-    authors: [{ name: "k1ng_op", id: 641266820187160576 }],
+    description: "track watched users and get notified on messages, edits, deletes, typing, profile/avatar changes, voice, status, activity, and server joins",
+    authors: [{ name: "k1ng_op", id: 641266820187160576n }],
     tags: ["Friends", "Utility", "Notifications"],
     enabledByDefault: false,
     settings,
@@ -4836,13 +5242,10 @@ export default definePlugin({
 
         activityStore.load().catch(() => {})
 
-        // pre-populate caches before flux events arrive, or first VOICE_STATE_UPDATES looks like a join
+        // pre-populate caches so the first event isn't mistaken for a join
         try {
             const vsMod    = findByProps("getVoiceStateForUser")
             const presMod  = findByProps("getStatus", "getActivities")
-            const guildMod = findByProps("getGuildIds", "getGuild")
-            const memMod   = findByProps("getMember", "isMember")
-            const allGuilds: string[] = guildMod?.getGuildIds?.() ?? []
 
             for (const wu of getWatchlist(settings)) {
                 try {
@@ -4863,20 +5266,66 @@ export default definePlugin({
                     const status = presMod?.getStatus?.(wu.id)
                     if (status) statusCache[wu.id] = status
                     const acts: any[] = presMod?.getActivities?.(wu.id) ?? []
-                    const realAct = acts.find((a: any) => a.type !== 4) ?? null
-                    activityCache[wu.id] = realAct ? `${realAct.type}:${realAct.name}` : null
+                    activityCache[wu.id] = acts
+                        .filter((a: any) => a.type !== 4)
+                        .map((a: any) => a.type === 2
+                            ? `2\x00${a.name}\x00${a.details || ""}\x00${a.state || ""}`
+                            : `${a.type}\x00${a.name}`)
                     const customAct = acts.find((a: any) => a.type === 4) ?? null
                     customStatusCache[wu.id] = customAct
                         ? [customAct.emoji?.name, customAct.state].filter(Boolean).join(" ") || null
                         : null
                 } catch { }
 
-                // isMember() is unreliable during startup — GUILD_MEMBER_ADD's cooldown handles it instead
+                // isMember() unreliable at startup, cooldown handles it
                 guildCache[wu.id] = new Set()
             }
         } catch (e) { log.warn("snapshot failed", e) }
 
-        // staggered fetch to avoid ratelimits — start() returns immediately, fetch keeps going in background
+        // restore sessions that survived a restart, close out the ones that didn't
+        loadActiveSessions().then(async saved => {
+            if (!pluginActive) return
+            for (const [sk, sess] of Object.entries(saved)) {
+                const uid = sk.split("_")[0]
+                const rest = sk.slice(uid.length + 1)
+                if (!isWatched(settings, uid)) continue
+                let stillLive = false
+                if (rest.startsWith("voice_")) {
+                    const channelId = rest.slice(6)
+                    stillLive = vcCache[uid] != null && vcCache[uid] === channelId
+                } else if (rest === "camera") {
+                    stillLive = cameraCache[uid] === true && vcCache[uid] != null && vcCache[uid] === sess.channelId
+                } else if (rest === "stream") {
+                    stillLive = streamCache[uid] === true && vcCache[uid] != null && vcCache[uid] === sess.channelId
+                } else if (rest.startsWith("activity_")) {
+                    const key = rest.slice(9)
+                    stillLive = (activityCache[uid] || []).includes(key)
+                } else if (rest.startsWith("listening_")) {
+                    const suffix = rest.slice(10)
+                    stillLive = (activityCache[uid] || []).some(k => {
+                        const parts = k.split("\x00")
+                        if (parts[0] !== "2") return false
+                        const details = parts[2] || ""
+                        const artist = (parts[3] || "").replace(/;.*/, "").trim()
+                        return `${details}:${artist}` === suffix
+                    })
+                }
+                if (stillLive) {
+                    activeSessions[sk] = sess
+                } else {
+                    try {
+                        await activityStore.updateLog(uid, sess.logId, {
+                            title: sess.metadata?.channel ? `Was in #${sess.metadata.channel}` : (sess.metadata?.appName ? `${sess.metadata.appName} · ended offline` : "Session ended"),
+                            body: "ended while discord was closed — exact end time unknown",
+                            metadata: { ...sess.metadata, duration: formatDuration(Date.now() - sess.startTime), startTime: sess.startTime, endTime: Date.now() },
+                        })
+                    } catch { }
+                }
+            }
+            scheduleSessionSave()
+        }).catch(() => {})
+
+        // staggered so we don't get ratelimited
         const list = getWatchlist(settings)
         let i = 0
         const fetchNext = () => {
@@ -4898,6 +5347,7 @@ export default definePlugin({
         setTimeout(fetchNext, 500)  // let discord finish its own startup first
 
         pollTimer = setInterval(pollProfiles, 5 * 60 * 1000)
+        _sessSaveInterval = setInterval(saveActiveSessions, 8000)
         pluginStartedAt = Date.now()
         pluginActive = true
     },
@@ -4905,6 +5355,9 @@ export default definePlugin({
     stop() {
         pluginActive = false
         activityStore.flushSave().catch(() => {})
+        saveActiveSessions().catch(() => {})
+        if (_sessSaveInterval) { clearInterval(_sessSaveInterval); _sessSaveInterval = null }
+        if (_sessSaveTimer) { clearTimeout(_sessSaveTimer); _sessSaveTimer = null }
         removeContextMenuPatch("user-context", userCtxPatch)
         removeContextMenuPatch("message", msgCtxPatch)
         stopToolbarObserver()
@@ -4920,19 +5373,30 @@ export default definePlugin({
         Object.keys(cameraCache).forEach(k => delete cameraCache[k])
         Object.keys(streamCache).forEach(k => delete streamCache[k])
         Object.keys(customStatusCache).forEach(k => delete customStatusCache[k])
+        Object.keys(statusSessionCache).forEach(k => delete statusSessionCache[k])
+        Object.keys(activeSessions).forEach(k => delete activeSessions[k])
+        Object.keys(pendingTypingLog).forEach(k => delete pendingTypingLog[k])
         Object.keys(_notifDebounce).forEach(k => delete _notifDebounce[k])
         Object.keys(_logDebounce).forEach(k => delete _logDebounce[k])
         presenceDebounce.forEach(t => clearTimeout(t))
         presenceDebounce.clear()
+        Object.keys(_albumColorCache).forEach(k => delete _albumColorCache[k])
         pluginStartedAt = 0
     },
-
 
     flux: {
         MESSAGE_CREATE({ optimistic, type, message, channelId }: MsgCreateEvent) {
             if (optimistic || type !== "MESSAGE_CREATE") return
             const uid = message.author?.id
             if (!uid || !isWatched(settings, uid)) return
+            const typingKey = `${uid}_${channelId}`
+            const pendingTyping = pendingTypingLog[typingKey]
+            if (pendingTyping) {
+                delete pendingTypingLog[typingKey]
+                if (Date.now() - pendingTyping.ts < TYPING_LOG_TTL_MS) {
+                    activityStore.removeLog(uid, pendingTyping.logId).catch(() => {})
+                }
+            }
             if (isFeatureOn(uid, "msgs", "globalMsgs")) {
                 const label = getWatchedUser(settings, uid)?.nick
                 const name  = displayName(message.author)
@@ -4940,15 +5404,10 @@ export default definePlugin({
                 const ch    = ChannelStore.getChannel(channelId)
                 const gName = guildName(ch?.guild_id)
                 const chName  = ch?.name || "dm"
-                // for DMs, ch.name is null — show recipient context instead
-                const location = gName
-                    ? `${gName} · #${chName}`
-                    : ch?.recipients?.length
-                        ? "Direct Message"
-                        : `#${chName}`
                 const skipNotify = settings.store.skipCurrentChannel && getCurrentChannel()?.id === channelId
                 if (!skipNotify) {
                     notify({
+                        _uid: uid,
                         title: `${dn} sent a message`,
                         body: msgPreview(message.content, message.attachments?.[0]?.filename),
                         icon: avatarUrl(uid, message.author?.avatar, 80),
@@ -4973,8 +5432,7 @@ export default definePlugin({
             const uid = message?.author?.id
             if (!uid || !isWatched(settings, uid)) return
 
-            // edited_timestamp only exists on real user edits
-            // embed resolution / pin events / reaction updates also fire MESSAGE_UPDATE but don't have this
+            // edited_timestamp = real edit, not embed/pin/reaction
             if (!message.edited_timestamp) return
 
             if (!isFeatureOn(uid, "edits", "globalEdits")) return
@@ -4985,16 +5443,10 @@ export default definePlugin({
             const ch    = ChannelStore.getChannel(message.channel_id)
             const gName = guildName(ch?.guild_id)
             const chName = ch?.name || "dm"
-            const location = gName
-                ? `${gName} · #${chName}`
-                : ch?.recipients?.length
-                    ? "Direct Message"
-                    : `#${chName}`
 
             const skipNotify = settings.store.skipCurrentChannel && getCurrentChannel()?.id === message.channel_id
 
-            // try to get old content from cache for before → after preview
-            // MessageStore still has the old version at the time MESSAGE_UPDATE fires
+            // MessageStore still holds the pre-edit content at this point
             const cached = MessageStore.getMessage(message.channel_id, message.id)
             const beforeContent = cached?.content && cached.content !== message.content
                 ? cached.content
@@ -5007,13 +5459,14 @@ export default definePlugin({
 
             if (!skipNotify) {
                 notify({
+                    _uid: uid,
                     title: `${dn} edited a message`,
                     body: notifyBody,
-                    icon: avatarUrl(uid, message.author?.avatar, 80),
+                    icon: avatarUrl(uid, (message.author as any)?.avatar, 80),
                     onClick: () => jumpTo(ch?.guild_id, message.channel_id, message.id),
                 })
             }
-            logUserActivity(uid, "edit", "✏️", `edited a message`, location, {
+            logUserActivity(uid, "edit", "✏️", `edited a message`, "", {
                 guildId: ch?.guild_id,
                 channelId: message.channel_id,
                 msgId: message.id,
@@ -5029,7 +5482,7 @@ export default definePlugin({
 
         MESSAGE_DELETE({ id, channelId }: MsgDeleteEvent) {
             const store = tryLoadLoggedMsgs()
-            // discord cache first, then try message logger in both key formats it uses
+            // try discord cache, then message logger (both key formats)
             const msg = MessageStore.getMessage(channelId, id)
                 ?? store?.[id]
                 ?? (store as any)?.[channelId]?.[id]
@@ -5043,22 +5496,17 @@ export default definePlugin({
                 const ch    = ChannelStore.getChannel(channelId)
                 const gName = guildName(ch?.guild_id)
                 const chName  = ch?.name || "dm"
-                // for DMs, ch.name is null — show recipient context instead
-                const location = gName
-                    ? `${gName} · #${chName}`
-                    : ch?.recipients?.length
-                        ? "Direct Message"
-                        : `#${chName}`
                 const skipNotify = settings.store.skipCurrentChannel && getCurrentChannel()?.id === channelId
                 if (!skipNotify) {
                     notify({
+                        _uid: uid,
                         title: `${dn} deleted a message`,
                         body: msgPreview(msg.content, msg.attachments?.[0]?.filename),
                         icon: avatarUrl(uid, msg.author?.avatar, 80),
                         onClick: () => jumpTo(ch?.guild_id, channelId, msg.id),
                     })
                 }
-                logUserActivity(uid, "delete", "🗑️", `deleted a message in ${location}`, msgPreview(msg.content, msg.attachments?.[0]?.filename), {
+                logUserActivity(uid, "delete", "🗑️", `deleted a message`, msgPreview(msg.content, msg.attachments?.[0]?.filename), {
                     guildId: ch?.guild_id,
                     channelId,
                     msgId: msg.id,
@@ -5090,19 +5538,22 @@ export default definePlugin({
                 // body format: "Server Name · #channel" or "Direct Message" for DMs
                 if (!skipNotify) {
                     notify({
+                        _uid: userId,
                         title: `${dn} is typing…`,
                         body: location + "",
                         icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
                         onClick: () => jumpTo(ch?.guild_id, channelId),
                     })
                 }
-                logUserActivity(userId, "typing", "💭", `is typing in ${location}`, `${gName ? gName + " · " : ""}#${chName}`, {
+                logUserActivity(userId, "typing", "💭", `is typing…`, "", {
                     guildId: ch?.guild_id,
                     channelId,
                     metadata: {
                         server: gName || "Direct Message",
                         channel: chName,
                     }
+                }).then(entry => {
+                    pendingTypingLog[`${userId}_${channelId}`] = { logId: entry.id, ts: Date.now() }
                 }).catch(() => {})
             }
         },
@@ -5143,6 +5594,7 @@ export default definePlugin({
                     const guildNameVc = guildName(ch?.guild_id)
                     const sk = sessionKey(uid, "voice", now!)
                     notify({
+                        _uid: uid,
                         title: `${dn} Joined Voice`,
                         body: (guildNameVc ? `${guildNameVc} · #${chName}` : `#${chName}`) + "",
                         icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
@@ -5172,7 +5624,18 @@ export default definePlugin({
                             members: vcMembers.length > 0 ? vcMembers : undefined,
                         }
                     })
+                    // close any orphaned session sitting here first
+                    const orphan = activeSessions[sk]
+                    if (orphan && orphan.logId !== undefined) {
+                        const orphanElapsed = Date.now() - orphan.startTime
+                        activityStore.updateLog(uid, orphan.logId, {
+                            title: orphan.metadata?.channel ? `Was in #${orphan.metadata.channel}` : "Session ended",
+                            body: "",
+                            metadata: { ...orphan.metadata, duration: formatDuration(orphanElapsed), startTime: orphan.startTime, endTime: Date.now() },
+                        }).catch(() => {})
+                    }
                     activeSessions[sk] = { logId: entry.id, startTime: Date.now(), channelId: now!, guildId: ch?.guild_id, metadata: { server: guildNameVc || "DM", channel: chName, platform: joinPlatform, members: vcMembers.length > 0 ? vcMembers : undefined } }
+                    scheduleSessionSave()
                 } else if (old && !now) {
                     const spent = vcJoinTime[uid] ? Date.now() - vcJoinTime[uid] : 0
                     delete vcJoinTime[uid]
@@ -5187,7 +5650,7 @@ export default definePlugin({
                         await activityStore.updateLog(uid, session.logId, {
                             type: "session",
                             title: `In #${chName}`,
-                            body: `${guildNameVcLeftStr || "DM"} · #${chName}`,
+                            body: "",
                             metadata: {
                                 ...session.metadata,
                                 action: "voice_session",
@@ -5199,7 +5662,9 @@ export default definePlugin({
                             }
                         })
                         delete activeSessions[sk]
+                        scheduleSessionSave()
                         notify({
+                            _uid: uid,
                             title: `${dn} Left Voice`,
                             body: guildNameVcLeftStr ? `${guildNameVcLeftStr} · #${chName}${dur ? " · " + dur : ""}` : `#${chName}${dur ? " · " + dur : ""}`,
                             icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
@@ -5208,12 +5673,13 @@ export default definePlugin({
                     } else {
                         // No session found, log as separate leave event
                         notify({
+                            _uid: uid,
                             title: `${dn} Left Voice`,
                             body: guildNameVcLeftStr ? `${guildNameVcLeftStr} · #${chName}` : `#${chName}`,
                             icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
                             onClick: () => openUserProfile(uid),
                         })
-                        logUserActivity(uid, "voice", "🎙️", `left #${chName}`, `${guildNameVcLeftStr ? guildNameVcLeftStr + " · " : ""}#${chName}`, {
+                        logUserActivity(uid, "voice", "🎙️", `left #${chName}`, "", {
                             guildId: ch?.guild_id || guildNameVcLeft?.guild_id,
                             channelId: old!,
                             metadata: {
@@ -5227,6 +5693,7 @@ export default definePlugin({
                     const oldCh = ChannelStore.getChannel(old)
                     const guildNameVcMove = guildName(ch?.guild_id)
                     notify({
+                        _uid: uid,
                         title: `${dn} Moved Voice Channels`,
                         body: guildNameVcMove
                             ? `${guildNameVcMove}: #${oldCh?.name || "?"} → #${chName}`
@@ -5259,17 +5726,18 @@ export default definePlugin({
                     const oldCamera = cameraCache[uid] ?? false
                     if (oldCamera !== newCamera) {
                         cameraCache[uid] = newCamera
-                        const camSk = sessionKey(uid, "camera", currentChId)
+                        const camSk = sessionKey(uid, "camera")
                         if (newCamera) {
                             // Camera turned on - start session
                             notify({
+                                _uid: uid,
                                 title: `${dn} turned on camera`,
                                 body: `in #${currentChName}`,
                                 icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
                                 onClick: () => jumpTo(currentGuildId, currentChId),
                             })
                             const camPlatform = clientCache[uid] ? CLIENT_LABEL_MAP[clientCache[uid]!] || clientCache[uid] : undefined
-                            logUserActivity(uid, "voice", "📷", `camera on in #${currentChName}`, `#${currentChName}`, {
+                            logUserActivity(uid, "voice", "📷", `camera on`, "", {
                                 guildId: currentGuildId,
                                 channelId: currentChId,
                                 metadata: {
@@ -5280,16 +5748,17 @@ export default definePlugin({
                                 }
                             }).then(camEntry => {
                                 activeSessions[camSk] = { logId: camEntry.id, startTime: Date.now(), channelId: currentChId, guildId: currentGuildId, metadata: { server: guildName(currentGuildId) || "DM", channel: currentChName, platform: camPlatform } }
-                            }).catch(() => {})
+                                scheduleSessionSave()
+                            }).catch(e => log.warn("camera log failed", e))
                         } else {
-                                            const camSession = activeSessions[camSk]
+                            const camSession = activeSessions[camSk]
                             const camSpent = camSession ? Date.now() - camSession.startTime : 0
                             const camDur = camSpent > 60000 ? formatDuration(camSpent) : ""
                             if (camSession) {
                                 activityStore.updateLog(uid, camSession.logId, {
                                     type: "session",
                                     title: camDur ? `Camera on · ${camDur}` : `Camera on`,
-                                    body: `${camSession.metadata?.server || "DM"} · #${camSession.metadata?.channel || currentChName}`,
+                                    body: "",
                                     metadata: {
                                         ...camSession.metadata,
                                         action: "camera_session",
@@ -5297,9 +5766,10 @@ export default definePlugin({
                                         endTime: Date.now(),
                                         duration: camDur || "< 1m",
                                     }
-                                }).then(() => { delete activeSessions[camSk] }).catch(() => { delete activeSessions[camSk] })
+                                }).then(() => { delete activeSessions[camSk]; scheduleSessionSave() }).catch(() => { delete activeSessions[camSk]; scheduleSessionSave() })
                             }
                             notify({
+                                _uid: uid,
                                 title: `${dn} turned off camera`,
                                 body: `in #${currentChName}${camDur ? " · " + camDur : ""}`,
                                 icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
@@ -5312,16 +5782,17 @@ export default definePlugin({
                     const oldStream = streamCache[uid] ?? false
                     if (oldStream !== newStream) {
                         streamCache[uid] = newStream
-                        const streamSk = sessionKey(uid, "stream", currentChId)
+                        const streamSk = sessionKey(uid, "stream")
                         if (newStream) {
-                                notify({
+                            notify({
+                                _uid: uid,
                                 title: `${dn} started screen sharing`,
                                 body: `in #${currentChName}`,
                                 icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
                                 onClick: () => jumpTo(currentGuildId, currentChId),
                             })
                             const streamPlatform = clientCache[uid] ? CLIENT_LABEL_MAP[clientCache[uid]!] || clientCache[uid] : undefined
-                            logUserActivity(uid, "voice", "🖥️", `screen sharing in #${currentChName}`, `#${currentChName}`, {
+                            logUserActivity(uid, "voice", "🖥️", `screen sharing`, "", {
                                 guildId: currentGuildId,
                                 channelId: currentChId,
                                 metadata: {
@@ -5332,7 +5803,8 @@ export default definePlugin({
                                 }
                             }).then(streamEntry => {
                                 activeSessions[streamSk] = { logId: streamEntry.id, startTime: Date.now(), channelId: currentChId, guildId: currentGuildId, metadata: { server: guildName(currentGuildId) || "DM", channel: currentChName, platform: streamPlatform } }
-                            }).catch(() => {})
+                                scheduleSessionSave()
+                            }).catch(e => log.warn("stream log failed", e))
                         } else {
                                 const streamSession = activeSessions[streamSk]
                             const streamSpent = streamSession ? Date.now() - streamSession.startTime : 0
@@ -5341,7 +5813,7 @@ export default definePlugin({
                                 activityStore.updateLog(uid, streamSession.logId, {
                                     type: "session",
                                     title: streamDur ? `Screen sharing · ${streamDur}` : `Screen sharing`,
-                                    body: `${streamSession.metadata?.server || "DM"} · #${streamSession.metadata?.channel || currentChName}`,
+                                    body: "",
                                     metadata: {
                                         ...streamSession.metadata,
                                         action: "stream_session",
@@ -5349,9 +5821,10 @@ export default definePlugin({
                                         endTime: Date.now(),
                                         duration: streamDur || "< 1m",
                                     }
-                                }).then(() => { delete activeSessions[streamSk] }).catch(() => { delete activeSessions[streamSk] })
+                                }).then(() => { delete activeSessions[streamSk]; scheduleSessionSave() }).catch(() => { delete activeSessions[streamSk]; scheduleSessionSave() })
                             }
                             notify({
+                                _uid: uid,
                                 title: `${dn} stopped screen sharing`,
                                 body: `in #${currentChName}${streamDur ? " · " + streamDur : ""}`,
                                 icon: u ? avatarUrl(u.id, (u as any).avatar, 80) : undefined,
@@ -5372,8 +5845,7 @@ export default definePlugin({
                 const uid = u.user?.id
                 if (!uid || !isWatched(settings, uid)) continue
 
-                // going offline or coming back online can't be debounced away — otherwise a
-                // quick offline blip gets cancelled and the plugin never sees the transition
+                // don't debounce offline/online flips or a quick blip gets swallowed
                 const touchesOffline = isOfflineStatus(statusCache[uid]) || isOfflineStatus(u.status)
                 if (touchesOffline) {
                     const pending = presenceDebounce.get(uid)
@@ -5382,7 +5854,7 @@ export default definePlugin({
                     continue
                 }
 
-                // debounce per user — presence fires constantly even when nothing changed
+                // debounce — presence fires constantly for no reason
                 const pending = presenceDebounce.get(uid)
                 if (pending) clearTimeout(pending)
                 presenceDebounce.set(uid, setTimeout(() => {
@@ -5398,7 +5870,11 @@ export default definePlugin({
             const hasProfileChange = relevant.some(f => user[f] !== undefined)
             if (!hasProfileChange) return
             const old = profileCache[user.id]
-            if (!old) return
+            if (!old) {
+                // empty at startup, seed from event
+                profileCache[user.id] = { user: camelize(user) }
+                return
+            }
             checkProfileChanged(user.id, { ...old, user: { ...old.user, ...camelize(user) } })
         },
 
@@ -5421,8 +5897,9 @@ export default definePlugin({
             const name  = displayName(user)
             const dn    = label ? `${label} (${name})` : name
             notify({
+                _uid: user.id,
                 title: `${dn} Joined a Server`,
-                body: gn || guildId,
+                body: gn || "a server",
                 icon: avatarUrl(user.id, user.avatar, 80),
                 onClick: () => jumpTo(guildId),
             })
@@ -5443,8 +5920,9 @@ export default definePlugin({
             const name  = displayName(user)
             const dn    = label ? `${label} (${name})` : name
             notify({
+                _uid: user.id,
                 title: `${dn} Left a Server`,
-                body: gn || guildId,
+                body: gn || "a server",
                 icon: avatarUrl(user.id, user.avatar, 80),
                 onClick: () => jumpTo(guildId),
             })

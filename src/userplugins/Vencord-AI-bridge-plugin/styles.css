@@ -1,0 +1,39 @@
+/*
+ * AI VTuber Bridge — Styles
+ */
+
+.vc-aibridge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-right: 6px;
+}
+
+.vc-aibridge-connected {
+    background: rgba(35, 165, 90, 0.15);
+    color: #23a55a;
+}
+
+.vc-aibridge-disconnected {
+    background: rgba(242, 63, 67, 0.15);
+    color: #f23f43;
+}
+
+.vc-aibridge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.vc-aibridge-dot.connected {
+    background: #23a55a;
+    box-shadow: 0 0 4px rgba(35, 165, 90, 0.6);
+}
+
+.vc-aibridge-dot.disconnected {
+    background: #f23f43;
+}

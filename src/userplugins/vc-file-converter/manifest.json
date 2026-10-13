@@ -1,0 +1,28 @@
+{
+    "id": "vc-file-converter",
+    "name": "FileConverter",
+    "version": "0.1.0",
+    "description": "Convert and compress videos, audio and GIFs right in Discord",
+    "authors": [
+        "emily7305"
+    ],
+    "license": "MIT",
+    "entry": "index.tsx",
+    "repository": "https://github.com/emily7305/vc-file-converter",
+    "targets": [
+        "vencord",
+        "equicord"
+    ],
+    "platforms": [
+        "discordDesktop",
+        "vesktop",
+        "web"
+    ],
+    "runtime": {
+        "package": "@ffmpeg/core",
+        "version": "0.12.10",
+        "build": "umd, single-threaded",
+        "cdn": "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/",
+        "loadedOn": "first conversion"
+    }
+}

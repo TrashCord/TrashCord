@@ -1,0 +1,194 @@
+// runs every preset with the real ffmpeg-core in headless chromium
+// npm run test:e2e  (set CHROMIUM_PATH if playwright can't find chromium)
+import { build } from "esbuild";
+import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { chromium } from "playwright-core";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const coreDir = join(root, "node_modules/@ffmpeg/core/dist/umd");
+
+const bundle = await build({
+    stdin: {
+        contents: `
+            import { FFmpegService } from "./ffmpeg/FFmpegService";
+            import { PRESETS, getPreset, presetsFor } from "./ffmpeg/presets";
+            Object.assign(window, { FFmpegService, PRESETS, getPreset, presetsFor });`,
+        resolveDir: root,
+        loader: "ts",
+    },
+    bundle: true,
+    format: "iife",
+    write: false,
+    keepNames: true,
+    tsconfigRaw: {}, // our tsconfig extends vencord's, which doesn't exist outside a vencord checkout
+});
+
+const routes = {
+    "/": ["text/html", "<!doctype html><script src='/bundle.js'></script>"],
+    "/bundle.js": ["text/javascript", bundle.outputFiles[0].text],
+};
+const server = createServer(async (req, res) => {
+    try {
+        if (routes[req.url]) {
+            res.writeHead(200, { "content-type": routes[req.url][0] });
+            return res.end(routes[req.url][1]);
+        }
+        // text/plain makes importScripts fail, to test the eval fallback
+        const plain = req.url.startsWith("/core-plain/");
+        const name = req.url.replace(/^\/core(-plain)?\//, "");
+        const body = await readFile(join(coreDir, name));
+        res.writeHead(200, { "content-type": name.endsWith(".wasm") ? "application/wasm" : plain ? "text/plain" : "text/javascript" });
+        res.end(body);
+    } catch {
+        res.writeHead(404).end();
+    }
+}).listen(0);
+const base = `http://127.0.0.1:${server.address().port}`;
+
+const browser = await chromium.launch({
+    executablePath: process.env.CHROMIUM_PATH || undefined,
+});
+let failed = false;
+try {
+    const page = await browser.newPage();
+    page.on("console", m => m.type() === "error" && console.error("[page]", m.text()));
+    await page.goto(base);
+
+    const results = await page.evaluate(async coreBaseURL => {
+        const ff = new FFmpegService({ coreBaseURL });
+        const t0 = performance.now();
+        await ff.load();
+        const loadMs = Math.round(performance.now() - t0);
+
+        // make test files (odd gif size on purpose)
+        const make = async (args, out, name, type) => {
+            if (await ff.exec([...args, out]) !== 0) throw new Error("failed to generate " + name);
+            const data = await ff.readFile(out);
+            await ff.deleteFile(out);
+            return new File([data], name, { type });
+        };
+        const mkv = await make(["-f", "lavfi", "-i", "testsrc=duration=2:size=320x240:rate=15",
+            "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-c:v", "libx264", "-preset", "ultrafast",
+            "-c:a", "aac", "-shortest"], "gen.mkv", "sample clip.mkv", "video/x-matroska");
+        const gif = await make(["-f", "lavfi", "-i", "testsrc=duration=1:size=161x121:rate=10"],
+            "gen.gif", "sample.gif", "image/gif");
+
+        const out = [];
+        for (const [input, kind] of [[mkv, "video"], [gif, "gif"]]) {
+            for (const preset of presetsFor(kind)) {
+                let progressEvents = 0;
+                const t = performance.now();
+                try {
+                    const file = await ff.convert(input, input.name, preset, { onProgress: () => progressEvents++ });
+                    const head = [...new Uint8Array(await file.slice(0, 12).arrayBuffer())];
+                    out.push({ preset: preset.id, input: input.name, ok: file.size > 0, name: file.name,
+                        type: file.type, size: file.size, head, progressEvents, ms: Math.round(performance.now() - t) });
+                } catch (e) {
+                    out.push({ preset: preset.id, input: input.name, ok: false, error: e.message, log: e.logTail?.slice(-5) });
+                }
+            }
+        }
+
+        // cancel + make sure it still works after
+        const ac = new AbortController();
+        const pending = ff.convert(mkv, mkv.name, getPreset("h264"), { signal: ac.signal });
+        setTimeout(() => ac.abort(), 50);
+        const abortResult = await pending.then(() => "resolved", e => e.name);
+        const afterAbort = await ff.convert(mkv, mkv.name, getPreset("mp3")).then(f => f.size > 0, e => e.message);
+
+        // broken input
+        const bad = await ff.convert(new File([new Uint8Array(64)], "garbage.mp4"), "garbage.mp4", getPreset("mp3"))
+            .then(() => null, e => ({ name: e.name, message: e.message, hasLog: e.logTail.length > 0 }));
+
+        ff.dispose();
+
+        // compress should shrink + scale to 1080p, landscape and portrait
+        const logs = [];
+        const probeFF = new FFmpegService({ coreBaseURL, onLog: l => logs.push(l) });
+        const dims = async file => {
+            await probeFF.load();
+            await probeFF.writeFile("probe.mp4", new Uint8Array(await file.arrayBuffer()));
+            logs.length = 0;
+            await probeFF.exec(["-i", "probe.mp4"]);
+            await probeFF.deleteFile("probe.mp4");
+            return logs.join("\n").match(/Video:.*?(\d{2,5})x(\d{2,5})/)?.slice(1).map(Number);
+        };
+        await ff.load();
+        const compress = [];
+        for (const size of ["2560x1440", "1440x2560", "640x360"]) {
+            const src = await make(["-f", "lavfi", "-i", `testsrc2=duration=2:size=${size}:rate=15`,
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "8"], "big.mp4", `big ${size}.mp4`, "video/mp4");
+            const out = await ff.convert(src, src.name, getPreset("compress"));
+            const gifOut = await ff.convert(src, src.name, getPreset("gif"));
+            compress.push({ size, in: src.size, out: out.size, dims: await dims(out), gifDims: await dims(gifOut), gifSize: gifOut.size });
+        }
+        probeFF.dispose();
+        ff.dispose();
+
+        // videos made from gifs have no audio, and vp8 can't be remuxed to mp4
+        await ff.load();
+        const gifFollowUps = {};
+        for (const first of ["gif-mp4", "gif-webm"]) {
+            const mid = await ff.convert(gif, gif.name, getPreset(first));
+            for (const id of ["mp3", "remux-mp4", "compress"]) {
+                gifFollowUps[`${first} → ${id}`] = await ff.convert(mid, mid.name, getPreset(id))
+                    .then(f => `ok ${f.size}`, e => e.message);
+            }
+        }
+        ff.dispose();
+
+        const fallback = new FFmpegService({ coreBaseURL: coreBaseURL.replace("/core", "/core-plain") });
+        const fallbackOk = await fallback.convert(mkv, mkv.name, getPreset("wav")).then(f => f.size > 0, e => e.message);
+        fallback.dispose();
+
+        return { loadMs, out, abortResult, afterAbort, bad, fallbackOk, compress, gifFollowUps };
+    }, `${base}/core`);
+
+    console.log(`ffmpeg-core loaded in ${results.loadMs} ms`);
+    const magic = {
+        mp3: h => (h[0] === 0x49 && h[1] === 0x44 && h[2] === 0x33) || h[0] === 0xff, // ID3 / frame sync
+        flac: h => String.fromCharCode(...h.slice(0, 4)) === "fLaC",
+        wav: h => String.fromCharCode(...h.slice(0, 4)) === "RIFF",
+        mp4: h => String.fromCharCode(...h.slice(4, 8)) === "ftyp",
+        gif: h => String.fromCharCode(...h.slice(0, 6)) === "GIF89a",
+        webm: h => h[0] === 0x1a && h[1] === 0x45 && h[2] === 0xdf && h[3] === 0xa3, // EBML
+    };
+    for (const r of results.out) {
+        const ext = r.name?.split(".").pop();
+        const ok = r.ok && magic[ext]?.(r.head);
+        if (!ok) failed = true;
+        console.log(`${ok ? "PASS" : "FAIL"}  ${r.preset.padEnd(10)} ${r.input.padEnd(16)} → ` +
+            (r.ok ? `${r.name} ${r.type} ${r.size} B, ${r.progressEvents} progress events, ${r.ms} ms` : `${r.error}\n      ${r.log?.join("\n      ")}`));
+    }
+    const check = (label, cond, detail) => {
+        if (!cond) failed = true;
+        console.log(`${cond ? "PASS" : "FAIL"}  ${label}: ${JSON.stringify(detail)}`);
+    };
+    check("abort rejects with AbortError", results.abortResult === "AbortError", results.abortResult);
+    check("service recovers after abort", results.afterAbort === true, results.afterAbort);
+    const expectDims = { "2560x1440": [1920, 1080], "1440x2560": [1080, 1920], "640x360": [640, 360] };
+    for (const c of results.compress) {
+        check(`compress ${c.size} → smaller + ${expectDims[c.size].join("x")}`,
+            c.out < c.in && c.dims?.join("x") === expectDims[c.size].join("x"),
+            { in: c.in, out: c.out, dims: c.dims });
+    }
+    const expectGifDims = { "2560x1440": [480, 270], "1440x2560": [270, 480], "640x360": [480, 270] };
+    for (const c of results.compress)
+        check(`video → GIF ${c.size} → ${expectGifDims[c.size].join("x")}`, c.gifDims?.join("x") === expectGifDims[c.size].join("x"),
+            { dims: c.gifDims, bytes: c.gifSize });
+    const gifExpect = {
+        "gif-mp4 → mp3": /no audio track/, "gif-mp4 → remux-mp4": /^ok/, "gif-mp4 → compress": /^ok/,
+        "gif-webm → mp3": /no audio track/, "gif-webm → remux-mp4": /Compress or Re-encode/, "gif-webm → compress": /^ok/,
+    };
+    for (const [k, re] of Object.entries(gifExpect))
+        check(k, re.test(results.gifFollowUps[k]), results.gifFollowUps[k]);
+    check("fetch+eval fallback when importScripts is refused", results.fallbackOk === true, results.fallbackOk);
+    check("bad input → ConversionError with log", results.bad?.name === "ConversionError" && results.bad.hasLog, results.bad);
+} finally {
+    await browser.close();
+    server.close();
+}
+process.exit(failed ? 1 : 0);
