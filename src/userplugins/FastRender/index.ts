@@ -67,7 +67,7 @@ function onLoad(e: Event) {
 
 export default definePlugin({
     name: "FastRender",
-    description: "Faster style recalculation by merging stylesheets",
+    description: "Faster style recalculation by merging stylesheets (Maybe more RAM!).",
     authors: [{ name: "nobody", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Performance", "Utility"],
     enabledByDefault: false,
