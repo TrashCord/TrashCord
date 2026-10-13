@@ -11,7 +11,7 @@ const mergedStyles = new Set<HTMLStyleElement>();
 const absorbed = new Map<HTMLLinkElement, HTMLStyleElement>();
 
 function linkCss(el: Element) {
-    if (!(el instanceof HTMLLinkElement) || el.rel !== "stylesheet" || absorbed.has(el) || el.onload != null || el.sheet == null || el.media) return null;
+    if (!(el instanceof HTMLLinkElement) || el.rel !== "stylesheet" || el.onload != null || el.sheet == null || el.media) return null;
     try {
         let css = "";
         for (const rule of el.sheet.cssRules) {
@@ -36,7 +36,7 @@ function merge(run: [Element, string][]) {
             for (const [link, owner] of absorbed) if (owner === el) absorbed.set(link, style);
             el.remove();
         } else if (el instanceof HTMLLinkElement) {
-            absorbed.set(el, style);
+            absorbed.set(el.cloneNode(false) as HTMLLinkElement, style);
             el.remove();
         }
     }
@@ -50,7 +50,6 @@ function compact() {
     };
 
     for (const el of [...document.head.children]) {
-        if (el instanceof HTMLLinkElement && absorbed.has(el)) continue;
         const css = el instanceof HTMLStyleElement ? (mergedStyles.has(el) ? el.textContent : null) : linkCss(el);
         if (css != null) run.push([el, css]);
         else if (el instanceof HTMLStyleElement || el instanceof HTMLLinkElement && el.rel === "stylesheet") flush();
@@ -67,7 +66,7 @@ function onLoad(e: Event) {
 
 export default definePlugin({
     name: "FastRender",
-    description: "Faster style recalculation by merging stylesheets (Maybe more RAM!).",
+    description: "Merges stylesheets for faster rendering. May use more RAM, check Renderer RAM in Task Manager.",
     authors: [{ name: "nobody", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Performance", "Utility"],
     enabledByDefault: false,
