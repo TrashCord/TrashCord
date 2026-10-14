@@ -127,7 +127,7 @@ function guildOf(channelId: string) {
 
 function drain() {
     while (active < MAX_ACTIVE && queue.size) {
-        const userId: string = queue.values().next().value!;
+        const userId = queue.values().next().value as string;
         queue.delete(userId);
 
         const target = desired.get(userId);
@@ -136,20 +136,22 @@ function drain() {
             continue;
         }
 
-        const current = VoiceStateStore.getVoiceStateForUser(userId)?.channelId;
-        if (!current || current === target.id) {
-            desired.delete(userId);
-            continue;
+        active++;
+
+        let request: Promise<unknown>;
+        try {
+            request = RestAPI.patch({
+                url: `/guilds/${target.guild_id}/members/${userId}`,
+                body: { channel_id: target.id },
+            });
+        } catch (e) {
+            request = Promise.reject(e);
         }
 
-        active++;
-        RestAPI.patch({
-            url: `/guilds/${target.guild_id}/members/${userId}`,
-            body: { channel_id: target.id },
-        })
+        request
             .catch((e: any) => {
                 if (e?.status === 403) denyToast();
-                else throttledToast("FollowMe: move failed for some users", "failure");
+                else throttledToast(`FollowMe: move failed (${e?.status ?? "error"})`, "failure");
             })
             .finally(() => {
                 if (desired.get(userId) === target) desired.delete(userId);
