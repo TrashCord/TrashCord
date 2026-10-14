@@ -10,7 +10,7 @@ import { definePluginSettings } from "@api/Settings";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import definePlugin, { OptionType } from "@utils/types";
 import {
-    Button, ChannelStore, Constants, Menu, PermissionsBits, PermissionStore,
+    Button, ChannelStore, Menu, PermissionsBits, PermissionStore,
     RestAPI, showToast, useEffect, UserStore, useState, VoiceStateStore,
 } from "@webpack/common";
 import type { SVGProps } from "react";
@@ -41,8 +41,6 @@ const followed = new Set<string>();
 const listeners = new Set<() => void>();
 const inflight = new Map<string, string>();
 let followedList: string[] = [];
-
-const noop = () => { };
 
 function emit() {
     followedList = [...followed];
@@ -110,11 +108,13 @@ function send(userId: string, channel: { id: string; guild_id: string; }) {
     inflight.set(userId, channel.id);
 
     RestAPI.patch({
-        url: Constants.Endpoints.GUILD_MEMBER(channel.guild_id, userId),
+        url: `/guilds/${channel.guild_id}/members/${userId}`,
         body: { channel_id: channel.id },
-    }).catch(noop).finally(() => {
-        if (inflight.get(userId) === channel.id) inflight.delete(userId);
-    });
+    })
+        .catch(() => toast(`FollowMe: move failed [${getName(userId)}]`, "failure"))
+        .finally(() => {
+            if (inflight.get(userId) === channel.id) inflight.delete(userId);
+        });
 }
 
 function pull(userId: string, toChannelId: string, currentChannelId?: string) {

@@ -344,9 +344,12 @@ function SilentButton() {
 }
 
 function resolveDM(props: any): Channel | undefined {
-    if (props?.channel) return props.channel;
-    const id = props?.user?.id && ChannelStore.getDMFromUserId(props.user.id);
-    return id ? ChannelStore.getChannel(id) : undefined;
+    const channel = props?.channel;
+    if (channel && (channel.type === CHANNEL_TYPE_DM || channel.type === CHANNEL_TYPE_GROUP_DM)) return channel;
+    const userId = props?.user?.id;
+    if (!userId) return undefined;
+    const dmId = ChannelStore.getDMFromUserId(userId);
+    return dmId ? ChannelStore.getChannel(dmId) : undefined;
 }
 
 function applyMenu(children: any[], channel: Channel | undefined, anchors: string[], expected: Kind) {
