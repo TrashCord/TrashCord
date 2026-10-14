@@ -6,7 +6,7 @@ export default definePlugin({
     name: "ToastFixStyle",
     description: "Wider toasts, max 2 lines",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
-    tags: ["Utility", "Developers"],
+    tags: ["Utility", "Developers", "Appearance"],
     enabledByDefault: true,
     required: true,
     hidden: true,
