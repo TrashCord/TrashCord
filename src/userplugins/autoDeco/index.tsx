@@ -6,24 +6,24 @@
 
 import { playAudio } from "@api/AudioPlayer";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { ChannelToolbarButton } from "@api/HeaderBar";
 import { popNotice, showNotice } from "@api/Notices";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings, useSettings } from "@api/Settings";
-import ErrorBoundary from "@components/ErrorBoundary";
 import { HeadingSecondary } from "@components/Heading";
+import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { classes } from "@utils/misc";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import type { User } from "@vencord/discord-types";
-import { findByCodeLazy, findComponentByCodeLazy, findStoreLazy } from "@webpack";
+import { findByCodeLazy, findStoreLazy } from "@webpack";
 import {
     Button, ChannelActions, ChannelRouter, ChannelStore, FluxDispatcher,
     GuildChannelStore, MediaEngineStore, Menu, PermissionsBits, PermissionStore,
-    React, Toasts, UserStore, VoiceActions, VoiceStateStore,
+    showToast, UserStore, VoiceActions, VoiceStateStore,
 } from "@webpack/common";
 import type { PropsWithChildren, SVGProps } from "react";
 
 const SelectedChannelStore = findStoreLazy("SelectedChannelStore");
-const HeaderBarIcon = findComponentByCodeLazy(".HEADER_BAR_BADGE_TOP:", '.iconBadge,"top"');
 const startStream = findByCodeLazy('type:"STREAM_START"');
 const getDesktopSources = findByCodeLazy("desktop sources");
 
@@ -425,7 +425,7 @@ function TrackedUsersList() {
                                             color={Button.Colors.RED}
                                             onClick={() => {
                                                 setIds(ids.filter(i => i !== id));
-                                                Toasts.show({ message: `AutoDeco: removed ${user?.username ?? id}`, id: Toasts.genId(), type: Toasts.Type.FAILURE });
+                                                showToast(`AutoDeco: removed ${user?.username ?? id}`, "failure");
                                             }}
                                         >Remove</Button>
                                     </div>
@@ -438,7 +438,7 @@ function TrackedUsersList() {
                             color={Button.Colors.RED}
                             onClick={() => {
                                 setIds([]);
-                                Toasts.show({ message: "AutoDeco: all users cleared", id: Toasts.genId(), type: Toasts.Type.FAILURE });
+                                showToast("AutoDeco: all users cleared", "failure");
                             }}
                         >Clear All</Button>
                     </div>
@@ -457,13 +457,13 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (children, { user }: {
                 id="autodeco-toggle"
                 label={isActive ? "Remove from AutoDeco" : "Add to AutoDeco"}
                 icon={AutoDecoIcon}
+                leadingAccessory={{ type: "icon", icon: AutoDecoIcon }}
                 action={() => {
                     setIds(isActive ? ids.filter(id => id !== user.id) : [...ids, user.id]);
-                    Toasts.show({
-                        message: isActive ? `AutoDeco: removed ${user.username}` : `AutoDeco: now tracking ${user.username}`,
-                        id: Toasts.genId(),
-                        type: isActive ? Toasts.Type.FAILURE : Toasts.Type.SUCCESS,
-                    });
+                    showToast(
+                        isActive ? `AutoDeco: removed ${user.username}` : `AutoDeco: now tracking ${user.username}`,
+                        isActive ? "failure" : "success"
+                    );
                 }}
             />
         </Menu.MenuGroup>
@@ -483,7 +483,7 @@ const RtcChannelContextMenuPatch: NavContextMenuPatchCallback = children => {
                     checked={settings.store.randomVoice}
                     action={() => {
                         settings.store.randomVoice = !settings.store.randomVoice;
-                        Toasts.show({ message: `RandomVoice ${settings.store.randomVoice ? "enabled" : "disabled"}`, id: Toasts.genId(), type: settings.store.randomVoice ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE });
+                        showToast(`RandomVoice ${settings.store.randomVoice ? "enabled" : "disabled"}`, settings.store.randomVoice ? "success" : "failure");
                     }}
                 />
             )}
@@ -495,7 +495,7 @@ const RtcChannelContextMenuPatch: NavContextMenuPatchCallback = children => {
                     action={() => {
                         settings.store.waitForSlot = !settings.store.waitForSlot;
                         if (!settings.store.waitForSlot) cancelWait();
-                        Toasts.show({ message: `WaitForSlot ${settings.store.waitForSlot ? "enabled" : "disabled"}`, id: Toasts.genId(), type: settings.store.waitForSlot ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE });
+                        showToast(`WaitForSlot ${settings.store.waitForSlot ? "enabled" : "disabled"}`, settings.store.waitForSlot ? "success" : "failure");
                     }}
                 />
             )}
@@ -503,25 +503,45 @@ const RtcChannelContextMenuPatch: NavContextMenuPatchCallback = children => {
     );
 };
 
+function AutoDecoHeaderButton() {
+    settings.use(["targetUserIds"]);
+    const ids = getIds();
+    if (!ids.length) return null;
+
+    const names = ids.map(id => UserStore.getUser(id)?.username ?? id).join(", ");
+
+    return (
+        <ChannelToolbarButton
+            tooltip={`AutoDeco active: ${names} — click to clear all`}
+            position="bottom"
+            icon={AutoDecoIcon}
+            onClick={() => {
+                setIds([]);
+                showToast("AutoDeco: all users cleared", "failure");
+            }}
+        />
+    );
+}
+
 export default definePlugin({
     name: "AutoDeco",
     description: "Auto-disconnects you from voice when specific users join your channel. Includes RandomVoice (move to a filtered random channel) and WaitForSlot (rejoin when they leave).",
-    authors: [
-        { name: "x2b", id: 0n },
-        { name: "zfrancesck1", id: 456195985404592149n },
-    ],
+    authors: [{ name: "x2b", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: false,
+    dependencies: ["HeaderBarAPI"],
     settings,
     settingsAboutComponent: TrackedUsersList,
 
-    patches: [{
-        find: "toolbar:function",
-        replacement: {
-            match: /(function \i\(\i\){)(.{1,200}toolbar.{1,100}mobileToolbar)/,
-            replace: "$1$self.addIconToToolBar(arguments[0]);$2",
-        },
-    }],
+    toolboxActions: {
+        "Open AutoDeco Settings": () => openPluginModal(Vencord.Plugins.plugins.AutoDeco),
+    },
+
+    headerBarButton: {
+        icon: AutoDecoIcon,
+        render: AutoDecoHeaderButton,
+        location: "channeltoolbar",
+    },
 
     contextMenus: {
         "user-context": UserContextMenuPatch,
@@ -543,7 +563,7 @@ export default definePlugin({
                     if (settings.store.waitAutoJoin) {
                         joinVoiceChannel(target);
                         if (settings.store.showToasts)
-                            Toasts.show({ message: "WaitForSlot: slot available, rejoining!", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+                            showToast("WaitForSlot: slot available, rejoining!", "success");
                     } else {
                         const ch = ChannelStore.getChannel(target);
                         showNotice(`A spot opened in #${ch?.name ?? target}!`, "Rejoin", () => {
@@ -595,16 +615,16 @@ export default definePlugin({
                     if (randomId) {
                         joinVoiceChannel(randomId);
                         if (settings.store.showToasts)
-                            Toasts.show({ message: `AutoDeco: moved to random channel ("${name}" joined)`, id: Toasts.genId(), type: Toasts.Type.MESSAGE });
+                            showToast(`AutoDeco: moved to random channel ("${name}" joined)`, "message");
                     } else {
                         FluxDispatcher.dispatch({ type: "VOICE_CHANNEL_SELECT", channelId: null });
                         if (settings.store.showToasts)
-                            Toasts.show({ message: `AutoDeco: no suitable channel found, disconnected ("${name}" joined)`, id: Toasts.genId(), type: Toasts.Type.MESSAGE });
+                            showToast(`AutoDeco: no suitable channel found, disconnected ("${name}" joined)`, "message");
                     }
                 } else {
                     FluxDispatcher.dispatch({ type: "VOICE_CHANNEL_SELECT", channelId: null });
                     if (settings.store.showToasts)
-                        Toasts.show({ message: `AutoDeco: disconnected because "${name}" joined`, id: Toasts.genId(), type: Toasts.Type.MESSAGE });
+                        showToast(`AutoDeco: disconnected because "${name}" joined`, "message");
                 }
 
                 if (settings.store.showNotifications)
@@ -618,34 +638,6 @@ export default definePlugin({
             if (delay > 0) setTimeout(doAction, delay);
             else doAction();
         },
-    },
-
-    AutoDecoIndicator() {
-        const { plugins: { AutoDeco: { targetUserIds } } } = useSettings(["plugins.AutoDeco.targetUserIds"]);
-        let ids: string[] = [];
-        try { ids = JSON.parse(targetUserIds); } catch { }
-        if (!ids.length) return null;
-
-        const names = ids.map(id => UserStore.getUser(id)?.username ?? id).join(", ");
-
-        return (
-            <HeaderBarIcon
-                tooltip={`AutoDeco active: ${names} — right-click to clear all`}
-                icon={AutoDecoIcon}
-                onClick={() => { }}
-                onContextMenu={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    setIds([]);
-                    Toasts.show({ message: "AutoDeco: all users cleared", id: Toasts.genId(), type: Toasts.Type.FAILURE });
-                }}
-            />
-        );
-    },
-
-    addIconToToolBar(e: { toolbar: React.ReactNode[] | React.ReactNode; }) {
-        const icon = <ErrorBoundary noop key="autodeco-indicator"><this.AutoDecoIndicator /></ErrorBoundary>;
-        if (Array.isArray(e.toolbar)) e.toolbar.push(icon);
-        else e.toolbar = [icon, e.toolbar];
     },
 
     stop() {

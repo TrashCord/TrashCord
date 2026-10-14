@@ -6,7 +6,6 @@
 
 import { sleep } from "@utils/misc";
 import { PluginNative } from "@utils/types";
-import { Toasts } from "@webpack/common";
 
 import { settings } from "../../settings";
 import { AnalysisValue, safeToast } from "../../utils";
@@ -133,14 +132,14 @@ function buildHashDetails(reports: any[]): AnalysisValue["details"] {
 async function submitAndWait(submitFn: () => Promise<any>, silent: boolean): Promise<AnalysisValue | null> {
     const apiKey = settings.store.hybridAnalysisApiKey;
     if (!apiKey) {
-        if (!silent) safeToast("Hybrid Analysis API key required. Set it in vAnalyzer settings.", Toasts.Type.FAILURE);
+        if (!silent) safeToast("Hybrid Analysis API key required. Set it in vAnalyzer settings.", "failure");
         return null;
     }
 
     const result = await submitFn();
 
     if (result.status !== 200 || !result.data) {
-        if (!silent) safeToast(`Hybrid Analysis scan failed: ${result.error ?? result.status}`, Toasts.Type.FAILURE);
+        if (!silent) safeToast(`Hybrid Analysis scan failed: ${result.error ?? result.status}`, "failure");
         return null;
     }
 
@@ -149,7 +148,7 @@ async function submitAndWait(submitFn: () => Promise<any>, silent: boolean): Pro
     if (!isFinished(data) && !hasResults(data) && data.id) {
         data = await waitForResults(apiKey, data.id, silent);
         if (!data) {
-            if (!silent) safeToast("Hybrid Analysis scan timed out", Toasts.Type.FAILURE);
+            if (!silent) safeToast("Hybrid Analysis scan timed out", "failure");
             return null;
         }
     }
@@ -166,7 +165,7 @@ export async function analyzeUrlWithHybridAnalysis(url: string, silent = false):
 export async function analyzeFileWithHybridAnalysis(fileUrl: string, fileName: string, silent = false): Promise<AnalysisValue | null> {
     const apiKey = settings.store.hybridAnalysisApiKey;
     if (!apiKey) {
-        if (!silent) safeToast("Hybrid Analysis API key required. Set it in vAnalyzer settings.", Toasts.Type.FAILURE);
+        if (!silent) safeToast("Hybrid Analysis API key required. Set it in vAnalyzer settings.", "failure");
         return null;
     }
 
@@ -179,7 +178,7 @@ export async function analyzeFileWithHybridAnalysis(fileUrl: string, fileName: s
 
         const search = await Native.hybridAnalysisSearchHash(apiKey, hashResult.sha256);
         if (search.status === 200 && search.data?.reports?.length > 0) {
-            if (!silent) safeToast(`Found ${search.data.reports.length} existing report(s)`, Toasts.Type.SUCCESS);
+            if (!silent) safeToast(`Found ${search.data.reports.length} existing report(s)`, "success");
             return { details: buildHashDetails(search.data.reports), timestamp: Date.now() };
         }
     }

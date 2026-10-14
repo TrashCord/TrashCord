@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { ChannelStore, GuildStore, Menu, NavigationRouter, showToast, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, GuildStore, Menu, NavigationRouter, showToast, UserStore } from "@webpack/common";
 
 const MessageActions = findByPropsLazy("sendMessage");
 
@@ -96,7 +96,7 @@ function rotateChannel() {
     const displayName = getChannelDisplayName(newChannelId);
 
     console.log(`[AutoMessageSender] 🔄 Rotated to channel ${currentChannelIndex + 1}/${channels.length}: ${displayName}`);
-    showToast(`🔄 Switched to: ${displayName}`, Toasts.Type.MESSAGE);
+    showToast(`🔄 Switched to: ${displayName}`, "message");
 
     // Schedule next rotation
     scheduleChannelRotation();
@@ -240,7 +240,7 @@ function createAlertButton() {
             const hintLine = button.querySelector("#alert-hint-line") as HTMLElement;
             if (hintLine) hintLine.style.opacity = "0";
 
-            showToast("🔕 Sound stopped. Click the button again to dismiss & resume.", Toasts.Type.MESSAGE);
+            showToast("🔕 Sound stopped. Click the button again to dismiss & resume.", "message");
             console.log("[AutoMessageSender] Alert sound stopped (1st click). Waiting for 2nd click to resume.");
         } else {
             // ── SECOND CLICK: dismiss and resume ─────────────────────────
@@ -432,19 +432,19 @@ function triggerAlert(detectedUserId: string = "", detectedUsername: string = ""
     if (reason === "neon-catchlist") {
         showToast(
             "🎣 NEON CATCHLIST DETECTED! Rare catch incoming — Auto-messages PAUSED. Dismiss to resume.",
-            Toasts.Type.FAILURE
+            "failure"
         );
     } else if (reason === "other-user") {
         const who = detectedUsername && detectedUsername !== "Unknown" ? detectedUsername : "Someone";
         showToast(
             `👤 OTHER USER DETECTED! ${who} sent a message — Auto-messages PAUSED. Dismiss to resume.`,
-            Toasts.Type.FAILURE
+            "failure"
         );
     } else if (reason === "bot") {
         const who = detectedUsername && detectedUsername !== "Unknown" ? detectedUsername : "A bot";
         showToast(
             `🤖 BOT DETECTED! ${who} sent a message — Auto-messages PAUSED. Dismiss to resume.`,
-            Toasts.Type.FAILURE
+            "failure"
         );
     } else {
         const who = detectedUsername && detectedUsername !== "Unknown"
@@ -452,7 +452,7 @@ function triggerAlert(detectedUserId: string = "", detectedUsername: string = ""
             : detectedUserId || "Unknown user";
         showToast(
             `⚠️ VERIFICATION DETECTED! ${who} — Auto-messages PAUSED. Dismiss alert to resume.`,
-            Toasts.Type.FAILURE
+            "failure"
         );
     }
 }
@@ -516,11 +516,11 @@ function stopAlert() {
         }
 
         resumeLoop();
-        showToast("✅ Alert dismissed — auto-messages RESUMED!", Toasts.Type.SUCCESS);
+        showToast("✅ Alert dismissed — auto-messages RESUMED!", "success");
         console.log("[AutoMessageSender] Auto-messages resumed after alert dismissal");
     } else {
         isPaused = false;
-        showToast("Alert dismissed.", Toasts.Type.MESSAGE);
+        showToast("Alert dismissed.", "message");
     }
 }
 
@@ -899,7 +899,7 @@ async function sendMessages() {
     const channelId = getCurrentChannelId();
 
     if (!channelId) {
-        showToast("No enabled channels configured!", Toasts.Type.FAILURE);
+        showToast("No enabled channels configured!", "failure");
         stopMessageLoop();
         return;
     }
@@ -918,7 +918,7 @@ async function sendMessages() {
     ].filter(msg => msg && msg.trim() !== "");
 
     if (messages.length === 0) {
-        showToast("No messages configured!", Toasts.Type.FAILURE);
+        showToast("No messages configured!", "failure");
         stopMessageLoop();
         return;
     }
@@ -949,7 +949,7 @@ async function sendMessages() {
             }
         } catch (error) {
             console.error("[AutoMessageSender] Error sending message:", error);
-            showToast("Failed to send message. Stopping plugin.", Toasts.Type.FAILURE);
+            showToast("Failed to send message. Stopping plugin.", "failure");
             stopMessageLoop();
             return;
         }
@@ -960,11 +960,11 @@ async function sendMessages() {
 
 function manualPause() {
     if (!isRunning) {
-        showToast("Auto-messages are not running.", Toasts.Type.MESSAGE);
+        showToast("Auto-messages are not running.", "message");
         return;
     }
     if (isPaused) {
-        showToast("Already paused.", Toasts.Type.MESSAGE);
+        showToast("Already paused.", "message");
         return;
     }
     isPaused = true;
@@ -976,17 +976,17 @@ function manualPause() {
         timerElement.style.background = "linear-gradient(135deg, #f39c12 0%, #d68910 100%)";
         timerElement.innerHTML = "⏸️ MANUALLY PAUSED<br><span style=\"font-size: 12px; opacity: 0.8;\">Right-click → Resume to continue</span>";
     }
-    showToast("⏸️ Auto-messages manually paused.", Toasts.Type.MESSAGE);
+    showToast("⏸️ Auto-messages manually paused.", "message");
     console.log("[AutoMessageSender] Auto-messages manually paused.");
 }
 
 function manualResume() {
     if (!isRunning) {
-        showToast("Auto-messages are not running. Start them first.", Toasts.Type.MESSAGE);
+        showToast("Auto-messages are not running. Start them first.", "message");
         return;
     }
     if (!isPaused) {
-        showToast("Auto-messages are not paused.", Toasts.Type.MESSAGE);
+        showToast("Auto-messages are not paused.", "message");
         return;
     }
     isPaused = false;
@@ -1011,19 +1011,19 @@ function manualResume() {
     };
 
     resumeLoop();
-    showToast("▶️ Auto-messages manually resumed!", Toasts.Type.SUCCESS);
+    showToast("▶️ Auto-messages manually resumed!", "success");
     console.log("[AutoMessageSender] Auto-messages manually resumed.");
 }
 
 function startMessageLoop() {
     if (intervalId || isRunning) {
-        showToast("Auto message sender is already running!", Toasts.Type.MESSAGE);
+        showToast("Auto message sender is already running!", "message");
         return;
     }
 
     const channels = getActiveChannels();
     if (channels.length === 0) {
-        showToast("Please enable at least one channel!", Toasts.Type.FAILURE);
+        showToast("Please enable at least one channel!", "failure");
         return;
     }
 
@@ -1059,7 +1059,7 @@ function startMessageLoop() {
         return `${i + 1}. ${getChannelDisplayName(id)}`;
     }).join(", ");
 
-    showToast(`Auto sender started! ${channels.length} enabled channel(s)`, Toasts.Type.SUCCESS);
+    showToast(`Auto sender started! ${channels.length} enabled channel(s)`, "success");
     console.log(`[AutoMessageSender] Plugin started with ${channels.length} enabled channels: ${channelList}`);
 }
 
@@ -1086,7 +1086,7 @@ function stopMessageLoop() {
 
     removeTimerDisplay();
     isRunning = false;
-    showToast("Auto message sender stopped!", Toasts.Type.MESSAGE);
+    showToast("Auto message sender stopped!", "message");
     console.log("[AutoMessageSender] Plugin stopped");
 }
 
@@ -1094,7 +1094,7 @@ function addCurrentChannel() {
     const currentChannel = ChannelStore.getChannel(ChannelStore.getChannelId());
 
     if (!currentChannel) {
-        showToast("No channel selected!", Toasts.Type.FAILURE);
+        showToast("No channel selected!", "failure");
         return;
     }
 
@@ -1115,7 +1115,7 @@ function addCurrentChannel() {
     for (let i = 0; i < slots.length; i++) {
         const existingId = settings.store[slots[i].idKey as keyof typeof settings.store] as string;
         if (existingId === currentChannel.id) {
-            showToast(`Channel already added as Slot ${i + 1}!`, Toasts.Type.FAILURE);
+            showToast(`Channel already added as Slot ${i + 1}!`, "failure");
             return;
         }
     }
@@ -1127,7 +1127,7 @@ function addCurrentChannel() {
     });
 
     if (emptySlot === -1) {
-        showToast("All 10 channel slots are full! Remove one in Settings first.", Toasts.Type.FAILURE);
+        showToast("All 10 channel slots are full! Remove one in Settings first.", "failure");
         return;
     }
 
@@ -1136,7 +1136,7 @@ function addCurrentChannel() {
     (settings.store as any)[slots[emptySlot].enableKey] = true;
 
     const displayName = getChannelDisplayName(currentChannel.id);
-    showToast(`✅ Channel added to Slot ${slotNum}: ${displayName}`, Toasts.Type.SUCCESS);
+    showToast(`✅ Channel added to Slot ${slotNum}: ${displayName}`, "success");
     console.log(`[AutoMessageSender] Channel added to slot ${slotNum}: ${displayName} (${currentChannel.id})`);
 }
 
@@ -1146,7 +1146,7 @@ function toggleChannel(channelNumber: number) {
     const channelId = settings.store[channelIdKey] as string;
 
     if (!channelId || channelId.trim() === "") {
-        showToast(`Channel ${channelNumber} is not configured!`, Toasts.Type.FAILURE);
+        showToast(`Channel ${channelNumber} is not configured!`, "failure");
         return;
     }
 
@@ -1155,7 +1155,7 @@ function toggleChannel(channelNumber: number) {
 
     const displayName = getChannelDisplayName(channelId);
     const status = !currentValue ? "enabled" : "disabled";
-    showToast(`Channel ${channelNumber} ${status}: ${displayName}`, Toasts.Type.SUCCESS);
+    showToast(`Channel ${channelNumber} ${status}: ${displayName}`, "success");
     console.log(`[AutoMessageSender] Channel ${channelNumber} ${status}: ${displayName}`);
 }
 
@@ -1344,7 +1344,7 @@ export default definePlugin({
                                     action={() => {
                                         const targetChannel = ChannelStore.getChannel(channelId);
                                         if (!targetChannel) {
-                                            showToast(`Slot ${num} channel not found!`, Toasts.Type.FAILURE);
+                                            showToast(`Slot ${num} channel not found!`, "failure");
                                             return;
                                         }
                                         const guildId = targetChannel.guild_id;
@@ -1353,7 +1353,7 @@ export default definePlugin({
                                         } else {
                                             NavigationRouter.transitionTo(`/channels/@me/${channelId}`);
                                         }
-                                        showToast(`Navigating to: ${getChannelDisplayName(channelId)}`, Toasts.Type.SUCCESS);
+                                        showToast(`Navigating to: ${getChannelDisplayName(channelId)}`, "success");
                                     }}
                                 />
                             );
@@ -1386,7 +1386,7 @@ export default definePlugin({
                             const runState = isRunning ? (isPaused ? "Paused (alert)" : "Running") : "Stopped";
                             showToast(
                                 `Status: ${runState}\n\n${statusList || "No channels configured"}\n\nMessage Delay: ${settings.store.minIntervalSeconds}s - ${settings.store.maxIntervalSeconds}s\nRotation: ${settings.store.minChannelRotationMinutes}-${settings.store.maxChannelRotationMinutes} min\nVerification Detection: ${settings.store.enableVerificationDetection ? "ON" : "OFF"}\nOther User Detection: ${settings.store.enableOtherUserDetection ? "ON" : "OFF"}\nBot Detection: ${settings.store.enableBotDetection ? "ON" : "OFF"}`,
-                                Toasts.Type.MESSAGE
+                                "message"
                             );
                         }}
                     />

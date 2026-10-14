@@ -10,7 +10,7 @@ import { addContextMenuPatch, removeContextMenuPatch } from "@api/ContextMenu";
 import { sleep } from "@utils/misc";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { GuildMemberStore, GuildRoleStore, GuildStore, Menu, React, RestAPI, Select, showToast, Toasts, useEffect, useRef, UserStore, useState } from "@webpack/common";
+import { GuildMemberStore, GuildRoleStore, GuildStore, Menu, React, RestAPI, Select, showToast, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 /* ── State ── */
 const state = {
@@ -46,7 +46,7 @@ async function startBomb(guildId: string, roleId: string | "all", message: strin
 
     let members = getMembers(guildId);
     if (!members.length) {
-        showToast("No members found in cache, try loading the member list first (scroll through it).", Toasts.Type.FAILURE);
+        showToast("No members found in cache, try loading the member list first (scroll through it).", "failure");
         return;
     }
 

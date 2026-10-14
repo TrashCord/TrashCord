@@ -11,7 +11,7 @@ import { Devs } from "@utils/constants";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Channel, User } from "@vencord/discord-types";
-import { Button, GuildMemberStore, Menu, PermissionsBits, PermissionStore, React, RestAPI, SelectedGuildStore, showToast, Text, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, GuildMemberStore, Menu, PermissionsBits, PermissionStore, React, RestAPI, SelectedGuildStore, showToast, Text, TextInput, UserStore } from "@webpack/common";
 
 const STORE_KEY = "AutoNickname_targets";
 
@@ -96,11 +96,11 @@ async function applyTarget(guildId: string, userId: string, nick: string | null)
         });
 
         if (settings.store.showToast) {
-            showToast("AutoNickname restored a nickname.", Toasts.Type.SUCCESS);
+            showToast("AutoNickname restored a nickname.", "success");
         }
     } catch {
         if (settings.store.showToast) {
-            showToast("AutoNickname failed to restore a nickname.", Toasts.Type.FAILURE);
+            showToast("AutoNickname failed to restore a nickname.", "failure");
         }
     } finally {
         applyingTargets.delete(key);

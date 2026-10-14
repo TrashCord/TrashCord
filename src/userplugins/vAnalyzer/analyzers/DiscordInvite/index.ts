@@ -5,7 +5,6 @@
  */
 
 import { PluginNative } from "@utils/types";
-import { Toasts } from "@webpack/common";
 
 import { AnalysisValue, safeToast } from "../../utils";
 
@@ -39,7 +38,7 @@ export function isDiscordInvite(url: string): boolean {
 export async function analyzeDiscordInvite(url: string, silent = false): Promise<AnalysisValue | null> {
     const inviteCode = extractInviteCode(url);
     if (!inviteCode) {
-        if (!silent) safeToast("Could not extract invite code from URL", Toasts.Type.FAILURE);
+        if (!silent) safeToast("Could not extract invite code from URL", "failure");
         return null;
     }
 
@@ -48,7 +47,7 @@ export async function analyzeDiscordInvite(url: string, silent = false): Promise
     const result = await Native.queryDiscordInvite(inviteCode);
 
     if (result.status !== 200 || !result.data) {
-        if (!silent) safeToast(`Invite lookup failed: ${result.error ?? "invalid or expired invite"}`, Toasts.Type.FAILURE);
+        if (!silent) safeToast(`Invite lookup failed: ${result.error ?? "invalid or expired invite"}`, "failure");
         return null;
     }
 

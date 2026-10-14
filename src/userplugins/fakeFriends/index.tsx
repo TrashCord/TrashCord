@@ -9,8 +9,7 @@ import { Modals, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { RelationshipType } from "@vencord/discord-types/enums";
 import { findByProps } from "@webpack";
-import { ChannelStore, FluxDispatcher, GuildMemberStore, Menu, React, RelationshipStore, Toasts, UserStore, UserUtils } from "@webpack/common";
-
+import { ChannelStore, FluxDispatcher, GuildMemberStore, Menu, React, RelationshipStore, UserStore, UserUtils, showToast } from "@webpack/common";
 const DS_KEY = "FakeFriends_state";
 
 // fakeState is in memory only — does NOT persist across restarts
@@ -541,7 +540,7 @@ async function fetchAllGuildMembers(guildId: string): Promise<void> {
     const after = (GuildMemberStore.getMemberIds(guildId) as string[]).length;
     const loaded = after - before;
     console.log(`[FakeFriends] ${after} members in cache (${loaded > 0 ? "+" + loaded : "already loaded"})`);
-    Toasts.show({ message: `${after} members available`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+    showToast(`${after} members available`, "success");
 }
 
 function getGuildCandidates(guildId: string): string[] {
@@ -561,12 +560,12 @@ function getGuildCandidates(guildId: string): string[] {
 
 // ── Fake Friend Request with number input ─────────────────────────────────
 async function floodGuild(guildId: string) {
-    Toasts.show({ message: "Loading members...", type: Toasts.Type.MESSAGE, id: "ff-loading" });
+    showToast("Loading members...", "message", { id: "ff-loading" });
     await fetchAllGuildMembers(guildId);
 
     const candidates = getGuildCandidates(guildId);
     if (!candidates.length) {
-        Toasts.show({ message: "No candidates available", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        showToast("No candidates available", "failure");
         return;
     }
 
@@ -589,7 +588,7 @@ async function floodGuild(guildId: string) {
         }
         await new Promise(r => setTimeout(r, 60));
     }
-    Toasts.show({ message: `${sent} fake friend request${sent > 1 ? "s" : ""} sent!`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+    showToast(`${sent} fake friend request${sent > 1 ? "s" : ""} sent!`, "success");
 }
 
 // ── Remove fake requests for a server ──────────────────────────────────────
@@ -598,7 +597,7 @@ async function removeFakeFriendsForGuild(guildId: string) {
     const toRemove = [...fakeState.keys()].filter(id => memberIds.has(id));
 
     if (!toRemove.length) {
-        Toasts.show({ message: "No fake requests to remove for this server", type: Toasts.Type.MESSAGE, id: Toasts.genId() });
+        showToast("No fake requests to remove for this server", "message");
         return;
     }
 
@@ -609,14 +608,14 @@ async function removeFakeFriendsForGuild(guildId: string) {
         } catch { }
     }
     await persistState();
-    Toasts.show({ message: `${toRemove.length} fake request${toRemove.length > 1 ? "s" : ""} removed!`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+    showToast(`${toRemove.length} fake request${toRemove.length > 1 ? "s" : ""} removed!`, "success");
 }
 
 // ── Fake Message Request ─────────────────────────────────────────────────────
 async function fakeMessageRequestGuild(guildId: string) {
     const candidates = getGuildCandidates(guildId);
     if (!candidates.length) {
-        Toasts.show({ message: "No candidates available", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        showToast("No candidates available", "failure");
         return;
     }
 
@@ -638,11 +637,7 @@ async function fakeMessageRequestGuild(guildId: string) {
         await new Promise(r => setTimeout(r, 60));
     }
 
-    Toasts.show({
-        message: `${sent} message request${sent > 1 ? "s" : ""} received!`,
-        type: sent > 0 ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
-        id: Toasts.genId()
-    });
+    showToast(`${sent} message request${sent > 1 ? "s" : ""} received!`, sent > 0 ? "success" : "failure");
 }
 
 let MessageRequestStore: any = null;

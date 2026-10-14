@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { openUserProfile } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const settings = definePluginSettings({
     ids: {
@@ -28,11 +28,7 @@ const settings = definePluginSettings({
 
 function handler(c, msg) {
     if (!settings.store.alias || !settings.store.lSeenUserID) {
-        Toasts.show({
-            type: Toasts.Type.FAILURE,
-            message: "User hasn't been last seen",
-            id: Toasts.genId(),
-        });
+        showToast("User hasn't been last seen", "failure");
         return {
             cancel: true
         };
@@ -61,11 +57,7 @@ export default definePlugin({
             name: "profile",
             description: "Open the profile of your friend who keeps changing accounts",
             execute() {
-                if (!settings.store.lSeenUserID) return Toasts.show({
-                    type: Toasts.Type.FAILURE,
-                    message: "User hasn't been last seen",
-                    id: Toasts.genId(),
-                });
+                if (!settings.store.lSeenUserID) return showToast("User hasn't been last seen", "failure");
                 openUserProfile(settings.store.lSeenUserID);
             }
         }

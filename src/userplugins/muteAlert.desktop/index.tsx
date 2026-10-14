@@ -15,7 +15,7 @@ import { classes } from "@utils/misc";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { React, Toasts } from "@webpack/common";
+import { React, showToast } from "@webpack/common";
 
 import { StoreKey } from "./constants";
 import { checkFileMime, getFileNative, getFileWeb, hexToBase64 } from "./utils";
@@ -126,29 +126,17 @@ async function pickAudio(): Promise<string | undefined> {
         }]));
     } catch (e) {
         new Logger("MuteAlert").error("An error occurred while picking the audio file:", e);
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "An error occurred while picking the audio file, check the console for more information.",
-            type: Toasts.Type.FAILURE
-        });
+        showToast("An error occurred while picking the audio file, check the console for more information.", "failure");
         return;
     }
     if (!hex) {
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "User cancelled selection.",
-            type: Toasts.Type.FAILURE
-        });
+        showToast("User cancelled selection.", "failure");
         return;
     }
 
     const mime = checkFileMime(hex);
     if (mime === "unknown") {
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "The selected file is not a valid audio file.",
-            type: Toasts.Type.FAILURE
-        });
+        showToast("The selected file is not a valid audio file.", "failure");
         return;
     }
 

@@ -12,7 +12,7 @@ import { classes } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
 import { findByCodeLazy, findByPropsLazy,findStoreLazy } from "@webpack";
-import { Button, ChannelStore, Menu, React, RestAPI, Toasts, Tooltip, UserStore } from "@webpack/common";
+import { Button, ChannelStore, Menu, React, RestAPI, showToast, Tooltip, UserStore } from "@webpack/common";
 
 export const cl = classNameFactory("vc-voice-channel-log-");
 const createBotMessage = findByCodeLazy('username:"Clyde"');
@@ -156,13 +156,9 @@ function attemptClaim(channelId: string, reason: string, isManual: boolean = fal
     if (!isCustomVoiceChannel(channelId)) {
         console.log(`Skipping claim for channel ${channelId} - not a custom VC`);
         if (isManual) {
-            Toasts.show({
-                message: "Cannot claim default server voice channels",
+            showToast("Cannot claim default server voice channels", "failure", {
                 id: "not-custom-vc",
-                type: Toasts.Type.FAILURE,
-                options: {
-                    position: Toasts.Position.BOTTOM
-                }
+                position: 1
             });
         }
         return;
@@ -175,13 +171,9 @@ function attemptClaim(channelId: string, reason: string, isManual: boolean = fal
     if (currentOwner === clientUserId) {
         console.log(`Skipping claim - client is already the owner of channel ${channelId}`);
         if (isManual) {
-            Toasts.show({
-                message: "You already own this voice channel!",
+            showToast("You already own this voice channel!", "message", {
                 id: "already-owner",
-                type: Toasts.Type.MESSAGE,
-                options: {
-                    position: Toasts.Position.BOTTOM
-                }
+                position: 1
             });
         }
         return;
@@ -201,24 +193,16 @@ function attemptClaim(channelId: string, reason: string, isManual: boolean = fal
 
         currentVcOwners.set(channelId, clientUserId);
 
-        Toasts.show({
-            message: `Successfully ${isManual ? "claimed" : "auto-claimed"} voice channel!`,
+        showToast(`Successfully ${isManual ? "claimed" : "auto-claimed"} voice channel!`, "success", {
             id: isManual ? "manual-claim-success" : "auto-claim-success",
-            type: Toasts.Type.SUCCESS,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+            position: 1
         });
     }).catch(error => {
         if (!pluginActive || generation !== pluginGeneration) return;
         console.error("Failed to claim channel:", error);
-        Toasts.show({
-            message: `Failed to claim channel: ${error.message}`,
+        showToast(`Failed to claim channel: ${error.message}`, "failure", {
             id: isManual ? "manual-claim-error" : "auto-claim-error",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+            position: 1
         });
     });
 }
@@ -300,14 +284,10 @@ function MenuItem(id: string) {
                     updateVcOwnerTracking(currentChannelId);
                     attemptClaim(currentChannelId, "Manual claim requested", true);
                 } else {
-                    Toasts.show({
-                        message: "You're not in a voice channel",
-                        id: "not-in-vc",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                showToast("You're not in a voice channel", "failure", {
+                    id: "not-in-vc",
+                    position: 1
+                });
                 }
             }}
         />
@@ -393,13 +373,9 @@ export default definePlugin({
                                 updateVcOwnerTracking(currentChannelId);
                                 attemptClaim(currentChannelId, "Manual claim from toolbar", true);
                             } else {
-                                Toasts.show({
-                                    message: "You're not in a voice channel",
+                                showToast("You're not in a voice channel", "failure", {
                                     id: "not-in-vc-toolbar",
-                                    type: Toasts.Type.FAILURE,
-                                    options: {
-                                        position: Toasts.Position.BOTTOM
-                                    }
+                                    position: 1
                                 });
                             }
                         }}

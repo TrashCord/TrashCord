@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { disableStyle, enableStyle } from "@api/Styles";
 import { makeRange, OptionType } from "@utils/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import hoverOnlyStyle from "./hoverOnly.css?managed";
 
@@ -62,7 +62,7 @@ export const settings = definePluginSettings({
       } else {
         showToast(
           "Invalid URL format for Custom Api Server URL: " + value,
-          Toasts.Type.FAILURE,
+          "failure",
         );
         settings.store.YoutubeMusicApiUrl =
           settings.def.YoutubeMusicApiUrl.default;

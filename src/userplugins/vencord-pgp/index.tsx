@@ -13,7 +13,7 @@ import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, Select, TabBar, Text, TextArea, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, Forms, React, Select, TabBar, Text, TextArea, TextInput, showToast, UserStore } from "@webpack/common";
 
 const logger = new Logger("PGP");
 
@@ -528,7 +528,7 @@ function MyKeyTab() {
             <Forms.FormSection title="Public Key">
                 <TextArea value={getPGPEngine().getPublicKey() || ""} disabled rows={6} style={{ fontFamily: "monospace", fontSize: "11px" }} />
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                    <Button onClick={() => { navigator.clipboard.writeText(getPGPEngine().getPublicKey()!); Toasts.show({ message: "Copied!", type: Toasts.Type.SUCCESS, id: Toasts.genId() }); }}>Copy</Button>
+                    <Button onClick={() => { navigator.clipboard.writeText(getPGPEngine().getPublicKey()!); showToast("Copied!", "success"); }}>Copy</Button>
                     <Button color={Button.Colors.RED} onClick={() => { if (confirm("Delete keys?")) { getPGPEngine().clearKeys(); setKeyInfo(null); } }}>Delete</Button>
                 </div>
             </Forms.FormSection>
@@ -579,17 +579,17 @@ function GenerateTab() {
     const [generating, setGenerating] = useState(false);
 
     const generate = useCallback(async () => {
-        if (!name || !email) { Toasts.show({ message: "Name and email required", type: Toasts.Type.FAILURE, id: Toasts.genId() }); return; }
-        if (pass !== pass2) { Toasts.show({ message: "Passphrases don't match", type: Toasts.Type.FAILURE, id: Toasts.genId() }); return; }
-        if (pass.length < 8) { Toasts.show({ message: "Passphrase too short (8+ chars)", type: Toasts.Type.FAILURE, id: Toasts.genId() }); return; }
+        if (!name || !email) { showToast("Name and email required", "failure"); return; }
+        if (pass !== pass2) { showToast("Passphrases don't match", "failure"); return; }
+        if (pass.length < 8) { showToast("Passphrase too short (8+ chars)", "failure"); return; }
 
         setGenerating(true);
         try {
             await getPGPEngine().generateKeyPair(name, email, pass, type);
-            Toasts.show({ message: "Key pair generated!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+            showToast("Key pair generated!", "success");
             setName(""); setEmail(""); setPass(""); setPass2("");
         } catch (e) {
-            Toasts.show({ message: `Error: ${e}`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(`Error: ${e}`, "failure");
         } finally {
             setGenerating(false);
         }
@@ -622,20 +622,20 @@ function ImportTab() {
     const [importing, setImporting] = useState(false);
 
     const doImport = useCallback(async () => {
-        if (!key.trim()) { Toasts.show({ message: "Paste a key", type: Toasts.Type.FAILURE, id: Toasts.genId() }); return; }
+        if (!key.trim()) { showToast("Paste a key", "failure"); return; }
         setImporting(true);
         try {
             if (mode === "private") {
                 await getPGPEngine().importPrivateKey(key, pass);
-                Toasts.show({ message: "Private key imported!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                showToast("Private key imported!", "success");
             } else {
-                if (!userId.trim()) { Toasts.show({ message: "Enter user ID", type: Toasts.Type.FAILURE, id: Toasts.genId() }); setImporting(false); return; }
+                if (!userId.trim()) { showToast("Enter user ID", "failure"); setImporting(false); return; }
                 await getKeyManager().importPublicKeyForUser(userId, key);
-                Toasts.show({ message: "Contact key imported!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                showToast("Contact key imported!", "success");
             }
             setKey(""); setPass(""); setUserId("");
         } catch (e) {
-            Toasts.show({ message: `Error: ${e}`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(`Error: ${e}`, "failure");
         } finally {
             setImporting(false);
         }
@@ -686,9 +686,9 @@ function KeyserverTab() {
                     catch { res.push({ key: k, info: null }); }
                 }
                 setResults(res);
-                Toasts.show({ message: `Found ${r.keys.length} key(s)`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                showToast(`Found ${r.keys.length} key(s)`, "success");
             } else {
-                Toasts.show({ message: "No keys found", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+                showToast("No keys found", "failure");
             }
         } finally {
             setSearching(false);
@@ -717,10 +717,10 @@ function KeyserverTab() {
                                     if (!importId.trim()) return;
                                     try {
                                         await getKeyManager().importPublicKeyForUser(importId, selected);
-                                        Toasts.show({ message: "Imported!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                                        showToast("Imported!", "success");
                                         setSelected(null); setImportId("");
                                     } catch (e) {
-                                        Toasts.show({ message: `Error: ${e}`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+                                        showToast(`Error: ${e}`, "failure");
                                     }
                                 }}>Import</Button>
                             </div>

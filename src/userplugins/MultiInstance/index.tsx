@@ -14,7 +14,7 @@ import { classes } from "@utils/misc";
 import { useTimer } from "@utils/react";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Avatar, ContextMenuApi, Menu, Modal, openModal, React, showToast, TextInput, Toasts, UserStore, useStateFromStores } from "@webpack/common";
+import { Avatar, ContextMenuApi, Menu, Modal, openModal, React, showToast, TextInput, UserStore, useStateFromStores } from "@webpack/common";
 import type { MouseEvent as ReactMouseEvent, SVGProps } from "react";
 
 import type { InstanceMode, InstanceStatus, InstanceUser } from "./native";
@@ -270,7 +270,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
 
     async function openInstance(profile: InstanceProfile, mode: InstanceMode = profile.mode ?? "detached") {
         if (!Native) {
-            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            showToast("Multi Instance native helper is not available in this build.", "failure");
             return;
         }
 
@@ -282,9 +282,9 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
             .catch(error => ({ ok: false, error: getErrorMessage(error) }));
 
         if (result.ok) {
-            showToast(`${profile.name} opened as a ${mode} instance.`, Toasts.Type.SUCCESS);
+            showToast(`${profile.name} opened as a ${mode} instance.`, "success");
         } else {
-            showToast(result.error ?? `Could not open ${profile.name}.`, Toasts.Type.FAILURE);
+            showToast(result.error ?? `Could not open ${profile.name}.`, "failure");
         }
 
         await refreshInstances();
@@ -293,7 +293,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
 
     async function closeInstance(profile: InstanceProfile) {
         if (!Native) {
-            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            showToast("Multi Instance native helper is not available in this build.", "failure");
             return;
         }
 
@@ -303,9 +303,9 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
             .catch(error => ({ ok: false, error: getErrorMessage(error) }));
 
         if (result.ok) {
-            showToast(`${profile.name} closed.`, Toasts.Type.SUCCESS);
+            showToast(`${profile.name} closed.`, "success");
         } else {
-            showToast(result.error ?? `Could not close ${profile.name}.`, Toasts.Type.FAILURE);
+            showToast(result.error ?? `Could not close ${profile.name}.`, "failure");
         }
 
         await refreshInstances();
@@ -314,7 +314,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
 
     async function closeAllInstances() {
         if (!Native) {
-            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            showToast("Multi Instance native helper is not available in this build.", "failure");
             return;
         }
 
@@ -324,9 +324,9 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
             .catch(error => ({ ok: false, error: getErrorMessage(error) }));
 
         if (result.ok) {
-            showToast("All Multi Instance windows closed.", Toasts.Type.SUCCESS);
+            showToast("All Multi Instance windows closed.", "success");
         } else {
-            showToast(result.error ?? "Could not close all Multi Instance windows.", Toasts.Type.FAILURE);
+            showToast(result.error ?? "Could not close all Multi Instance windows.", "failure");
         }
 
         await refreshInstances();
@@ -335,12 +335,12 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
 
     async function clearSavedSession(profile: InstanceProfile) {
         if (!Native) {
-            showToast("Multi Instance native helper is not available in this build.", Toasts.Type.FAILURE);
+            showToast("Multi Instance native helper is not available in this build.", "failure");
             return;
         }
 
         if (instances.some(instance => instance.id === profile.id)) {
-            showToast("Close this instance before clearing its saved session.", Toasts.Type.FAILURE);
+            showToast("Close this instance before clearing its saved session.", "failure");
             return;
         }
 
@@ -351,9 +351,9 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
 
         if (result.ok) {
             updateProfile(profile.id, { user: undefined });
-            showToast(`${profile.name} saved session cleared.`, Toasts.Type.SUCCESS);
+            showToast(`${profile.name} saved session cleared.`, "success");
         } else {
-            showToast(result.error ?? `Could not clear ${profile.name}.`, Toasts.Type.FAILURE);
+            showToast(result.error ?? `Could not clear ${profile.name}.`, "failure");
         }
 
         setBusyId(null);
@@ -390,7 +390,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
         const name = editingName.trim();
 
         if (!name) {
-            showToast("Enter an instance name.", Toasts.Type.FAILURE);
+            showToast("Enter an instance name.", "failure");
             return;
         }
 

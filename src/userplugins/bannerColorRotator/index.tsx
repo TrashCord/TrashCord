@@ -3,7 +3,7 @@ import { UserAreaButton }       from "@api/UserArea";
 import { definePluginSettings } from "@api/Settings";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, React, RestAPI, Toasts } from "@webpack/common";
+import { Button, React, RestAPI, showToast } from "@webpack/common";
 
 const SK        = "BannerColorRotator_v3";
 const DEFAULT_S = 300;
@@ -91,9 +91,9 @@ const settings = definePluginSettings({
 
 const saveData = (): Promise<void> => DataStore.set(SK, { favorites, usedFavs, wasRunning: rotatorTimer !== null, currentColor } as StoreData);
 
-function toast(msg: string, type: Toasts.Type = Toasts.Type.SUCCESS) {
+function toast(msg: string, type: "message" | "success" | "failure" = "success") {
     if (!settings.store.showToast) return;
-    Toasts.show({ message: msg, type, id: Toasts.genId() });
+    showToast(msg, type);
 }
 
 function fmtSec(s: number): string {
@@ -421,7 +421,7 @@ async function applyColor(hex: string): Promise<void> {
         toast(`Banner → ${hex}`);
         await saveData();
     } catch (e: any) {
-        toast(`Failed: ${e?.body?.message ?? e?.message ?? "Unknown"}`, Toasts.Type.FAILURE);
+        toast(`Failed: ${e?.body?.message ?? e?.message ?? "Unknown"}`, "failure");
     }
 }
 
@@ -448,7 +448,7 @@ function startRotator(immediate = false) {
 
 function stopRotator() {
     if (rotatorTimer) { clearTimeout(rotatorTimer); rotatorTimer = null; }
-    toast("Banner Color Rotator stopped", Toasts.Type.MESSAGE);
+    toast("Banner Color Rotator stopped", "message");
     void saveData();
 }
 
@@ -865,7 +865,7 @@ function BannerColorRotatorModal({ modalProps, onToggle }: { modalProps: any; on
             if (data.showButton  !== undefined) (settings.store as any).showButton       = data.showButton;
             if (data.showCurrentColor !== undefined) (settings.store as any).showCurrentColor = data.showCurrentColor;
             toast("Settings imported");
-        } catch { toast("Import failed", Toasts.Type.FAILURE); }
+        } catch { toast("Import failed", "failure"); }
         setLoading(false); e.target.value = "";
     };
 

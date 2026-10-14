@@ -7,7 +7,7 @@
 import { addMessagePreEditListener, addMessagePreSendListener, MessageEditListener, MessageSendListener, removeMessagePreEditListener, removeMessagePreSendListener } from "@api/MessageEvents";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const settings = definePluginSettings({
     sanitizeOutgoing: {
@@ -73,7 +73,7 @@ export default definePlugin({
                 messageObj.content = result;
                 log(`Removed invisible characters from outgoing message in channel ${channelId}`);
                 if (settings.store.showToastOnDetection) {
-                    showToast("ZeroWidthSanitizer: tracking characters removed from your message", Toasts.Type.MESSAGE);
+                    showToast("ZeroWidthSanitizer: tracking characters removed from your message", "message");
                 }
             }
         };
@@ -88,7 +88,7 @@ export default definePlugin({
                 messageObj.content = result;
                 log(`Removed invisible characters from edited message ${messageId}`);
                 if (settings.store.showToastOnDetection) {
-                    showToast("ZeroWidthSanitizer: tracking characters removed from your edit", Toasts.Type.MESSAGE);
+                    showToast("ZeroWidthSanitizer: tracking characters removed from your edit", "message");
                 }
             }
         };
@@ -97,7 +97,7 @@ export default definePlugin({
         addMessagePreEditListener(preEditListener);
 
         log("Plugin started");
-        showToast("ZeroWidthSanitizer active", Toasts.Type.SUCCESS);
+        showToast("ZeroWidthSanitizer active", "success");
     },
 
     stop() {

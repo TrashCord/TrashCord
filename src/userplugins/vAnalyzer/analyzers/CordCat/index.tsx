@@ -6,7 +6,7 @@
 
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { PluginNative } from "@utils/types";
-import { Button, React, Toasts } from "@webpack/common";
+import { Button, React } from "@webpack/common";
 
 import { settings } from "../../settings";
 import { safeToast } from "../../utils";
@@ -28,7 +28,7 @@ export async function analyzeUserWithCordCat(userId: string, username: string): 
     }
 
     if (result.status !== 200) {
-        safeToast(`CordCat lookup failed: HTTP ${result.status}`, Toasts.Type.FAILURE);
+        safeToast(`CordCat lookup failed: HTTP ${result.status}`, "failure");
         return;
     }
 

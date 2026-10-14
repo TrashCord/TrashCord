@@ -7,7 +7,7 @@
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { classes } from "@utils/misc";
 import { IconComponent } from "@utils/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import { openFastSpellModal } from "./FastSpellModal";
 import { settings } from "./settings";
@@ -26,7 +26,7 @@ export const AutocorrectChatBarButton: ChatBarButtonFactory = ({ isMainChat }) =
     const toggle = () => {
         const next = !settings.store.autocorrect;
         settings.store.autocorrect = next;
-        showToast(next ? "Autocorrect on" : "Autocorrect off", Toasts.Type.SUCCESS);
+        showToast(next ? "Autocorrect on" : "Autocorrect off", "success");
     };
 
     return (

@@ -11,7 +11,7 @@ import { Logger } from "@utils/Logger";
 import { EquicordDevs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByCodeLazy } from "@webpack";
-import { ApplicationStreamingStore, ChannelStore, Constants, FluxDispatcher, GuildMemberStore, GuildStore, MediaEngineStore, RestAPI, RunningGameStore, SelectedChannelStore, SoundboardStore, StreamerModeStore, UserStore, VoiceStateStore } from "@webpack/common";
+import { ApplicationStreamingStore, ChannelStore, Constants, FluxDispatcher, GuildMemberStore, GuildStore, MediaEngineStore, RestAPI, RunningGameStore, SelectedChannelStore, SoundboardStore, StreamerModeStore, UserStore, VoiceStateStore, showToast as vencordShowToast } from "@webpack/common";
 
 const startStreamFn: ((guildId: string | null, channelId: string, options: Record<string, unknown>) => void) | undefined = findByCodeLazy('type:"STREAM_START"');
 
@@ -153,10 +153,16 @@ const settings = definePluginSettings({
     }
 });
 
-const showToast = (toast: Parameters<typeof Toasts.show>[0]) => {
-    if (settings.store.showToasts) {
-        Toasts.show(toast);
-    }
+interface LocalToastArgs {
+    message: string;
+    type: "message" | "success" | "failure";
+    options?: { duration?: number; position?: number; };
+}
+
+const showToast = (toast: LocalToastArgs) => {
+    if (!settings.store.showToasts) return;
+    const { message, type, options } = toast;
+    vencordShowToast(message, type, options);
 };
 
 const sendConfig = () => {
@@ -517,8 +523,7 @@ const connect = () => {
 
         showToast({
             message: "Connected to Orbolay server",
-            type: Toasts.Type.SUCCESS,
-            id: Toasts.genId(),
+            type: "success",
         });
 
         const userId = await waitForPopulate(() => UserStore.getCurrentUser()?.id);
@@ -596,14 +601,12 @@ const connect = () => {
             wasConnected = false;
             showToast({
                 message: "Disconnected from Orbolay server",
-                type: Toasts.Type.FAILURE,
-                id: Toasts.genId(),
+                type: "failure",
             });
         } else if (!isRetrying) {
             showToast({
                 message: "Orbolay websocket could not connect. Is it running?",
-                type: Toasts.Type.FAILURE,
-                id: Toasts.genId(),
+                type: "failure",
             });
             isRetrying = true;
         }

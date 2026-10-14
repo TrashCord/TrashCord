@@ -19,7 +19,6 @@ import {
     GuildStore,
     RestAPI,
     showToast,
-    Toasts,
 } from "@webpack/common";
 
 interface BackupRole {
@@ -297,7 +296,7 @@ async function restoreServer(
             }
         }
 
-        showToast("✅ Server restored successfully!", Toasts.Type.SUCCESS);
+        showToast("✅ Server restored successfully!", "success");
     } catch (error) {
         console.error("[ServerBackup] Error during restoration:", error);
         throw error;

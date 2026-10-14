@@ -1,7 +1,7 @@
 import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType, PluginDef } from "@utils/types";
-import { Menu, Toasts, UserStore, MessageStore, RestAPI, ChannelStore } from "@webpack/common";
+import { Menu, showToast, UserStore, MessageStore, RestAPI, ChannelStore } from "@webpack/common";
 import { findByProps } from "@webpack";
 import { getCurrentChannel, openUserProfile } from "@utils/discord";
 import { Notifications } from "@api/index";
@@ -274,12 +274,7 @@ const _plugin: PluginDef & Record<string, any> = {
         removeContextMenuPatch("user-context", contextMenuPatch);
     },
     async stalkUser(id: string) {
-        Toasts.show({
-            type: Toasts.Type.SUCCESS,
-            // @ts-ignore outdated types lib doesnt have .globalName
-            message: `Stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`,
-            id: Toasts.genId()
-        });
+        showToast(`Stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`, "success");
         addToWhitelist(id);
         const { body } = await RestAPI.get({
             url: `/users/${id}/profile`,
@@ -292,12 +287,7 @@ const _plugin: PluginDef & Record<string, any> = {
         logger.info(`Cached user ${id} with name ${oldUsers[id].user.globalName || oldUsers[id].user.username} for further usage.`);
     },
     unStalkuser(id: string) {
-        Toasts.show({
-            type: Toasts.Type.SUCCESS,
-            // @ts-ignore outdated types lib doesnt have .globalName
-            message: `Stopped stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`,
-            id: Toasts.genId()
-        });
+        showToast(`Stopped stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`, "success");
         removeFromWhitelist(id);
         delete oldUsers[id];
     }

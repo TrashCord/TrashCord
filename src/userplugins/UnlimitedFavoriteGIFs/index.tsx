@@ -8,7 +8,7 @@ import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import { Link } from "@components/Link";
 import definePlugin, { OptionType } from "@utils/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const LOCAL_FAVS_KEY = "UnlimitedFavoriteGIFs_localFavs";
 
@@ -38,11 +38,11 @@ const settings = definePluginSettings({
                 <Button onClick={async () => {
                     const favs = await getLocalFavs();
                     if (!favs.length) {
-                        showToast("No local favorites to export.", Toasts.Type.FAILURE);
+                        showToast("No local favorites to export.", "failure");
                         return;
                     }
                     navigator.clipboard.writeText(JSON.stringify(favs, null, 2));
-                    showToast(`Copied ${favs.length} favorites to clipboard.`, Toasts.Type.SUCCESS);
+                    showToast(`Copied ${favs.length} favorites to clipboard.`, "success");
                 }}>
                     Export Local Favorites (JSON)
                 </Button>
@@ -57,7 +57,7 @@ const settings = definePluginSettings({
             return (
                 <Button color={Button.Colors.RED} onClick={async () => {
                     await saveLocalFavs([]);
-                    showToast("Local favorites cleared.", Toasts.Type.SUCCESS);
+                    showToast("Local favorites cleared.", "success");
                 }}>
                     Clear Local Favorites
                 </Button>

@@ -8,7 +8,7 @@ import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { Guild, GuildMember } from "@vencord/discord-types";
 import { findStoreLazy } from "@webpack";
-import { FluxDispatcher, GuildMemberStore,GuildStore, Toasts, UserStore } from "@webpack/common";
+import { FluxDispatcher, GuildMemberStore, GuildStore, showToast, UserStore } from "@webpack/common";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 
@@ -58,13 +58,9 @@ const cb = async (e: any) => {
     for (const role of roles) {
         for (const permission of avoidPermission) {
             if ((role.permissions & permission) === permission) {
-                Toasts.show({
-                    message: `MOD ALERT  ${state.userId} detected`,
+                showToast(`MOD ALERT  ${state.userId} detected`, "failure", {
                     id: "Vc-permissions",
-                    type: Toasts.Type.FAILURE,
-                    options: {
-                        position: Toasts.Position.BOTTOM,
-                    }
+                    position: 1,
                 });
                 audio();
 

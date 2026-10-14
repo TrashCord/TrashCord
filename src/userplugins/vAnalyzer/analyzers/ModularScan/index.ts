@@ -5,7 +5,6 @@
  */
 
 import { PluginNative } from "@utils/types";
-import { Toasts } from "@webpack/common";
 
 import { ModularScanModule } from "../../modularScanStore";
 import { AnalysisValue, safeToast } from "../../utils";
@@ -25,7 +24,7 @@ export async function runModularScan(
     const details: AnalysisValue["details"] = [];
 
     if (!result.ok) {
-        if (!silent) safeToast(`${module.name} failed: ${result.status}`, Toasts.Type.FAILURE);
+        if (!silent) safeToast(`${module.name} failed: ${result.status}`, "failure");
 
         // only report actual errors, not normal scan results
         if (result.status === -1) {

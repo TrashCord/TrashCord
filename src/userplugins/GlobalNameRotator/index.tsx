@@ -4,7 +4,7 @@ import { definePluginSettings } from "@api/Settings";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, RestAPI, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, Forms, React, RestAPI, TextInput, showToast, UserStore } from "@webpack/common";
 
 const SK = "GNR_v1";
 
@@ -124,19 +124,11 @@ async function applyName(name: string | null): Promise<boolean> {
         history = [entry, ...history].slice(0, Math.max(10, settings.store.maxHistory));
         await saveData();
         if (settings.store.toastOnChange) {
-            Toasts.show({
-                id: Toasts.genId(),
-                message: name ? `Display name → ${name}` : "Display name cleared",
-                type: Toasts.Type.SUCCESS,
-            });
+            showToast(name ? `Display name → ${name}` : "Display name cleared", "success");
         }
         return true;
     } catch {
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "Failed to update display name",
-            type: Toasts.Type.FAILURE,
-        });
+        showToast("Failed to update display name", "failure");
         return false;
     }
 }
@@ -150,7 +142,7 @@ function tick() {
 function startRotator() {
     if (rotatorTimer !== null) return;
     if (!names.length) {
-        Toasts.show({ id: Toasts.genId(), message: "Add at least one name first", type: Toasts.Type.FAILURE });
+        showToast("Add at least one name first", "failure");
         return;
     }
     tick();
@@ -311,7 +303,7 @@ function ControlTab({ forceUpdate }: { forceUpdate: () => void }) {
         if (!isRunning()) return;
         stopRotator();
         startRotator();
-        Toasts.show({ id: Toasts.genId(), message: "Skipped to next name", type: Toasts.Type.MESSAGE });
+        showToast("Skipped to next name", "message");
         refresh();
     };
 
@@ -416,7 +408,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
     const exportData = () => {
         const blob = JSON.stringify({ names: names.map(n => n.value), seqIndex }, null, 2);
         navigator.clipboard.writeText(blob).then(() =>
-            Toasts.show({ id: Toasts.genId(), message: "Copied to clipboard!", type: Toasts.Type.SUCCESS })
+            showToast("Copied to clipboard!", "success")
         );
     };
 
@@ -432,9 +424,9 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
             saveData();
             setImportText("");
             forceUpdate();
-            Toasts.show({ id: Toasts.genId(), message: `Imported ${fresh.length} new name(s)`, type: Toasts.Type.SUCCESS });
+            showToast(`Imported ${fresh.length} new name(s)`, "success");
         } catch {
-            Toasts.show({ id: Toasts.genId(), message: "Invalid JSON", type: Toasts.Type.FAILURE });
+            showToast("Invalid JSON", "failure");
         }
     };
 
@@ -446,7 +438,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
         lastVal = null;
         saveData();
         forceUpdate();
-        Toasts.show({ id: Toasts.genId(), message: "Data cleared", type: Toasts.Type.SUCCESS });
+        showToast("Data cleared", "success");
     };
 
     return (

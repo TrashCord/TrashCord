@@ -8,7 +8,7 @@ import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { classes } from "@utils/misc";
 import { IconComponent, PluginNative } from "@utils/types";
 import { insertTextIntoChatInputBox } from "@utils/discord";
-import { MediaEngineStore, showToast, Toasts, useEffect, useRef, useState } from "@webpack/common";
+import { MediaEngineStore, showToast, useEffect, useRef, useState } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -52,11 +52,11 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
     function start() {
         const { apiKey, baseUrl, model } = getProviderConfig();
         if (!apiKey) {
-            showToast("FastSpell: set your speech-to-text API key in the plugin settings first (free key at console.groq.com)", Toasts.Type.FAILURE);
+            showToast("FastSpell: set your speech-to-text API key in the plugin settings first (free key at console.groq.com)", "failure");
             return;
         }
         if (!baseUrl || !model) {
-            showToast("FastSpell: custom provider needs both a base url and a model in the plugin settings", Toasts.Type.FAILURE);
+            showToast("FastSpell: custom provider needs both a base url and a model in the plugin settings", "failure");
             return;
         }
 
@@ -64,7 +64,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
         try {
             discordVoice = DiscordNative.nativeModules.requireModule("discord_voice");
         } catch {
-            showToast("FastSpell: voice recording is only available on the Discord desktop app", Toasts.Type.FAILURE);
+            showToast("FastSpell: voice recording is only available on the Discord desktop app", "failure");
             return;
         }
 
@@ -76,7 +76,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
             },
             (success: boolean) => {
                 if (success) setRecording(true);
-                else showToast("FastSpell: failed to start recording (check your microphone)", Toasts.Type.FAILURE);
+                else showToast("FastSpell: failed to start recording (check your microphone)", "failure");
             }
         );
     }
@@ -86,7 +86,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
         discordVoice.stopLocalAudioRecording(async (filePath: string) => {
             setRecording(false);
             if (!filePath) {
-                showToast("FastSpell: recording failed", Toasts.Type.FAILURE);
+                showToast("FastSpell: recording failed", "failure");
                 return;
             }
 
@@ -102,11 +102,11 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
                 });
 
                 if (!res.ok) {
-                    showToast("FastSpell: " + (res.error ?? "transcription failed"), Toasts.Type.FAILURE);
+                    showToast("FastSpell: " + (res.error ?? "transcription failed"), "failure");
                     return;
                 }
                 if (!res.text) {
-                    showToast("FastSpell: didn't catch that — no speech detected", Toasts.Type.MESSAGE);
+                    showToast("FastSpell: didn't catch that — no speech detected", "message");
                     return;
                 }
 
@@ -114,11 +114,11 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
                 const targetLanguage = settings.store.sttTranslateTo.trim();
                 if (targetLanguage) {
                     if (!translateModel) {
-                        showToast("FastSpell: set a translation model in the plugin settings to use speech translation with a custom provider", Toasts.Type.FAILURE);
+                        showToast("FastSpell: set a translation model in the plugin settings to use speech translation with a custom provider", "failure");
                     } else {
                         const translated = await Native.translateText({ apiKey, baseUrl, model: translateModel, text, targetLanguage });
                         if (translated.ok && translated.text) text = translated.text;
-                        else showToast("FastSpell: translation failed, inserting what you said instead — " + (translated.error ?? "unknown error"), Toasts.Type.FAILURE);
+                        else showToast("FastSpell: translation failed, inserting what you said instead — " + (translated.error ?? "unknown error"), "failure");
                     }
                 }
 

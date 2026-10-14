@@ -12,7 +12,7 @@ import { Button } from "@components/Button";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, React, showToast, Slider, TextInput, Toasts, useState } from "@webpack/common";
+import { Modal, openModal, React, showToast, Slider, TextInput, useState } from "@webpack/common";
 
 type GetUserMedia = typeof navigator.mediaDevices.getUserMedia;
 
@@ -147,7 +147,7 @@ function getAudioElement(): HTMLAudioElement {
     audioElement.addEventListener("error", () => {
         isPlaying = false;
         forceButtonUpdate?.();
-        showToast("Music Mic could not play this link. Use a direct audio URL.", Toasts.Type.FAILURE);
+        showToast("Music Mic could not play this link. Use a direct audio URL.", "failure");
     });
 
     return audioElement;
@@ -212,7 +212,7 @@ async function startPlayback(): Promise<void> {
     const url = settings.store.audioUrl.trim();
 
     if (!url) {
-        showToast("Paste a direct audio link first.", Toasts.Type.FAILURE);
+        showToast("Paste a direct audio link first.", "failure");
         return;
     }
 
@@ -229,12 +229,12 @@ async function startPlayback(): Promise<void> {
         await mediaElement.play();
         isPlaying = true;
         forceButtonUpdate?.();
-        showToast("Music Mic started. Rejoin the call if Discord already captured your mic.", Toasts.Type.SUCCESS);
+        showToast("Music Mic started. Rejoin the call if Discord already captured your mic.", "success");
     } catch (error) {
         console.error("[MusicMic] Failed to play audio", error);
         isPlaying = false;
         forceButtonUpdate?.();
-        showToast("Could not load this audio or YouTube link. Try again shortly.", Toasts.Type.FAILURE);
+        showToast("Could not load this audio or YouTube link. Try again shortly.", "failure");
     }
 }
 
@@ -242,7 +242,7 @@ function stopPlayback(): void {
     audioElement?.pause();
     isPlaying = false;
     forceButtonUpdate?.();
-    showToast("Music Mic stopped.", Toasts.Type.MESSAGE);
+    showToast("Music Mic stopped.", "message");
 }
 
 function patchGetUserMedia(): void {
@@ -261,7 +261,7 @@ function patchGetUserMedia(): void {
             return await createMixedStream(stream);
         } catch (error) {
             console.error("[MusicMic] Failed to mix microphone stream", error);
-            showToast("Music Mic failed to mix audio. Using your normal mic.", Toasts.Type.FAILURE);
+            showToast("Music Mic failed to mix audio. Using your normal mic.", "failure");
             return stream;
         }
     }) as GetUserMedia;

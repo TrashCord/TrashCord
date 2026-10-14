@@ -11,7 +11,7 @@ import { classNameFactory } from "@api/Styles";
 import { Devs } from "@utils/constants";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, ContextMenuApi, Menu, React, RelationshipStore, RestAPI, Toasts, UserStore } from "@webpack/common";
+import { Button, ContextMenuApi, Menu, React, RelationshipStore, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const cl = classNameFactory("pc-friends-scrapper-");
 
@@ -127,11 +127,11 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
         const toRemove = allFriends.filter(id => !whitelistSet.has(id));
 
         if (!toRemove.length) {
-            Toasts.show({ id: Toasts.genId(), type: Toasts.Type.MESSAGE, message: "Whitelist covers all friends. Nothing to remove." });
+            showToast("Whitelist covers all friends. Nothing to remove.", "message");
             return;
         }
 
-        Toasts.show({ id: Toasts.genId(), type: Toasts.Type.MESSAGE, message: `Removing ${toRemove.length} friends...` });
+        showToast(`Removing ${toRemove.length} friends...`, "message");
         let success = 0, fail = 0;
         for (const id of toRemove) {
             try {
@@ -142,7 +142,7 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
             }
         }
 
-        Toasts.show({ id: Toasts.genId(), type: fail ? Toasts.Type.FAILURE : Toasts.Type.SUCCESS, message: `Done. Removed ${success}${fail ? `, failed ${fail}` : ""}.` });
+        showToast(`Done. Removed ${success}${fail ? `, failed ${fail}` : ""}.`, fail ? "failure" : "success");
         modalProps.onClose();
     }
 

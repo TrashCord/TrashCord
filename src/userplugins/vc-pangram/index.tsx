@@ -3,7 +3,7 @@ import { definePluginSettings } from "@api/Settings";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { Button } from "@components/Button";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
-import { Menu, Toasts } from "@webpack/common";
+import { Menu, showToast } from "@webpack/common";
 import { useEffect, useReducer } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers["Pangram AI Checker"] as PluginNative<typeof import("./native")>;
@@ -83,17 +83,13 @@ async function runScore(id: string, text: string, manual: boolean) {
         setScore(id, result);
         if (manual) {
             const emoji = result.label === "AI" ? "\u{1F916} " : result.label === "Human" ? "\u{1F9D1} " : "";
-            Toasts.show({
-                message: `${emoji}${result.label}${result.pct != null ? ` · ${result.pct}% AI` : ""}`,
-                type: result.label === "AI" ? Toasts.Type.FAILURE : result.label === "Human" ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE,
-                id: Toasts.genId(),
-            });
+            showToast(`${emoji}${result.label}${result.pct != null ? ` · ${result.pct}% AI` : ""}`, result.label === "AI" ? "failure" : result.label === "Human" ? "success" : "message");
         }
     } catch (e: any) {
         console.error("[Pangram]", e);
         setScore(id, { label: "?", pct: null });
         if (manual)
-            Toasts.show({ message: `Pangram: ${e.message}`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(`Pangram: ${e.message}`, "failure");
     } finally {
         inflight.delete(id);
         processQueue();
@@ -155,7 +151,7 @@ const settings = definePluginSettings({
                 scores.clear();
                 dsDel(STORE_KEY);
                 notify();
-                Toasts.show({ message: "Cache cleared", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                showToast("Cache cleared", "success");
             }}>
                 Clear Cache ({count} entries)
             </Button>;

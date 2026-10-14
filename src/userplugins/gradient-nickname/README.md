@@ -1,55 +1,51 @@
-# Vencord GradientNickname
+# GradientNickname
 
-Vencord plugin: gradient nicknames mimicking Discord's boost role-color effect.
+Vencord/Equicord userplugin: gradient nicknames mimicking Discord's boost role-color effect. Cross-user via invisible zero-width Unicode tag embedded in Discord bio.
 
 ## Install
 
-1. Clone Vencord: https://github.com/Vendicated/Vencord
-2. Copy `src/` of this repo into `Vencord/src/userplugins/gradientNickname/`
-3. Build & inject: `pnpm install && pnpm build && pnpm inject`
-4. Enable "GradientNickname" in Vencord plugin settings.
+1. Copy the `gradientNickname/` folder into `Vencord/src/userplugins/` (or `Equicord/src/userplugins/`).
+2. Build & inject: `pnpm install && pnpm build && pnpm inject`.
+3. Enable **GradientNickname** in Vencord plugin settings.
 
 ## Configure
 
-Plugin settings:
-- **stops** — comma-separated hex colors. Example: `#ff5f6d,#ffc371,#7873f5`
-- **anim** — `none`, `hue`, or `slide`
+Everything is configured in **User Settings → Appearance**, in the "Gradient Nickname" panel that mounts under the theme section.
 
-After save, plugin debounces 5s then PATCHes your bio with `[grad:#ff5f6d,#ffc371;anim=hue]`. Other plugin users see your gradient within 60s of viewing your name.
+- **Color stops** — one or more hex colors (`#rrggbb`), draggable to reorder.
+- **Animation** — `none`, `slide`, `pulse`, `wave`, `hue`.
+- **Slide direction** — `left` / `right` / `up` / `down` (when slide is active).
+- **Speed** — 1–10 (maps to 10s … 1s duration).
+- **Font** — Discord-native, Google Fonts (lazy-loaded), or system.
+- **Glow** — with animated variants (`orbit`, `spin-fast`, `pulse`, `wave`, `bounce`, `flicker`).
 
-## Manual QA Checklist
+Then click **Copy bio tag** and paste the invisible tag into **User Settings → Profiles → About Me**. Other users running the plugin see your gradient within ~60s of viewing your name.
 
-- [ ] Self gradient renders in chat (your own messages).
-- [ ] Self gradient renders in member list.
-- [ ] Self gradient renders in mention pill (`@yourself` typed in another user's message).
-- [ ] Self gradient renders in user profile popout (click own avatar).
-- [ ] Self gradient renders in voice channel name list.
-- [ ] Self gradient renders in DM list.
-- [ ] Self gradient renders in reply context (someone replies to your message).
-- [ ] Settings save → verify bio updated within 5s in Discord User Settings → Profile → About Me.
-- [ ] Two test accounts: A sets gradient. B sees A's gradient within 60s after rendering A's name in any surface.
-- [ ] Disable plugin → all gradients revert to default color, no DOM leftovers.
-- [ ] Bio without `[grad:]` tag → user's name renders normal color.
-- [ ] Animation `hue` — name shifts hue continuously when visible.
-- [ ] Animation `slide` — gradient slides left↔right.
-- [ ] Bio at 190-char limit: setting save shows "Bio too full" toast and aborts; local render still updates.
+> ⚠️ The plugin does **not** auto-patch your bio. This is intentional — it avoids Discord's automation-rule territory. You must paste the tag manually.
 
-## Discord Version Targeted
+## How it works
 
-Patches are written against the Discord build active at install time. If Discord updates and patches break, the Vencord console warns "[Vencord] Patch failed for ..." — locate the surface in `src/index.tsx` `patches` array, refresh the `find:` substring against the current minified bundle (DevTools → Sources), and update the `match` regex.
+- The panel serializes your config to a compact binary blob (`encoding.ts`), encodes it as zero-width Unicode characters, wraps it in U+2063 sentinels, and copies it to your clipboard.
+- When any user's profile is fetched, the plugin scans their bio, finds the sentinel-wrapped blob, and decodes it back to a `GradientConfig`.
+- A DOM observer walks username elements (`MutationObserver` + React fiber inspection) and paints gradients via `background-clip: text` + CSS animations.
+- No bio PATCH, no messages, no automation. Read-only on the network side.
 
-Patch authoring (Task 10 of the implementation plan): for each surface (chat author, member list, mention, profile/popout, voice list, DM list, reply context), find the React component rendering the username and add a Vencord patch that wraps the JSX in `<GradientName userId={user.id}>`. One patch per surface — failure of one does not break others.
+## Local config vs. rendered gradient
 
-## Tests
+The panel's local config (in DataStore) drives only the **preview** and the tag generation. What you actually see rendered on your own name comes from **your bio** — the same path used for other users. So:
 
-Pure unit tests for encoding, store, fetchQueue:
+- Edit config → panel preview updates immediately.
+- Click **Copy bio tag** → paste into About Me → save → your rendered name updates on next fetch (usually within seconds, forced by `USER_PROFILE_UPDATE_SUCCESS`).
 
-```bash
-npm test
-```
+## Limits
 
-26 tests covering encode/decode round-trip, TTL refresh semantics, and fetch queue throttling/back-off.
+- Bio limit is 190 chars. The panel shows `XX/190` live and refuses to copy an oversized tag with a failure toast.
+- Binary blob is compact: 7 bytes header + 3 bytes per color stop. 8 stops ≈ 31 bytes → 124 zero-width chars + 2 sentinels. Fits comfortably.
+- Legacy `[grad:...]` plaintext tags (from earlier versions) are still decoded for backward compat.
 
-## Architecture
+## Troubleshooting
 
-See `docs/superpowers/specs/2026-05-07-gradient-nickname-design.md` for full design and `docs/superpowers/plans/2026-05-07-gradient-nickname.md` for the implementation plan.
+- **Gradient not appearing on other users**: they may not be running the plugin, or their bio tag didn't survive Discord's bio sanitizer (rare, but zero-width chars occasionally get stripped).
+- **Bio too full**: shorten your bio; the tag needs ~30–130 chars depending on stop count.
+- **Font doesn't apply**: Google Fonts fetch may be blocked by Discord CSP. The plugin falls back to Discord's default font and logs `[GradientNickname] font load failed`.
+- **Panel doesn't mount**: it anchors to the "Apply theme to other users" text in Appearance settings. If Discord's layout changes, `mountPanelIfAppearance()` in `index.tsx` needs updating.

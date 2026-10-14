@@ -4,7 +4,7 @@ import { Paragraph } from "@components/Paragraph";
 import { Devs } from "@utils/constants";
 import definePlugin, { PluginNative } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Alerts, Button, FluxDispatcher, Toasts, UserProfileStore, UserStore } from "@webpack/common";
+import { Alerts, Button, FluxDispatcher, showToast, UserProfileStore, UserStore } from "@webpack/common";
 
 const native = VencordNative.pluginHelpers.Identity as PluginNative<typeof import("./native")>;
 const CustomizationSection = findComponentByCodeLazy(".DESCRIPTION", "hasBackground:");
@@ -36,10 +36,10 @@ async function randomize() {
             bio: `Hello! I am ${person.name.first} ${person.name.last}`
         });
 
-        Toasts.show({ message: "Random profile applied!", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+        showToast("Random profile applied!", "success");
     } catch (error) {
         console.error("[Identity] Randomize failed:", error);
-        Toasts.show({ message: "Randomization failed. Check console.", id: Toasts.genId(), type: Toasts.Type.FAILURE });
+        showToast("Randomization failed. Check console.", "failure");
     }
 }
 
@@ -74,17 +74,17 @@ async function saveBase() {
         };
 
         await DataStore.set("identity-saved-base", JSON.stringify(savedData));
-        Toasts.show({ message: "Base profile saved!", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+        showToast("Base profile saved!", "success");
     } catch (error) {
         console.error("[Identity] Save failed:", error);
-        Toasts.show({ message: "Save failed. Check console.", id: Toasts.genId(), type: Toasts.Type.FAILURE });
+        showToast("Save failed. Check console.", "failure");
     }
 }
 
 async function loadBase() {
     const raw = await DataStore.get("identity-saved-base");
     if (!raw) {
-        Toasts.show({ message: "No saved base found. Save one first.", id: Toasts.genId(), type: Toasts.Type.FAILURE });
+        showToast("No saved base found. Save one first.", "failure");
         return;
     }
 
@@ -100,10 +100,10 @@ async function loadBase() {
         FluxDispatcher.dispatch({ type: "USER_SETTINGS_ACCOUNT_SET_PENDING_THEME_COLORS", themeColors: data.themeColors });
         FluxDispatcher.dispatch({ type: "USER_SETTINGS_ACCOUNT_SET_PENDING_BIO", bio: data.bio });
 
-        Toasts.show({ message: "Base profile loaded!", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+        showToast("Base profile loaded!", "success");
     } catch (error) {
         console.error("[Identity] Load failed:", error);
-        Toasts.show({ message: "Load failed. Data may be corrupted.", id: Toasts.genId(), type: Toasts.Type.FAILURE });
+        showToast("Load failed. Data may be corrupted.", "failure");
     }
 }
 

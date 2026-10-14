@@ -18,7 +18,6 @@ import {
     RestAPI,
     Text,
     TextInput,
-    Toasts,
     UserStore,
     showToast,
 } from "@webpack/common";
@@ -456,7 +455,7 @@ function onMessage({ message: msg }: { message: Message }): void {
 
     if (contentHasBlacklistedLink(msg.content) || contentHasScamLink(msg.content)) {
         blockIds(msg.channel_id, [msg.id]);
-        showToast("⚠️ Plugin: malicious/scam link removed.", Toasts.Type.FAILURE);
+        showToast("⚠️ Plugin: malicious/scam link removed.", "failure");
         autoSweepChannel(msg.channel_id, [msg.id]);
         return;
     }
@@ -464,7 +463,7 @@ function onMessage({ message: msg }: { message: Message }): void {
     if (isPurging(msg.channel_id)) {
         if (hasSuspiciousContent(msg)) {
             blockIds(msg.channel_id, [msg.id]);
-            showToast("⚠️ Plugin: purge mode active - message removed.", Toasts.Type.FAILURE);
+            showToast("⚠️ Plugin: purge mode active - message removed.", "failure");
         }
         return;
     }
@@ -489,7 +488,7 @@ function onMessage({ message: msg }: { message: Message }): void {
             }
             showToast(
                 `⚠️ Plugin: spam detected across ${distinctChannels} channels/DMs at once - your account is very likely hacked. Run a malware scan (Malwarebytes & AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC.`,
-                Toasts.Type.FAILURE,
+                "failure",
             );
             return;
         }
@@ -517,7 +516,7 @@ function onMessage({ message: msg }: { message: Message }): void {
         startPurge(msg.channel_id);
         showToast(
             `⚠️ Plugin: blocked ${toDelete.length} spam message(s) - your account may be hacked. Run a malware scan (Malwarebytes and AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC. This only blocks new spam, not messages sent before detection.`,
-            Toasts.Type.FAILURE,
+            "failure",
         );
         autoSweepChannel(msg.channel_id, toDelete);
     }
@@ -653,7 +652,7 @@ async function purgeSpamMessages(
         : `✅ Finished - ${deleted} deleted, ${errors} error(s).`;
 
     notifyListeners(finalMsg, deleted, true);
-    showToast(finalMsg, abortPurge ? Toasts.Type.MESSAGE : Toasts.Type.SUCCESS);
+    showToast(finalMsg, abortPurge ? "message" : "success");
 }
 
 function Toggle({ checked, onChange, disabled }: {

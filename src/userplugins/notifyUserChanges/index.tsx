@@ -5,14 +5,15 @@
  */
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { HeaderBarButton } from "@api/HeaderBar";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings, Settings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Channel, User } from "@vencord/discord-types";
 import { filters, findStoreLazy, mapMangledModuleLazy } from "@webpack";
-import { Menu, PresenceStore, React, SelectedChannelStore, Tooltip, UserStore } from "@webpack/common";
-import { CSSProperties } from "react";
+import { Menu, PresenceStore, React, SelectedChannelStore, showToast, Tooltip, useEffect, UserStore, useState } from "@webpack/common";
+import { CSSProperties, SVGProps } from "react";
 
 import { NotificationsOffIcon } from "./components/NotificationsOffIcon";
 import { NotificationsOnIcon } from "./components/NotificationsOnIcon";
@@ -206,6 +207,12 @@ const PlatformIndicator = ({ user, wantMargin = true, wantTopMargin = false, sma
 };
 
 export const settings = definePluginSettings({
+    showToasts: {
+        type: OptionType.BOOLEAN,
+        description: "Show toast notifications",
+        restartNeeded: false,
+        default: true,
+    },
     notifyStatus: {
         type: OptionType.BOOLEAN,
         description: "Notify on status changes",
@@ -232,6 +239,35 @@ export const settings = definePluginSettings({
     }
 });
 
+const listeners = new Set<() => void>();
+
+function notify() {
+    listeners.forEach(fn => fn());
+}
+
+function toast(message: string, type: "success" | "failure") {
+    if (settings.store.showToasts) showToast(message, type);
+}
+
+function useTrackedIds() {
+    const [, tick] = useState(0);
+    settings.use(["userIds"]);
+    useEffect(() => {
+        const fn = () => tick(n => n + 1);
+        listeners.add(fn);
+        return () => { listeners.delete(fn); };
+    }, []);
+    return getUserIdList();
+}
+
+function WatchIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+        </svg>
+    );
+}
+
 function getUserIdList() {
     try {
         return settings.store.userIds.split(",").filter(Boolean);
@@ -251,6 +287,10 @@ function getFollowedUserIdSet(): Set<string> {
         cachedUserIdSet = new Set(getUserIdList());
     }
     return cachedUserIdSet;
+}
+
+function getName(userId: string) {
+    return UserStore.getUser(userId)?.username ?? userId;
 }
 
 const getRichBody = (user: User, text: string | React.ReactNode) => <div
@@ -291,13 +331,24 @@ function triggerVoiceNotification(userId: string, userChannelId: string | null) 
 
 function toggleUserNotify(userId: string) {
     const userIds = getUserIdList();
+    const name = getName(userId);
     if (userIds.includes(userId)) {
         userIds.splice(userIds.indexOf(userId), 1);
         lastStatuses.delete(userId);
+        toast(`Stopped notifying on ${name}`, "failure");
     } else {
         userIds.push(userId);
+        toast(`Now notifying on ${name}`, "success");
     }
     settings.store.userIds = userIds.join(",");
+    notify();
+}
+
+function stopAllNotify() {
+    settings.store.userIds = "";
+    lastStatuses.clear();
+    notify();
+    toast("Stopped notifying on all users", "failure");
 }
 
 interface UserContextProps {
@@ -319,21 +370,41 @@ const UserContext: NavContextMenuPatchCallback = (children, { user }: UserContex
                 label={label}
                 action={() => toggleUserNotify(user.id)}
                 icon={icon}
+                leadingAccessory={{ type: "icon", icon }}
             />
         </Menu.MenuGroup>
     ));
 };
+
+function NotifyHeaderButton() {
+    const ids = useTrackedIds();
+    if (!ids.length) return null;
+
+    return (
+        <HeaderBarButton
+            icon={WatchIcon}
+            tooltip={`Notifying on changes: ${ids.map(getName).join(", ")} (click to stop)`}
+            onClick={stopAllNotify}
+        />
+    );
+}
 
 const lastStatuses = new Map<string, string>();
 
 export default definePlugin({
     name: "NotifyUserChanges",
     description: "Adds a notify option in the user context menu to get notified when a user changes voice channels or online status",
-    authors: [Devs.D3SOX],
+    authors: [Devs.D3SOX, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Friends", "Notifications"],
     enabledByDefault: false,
 
     settings,
+
+    headerBarButton: {
+        icon: WatchIcon,
+        render: NotifyHeaderButton,
+        priority: 6,
+    },
 
     contextMenus: {
         "user-context": UserContext
@@ -370,8 +441,7 @@ export default definePlugin({
 
                 if (lastStatuses.has(userId) && lastStatuses.get(userId) !== status) {
                     const user = UserStore.getUser(userId);
-                    // @ts-ignore
-                    const name = user.globalName || update.user.username;
+                    const name = user?.username ?? update.user.username;
 
                     showNotification({
                         title: shouldBeNative() ? `${name} changed status` : "User status change",

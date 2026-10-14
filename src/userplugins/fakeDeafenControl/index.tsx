@@ -1,7 +1,7 @@
 import definePlugin, { OptionType } from "@utils/types";
 import { Devs } from "@utils/constants";
 import { definePluginSettings } from "@api/Settings";
-import { Toasts, SelectedChannelStore } from "@webpack/common";
+import { showToast , SelectedChannelStore } from "@webpack/common";
 import { findByPropsLazy } from "@webpack";
 
 const states = {
@@ -95,14 +95,11 @@ function toggleFakeDeafen() {
     const statusMsg = states.deafen ? "disabled" : "enabled";
     const muteStatusMsg = !states.deafen ? " (+ fake mute)" : "";
 
-    Toasts.show({
-        message: `🔇 Fake deafen is now: ${statusMsg}${muteStatusMsg}`,
-        id: "fake-deafen",
-        type: states.deafen ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
-        options: {
-            position: Toasts.Position.BOTTOM
-        }
-    });
+    showToast(
+        `🔇 Fake deafen is now: ${statusMsg}${muteStatusMsg}`,
+        states.deafen ? "success" : "failure",
+        { id: "fake-deafen", position: 1 }
+    );
 
     // Trigger voice state update
     updaterequired = true;
@@ -120,14 +117,11 @@ function toggleFakeMute() {
     states.mute = !states.mute;
     settings.store.enableFakeMute = states.mute;
 
-    Toasts.show({
-        message: `🎤 Fake mute is now: ${states.mute ? "disabled" : "enabled"}`,
-        id: "fake-mute",
-        type: states.mute ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
-        options: {
-            position: Toasts.Position.BOTTOM
-        }
-    });
+    showToast(
+        `🎤 Fake mute is now: ${states.mute ? "disabled" : "enabled"}`,
+        states.mute ? "success" : "failure",
+        { id: "fake-mute", position: 1 }
+    );
 
     // Trigger voice state update
     updaterequired = true;
@@ -201,15 +195,11 @@ export default definePlugin({
         this._boundVoiceChannelChange = this.handleVoiceChannelChange.bind(this);
         SelectedChannelStore.addChangeListener(this._boundVoiceChannelChange);
 
-        Toasts.show({
-            message: `🎤 Fake Voice Plugin loaded! Use ${settings.store.muteKeybind.toUpperCase()} (mute) and ${settings.store.deafenKeybind.toUpperCase()} (deafen+mute)`,
-            id: "plugin-loaded",
-            type: Toasts.Type.SUCCESS,
-            options: {
-                position: Toasts.Position.BOTTOM,
-                duration: 4000
-            }
-        });
+        showToast(
+            `🎤 Fake Voice Plugin loaded! Use ${settings.store.muteKeybind.toUpperCase()} (mute) and ${settings.store.deafenKeybind.toUpperCase()} (deafen+mute)`,
+            "success",
+            { id: "plugin-loaded", position: 1, duration: 4000 }
+        );
     },
 
     stop() {
@@ -222,13 +212,9 @@ export default definePlugin({
         // Clean up tracking
         this.lastVoiceChannelId = null;
 
-        Toasts.show({
-            message: "🎤 Fake Voice Plugin stopped",
+        showToast("🎤 Fake Voice Plugin stopped", "message", {
             id: "plugin-stopped",
-            type: Toasts.Type.MESSAGE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+            position: 1
         });
     },
 

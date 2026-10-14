@@ -5,32 +5,27 @@
  */
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { definePluginSettings, useSettings } from "@api/Settings";
-import ErrorBoundary from "@components/ErrorBoundary";
+import { HeaderBarButton } from "@api/HeaderBar";
+import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
-import { LazyComponent } from "@utils/lazyReact";
 import { classes } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Channel, User } from "@vencord/discord-types";
-import { filters, find, findByPropsLazy, findStoreLazy } from "@webpack";
+import { findByPropsLazy, findStoreLazy } from "@webpack";
 import {
     ChannelStore,
     Menu,
     PermissionsBits,
     PermissionStore,
-    React,
     SelectedChannelStore,
-    Toasts,
-    UserStore
+    showToast,
+    useEffect,
+    UserStore,
+    useState
 } from "@webpack/common";
 import type { PropsWithChildren, SVGProps } from "react";
 
 import { FollowIcon as PanelFollowIcon, FollowPanelButton } from "./panel";
-
-const HeaderBarIcon = LazyComponent(() => {
-    const filter = filters.byCode(".HEADER_BAR_BADGE");
-    return find(m => m.Icon && filter(m.Icon)).Icon;
-});
 
 interface BaseIconProps extends IconProps {
     viewBox: string;
@@ -94,6 +89,14 @@ function UnfollowIcon(props: IconProps) {
     );
 }
 
+function WalkIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9 7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7" />
+        </svg>
+    );
+}
+
 interface VoiceState {
     userId: string;
     channelId?: string;
@@ -110,6 +113,12 @@ interface VoiceState {
 }
 
 export const settings = definePluginSettings({
+    showToasts: {
+        type: OptionType.BOOLEAN,
+        description: "Show toast notifications",
+        restartNeeded: false,
+        default: true
+    },
     executeOnFollow: {
         type: OptionType.BOOLEAN,
         description: "Make sure to be in the same VC when following a user",
@@ -189,6 +198,27 @@ interface VoiceStateMember {
     [userId: string]: VoiceState;
 }
 
+const listeners = new Set<() => void>();
+
+function notify() {
+    listeners.forEach(fn => fn());
+}
+
+function toast(message: string, type: "success" | "failure") {
+    if (settings.store.showToasts) showToast(message, type);
+}
+
+function useFollowedId() {
+    const [, tick] = useState(0);
+    settings.use(["followUserId"]);
+    useEffect(() => {
+        const fn = () => tick(n => n + 1);
+        listeners.add(fn);
+        return () => { listeners.delete(fn); };
+    }, []);
+    return settings.store.followUserId;
+}
+
 export function getChannelId(userId: string) {
     if (!userId) {
         return null;
@@ -219,65 +249,43 @@ export function triggerFollow(userChannelId: string | null = getChannelId(settin
                 }
                 if (channel.type === 1 || PermissionStore.can(CONNECT, channel)) {
                     if (channel.userLimit !== 0 && memberCount !== null && memberCount >= channel.userLimit && !PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) {
-                        Toasts.show({
-                            message: "Channel is full",
-                            id: Toasts.genId(),
-                            type: Toasts.Type.FAILURE
-                        });
+                        toast("Channel is full", "failure");
                         return;
                     }
                     ChannelActions.selectVoiceChannel(userChannelId);
-                    Toasts.show({
-                        message: "Followed user into a new voice channel",
-                        id: Toasts.genId(),
-                        type: Toasts.Type.SUCCESS
-                    });
+                    toast("Followed user into a new voice channel", "success");
                 } else {
-                    Toasts.show({
-                        message: "Insufficient permissions to enter in the voice channel",
-                        id: Toasts.genId(),
-                        type: Toasts.Type.FAILURE
-                    });
+                    toast("Insufficient permissions to enter in the voice channel", "failure");
                 }
             } else {
-                Toasts.show({
-                    message: "You are already in the same channel",
-                    id: Toasts.genId(),
-                    type: Toasts.Type.FAILURE
-                });
+                toast("You are already in the same channel", "failure");
             }
         } else if (myChanId) {
             if (settings.store.followLeave) {
                 ChannelActions.disconnect();
-                Toasts.show({
-                    message: "Followed user left, disconnected",
-                    id: Toasts.genId(),
-                    type: Toasts.Type.SUCCESS
-                });
+                toast("Followed user left, disconnected", "success");
             } else {
-                Toasts.show({
-                    message: "Followed user left, but not following disconnect",
-                    id: Toasts.genId(),
-                    type: Toasts.Type.FAILURE
-                });
+                toast("Followed user left, but not following disconnect", "failure");
             }
         } else {
-            Toasts.show({
-                message: "Followed user is not in a voice channel",
-                id: Toasts.genId(),
-                type: Toasts.Type.FAILURE
-            });
+            toast("Followed user is not in a voice channel", "failure");
         }
     }
 }
 
+function stopFollow() {
+    settings.store.followUserId = "";
+    settings.store.followedUsername = "";
+    notify();
+}
+
 export function toggleFollow(userId: string) {
     if (settings.store.followUserId === userId) {
-        settings.store.followUserId = "";
-        settings.store.followedUsername = "";
+        stopFollow();
     } else {
         settings.store.followUserId = userId;
         settings.store.followedUsername = UserStore.getUser(userId)?.username ?? "";
+        notify();
         if (settings.store.executeOnFollow) {
             triggerFollow();
         }
@@ -303,10 +311,24 @@ const UserContext: NavContextMenuPatchCallback = (children, { user }: UserContex
                 label={label}
                 action={() => toggleFollow(user.id)}
                 icon={icon}
+                leadingAccessory={{ type: "icon", icon }}
             />
         </Menu.MenuGroup>
     ));
 };
+
+function FollowHeaderButton() {
+    const followUserId = useFollowedId();
+    if (!followUserId) return null;
+
+    return (
+        <HeaderBarButton
+            icon={WalkIcon}
+            tooltip={`Following ${UserStore.getUser(followUserId)?.username ?? followUserId} (click to stop)`}
+            onClick={stopFollow}
+        />
+    );
+}
 
 export default definePlugin({
     name: "FollowUser",
@@ -315,15 +337,12 @@ export default definePlugin({
     tags: ["Friends", "Voice"],
     enabledByDefault: false,
     settings,
-    patches: [
-        {
-            find: "toolbar:function",
-            replacement: {
-                match: /(function \i\(\i\){)(.{1,300}?toolbar.{1,300}?mobileToolbar)/,
-                replace: "$1$self.addIconToToolBar(arguments[0]);$2"
-            }
-        },
-    ],
+
+    headerBarButton: {
+        icon: WalkIcon,
+        render: FollowHeaderButton,
+        priority: 6,
+    },
 
     userAreaButton: {
         icon: PanelFollowIcon,
@@ -388,50 +407,5 @@ export default definePlugin({
                 }
             }
         },
-    },
-
-    FollowIndicator() {
-        const { plugins: { FollowUser: { followUserId } } } = useSettings(["plugins.FollowUser.followUserId"]);
-        if (followUserId) {
-            return (
-                <HeaderBarIcon
-                    tooltip={`Following ${UserStore.getUser(followUserId).username} (click to trigger manually, right-click to unfollow)`}
-                    icon={UnfollowIcon}
-                    className="vc-plugin-icon-button"
-                    iconClassName="vc-plugin-icon-button"
-                    onClick={() => {
-                        triggerFollow();
-                    }}
-                    onContextMenu={() => {
-                        settings.store.followUserId = "";
-                        settings.store.followedUsername = "";
-                    }}
-                />
-            );
-        }
-
-        return null;
-    },
-
-    addIconToToolBar(e: { toolbar: React.ReactNode[] | React.ReactNode; mobileToolbar?: React.ReactNode[] | React.ReactNode; }) {
-        const icon = (
-            <ErrorBoundary noop={true} key="follow-indicator">
-                <this.FollowIndicator />
-            </ErrorBoundary>
-        );
-
-        if (Array.isArray(e.toolbar)) {
-            e.toolbar.push(icon);
-        } else {
-            e.toolbar = [icon, e.toolbar];
-        }
-
-        if (e.mobileToolbar !== undefined) {
-            if (Array.isArray(e.mobileToolbar)) {
-                e.mobileToolbar.push(icon);
-            } else {
-                e.mobileToolbar = [icon, e.mobileToolbar];
-            }
-        }
     },
 });

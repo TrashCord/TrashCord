@@ -6,7 +6,7 @@
 
 import { Button } from "@components/Button";
 import { pluralize } from "@utils/misc";
-import { SearchableSelect, showToast, TextInput, Toasts, useState } from "@webpack/common";
+import { SearchableSelect, showToast, TextInput, useState } from "@webpack/common";
 
 import { syncGroup } from "../actions";
 import { getErrorMessage, getGroupName, listGroups } from "../api";
@@ -67,11 +67,11 @@ export default function DashboardTab({ onCreate, onTrack }: DashboardTabProps) {
             try {
                 await syncGroup(group);
             } catch (err) {
-                showToast(`Could not sync ${group.label ?? group.id}: ${getErrorMessage(err)}`, Toasts.Type.FAILURE);
+                showToast(`Could not sync ${group.label ?? group.id}: ${getErrorMessage(err)}`, "failure");
             }
         }
         setBusy(false);
-        showToast(`Synced ${pluralize(groups.length, "group")}`, Toasts.Type.SUCCESS);
+        showToast(`Synced ${pluralize(groups.length, "group")}`, "success");
     }
 
     return (

@@ -12,7 +12,7 @@ import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import type { ModuleFactory } from "@vencord/discord-types/webpack";
 import { findByPropsLazy, wreq } from "@webpack";
-import { showToast, Toasts, UserSettingsActionCreators, UserSettingsProtoStore } from "@webpack/common";
+import { showToast, UserSettingsActionCreators, UserSettingsProtoStore } from "@webpack/common";
 
 const logger = new Logger("GifTransfer");
 
@@ -164,7 +164,7 @@ async function exportGifs(): Promise<void> {
     const entries = Object.entries(gifs);
 
     if (entries.length === 0) {
-        showToast("No favorite GIFs found to export.", Toasts.Type.FAILURE);
+        showToast("No favorite GIFs found to export.", "failure");
         return;
     }
 
@@ -190,7 +190,7 @@ async function exportGifs(): Promise<void> {
     a.download = `gif-favorites-${Date.now()}.json`;
     a.click();
 
-    showToast(`Exported ${gifsArray.length} GIFs successfully!`, Toasts.Type.SUCCESS);
+    showToast(`Exported ${gifsArray.length} GIFs successfully!`, "success");
 }
 
 // ─── Verify ──────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ async function verifyGifs(file: File): Promise<void> {
         const data: ExportFile = JSON.parse(text);
 
         if (!data.gifs || !Array.isArray(data.gifs)) {
-            showToast("Invalid file format.", Toasts.Type.FAILURE);
+            showToast("Invalid file format.", "failure");
             return;
         }
 
@@ -242,12 +242,12 @@ async function verifyGifs(file: File): Promise<void> {
         console.log(report);
 
         if (missing === 0) {
-            showToast(`All ${found} GIFs verified! No missing GIFs. ✅`, Toasts.Type.SUCCESS);
+            showToast(`All ${found} GIFs verified! No missing GIFs. ✅`, "success");
         } else {
-            showToast(`Missing ${missing} GIFs. Press Import again to retry. Check console for details.`, Toasts.Type.FAILURE);
+            showToast(`Missing ${missing} GIFs. Press Import again to retry. Check console for details.`, "failure");
         }
     } catch (e) {
-        showToast("Failed to read file.", Toasts.Type.FAILURE);
+        showToast("Failed to read file.", "failure");
         console.error("[GifTransfer] Verify error:", e);
     }
 }
@@ -257,7 +257,7 @@ async function verifyGifs(file: File): Promise<void> {
 async function importGifs(file: File): Promise<void> {
     const addGif = getAddGifFn();
     if (!addGif) {
-        showToast("Could not find Discord's internal GIF function. Try reloading Discord.", Toasts.Type.FAILURE);
+        showToast("Could not find Discord's internal GIF function. Try reloading Discord.", "failure");
         return;
     }
 
@@ -265,12 +265,12 @@ async function importGifs(file: File): Promise<void> {
     try {
         data = JSON.parse(await file.text());
     } catch {
-        showToast("Invalid JSON file.", Toasts.Type.FAILURE);
+        showToast("Invalid JSON file.", "failure");
         return;
     }
 
     if (!data.gifs || !Array.isArray(data.gifs)) {
-        showToast("Invalid file format.", Toasts.Type.FAILURE);
+        showToast("Invalid file format.", "failure");
         return;
     }
 
@@ -294,11 +294,11 @@ async function importGifs(file: File): Promise<void> {
     const skipped = deduped.length - toImport.length;
 
     if (toImport.length === 0) {
-        showToast("All GIFs are already in your favorites. Nothing to import. ✅", Toasts.Type.MESSAGE);
+        showToast("All GIFs are already in your favorites. Nothing to import. ✅", "message");
         return;
     }
 
-    showToast(`Importing ${toImport.length} GIFs... (${skipped} skipped as duplicates)`, Toasts.Type.MESSAGE);
+    showToast(`Importing ${toImport.length} GIFs... (${skipped} skipped as duplicates)`, "message");
     console.log(`[GifTransfer] Starting import: ${toImport.length} GIFs | Skipping: ${skipped} | File dupes removed: ${filedupes}`);
 
     let ok = 0;
@@ -324,7 +324,7 @@ async function importGifs(file: File): Promise<void> {
                 rateLimitHits++;
                 delay = Math.min(delay * 2, 5000); // Double delay, max 5s
                 console.log(`[GifTransfer] Rate limit hit! Increased delay to ${delay}ms`);
-                showToast(`Rate limited. Increased delay to ${delay}ms. Retrying...`, Toasts.Type.FAILURE);
+                showToast(`Rate limited. Increased delay to ${delay}ms. Retrying...`, "failure");
                 // Wait extra to let Discord cool down
                 await sleep(delay * 2);
                 continue; // Retry this GIF with new delay
@@ -339,7 +339,7 @@ async function importGifs(file: File): Promise<void> {
     }
 
     console.log(`[GifTransfer] ✅ Done! Imported: ${ok} | Errors: ${err} | Skipped: ${skipped}`);
-    showToast(`Import complete! ${ok} GIFs added, ${skipped} duplicates skipped, ${err} errors.`, ok > 0 ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE);
+    showToast(`Import complete! ${ok} GIFs added, ${skipped} duplicates skipped, ${err} errors.`, ok > 0 ? "success" : "failure");
 }
 
 // ─── File Picker Helper ───────────────────────────────────────────────────────

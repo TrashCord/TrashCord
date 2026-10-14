@@ -8,7 +8,7 @@ import { showNotification } from "@api/Notifications";
 import { fetchUserProfile } from "@utils/discord";
 import definePlugin from "@utils/types";
 import type { User } from "@vencord/discord-types";
-import { Alerts, Menu, RestAPI, Toasts, UserProfileStore } from "@webpack/common";
+import { Alerts, Menu, RestAPI, showToast, UserProfileStore } from "@webpack/common";
 
 interface UserContextProps {
     user?: User;
@@ -94,12 +94,7 @@ async function cloneProfile(user: User) {
         });
     } catch (e) {
         console.error("[CopyProfile]", e);
-        Toasts.show({
-            message: "Failed to clone profile.",
-            type: Toasts.Type.FAILURE,
-            id: Toasts.genId(),
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast("Failed to clone profile.", "failure", { position: 1 });
     }
 }
 

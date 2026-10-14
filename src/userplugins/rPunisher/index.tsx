@@ -9,7 +9,7 @@ import { Devs } from "@utils/constants";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { RestAPI, Toasts, UserStore } from "@webpack/common";
+import { RestAPI, showToast, UserStore } from "@webpack/common";
 // @ts-ignore
 import { VoiceState as WebpackVoiceState } from "@webpack/types";
 // @ts-ignore
@@ -77,14 +77,11 @@ async function executeBan(channelId: string, userId: string): Promise<void> {
 
         bannedUsers.add(userId);
 
-        Toasts.show({
-            message: `Auto-banning user ${userId} for voice channel spam`,
-            id: "voice-auto-ban",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
-        });
+        showToast(
+            `Auto-banning user ${userId} for voice channel spam`,
+            "failure",
+            { id: "voice-auto-ban", position: 1 }
+        );
 
         try {
 

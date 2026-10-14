@@ -8,7 +8,7 @@ import { Badge } from "@components/Badge";
 import { Button } from "@components/Button";
 import { copyWithToast } from "@utils/discord";
 import { pluralize } from "@utils/misc";
-import { ChannelStore, showToast, TextInput, Toasts, useMemo, useState, useStateFromStores } from "@webpack/common";
+import { ChannelStore, showToast, TextInput, useMemo, useState, useStateFromStores } from "@webpack/common";
 
 import { isGivenUp, log, notify, resetReaddCounts, syncGroup } from "../actions";
 import { addMembers, describeUser, getErrorMessage, getFriends, getGroupName, openChannel, recipientIds, removeMembers, selfId } from "../api";
@@ -94,7 +94,7 @@ export default function GroupCard({ group }: GroupCardProps) {
         try {
             await task();
         } catch (err) {
-            showToast(getErrorMessage(err), Toasts.Type.FAILURE);
+            showToast(getErrorMessage(err), "failure");
             log(group, getErrorMessage(err), "error");
         } finally {
             setBusy("");
@@ -156,7 +156,7 @@ export default function GroupCard({ group }: GroupCardProps) {
                     size="xs"
                     variant="primary"
                     disabled={!!busy}
-                    onClick={() => run(async () => showToast(await syncGroup(group), Toasts.Type.SUCCESS))}
+                    onClick={() => run(async () => showToast(await syncGroup(group), "success"))}
                 >
                     {busy || "Sync now"}
                 </Button>
@@ -210,7 +210,7 @@ export default function GroupCard({ group }: GroupCardProps) {
                             const { targets, members } = rolesToLists(roles);
                             update({ targets, members });
                             setAdding(false);
-                            showToast(`Saved ${pluralize(targets.length, "target")} and ${pluralize(members.length, "member")}`, Toasts.Type.SUCCESS);
+                            showToast(`Saved ${pluralize(targets.length, "target")} and ${pluralize(members.length, "member")}`, "success");
                         }}
                     >
                         Save lists

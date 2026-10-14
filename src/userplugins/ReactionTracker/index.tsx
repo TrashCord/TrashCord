@@ -13,7 +13,7 @@ import { Devs } from "@utils/constants";
 import { pluralize } from "@utils/misc";
 import { useAwaiter } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { MessageStore, Parser, showToast, Toasts, UserStore } from "@webpack/common";
+import { MessageStore, Parser, showToast, UserStore } from "@webpack/common";
 
 const DATA_KEY = "ReactionTracker_data";
 const LEGACY_KEY = "huskchart";
@@ -143,7 +143,7 @@ const settings = definePluginSettings({
                 variant="dangerPrimary"
                 onClick={async () => {
                     await DataStore.set(DATA_KEY, emptyCounts());
-                    showToast("Cleared. Reopen settings to see the change.", Toasts.Type.SUCCESS);
+                    showToast("Cleared. Reopen settings to see the change.", "success");
                 }}
             >
                 Clear all data

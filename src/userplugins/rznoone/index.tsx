@@ -9,7 +9,7 @@ import { Devs } from "@utils/constants";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { Menu, RestAPI, SelectedChannelStore, Toasts, UserStore } from "@webpack/common";
+import { Menu, RestAPI, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 const VoiceStateStore: VoiceStateStore = findStoreLazy("VoiceStateStore");
 const ChannelActions: {
@@ -105,11 +105,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
             if (!isAlreadyInChannel && pinnedChannelId === lastChannelId) {
                 lastMoveTimestamp = now;
                 ChannelActions.selectVoiceChannel(lastChannelId);
-                Toasts.show({
-                    message: "You've been reconnected",
-                    id: Toasts.genId(),
-                    type: Toasts.Type.SUCCESS,
-                });
+                showToast("You've been reconnected", "success");
                 addCooldown();
             }
         }
@@ -121,11 +117,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
     // Ensure you stay in the pinned channel
     if (settings.store.moveToPinned && pinnedChannelId && myVoiceState.channelId !== pinnedChannelId) {
         ChannelActions.selectVoiceChannel(pinnedChannelId);
-        Toasts.show({
-            message: "You were moved back",
-            id: Toasts.genId(),
-            type: Toasts.Type.FAILURE,
-        });
+        showToast("You were moved back", "failure");
         return;
     }
 
@@ -134,11 +126,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
             url: `/guilds/${myVoiceState.guildId}/members/${myId}`,
             body: { deaf: false },
         });
-        Toasts.show({
-            message: "Undeafened",
-            id: Toasts.genId(),
-            type: Toasts.Type.SUCCESS,
-        });
+        showToast("Undeafened", "success");
         addCooldown();
     }
 
@@ -147,11 +135,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
             url: `/guilds/${myVoiceState.guildId}/members/${myId}`,
             body: { mute: false },
         });
-        Toasts.show({
-            message: "Unmuted",
-            id: Toasts.genId(),
-            type: Toasts.Type.SUCCESS,
-        });
+        showToast("Unmuted", "success");
         addCooldown();
     }
 
@@ -191,11 +175,7 @@ function addPinChannelContextMenu(children: any, { channel }: { channel: any; })
             label={pinnedChannelId === channel.id ? "Unpin Channel" : "Pin to Channel"}
             action={() => {
                 pinnedChannelId = pinnedChannelId === channel.id ? null : channel.id;
-                Toasts.show({
-                    message: pinnedChannelId ? `Pinned to: ${channel.name}` : "Channel unpinned",
-                    id: Toasts.genId(),
-                    type: Toasts.Type.SUCCESS,
-                });
+                showToast(pinnedChannelId ? `Pinned to: ${channel.name}` : "Channel unpinned", "success");
             }}
         />
     );

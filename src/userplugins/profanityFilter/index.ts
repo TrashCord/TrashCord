@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { escapeRegExp } from "@utils/text";
 import definePlugin, { OptionType } from "@utils/types";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 let wordRegexes: RegExp[] = [];
 
@@ -57,11 +57,7 @@ function toggleHandler(e: KeyboardEvent) {
     if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === "KeyP") {
         e.preventDefault();
         settings.store.enabled = !settings.store.enabled;
-        Toasts.show({
-            message: `Profanity filter: ${settings.store.enabled ? "ON" : "OFF"}`,
-            id: Toasts.genId(),
-            type: settings.store.enabled ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE
-        });
+        showToast(`Profanity filter: ${settings.store.enabled ? "ON" : "OFF"}`, settings.store.enabled ? "success" : "message");
     }
 }
 
@@ -99,11 +95,7 @@ export default definePlugin({
         }
 
         if (wasFiltered) {
-            Toasts.show({
-                message: "Filtered profanity from message",
-                id: Toasts.genId(),
-                type: Toasts.Type.MESSAGE
-            });
+            showToast("Filtered profanity from message", "message");
         }
     }
 });

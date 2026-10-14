@@ -13,7 +13,7 @@ import { Devs } from "@utils/constants";
 import { openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { Channel, RenderModalProps } from "@vencord/discord-types";
-import { ChannelStore, Modal, showToast, TabBar, Toasts, useState } from "@webpack/common";
+import { ChannelStore, Modal, showToast, TabBar, useState } from "@webpack/common";
 import type { SVGProps } from "react";
 
 import { forgetAll, forgetGroup, kickStranger, log, nameOf, notify, readdTarget, syncGroup, trackGroup } from "./actions";
@@ -116,7 +116,7 @@ function GctrapModal({ initialTab, ...modalProps }: RenderModalProps & { initial
                     onCreate={() => setTab("new")}
                     onTrack={channelId => {
                         trackGroup(channelId);
-                        showToast("Added that group to the dashboard", Toasts.Type.SUCCESS);
+                        showToast("Added that group to the dashboard", "success");
                     }}
                 />
             )}

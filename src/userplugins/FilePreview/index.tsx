@@ -8,7 +8,7 @@ import { addMessagePopoverButton, removeMessagePopoverButton } from "@api/Messag
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { Devs } from "@utils/constants";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const googleExtensions = ["pdf"];
 const officeExtensions = ["ppt", "pptx", "doc", "docx", "xls", "xlsx", "odt"];
@@ -95,11 +95,7 @@ export default definePlugin({
                     document.body.appendChild(modal);
 
                     if (tooBig) {
-                        Toasts.show({
-                            id: Toasts.genId(),
-                            message: "Warning: File is over 10MB. The preview may fail to load.",
-                            type: "FAILURE",
-                        });
+                        showToast("Warning: File is over 10MB. The preview may fail to load.", "FAILURE");
                     }
                 },
             };

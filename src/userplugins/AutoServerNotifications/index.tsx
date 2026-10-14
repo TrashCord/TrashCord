@@ -12,7 +12,7 @@ import { definePluginSettings } from "@api/Settings";
 import { CogWheel } from "@components/Icons";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
-import { Button, Forms, GuildStore, Menu, Toasts, UserStore, useEffect, useState } from "@webpack/common";
+import { Button, Forms, GuildStore, Menu, showToast, UserStore, useEffect, useState } from "@webpack/common";
 
 type MessageNotifications = 0 | 1 | 2;
 
@@ -173,13 +173,9 @@ async function applyToAll(): Promise<void> {
     }
 
     setRunning(false);
-    Toasts.show({
-        message: fail === 0
+    showToast(fail === 0
             ? `Applied to ${ok} servers.`
-            : `Applied to ${ok} servers, ${fail} failed.`,
-        type: fail === 0 ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
-        id: Toasts.genId(),
-    });
+            : `Applied to ${ok} servers, ${fail} failed.`, fail === 0 ? "success" : "failure");
 }
 
 const makeContextMenuPatch: (withIcon: boolean) => NavContextMenuPatchCallback =
@@ -193,16 +189,8 @@ const makeContextMenuPatch: (withIcon: boolean) => NavContextMenuPatchCallback =
                 icon={withIcon ? CogWheel : void 0}
                 action={() => {
                     applyToGuild(guild.id)
-                        .then(() => Toasts.show({
-                            message: "Notification settings applied.",
-                            type: Toasts.Type.SUCCESS,
-                            id: Toasts.genId(),
-                        }))
-                        .catch(() => Toasts.show({
-                            message: "Failed to apply settings.",
-                            type: Toasts.Type.FAILURE,
-                            id: Toasts.genId(),
-                        }));
+                        .then(() => showToast("Notification settings applied.", "success"))
+                        .catch(() => showToast("Failed to apply settings.", "failure"));
                 }}
             />
         );
@@ -268,11 +256,7 @@ export default definePlugin({
             knownGuilds.add(event.guild.id);
             sleep(3000)
                 .then(() => applyToGuild(event.guild.id))
-                .then(() => Toasts.show({
-                    message: "Notification settings applied to new server.",
-                    type: Toasts.Type.SUCCESS,
-                    id: Toasts.genId(),
-                }))
+                .then(() => showToast("Notification settings applied to new server.", "success"))
                 .catch(() => { });
         },
 

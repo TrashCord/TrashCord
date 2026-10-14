@@ -7,7 +7,7 @@
 import { localStorage } from "@utils/localStorage";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
 import { findByPropsLazy } from "@webpack";
-import { Button, FluxDispatcher, Forms, React, showToast, Text, TextInput, Toasts, useState } from "@webpack/common";
+import { Button, FluxDispatcher, Forms, React, showToast, Text, TextInput, useState } from "@webpack/common";
 
 interface AppIcon {
     id: string,
@@ -41,7 +41,7 @@ function AppIconModal(props: ModalProps) {
         appIcons.push(icon);
         AppIconData.UZ.push(icon);
         AppIconData.QA[icon.id] = icon;
-        showToast("Added custom app icon!", Toasts.Type.SUCCESS);
+        showToast("Added custom app icon!", "success");
         props.onClose();
         const oldIcon = AppIconStore.getCurrentDesktopIcon();
 

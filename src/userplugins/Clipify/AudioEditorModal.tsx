@@ -7,7 +7,7 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Modal, React, showToast, Toasts, useCallback, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { Modal, React, showToast, useCallback, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
 import { terminateFFmpeg, trimAudioWithFFmpeg, TrimMode } from "./ffmpeg";
 import { LayoutSwitch } from "./Layout";
@@ -228,7 +228,7 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
                 return await trimAudioWithFFmpeg(file, start, end, { mode, bitrateK: bitrate, gain: gain / 100, signal: signalRef.current, onProgress: setProgress });
             } catch (err) {
                 if (signalRef.current.cancelled) throw err;
-                showToast("FFmpeg unavailable — exporting offline as WAV.", Toasts.Type.MESSAGE);
+                showToast("FFmpeg unavailable — exporting offline as WAV.", "message");
             }
         }
         return trimAudioWebAudio(file, start, end, gain / 100);
@@ -241,7 +241,7 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
         setPlaying(false);
 
         if (selectionLength < MIN_SELECTION) {
-            showToast("Selection is too short to trim.", Toasts.Type.FAILURE);
+            showToast("Selection is too short to trim.", "failure");
             return;
         }
 
@@ -251,11 +251,11 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
         try {
             const trimmed = await runExport();
             onComplete(trimmed);
-            showToast("Audio trimmed and added to your message!", Toasts.Type.SUCCESS);
+            showToast("Audio trimmed and added to your message!", "success");
             modalProps.onClose();
         } catch (err) {
             if (!signalRef.current.cancelled) {
-                showToast(`Trim failed: ${err instanceof Error ? err.message : String(err)}`, Toasts.Type.FAILURE);
+                showToast(`Trim failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
             }
             setExporting(false);
         }

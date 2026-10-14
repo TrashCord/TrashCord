@@ -9,7 +9,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message, User } from "@vencord/discord-types";
-import { Menu, MessageStore, Toasts, UserStore } from "@webpack/common";
+import { Menu, MessageStore, showToast, UserStore } from "@webpack/common";
 
 const GoogleLanguages = {
     "auto": "Detect language",
@@ -203,10 +203,10 @@ const userContextPatch: NavContextMenuPatchCallback = (children, props: { user: 
             action={() => {
                 if (tracked) {
                     removeTracked(userId);
-                    Toasts.show({ message: `Stopped translating ${props.user.username}`, id: Toasts.genId(), type: Toasts.Type.MESSAGE });
+                    showToast(`Stopped translating ${props.user.username}`, "message");
                 } else {
                     addTracked(userId);
-                    Toasts.show({ message: `Now auto-translating ${props.user.username} to ${targetName}`, id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+                    showToast(`Now auto-translating ${props.user.username} to ${targetName}`, "success");
                 }
             }}
         />
@@ -228,11 +228,7 @@ const messageContextPatch: NavContextMenuPatchCallback = (children, props: { mes
                 action={() => {
                     const original = originalMessages.get(props.message.id);
                     if (original) {
-                        Toasts.show({
-                            message: `Original: ${original}`,
-                            id: Toasts.genId(),
-                            type: Toasts.Type.MESSAGE,
-                        });
+                        showToast(`Original: ${original}`, "message");
                     }
                 }}
             />

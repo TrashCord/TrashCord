@@ -7,18 +7,14 @@
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const SpotifySocket = findByPropsLazy("getActiveSocketAndDevice");
 const SpotifyAPI = findByPropsLazy("vcSpotifyMarker");
 
 function queueSong(id: string) {
     const { socket } = SpotifySocket.getActiveSocketAndDevice();
-    if (!socket) return Toasts.show({
-        type: Toasts.Type.FAILURE,
-        message: "Make sure that Spotify is running before queuing a song",
-        id: Toasts.genId()
-    });
+    if (!socket) return showToast("Make sure that Spotify is running before queuing a song", "failure");
 
     try {
         SpotifyAPI.post(socket.accountId, socket.accessToken, {
@@ -27,19 +23,11 @@ function queueSong(id: string) {
                 uri: `spotify:track:${id}`
             }
         });
-        Toasts.show({
-            type: Toasts.Type.SUCCESS,
-            message: "Song queued",
-            id: Toasts.genId()
-        });
+        showToast("Song queued", "success");
     }
     catch (e) {
         console.error(e);
-        Toasts.show({
-            type: Toasts.Type.FAILURE,
-            message: "An error occurred, check console",
-            id: Toasts.genId()
-        });
+        showToast("An error occurred, check console", "failure");
     }
 }
 

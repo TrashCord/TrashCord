@@ -7,7 +7,7 @@
 import { classNameFactory } from "@utils/css";
 import { saveFile } from "@utils/web";
 import { CloudUpload, ModalAction, RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, showToast, Toasts, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { Modal, openModal, showToast, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
 import { stripBanner } from "../ffmpeg/errors";
 import { AbortError, ConversionError, ConvertProgress } from "../ffmpeg/FFmpegService";
@@ -170,18 +170,18 @@ function ConvertModal({ source, modalProps }: { source: ConvertSource; modalProp
         switch (source.type) {
             case "upload":
                 replaceUpload(source.upload, file, source.draftType);
-                showToast(`Converted ${summary}`, Toasts.Type.SUCCESS);
+                showToast(`Converted ${summary}`, "success");
                 modalProps.onClose();
                 return;
             case "file":
                 queueUpload(file, source.channelId);
-                showToast(`Converted ${summary}`, Toasts.Type.SUCCESS);
+                showToast(`Converted ${summary}`, "success");
                 modalProps.onClose();
                 return;
             case "attachment":
                 if (settings.store.autoSendConverted) {
                     queueUpload(file, source.channelId);
-                    showToast(`Converted ${summary}. Added to your upload queue`, Toasts.Type.SUCCESS);
+                    showToast(`Converted ${summary}. Added to your upload queue`, "success");
                     modalProps.onClose();
                 } else {
                     setPhase({ name: "done", file });

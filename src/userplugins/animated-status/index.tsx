@@ -14,7 +14,7 @@ import { Switch } from "@components/Switch";
 import { classNameFactory } from "@utils/css";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, TabBar, Text, TextInput, Toasts, useEffect, useMemo, useRef, useState, UserStore } from "@webpack/common";
+import { Button, Forms, TabBar, Text, TextInput, showToast, useEffect, useMemo, useRef, useState, UserStore } from "@webpack/common";
 
 const cl = classNameFactory("vc-as-");
 const MIN_INTERVAL = 5, MAX_INTERVAL = 300, DEFAULT_INTERVAL = 10, START_DELAY = 3000;
@@ -132,9 +132,9 @@ export default definePlugin({
     },
     async begin(preset?: string) {
         const all = safeParse<StatusStep[]>(settings.store.statuses, []);
-        if (!all.length) return Toasts.show({ message: "Add some statuses first!", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (!all.length) return showToast("Add some statuses first!", "failure");
         const items = preset ? all.filter(s => s.preset === preset) : all;
-        if (!items.length) return Toasts.show({ message: `No "${preset}" statuses found`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (!items.length) return showToast(`No "${preset}" statuses found`, "failure");
         if (state.interval) clearInterval(state.interval);
         state.currentIndex = 0;
         await this.setStatus(items[0]);
@@ -145,7 +145,7 @@ export default definePlugin({
         }), Math.max(settings.store.interval * 1000, MIN_INTERVAL * 1000));
         state.isRunning = true;
         notifyRunningListeners();
-        Toasts.show({ message: "Animated status started!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast("Animated status started!", "success");
     },
     async next(preset?: string) {
         const all = safeParse<StatusStep[]>(settings.store.statuses, []);
@@ -210,7 +210,7 @@ function EditableStatusCard({ status, presetNames, onSave, onCancel }: { status:
 
     const handleSave = () => {
         const parsed = parseEmoji(editText);
-        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return Toasts.show({ message: "Please enter some text or an emoji!", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return showToast("Please enter some text or an emoji!", "failure");
         onSave({ ...parsed, preset: editPreset.trim() || undefined, status: editStatus });
     };
 
@@ -263,21 +263,21 @@ function SettingsModal({ onClose, transitionState }: { onClose: () => void; tran
     const addStatus = () => {
         if (!inputText.trim()) return;
         const parsed = parseEmoji(inputText);
-        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return Toasts.show({ message: "Please enter some text or an emoji!", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return showToast("Please enter some text or an emoji!", "failure");
         const newStatus: StatusStep = { ...parsed, preset: preset.trim() || undefined, status: selectedStatus };
         const updated = [...statuses, newStatus];
         setStatuses(updated);
         settings.store.statuses = JSON.stringify(updated);
         setInputText("");
         setPreset("");
-        Toasts.show({ message: "Status added!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast("Status added!", "success");
     };
     const deleteStatus = (index: number) => {
         const updated = statuses.filter((_, i) => i !== index);
         setStatuses(updated);
         settings.store.statuses = JSON.stringify(updated);
         if (editingIndex === index) setEditingIndex(null);
-        Toasts.show({ message: "Status deleted", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast("Status deleted", "success");
     };
     const saveEdit = (index: number, updated: StatusStep) => {
         const all = [...statuses];
@@ -285,7 +285,7 @@ function SettingsModal({ onClose, transitionState }: { onClose: () => void; tran
         setStatuses(all);
         settings.store.statuses = JSON.stringify(all);
         setEditingIndex(null);
-        Toasts.show({ message: "Status saved!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast("Status saved!", "success");
     };
     const cancelEdit = () => setEditingIndex(null);
     const startAnimation = (preset: string | null) => {
@@ -320,7 +320,7 @@ function SettingsModal({ onClose, transitionState }: { onClose: () => void; tran
                         <PresetsTab statuses={statuses} setStatuses={setStatuses} presetNames={presetNames} running={running} runningPreset={runningPreset} onStart={startAnimation} onStop={stopAnimation} onPresetChange={() => setPresetListTrigger(t => t + 1)} />
                     )}
                     {currentTab === Tab.SETTINGS && (
-                        <SettingsTab statuses={statuses} interval={settings.store.interval} randomize={settings.store.randomize} autoStart={settings.store.autoStart} onIntervalChange={val => { settings.store.interval = val; plugin?.updateInterval(val); }} onRandomizeChange={v => settings.store.randomize = v} onAutoStartChange={v => settings.store.autoStart = v} onClearAll={() => { settings.store.statuses = "[]"; setStatuses([]); Toasts.show({ message: "All statuses cleared", type: Toasts.Type.SUCCESS, id: Toasts.genId() }); }} />
+                        <SettingsTab statuses={statuses} interval={settings.store.interval} randomize={settings.store.randomize} autoStart={settings.store.autoStart} onIntervalChange={val => { settings.store.interval = val; plugin?.updateInterval(val); }} onRandomizeChange={v => settings.store.randomize = v} onAutoStartChange={v => settings.store.autoStart = v} onClearAll={() => { settings.store.statuses = "[]"; setStatuses([]); showToast("All statuses cleared", "success"); }} />
                     )}
                     {currentTab === Tab.INFO && <InfoTab />}
                 </ModalContent>
@@ -483,13 +483,13 @@ function PresetsTab({ statuses, setStatuses, presetNames, running, runningPreset
     };
     const createPreset = () => {
         const name = newPresetName.trim();
-        if (!name) return Toasts.show({ message: "Please enter a preset name", type: Toasts.Type.FAILURE, id: Toasts.genId() });
-        if (presets.some(p => p.name.toLowerCase() === name.toLowerCase())) return Toasts.show({ message: "A preset with this name already exists", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (!name) return showToast("Please enter a preset name", "failure");
+        if (presets.some(p => p.name.toLowerCase() === name.toLowerCase())) return showToast("A preset with this name already exists", "failure");
         const newPreset: Preset = { id: Date.now().toString(), name };
         settings.store.presets = JSON.stringify([...presets, newPreset]);
         setNewPresetName("");
         onPresetChange();
-        Toasts.show({ message: `Preset "${name}" created! Add statuses to it in the Statuses tab.`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast(`Preset "${name}" created! Add statuses to it in the Statuses tab.`, "success");
     };
     const deletePreset = (preset: Preset) => {
         const statusCount = statuses.filter(s => s.preset === preset.name).length;
@@ -499,13 +499,13 @@ function PresetsTab({ statuses, setStatuses, presetNames, running, runningPreset
         settings.store.statuses = JSON.stringify(updatedStatuses);
         if (runningPreset === preset.name) onStop();
         onPresetChange();
-        Toasts.show({ message: `Preset "${preset.name}" deleted${statusCount > 0 ? ` (${statusCount} statuses unassigned)` : ""}`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast(`Preset "${preset.name}" deleted${statusCount > 0 ? ` (${statusCount} statuses unassigned)` : ""}`, "success");
     };
     const startEditingPreset = (preset: Preset) => { setEditingPresetId(preset.id); setEditingPresetName(preset.name); };
     const savePresetEdit = (presetId: string) => {
         const newName = editingPresetName.trim();
         if (!newName) return setEditingPresetId(null);
-        if (presets.find(p => p.id !== presetId && p.name.toLowerCase() === newName.toLowerCase())) return Toasts.show({ message: "A preset with this name already exists", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (presets.find(p => p.id !== presetId && p.name.toLowerCase() === newName.toLowerCase())) return showToast("A preset with this name already exists", "failure");
         const preset = presets.find(p => p.id === presetId);
         if (!preset) return;
         const oldName = preset.name;
@@ -515,12 +515,12 @@ function PresetsTab({ statuses, setStatuses, presetNames, running, runningPreset
         settings.store.statuses = JSON.stringify(updatedStatuses);
         setEditingPresetId(null);
         onPresetChange();
-        Toasts.show({ message: `Preset renamed to "${newName}"`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast(`Preset renamed to "${newName}"`, "success");
     };
     const cancelPresetEdit = () => setEditingPresetId(null);
     const runPreset = (preset: Preset) => {
         const presetStatuses = statusesByPresetName.get(preset.name) ?? [];
-        if (presetStatuses.length === 0) return Toasts.show({ message: `No statuses in "${preset.name}". Add some in the Statuses tab!`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+        if (presetStatuses.length === 0) return showToast(`No statuses in "${preset.name}". Add some in the Statuses tab!`, "failure");
         onStart(preset.name);
     };
     return (

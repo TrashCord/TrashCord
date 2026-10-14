@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, RestAPI, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, RestAPI, showToast, UserStore } from "@webpack/common";
 // @ts-ignore
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const vc = findByPropsLazy("getVoiceChannelId");
@@ -25,14 +25,11 @@ const settings = definePluginSettings({
 function keybind2(e) {
     if (settings.store.enablenormalkeybinds === false) return;
     if (!(Vencord as any).Plugins.plugins.vcOwnerDetector.settings.store.amivcowner) {
-        Toasts.show({
-            message: "you're not the vc owner  also u gotta be in a vc to do this",
-            id: "cutelittlemessage",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
-        });
+        showToast(
+            "you're not the vc owner  also u gotta be in a vc to do this",
+            "failure",
+            { id: "cutelittlemessage", position: 1 }
+        );
         return;
     }
     if (e.altKey && e.key.toLowerCase() === "s") {
@@ -43,25 +40,19 @@ function keybind2(e) {
                 const mftokick = trackedmfs[trackedmfs.length - 1] ?? "";
                 if (mftokick && friendststore.getFriendIDs().includes(mftokick)) {
                     trackedmfs.splice(trackedmfs.indexOf(mftokick), 1);
-                    Toasts.show({
-                        message: "this person is on your friends list (skipping)",
-                        id: "recent-ban-friend",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                    showToast(
+                        "this person is on your friends list (skipping)",
+                        "failure",
+                        { id: "recent-ban-friend", position: 1 }
+                    );
                     return;
                 }
                 if (mftokick) {
-                    Toasts.show({
-                        message: "should be kicking the first person on the list now ",
-                        id: "recent-kick",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                    showToast(
+                        "should be kicking the first person on the list now ",
+                        "failure",
+                        { id: "recent-kick", position: 1 }
+                    );
                     RestAPI.post({
                         url: `/channels/${cChannelId}/messages`,
                         body: { content: `!voice-kick ${mftokick}`, nonce: Math.floor(Math.random() * 10000000000000) }
@@ -77,13 +68,8 @@ function keybind2(e) {
 function keybind(e) {
     if (settings.store.enablenormalkeybinds === false) return;
     if (!(Vencord as any).Plugins.plugins.vcOwnerDetector.settings.store.amivcowner) {
-        Toasts.show({
-            message: "you're not the vc owner",
-            id: "cutelittlemessage",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+        showToast("you're not the vc owner", "failure", {
+            id: "cutelittlemessage", position: 1
         });
         return;
     }
@@ -95,25 +81,19 @@ function keybind(e) {
                 const mftoban = trackedmfs.pop() ?? "";
                 if (mftoban && friendststore.getFriendIDs().includes(mftoban)) {
                     trackedmfs.splice(trackedmfs.indexOf(mftoban), 1);
-                    Toasts.show({
-                        message: "this person is on your friends list (skipping) ",
-                        id: "recent-ban-friend",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                    showToast(
+                        "this person is on your friends list (skipping) ",
+                        "failure",
+                        { id: "recent-ban-friend", position: 1 }
+                    );
                     return;
                 }
                 if (mftoban) {
-                    Toasts.show({
-                        message: "should be banning the first person on the list now ",
-                        id: "recent-ban",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                    showToast(
+                        "should be banning the first person on the list now ",
+                        "failure",
+                        { id: "recent-ban", position: 1 }
+                    );
                     RestAPI.post({
                         url: `/channels/${cChannelId}/messages`,
                         body: { content: `!voice-ban ${mftoban}`, nonce: Math.floor(Math.random() * 10000000000000) }
@@ -143,13 +123,8 @@ const cb = async e => {
 const good = async e => {
     if (settings.store.enablenormalkeybinds === true) return;
     if (!(Vencord as any).Plugins.plugins.vcOwnerDetector.settings.store.amivcowner) {
-        Toasts.show({
-            message: "you're not the vc owner ",
-            id: "cutelittlemessage",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+        showToast("you're not the vc owner ", "failure", {
+            id: "cutelittlemessage", position: 1
         });
         return;
     }
@@ -162,26 +137,20 @@ const good = async e => {
             const mftoban = trackedmfs.pop() ?? "";
             if (mftoban && friendststore.getFriendIDs().includes(mftoban)) {
                 trackedmfs.splice(trackedmfs.indexOf(mftoban), 1);
-                Toasts.show({
-                    message: "this person is on your friends list (skipping) ",
-                    id: "recent-ban-friend",
-                    type: Toasts.Type.FAILURE,
-                    options: {
-                        position: Toasts.Position.BOTTOM
-                    }
-                });
+                showToast(
+                    "this person is on your friends list (skipping) ",
+                    "failure",
+                    { id: "recent-ban-friend", position: 1 }
+                );
                 return;
             }
             if (mftoban) {
                 console.log("trying to ban first person on list (streamer mode method)");
-                Toasts.show({
-                    message: "should be banning the first person on the list now (streamer mode method)",
-                    id: "recent-ban",
-                    type: Toasts.Type.FAILURE,
-                    options: {
-                        position: Toasts.Position.BOTTOM
-                    }
-                });
+                showToast(
+                    "should be banning the first person on the list now (streamer mode method)",
+                    "failure",
+                    { id: "recent-ban", position: 1 }
+                );
                 RestAPI.post({
                     url: `/channels/${cChannelId}/messages`,
                     body: { content: `!voice-ban ${mftoban}`, nonce: Math.floor(Math.random() * 10000000000000) }

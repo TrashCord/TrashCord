@@ -22,7 +22,7 @@ import { Logger } from "@utils/Logger";
 import { classes } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { Button, Forms, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { Button, Forms, showToast, useEffect, useState } from "@webpack/common";
 
 import style from "./style.css?managed";
 
@@ -30,11 +30,11 @@ function runCode(code: string) {
     try {
         const output = Function(`return () => {${code}}`)()();
 
-        showToast(`${output}`, Toasts.Type.SUCCESS);
+        showToast(`${output}`, "success");
     } catch (e) {
         new Logger("Run in Console").error(e);
 
-        showToast(`${e}`, Toasts.Type.FAILURE);
+        showToast(`${e}`, "failure");
     }
 }
 

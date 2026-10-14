@@ -10,7 +10,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, ChannelStore, ContextMenuApi, Menu, React, RestAPI, Toasts, UserStore } from "@webpack/common";
+import { Button, ChannelStore, ContextMenuApi, Menu, React, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     location: {
@@ -110,11 +110,11 @@ function WhitelistModal({ modalProps }: { modalProps: any; }) {
         const toClose = oneToOne.filter(c => !whitelist.has(c.recipients?.[0]));
 
         if (toClose.length === 0) {
-            Toasts.show({ id: Toasts.genId(), type: Toasts.Type.MESSAGE, message: "Nothing to close." });
+            showToast("Nothing to close.", "message");
             return;
         }
 
-        Toasts.show({ id: Toasts.genId(), type: Toasts.Type.MESSAGE, message: `Closing ${toClose.length} DMs...` });
+        showToast(`Closing ${toClose.length} DMs...`, "message");
         let ok = 0, fail = 0;
         for (const ch of toClose) {
             try {
@@ -124,7 +124,7 @@ function WhitelistModal({ modalProps }: { modalProps: any; }) {
                 fail++;
             }
         }
-        Toasts.show({ id: Toasts.genId(), type: fail ? Toasts.Type.FAILURE : Toasts.Type.SUCCESS, message: `Done. Closed ${ok}${fail ? `, failed ${fail}` : ""}.` });
+        showToast(`Done. Closed ${ok}${fail ? `, failed ${fail}` : ""}.`, fail ? "failure" : "success");
         modalProps.onClose();
     }
 

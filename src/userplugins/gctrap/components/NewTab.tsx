@@ -7,7 +7,7 @@
 import { Button } from "@components/Button";
 import { Heading } from "@components/Heading";
 import { pluralize } from "@utils/misc";
-import { ChannelStore, SearchableSelect, showToast, TextInput, Toasts, useState } from "@webpack/common";
+import { ChannelStore, SearchableSelect, showToast, TextInput, useState } from "@webpack/common";
 
 import {
     addMembers,
@@ -130,7 +130,7 @@ export default function NewTab({ onTrack }: NewTabProps) {
                 "action",
                 `Created with ${pluralize(targets.length, "target")} and ${pluralize(members.length, "member")}`
             );
-            showToast("Group created and added to the dashboard", Toasts.Type.SUCCESS);
+            showToast("Group created and added to the dashboard", "success");
             openChannel(channelId);
         });
     }
@@ -151,7 +151,7 @@ export default function NewTab({ onTrack }: NewTabProps) {
             const members = recipientIds(channel).filter(id => id !== selfId());
             const label = getGroupName(channel);
             if (!tracked.some(item => item.id === channelId)) onTrack(channelId, members, label);
-            showToast("Joined the group", Toasts.Type.SUCCESS);
+            showToast("Joined the group", "success");
             openChannel(channelId);
         });
     }

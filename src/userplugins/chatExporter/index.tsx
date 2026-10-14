@@ -1,4 +1,4 @@
-import { React, Forms, Text, Button, TextInput, Select, Slider, Alerts, RestAPI, Constants, ChannelStore, SelectedChannelStore, UserStore, SnowflakeUtils, showToast, Toasts } from "@webpack/common";
+import { React, Forms, Text, Button, TextInput, Select, Slider, Alerts, RestAPI, Constants, ChannelStore, SelectedChannelStore, UserStore, SnowflakeUtils, showToast } from "@webpack/common";
 import { Divider } from "@components/Divider";
 import { FormSwitch } from "@components/FormSwitch";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
@@ -173,13 +173,13 @@ async function handleDownload(name: string, content: string, type: string, messa
     // Save the manifest file (JSON/CSV/HTML) inside the subfolder
     const res = await Native.saveFile(subfolderPath, name, content);
     if (res.ok) {
-      showToast(`Saved ${name} to ${subfolderPath}`, Toasts.Type.SUCCESS);
+      showToast(`Saved ${name} to ${subfolderPath}`, "success");
 
       // Handle Media Downloading
       if (shouldDownloadMedia && messages) {
         const attachments = messages.flatMap(m => m.attachments.map(a => ({ ...a, messageId: m.id })));
         if (attachments.length > 0) {
-          showToast(`Downloading ${attachments.length} attachments...`, Toasts.Type.MESSAGE);
+          showToast(`Downloading ${attachments.length} attachments...`, "message");
           const mediaFolder = "attachments";
 
           for (let i = 0; i < attachments.length; i++) {
@@ -194,13 +194,13 @@ async function handleDownload(name: string, content: string, type: string, messa
             } catch (err) {
               logger.error(`Failed to download attachment ${a.filename}:`, err);
             }
-            if ((i + 1) % 10 === 0) showToast(`Downloaded ${i + 1}/${attachments.length} items...`, Toasts.Type.MESSAGE);
+            if ((i + 1) % 10 === 0) showToast(`Downloaded ${i + 1}/${attachments.length} items...`, "message");
           }
-          showToast("Media download complete!", Toasts.Type.SUCCESS);
+          showToast("Media download complete!", "success");
         }
       }
     } else {
-      showToast(`Failed to save: ${res.error}`, Toasts.Type.FAILURE);
+      showToast(`Failed to save: ${res.error}`, "failure");
       downloadFile(name, content, type);
     }
   } else {
@@ -349,9 +349,9 @@ export default definePlugin({
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
-            showToast("Starting export...", Toasts.Type.MESSAGE);
+            showToast("Starting export...", "message");
             const messages = await fetchAllMessages(channelId, (count) => {
-              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, Toasts.Type.MESSAGE);
+              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, "message");
             });
             const data = {
               metadata: {
@@ -391,9 +391,9 @@ export default definePlugin({
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
-            showToast("Starting export...", Toasts.Type.MESSAGE);
+            showToast("Starting export...", "message");
             const messages = await fetchAllMessages(channelId, (count) => {
-              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, Toasts.Type.MESSAGE);
+              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, "message");
             });
             const csv = exportToCSV(messages);
             await handleDownload(`${formatFileName(channel)}.csv`, csv, "text/csv", messages);
@@ -421,9 +421,9 @@ export default definePlugin({
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
-            showToast("Starting export...", Toasts.Type.MESSAGE);
+            showToast("Starting export...", "message");
             const messages = await fetchAllMessages(channelId, (count) => {
-              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, Toasts.Type.MESSAGE);
+              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, "message");
             });
             const html = exportToHTML(channel, messages);
             await handleDownload(`${formatFileName(channel)}.html`, html, "text/html", messages);

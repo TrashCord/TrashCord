@@ -13,7 +13,7 @@ import { Logger } from "@utils/Logger";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { NavigationRouter, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
+import { NavigationRouter, RestAPI, showToast, UserStore } from "@webpack/common";
 
 import { addLog, loadLogs, type RedeemType } from "./store";
 
@@ -137,7 +137,7 @@ function notifyPaused(reason: string) {
     queue.length = 0;
     if (pauseToastShown) return;
     pauseToastShown = true;
-    showToast(`AutoRedeem paused: ${reason}`, Toasts.Type.FAILURE);
+    showToast(`AutoRedeem paused: ${reason}`, "failure");
     logger.warn(`Paused: ${reason}`);
 }
 
@@ -205,7 +205,7 @@ async function handleRedeem(item: QueueItem) {
             addLog({ code, status: "failed", type: "other", error: reason, channelId, messageId });
             logger.info(`Skipping ${code}: ${reason}`);
             if (!fast && settings.store.notifyOnFail && reason !== "already claimed" && reason !== "invalid code" && reason !== "expired") {
-                showToast(`AutoRedeem skipped ${code}: ${reason}`, Toasts.Type.MESSAGE);
+                showToast(`AutoRedeem skipped ${code}: ${reason}`, "message");
             }
             return;
         }
@@ -221,7 +221,7 @@ async function handleRedeem(item: QueueItem) {
         const giftType = classifyGift(body);
         addLog({ code, status: "success", type: giftType, channelId, messageId });
         if (!fast) {
-            showToast(`Redeemed gift: ${code}`, Toasts.Type.SUCCESS);
+            showToast(`Redeemed gift: ${code}`, "success");
         }
         logger.info(`Redeemed gift code: ${code}`);
         if (!fast && settings.store.notifyOnRedeem) {
@@ -249,7 +249,7 @@ async function handleRedeem(item: QueueItem) {
         const msg: string = e?.body?.message ?? "Unknown error";
         addLog({ code, status: "failed", type: "other", error: msg, channelId, messageId });
         if (!fast) {
-            showToast(`Failed to redeem ${code}: ${msg}`, Toasts.Type.FAILURE);
+            showToast(`Failed to redeem ${code}: ${msg}`, "failure");
         }
         logger.warn(`Failed to redeem ${code}:`, msg);
         if (!fast && settings.store.notifyOnFail) {

@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, ModalCloseButton, openModal } from "@utils/modal";
 import { findByPropsLazy, waitFor } from "@webpack";
-import { Button, Forms, React, RestAPI, Toasts, TextInput } from "@webpack/common";
+import { Button, Forms, React, RestAPI, showToast, TextInput } from "@webpack/common";
 
 const UserStore         = findByPropsLazy("getCurrentUser", "getUser");
 const GuildStore        = findByPropsLazy("getGuilds", "getGuildCount");
@@ -110,11 +110,9 @@ export function activateFakeSession(acc: FakeAccount) {
 
     const fakeUser = buildUserObject(acc);
     if (!fakeUser) {
-        Toasts.show({
-            message: "Failed to build user object, try again.",
+        showToast("Failed to build user object, try again.", "failure", {
             id: "fakeaccount-notready",
-            type: Toasts.Type.FAILURE,
-            options: { position: Toasts.Position.BOTTOM }
+            position: 1
         });
         return;
     }
@@ -165,11 +163,9 @@ export function activateFakeSession(acc: FakeAccount) {
     _originals.getRelationshipType = RelationshipStore.getRelationshipType.bind(RelationshipStore);
     RelationshipStore.getRelationshipType = () => 0;
 
-    Toasts.show({
-        message: `Switched to ${acc.username}`,
+    showToast(`Switched to ${acc.username}`, "success", {
         id: "fakeaccount-switch",
-        type: Toasts.Type.SUCCESS,
-        options: { position: Toasts.Position.BOTTOM }
+        position: 1
     });
 }
 
@@ -198,11 +194,9 @@ export function deactivateFakeSession() {
     _fakeSessionActive = false;
     _fakeSessionUser = null;
 
-    Toasts.show({
-        message: "Switched back to real account",
+    showToast("Switched back to real account", "success", {
         id: "fakeaccount-restore",
-        type: Toasts.Type.SUCCESS,
-        options: { position: Toasts.Position.BOTTOM }
+        position: 1
     });
 }
 
@@ -223,7 +217,10 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
     const fetchAndAdd = async () => {
         if (!userId.trim()) return;
         if (accounts.some(a => a.id === userId.trim())) {
-            Toasts.show({ message: "Already added!", id: "fa-dupe", type: Toasts.Type.FAILURE, options: { position: Toasts.Position.BOTTOM } });
+            showToast("Already added!", "failure", {
+                id: "fa-dupe",
+                position: 1
+            });
             return;
         }
         setLoading(true);
@@ -238,9 +235,15 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                 globalName: u.global_name ?? u.username,
             }]);
             setUserId("");
-            Toasts.show({ message: `Added ${u.username}!`, id: "fa-add", type: Toasts.Type.SUCCESS, options: { position: Toasts.Position.BOTTOM } });
+            showToast(`Added ${u.username}!`, "success", {
+                id: "fa-add",
+                position: 1
+            });
         } catch {
-            Toasts.show({ message: "Failed to fetch user. Check the ID.", id: "fa-fail", type: Toasts.Type.FAILURE, options: { position: Toasts.Position.BOTTOM } });
+            showToast("Failed to fetch user. Check the ID.", "failure", {
+                id: "fa-fail",
+                position: 1
+            });
         }
         setLoading(false);
     };

@@ -12,7 +12,7 @@ import { Devs } from "@utils/constants";
 import { insertTextIntoChatInputBox, sendMessage } from "@utils/discord";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { DraftType, Menu, PermissionsBits, PermissionStore, SelectedChannelStore, showToast, Toasts, UploadManager } from "@webpack/common";
+import { DraftType, Menu, PermissionsBits, PermissionStore, SelectedChannelStore, showToast, UploadManager } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.StreamableUpload as PluginNative<typeof import("./native")>;
 
@@ -101,7 +101,7 @@ function notifyUploadLimitExceeded(file: File, channelId: string) {
     const maxSize = formatFileSize(MAX_UPLOAD_SIZE_BYTES);
     const actualSize = formatFileSize(file.size);
 
-    showToast(`Upload blocked: Free Streamable accounts are limited to ${maxSize}. ${file.name} is ${actualSize}.`, Toasts.Type.FAILURE);
+    showToast(`Upload blocked: Free Streamable accounts are limited to ${maxSize}. ${file.name} is ${actualSize}.`, "failure");
     sendBotMessage(channelId, {
         content: `**Upload blocked.** Free Streamable accounts are limited to ${maxSize}. ${file.name} is ${actualSize}, so it cannot be uploaded.`
     });
@@ -109,7 +109,7 @@ function notifyUploadLimitExceeded(file: File, channelId: string) {
 }
 
 function failUpload(channelId: string, message: string = GENERIC_UPLOAD_FAILURE_MESSAGE) {
-    showToast(FILE_UPLOAD_FAILED_TOAST, Toasts.Type.FAILURE);
+    showToast(FILE_UPLOAD_FAILED_TOAST, "failure");
     sendBotMessage(channelId, { content: message });
     clearUploadDrafts(channelId);
 }
@@ -179,7 +179,7 @@ async function ensureStreamableCredentials(channelId: string): Promise<{ email: 
         return { email: existingEmail, password: existingPassword };
     }
 
-    showToast("Set Streamable credentials in plugin settings first", Toasts.Type.FAILURE);
+    showToast("Set Streamable credentials in plugin settings first", "failure");
     sendBotMessage(channelId, {
         content: "**Credentials required.** Open StreamableUpload settings and enter your Streamable email/password before uploading."
     });
@@ -203,7 +203,7 @@ async function uploadFileToStreamable(file: File, channelId: string): Promise<bo
         if (shortcode) {
             const finalUrl = `https://streamable.com/${shortcode}`;
             setTimeout(() => sendTextToChat(finalUrl), 10);
-            showToast("File processed and ready!", Toasts.Type.SUCCESS);
+            showToast("File processed and ready!", "success");
             clearUploadDrafts(channelId);
             return true;
         } else {
@@ -228,7 +228,7 @@ async function uploadFileToStreamable(file: File, channelId: string): Promise<bo
         } else {
             sendBotMessage(channelId, { content: GENERIC_UPLOAD_FAILURE_MESSAGE });
         }
-        showToast(FILE_UPLOAD_FAILED_TOAST, Toasts.Type.FAILURE);
+        showToast(FILE_UPLOAD_FAILED_TOAST, "failure");
         clearUploadDrafts(channelId);
         return false;
     }
@@ -240,22 +240,22 @@ async function uploadFile(file: File, channelId: string) {
         return;
     }
 
-    showToast(`Uploading ${file.name} (${formatFileSize(file.size)}) via Streamable...`, Toasts.Type.MESSAGE);
+    showToast(`Uploading ${file.name} (${formatFileSize(file.size)}) via Streamable...`, "message");
 
     const stillUploadingHandle = setInterval(() => {
-        showToast("Still uploading... this can take a while for large files.", Toasts.Type.MESSAGE);
+        showToast("Still uploading... this can take a while for large files.", "message");
     }, UPLOAD_STILL_RUNNING_MS);
 
     try {
         await withTimeout(uploadFileToStreamable(file, channelId), UPLOAD_TIMEOUT_MS);
     } catch (error) {
         if (error instanceof Error && error.message === "UPLOAD_TIMEOUT") {
-            showToast("Upload timed out after 10 minutes. Try again.", Toasts.Type.FAILURE);
+            showToast("Upload timed out after 10 minutes. Try again.", "failure");
             sendBotMessage(channelId, { content: "**Upload timed out.** Try again or use a smaller file." });
             clearUploadDrafts(channelId);
         } else {
             console.error("Unexpected upload error:", error);
-            showToast("Unexpected upload error.", Toasts.Type.FAILURE);
+            showToast("Unexpected upload error.", "failure");
             clearUploadDrafts(channelId);
         }
     } finally {
@@ -280,7 +280,7 @@ function triggerFileUpload() {
                         return;
                     }
 
-                    showToast(`Selected ${file.name}. Starting upload...`, Toasts.Type.MESSAGE);
+                    showToast(`Selected ${file.name}. Starting upload...`, "message");
                     await uploadFile(file, channelId);
                 } else {
                     showToast("No file selected");

@@ -16,7 +16,7 @@ import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel, Message } from "@vencord/discord-types";
 import { findByCodeLazy } from "@webpack";
-import { Menu, Toasts, useState } from "@webpack/common";
+import { Menu, showToast, useState } from "@webpack/common";
 
 const cl = classNameFactory("vc-autoReactor-");
 const logger = new Logger("AutoReactor");
@@ -170,11 +170,7 @@ let isReacting = false;
 
 async function autoReact(channel: Channel, message: Message) {
     if (isReacting) {
-        Toasts.show({
-            id: Toasts.genId(),
-            type: Toasts.Type.MESSAGE,
-            message: "AutoReactor is still busy with the previous message."
-        });
+        showToast("AutoReactor is still busy with the previous message.", "message");
         return;
     }
 
@@ -184,11 +180,7 @@ async function autoReact(channel: Channel, message: Message) {
         .slice(0, MAX_EMOJIS);
 
     if (emojis.length === 0) {
-        Toasts.show({
-            id: Toasts.genId(),
-            type: Toasts.Type.FAILURE,
-            message: "No valid emojis configured. Set them in AutoReactor settings."
-        });
+        showToast("No valid emojis configured. Set them in AutoReactor settings.", "failure");
         return;
     }
 
@@ -205,11 +197,7 @@ async function autoReact(channel: Channel, message: Message) {
             if (i < emojis.length - 1) await sleep(delay);
         }
 
-        Toasts.show({
-            id: Toasts.genId(),
-            type: Toasts.Type.SUCCESS,
-            message: `Added ${emojis.length} reaction${emojis.length === 1 ? "" : "s"}.`
-        });
+        showToast(`Added ${emojis.length} reaction${emojis.length === 1 ? "" : "s"}.`, "success");
     } finally {
         isReacting = false;
     }

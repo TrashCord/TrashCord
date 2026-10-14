@@ -6,7 +6,7 @@
 
 import { ModalContent, ModalFooter, openModal } from "@utils/modal";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Button, Forms, Modal, React, Text, TextInput, Toasts, useEffect, useRef, useState } from "@webpack/common";
+import { Button, Forms, Modal, React, Text, TextInput, showToast, useEffect, useRef, useState } from "@webpack/common";
 
 import { badgeSpooferEngine } from "../engine";
 import { HypeSquadPicker } from "../hypesquad";
@@ -79,31 +79,19 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
     const handleStop = () => {
         badgeSpooferEngine.stopSpoofing();
         setIsRunning(false);
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "Spoofing stopped.",
-            type: Toasts.Type.MESSAGE
-        });
+        showToast("Spoofing stopped.", "message");
     };
 
     const handleRefreshGames = async () => {
         const games = await badgeSpooferEngine.loadGames(true);
         setTotalAvailableGames(games.length);
-        Toasts.show({
-            id: Toasts.genId(),
-            message: `Reloaded ${games.length} games from Discord CDN`,
-            type: Toasts.Type.SUCCESS
-        });
+        showToast(`Reloaded ${games.length} games from Discord CDN`, "success");
     };
 
     const handleClearStats = () => {
         badgeSpooferEngine.clearHistory();
         setStats(badgeSpooferEngine.getStats());
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "Claimed stats reset.",
-            type: Toasts.Type.SUCCESS
-        });
+        showToast("Claimed stats reset.", "success");
     };
 
     const percent = progress && progress.total > 0

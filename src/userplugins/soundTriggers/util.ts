@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import { SoundTrigger } from "./index";
 
@@ -70,17 +70,9 @@ export const getUniqueTriggers = (triggers: SoundTrigger[]) => {
 };
 
 export const failToast = (message: string) => {
-    Toasts.show({
-        id: Toasts.genId(),
-        message,
-        type: Toasts.Type.FAILURE
-    });
+    showToast(message, "failure");
 };
 
 export const successToast = (message: string) => {
-    Toasts.show({
-        id: Toasts.genId(),
-        message,
-        type: Toasts.Type.SUCCESS
-    });
+    showToast(message, "success");
 };

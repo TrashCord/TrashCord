@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import type { DnsFamily, MullvadResolveResult, ResolveProtocol } from "./native";
 
@@ -260,7 +260,7 @@ const log = {
     }
 };
 
-function showPluginToast(message: string, type = Toasts.Type.MESSAGE) {
+function showPluginToast(message: string, type = "message") {
     if (settings.store.showNotifications) {
         showToast(`[MullvadDNS] ${message}`, type);
     }
@@ -475,7 +475,7 @@ export default definePlugin({
 
                     statistics.successfulResolutions++;
                     log.info(`Rewrote ${url.hostname} to ${address}.`);
-                    showPluginToast(`Resolved ${url.hostname} through Mullvad.`, Toasts.Type.SUCCESS);
+                    showPluginToast(`Resolved ${url.hostname} through Mullvad.`, "success");
 
                     return originalFetch.call(window, rewrittenInput, init);
                 } catch (error) {
@@ -505,7 +505,7 @@ export default definePlugin({
 
                 if (!Native) {
                     log.error("Native resolver is not available.");
-                    showPluginToast("Native resolver is not available.", Toasts.Type.FAILURE);
+                    showPluginToast("Native resolver is not available.", "failure");
                     return;
                 }
 
@@ -521,7 +521,7 @@ export default definePlugin({
                     log.warn("Fetch URL rewriting is experimental and can break HTTPS requests.");
 
                     if (!patchFetch()) {
-                        showPluginToast("Fetch patch failed.", Toasts.Type.FAILURE);
+                        showPluginToast("Fetch patch failed.", "failure");
                         return;
                     }
                 } else {
@@ -529,7 +529,7 @@ export default definePlugin({
                 }
 
                 isActive = true;
-                showPluginToast(`${PLUGIN_NAME} activated.`, Toasts.Type.SUCCESS);
+                showPluginToast(`${PLUGIN_NAME} activated.`, "success");
             },
 
             stop() {

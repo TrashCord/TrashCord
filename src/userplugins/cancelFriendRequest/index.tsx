@@ -6,7 +6,7 @@
 
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { RelationshipStore, Toasts } from "@webpack/common";
+import { RelationshipStore, showToast } from "@webpack/common";
 
 const RelationshipActions = findByPropsLazy("removeFriend", "sendFriendRequest");
 
@@ -19,11 +19,7 @@ let scanTimer: ReturnType<typeof setTimeout> | null = null;
 function cancelRequest(userId: string) {
     try {
         RelationshipActions.removeFriend(userId);
-        Toasts.show({
-            message: "Friend request cancelled ✓",
-            type: Toasts.Type.SUCCESS,
-            id: Toasts.genId(),
-        });
+        showToast("Friend request cancelled ✓", "success");
     } catch (e) {
         console.error("[CancelFriendRequest] Error:", e);
     }

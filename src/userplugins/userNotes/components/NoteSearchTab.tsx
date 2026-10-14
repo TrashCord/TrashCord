@@ -8,8 +8,21 @@ import { createStore, del, entries, set } from "@api/DataStore";
 import { copyWithToast, openUserProfile } from "@utils/discord";
 import { findByPropsLazy } from "@webpack";
 import {
-    Avatar, Button, React, RelationshipStore, RestAPI, TextInput, Toasts, useCallback, useEffect, useMemo, useRef, UserProfileStore, UserStore, UserUtils,
-useState
+    Avatar,
+    Button,
+    React,
+    RelationshipStore,
+    RestAPI,
+    TextInput,
+    showToast,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    UserProfileStore,
+    UserStore,
+    UserUtils,
+    useState
 } from "@webpack/common";
 
 import { deleteUserNotes as deletePluginNote, saveUserNotes as savePluginNote, usersNotes as userNotesPluginMap } from "../data";
@@ -235,7 +248,7 @@ export function NoteSearchTab() {
                 delete next[userId];
                 return next;
             });
-            Toasts.show({ message: "Note removed", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+            showToast("Note removed", "success");
         } else {
             await savePluginNote(userId, trimmed);
             await set(userId, trimmed, NotesStore);
@@ -245,7 +258,7 @@ export function NoteSearchTab() {
                 delete next[userId];
                 return next;
             });
-            Toasts.show({ message: "Note saved successfully", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+            showToast("Note saved successfully", "success");
         }
     };
 
@@ -270,7 +283,7 @@ export function NoteSearchTab() {
             delete next[userId];
             return next;
         });
-        Toasts.show({ message: "Note deleted", id: Toasts.genId(), type: Toasts.Type.SUCCESS });
+        showToast("Note deleted", "success");
     };
 
     const filteredNotesList = useMemo(() => {

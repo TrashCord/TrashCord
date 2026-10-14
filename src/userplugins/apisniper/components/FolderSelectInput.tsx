@@ -9,7 +9,7 @@ import { Heading } from "@components/Heading";
 import { copyWithToast } from "@utils/discord";
 import { PluginNative } from "@utils/types";
 import { findCssClassesLazy } from "@webpack";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import { settings } from "../settings";
 
@@ -49,17 +49,9 @@ export function SelectFolderInput({ settingsKey, successMessage }: Props) {
         try {
             const res = await Native.chooseDir(settingsKey);
             settings.store[settingsKey] = res;
-            return Toasts.show({
-                id: Toasts.genId(),
-                type: Toasts.Type.SUCCESS,
-                message: successMessage,
-            });
+            return showToast(successMessage, "success");
         } catch (err) {
-            return Toasts.show({
-                id: Toasts.genId(),
-                type: Toasts.Type.FAILURE,
-                message: "Failed to update directory",
-            });
+            return showToast("Failed to update directory", "failure");
         }
     }
 

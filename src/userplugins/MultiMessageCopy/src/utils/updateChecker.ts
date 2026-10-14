@@ -16,7 +16,7 @@
 import { openModal } from "@utils/modal"
 import { PluginNative } from "@utils/types"
 import { React } from "@webpack/common"
-import { showToast, Toasts } from "@webpack/common"
+import { showToast } from "@webpack/common"
 import { UpdateModal } from "../components/UpdateModal"
 
 // ---------------------------------------------------------------------------
@@ -230,10 +230,10 @@ async function fetchRemoteVersion(cacheBust: boolean): Promise<FetchResult> {
 function toast(msg: string, type: "success" | "failure" | "message") {
     try {
         const toastType = type === "success"
-            ? Toasts.Type.SUCCESS
+            ? "success"
             : type === "failure"
-                ? Toasts.Type.FAILURE
-                : Toasts.Type.MESSAGE
+                ? "failure"
+                : "message"
         showToast(msg, toastType)
     } catch {
         // Toasts API might not be available in all Vencord versions — fail silently.

@@ -10,7 +10,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { ChannelStore, Constants, ContextMenuApi, Menu, React, RestAPI, SelectedChannelStore, Toasts } from "@webpack/common";
+import { ChannelStore, Constants, ContextMenuApi, Menu, React, RestAPI, SelectedChannelStore, showToast } from "@webpack/common";
 
 const settings = definePluginSettings({
     location: {
@@ -147,7 +147,7 @@ async function exportChannel(channelId: string) {
     currentExportAbort?.abort();
     const controller = new AbortController();
     currentExportAbort = controller;
-    Toasts.show({ id: Toasts.genId(), type: Toasts.Type.MESSAGE, message: "Exporting..." });
+    showToast("Exporting...", "message");
     const messages = await fetchAllMessages(channelId, controller.signal);
     if (controller.signal.aborted) return;
     const html = renderHtml(channelId, messages as any);
@@ -156,8 +156,8 @@ async function exportChannel(channelId: string) {
     if ((window as any).IS_DISCORD_DESKTOP) {
         const data = new TextEncoder().encode(html);
         const saved = await (window as any).DiscordNative.fileManager.saveWithDialog(data, filename, "text/html");
-        if (saved) Toasts.show({ id: Toasts.genId(), type: Toasts.Type.SUCCESS, message: "Export saved." });
-        else Toasts.show({ id: Toasts.genId(), type: Toasts.Type.FAILURE, message: "Export canceled." });
+        if (saved) showToast("Export saved.", "success");
+        else showToast("Export canceled.", "failure");
     } else {
         const blob = new Blob([html], { type: "text/html" });
         const url = URL.createObjectURL(blob);
@@ -166,7 +166,7 @@ async function exportChannel(channelId: string) {
         a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
-        Toasts.show({ id: Toasts.genId(), type: Toasts.Type.SUCCESS, message: "Export downloaded." });
+        showToast("Export downloaded.", "success");
     }
     if (currentExportAbort === controller) currentExportAbort = null;
 }
@@ -174,7 +174,7 @@ async function exportChannel(channelId: string) {
 function exportCurrentChannel() {
     const channelId = SelectedChannelStore.getChannelId();
     if (!channelId) {
-        Toasts.show({ id: Toasts.genId(), type: Toasts.Type.FAILURE, message: "No channel selected." });
+        showToast("No channel selected.", "failure");
         return;
     }
 

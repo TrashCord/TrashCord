@@ -12,7 +12,7 @@ import { humanFriendlyJoin } from "@utils/text";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { ChannelStore, GuildMemberStore, Menu, RelationshipStore, SelectedChannelStore, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, GuildMemberStore, Menu, RelationshipStore, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 function clearableDebounce(func: Function, delay: number) {
     let timeout: NodeJS.Timeout;
@@ -160,15 +160,10 @@ function updateAutoMute() {
 function autoMute(reason: string) {
     if (!MediaEngineStore.isSelfMute() && SelectedChannelStore.getVoiceChannelId()) {
         toggleSelfMute();
-        Toasts.show({
-            message: reason,
-            type: Toasts.Type.MESSAGE,
-            id: Toasts.genId(),
-            options: {
+        showToast(reason, "message", {
                 duration: 3500,
-                position: Toasts.Position.TOP
-            }
-        });
+                position: 0
+            });
     }
 }
 

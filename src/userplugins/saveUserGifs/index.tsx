@@ -12,7 +12,7 @@ import { Devs } from "@utils/constants";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByCodeLazy,findByPropsLazy } from "@webpack";
-import { Menu, SelectedChannelStore,showToast, Toasts } from "@webpack/common";
+import { Menu, SelectedChannelStore, showToast } from "@webpack/common";
 
 const TokenStore = findByPropsLazy("getToken");
 const addFavoriteGif = findByCodeLazy("favoriteGifs", "order", "updateAsync");
@@ -269,11 +269,11 @@ async function searchMessages(
 
 async function scanUserGifs(userId: string, username: string, guildId: string | null): Promise<void> {
     if (isScanning) {
-        showToast("Already scanning! Use the stop button.", Toasts.Type.FAILURE);
+        showToast("Already scanning! Use the stop button.", "failure");
         return;
     }
     if (!guildId) {
-        showToast("This plugin only works in servers, not DMs.", Toasts.Type.FAILURE);
+        showToast("This plugin only works in servers, not DMs.", "failure");
         return;
     }
 
@@ -288,7 +288,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
 
     const channelFilter = mode === "channel" ? (getCurrentChannelId() ?? null) : null;
 
-    showToast(`Scanning GIFs from ${username}...`, Toasts.Type.MESSAGE);
+    showToast(`Scanning GIFs from ${username}...`, "message");
     console.log(`[SaveUserGifs] Starting scan for ${username} (${userId})`);
 
     const useHeartGifs = settings.store.useHeartGifs ?? false;
@@ -333,7 +333,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
 
     // Batch-write HeartGifs after scan (single read+write instead of per-GIF)
     if (heartGifsPending.length > 0) {
-        showToast("Saving HeartGifs...", Toasts.Type.MESSAGE);
+        showToast("Saving HeartGifs...", "message");
         await addToHeartGifsBatch(heartGifsPending);
     }
 
@@ -341,7 +341,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
     stopRequested = false;
 
     if (allGifs.length === 0) {
-        showToast(`No GIFs found from ${username}.`, Toasts.Type.FAILURE);
+        showToast(`No GIFs found from ${username}.`, "failure");
         return;
     }
 
@@ -353,7 +353,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
         a.click();
     }
 
-    showToast(`✅ Found ${allGifs.length} GIFs from ${username}`, Toasts.Type.SUCCESS);
+    showToast(`✅ Found ${allGifs.length} GIFs from ${username}`, "success");
     await sleep(1500);
 
     if (useHeartGifs && (saveMode === "favorites" || saveMode === "both")) {
@@ -368,7 +368,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
             }
         }
         console.log(`[SaveUserGifs] Done! Found: ${allGifs.length} | Saved to HeartGifs: ${hgSaved} | Already had: ${hgAlreadyHad}`);
-        showToast(`💾 HeartGifs: Saved ${hgSaved} | Already had: ${hgAlreadyHad}`, Toasts.Type.SUCCESS);
+        showToast(`💾 HeartGifs: Saved ${hgSaved} | Already had: ${hgAlreadyHad}`, "success");
     } else {
         const alreadyHad = allGifs.filter(g => favUrls.has(g.url)).length;
 
@@ -384,9 +384,9 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
         }
 
         if (failedToSave.length > 0) {
-            showToast(`⚠️ Saved: ${reallySaved.length} | Failed: ${failedToSave.length} | Already had: ${alreadyHad}`, Toasts.Type.FAILURE);
+            showToast(`⚠️ Saved: ${reallySaved.length} | Failed: ${failedToSave.length} | Already had: ${alreadyHad}`, "failure");
         } else {
-            showToast(`✅ Saved: ${reallySaved.length} | Already had: ${alreadyHad}`, Toasts.Type.SUCCESS);
+            showToast(`✅ Saved: ${reallySaved.length} | Already had: ${alreadyHad}`, "success");
         }
     }
 }
@@ -411,14 +411,14 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
                 label="⏹ Stop saving GIFs"
                 action={() => {
                     stopRequested = true;
-                    showToast("Stopping...", Toasts.Type.MESSAGE);
+                    showToast("Stopping...", "message");
                 }}
             />,
             <Menu.MenuItem
                 key="save-user-gifs-status"
                 id="save-user-gifs-status"
                 label={`📊 ${currentGifsFound} GIFs found so far`}
-                action={() => showToast(`${currentGifsFound} GIFs found so far`, Toasts.Type.MESSAGE)}
+                action={() => showToast(`${currentGifsFound} GIFs found so far`, "message")}
             />
         ] : [])
     );

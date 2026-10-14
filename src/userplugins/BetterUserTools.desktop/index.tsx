@@ -12,7 +12,7 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Forms, MediaEngineStore, Menu, React, showToast, Toasts, UserStore, VoiceStateStore } from "@webpack/common";
+import { Forms, MediaEngineStore, Menu, React, showToast, UserStore, VoiceStateStore } from "@webpack/common";
 
 type LoopbackActions = {
     setLoopback(tag: string, enabled: boolean): unknown;
@@ -98,7 +98,7 @@ function getVoiceActions(): LoopbackActions | null {
         if (!actions?.setLoopback || !actions?.toggleSelfDeaf) {
             if (!missingModuleNotified) {
                 missingModuleNotified = true;
-                showToast("Mic test unavailable (missing VoiceActions module)", Toasts.Type.FAILURE);
+                showToast("Mic test unavailable (missing VoiceActions module)", "failure");
             }
             return null;
         }
@@ -106,7 +106,7 @@ function getVoiceActions(): LoopbackActions | null {
     } catch (err) {
         if (!missingModuleNotified) {
             missingModuleNotified = true;
-            showToast("Mic test unavailable (see console)", Toasts.Type.FAILURE);
+            showToast("Mic test unavailable (see console)", "failure");
         }
         log.error("Failed to resolve VoiceActions", err);
         return null;
@@ -131,11 +131,11 @@ async function enableLoopback() {
         } else {
             selfDeafenedByPlugin = false;
         }
-        showToast("Mic Test Loopback - Enabled", Toasts.Type.SUCCESS);
+        showToast("Mic Test Loopback - Enabled", "success");
         return true;
     } catch (err) {
         log.error("Failed to enable loopback", err);
-        showToast("Failed to start Mic Test Loopback", Toasts.Type.FAILURE);
+        showToast("Failed to start Mic Test Loopback", "failure");
         return false;
     }
 }
@@ -154,10 +154,10 @@ async function disableLoopback(silent = false) {
             await actions.toggleSelfDeaf();
         }
         selfDeafenedByPlugin = false;
-        if (!silent) showToast("Mic Test Loopback - Disabled", Toasts.Type.FAILURE);
+        if (!silent) showToast("Mic Test Loopback - Disabled", "failure");
     } catch (err) {
         log.error("Failed to disable loopback", err);
-        if (!silent) showToast("Failed to stop Mic Test Loopback", Toasts.Type.FAILURE);
+        if (!silent) showToast("Failed to stop Mic Test Loopback", "failure");
     }
 }
 
@@ -243,7 +243,7 @@ function OffTheRadarButton() {
             forceUpdate();
         } catch (err) {
             log.error("OffTheRadar toggle failed", err);
-            showToast("OffTheRadar toggle failed", Toasts.Type.FAILURE);
+            showToast("OffTheRadar toggle failed", "failure");
         }
     };
     return (
@@ -263,9 +263,9 @@ const styles = `.vc-betterusertools-btn { color: var(--interactive-normal); }`;
 export default definePlugin({
     name: "BetterUserTools",
     description: "Mic test loopback and off-the-radar toggles in the user panel and audio context menus.",
-    authors: [Devs.Benjii, Devs.x2b],
+    authors: [Devs.Benjii, Devs.x2b, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Utility", "Developers"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     dependencies: ["UserSettingsAPI"],
     settings,
     styles,

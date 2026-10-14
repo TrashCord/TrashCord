@@ -10,7 +10,7 @@ import { Badges } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { Forms, Toasts, UserStore } from "@webpack/common";
+import { Forms, showToast, UserStore } from "@webpack/common";
 // eslint-disable-next-line unused-imports/no-unused-imports
 import { User } from "discord-types/general";
 
@@ -274,14 +274,9 @@ export default definePlugin({
         NativeBadges.forEach(b => Badges.addBadge(b));
     },
     async stop() {
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "To clear out your client-side badges, reload Discord.",
-            type: Toasts.Type.MESSAGE,
-            options: {
-                position: Toasts.Position.BOTTOM, // NOBODY LIKES TOASTS AT THE TOP
-            },
-        });
+        showToast("To clear out your client-side badges, reload Discord.", "message", {
+                position: 1, 
+            });
     }
 });
 

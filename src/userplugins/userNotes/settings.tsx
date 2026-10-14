@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Alerts, Button, showToast, Toasts } from "@webpack/common";
+import { Alerts, Button, showToast } from "@webpack/common";
 
 import { clearUserNotes, transferUserNotes } from "./data";
 
@@ -60,17 +60,17 @@ export default definePluginSettings({
                     }
                 }).then(async r => {
                     if (!r.ok) {
-                        showToast("Unable to retrieve regular notes from Discord", Toasts.Type.FAILURE);
+                        showToast("Unable to retrieve regular notes from Discord", "failure");
                         return;
                     }
                     r.json().then(resularUsersNotes => {
                         transferUserNotes(resularUsersNotes);
-                        showToast("Successfully transferred notes from Discord", Toasts.Type.SUCCESS);
+                        showToast("Successfully transferred notes from Discord", "success");
                     }).catch(() => {
-                        showToast("Unable to retrieve regular notes from Discord", Toasts.Type.FAILURE);
+                        showToast("Unable to retrieve regular notes from Discord", "failure");
                     });
                 }).catch(() => {
-                    showToast("Unable to retrieve regular notes from Discord", Toasts.Type.FAILURE);
+                    showToast("Unable to retrieve regular notes from Discord", "failure");
                 });
             }}>
                 Transfer existing regular notes from Discord
@@ -90,7 +90,7 @@ export default definePluginSettings({
                     cancelText: "Cancel",
                     onConfirm: () => {
                         clearUserNotes();
-                        showToast("Successfully cleared", Toasts.Type.SUCCESS);
+                        showToast("Successfully cleared", "success");
                     },
                 })}
             >

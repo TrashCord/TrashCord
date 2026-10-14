@@ -12,7 +12,7 @@ import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel } from "@vencord/discord-types";
 import { findStoreLazy } from "@webpack";
-import { ChannelStore, Menu, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, Menu, RestAPI, showToast, UserStore } from "@webpack/common";
 
 // Use PrivateChannelSortStore like in other plugins
 const PrivateChannelSortStore = findStoreLazy("PrivateChannelSortStore") as { getPrivateChannelIds: () => string[]; };
@@ -149,7 +149,7 @@ async function leaveAllGroups() {
                 });
             }
 
-            showToast("ℹ️ No groups to leave", Toasts.Type.MESSAGE);
+            showToast("ℹ️ No groups to leave", "message");
             return;
         }
 
@@ -173,7 +173,7 @@ async function leaveAllGroups() {
             });
         }
 
-        showToast(`🔄 Leaving ${groups.length} group(s)...`, Toasts.Type.MESSAGE);
+        showToast(`🔄 Leaving ${groups.length} group(s)...`, "message");
 
         // Leave each group
         for (const group of groups) {
@@ -218,9 +218,9 @@ async function leaveAllGroups() {
 
         // Final toast
         if (failureCount > 0) {
-            showToast(`⚠️ ${successCount} groups left, ${failureCount} failures`, Toasts.Type.FAILURE);
+            showToast(`⚠️ ${successCount} groups left, ${failureCount} failures`, "failure");
         } else {
-            showToast(`✅ ${successCount} groups left successfully`, Toasts.Type.SUCCESS);
+            showToast(`✅ ${successCount} groups left successfully`, "success");
         }
 
     } catch (error) {
@@ -234,7 +234,7 @@ async function leaveAllGroups() {
             });
         }
 
-        showToast("❌ Error while leaving groups", Toasts.Type.FAILURE);
+        showToast("❌ Error while leaving groups", "failure");
     }
 }
 

@@ -23,7 +23,7 @@ import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, MediaEngineStore, SelectedChannelStore, showToast, Toasts, UploadHandler, useStateFromStores } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, MediaEngineStore, SelectedChannelStore, showToast, UploadHandler, useStateFromStores } from "@webpack/common";
 
 import { encodeOggOpus, makeWav } from "./ogg";
 
@@ -139,7 +139,7 @@ async function clip(channelId?: string) {
     try {
         const res = await Native.getClip(settings.store.bufferSeconds, settings.store.includeMic);
         if (!res.frames) {
-            showToast("VcRewind: nothing buffered yet. Join a voice channel and wait a few seconds.", Toasts.Type.FAILURE);
+            showToast("VcRewind: nothing buffered yet. Join a voice channel and wait a few seconds.", "failure");
             return;
         }
 
@@ -175,7 +175,7 @@ async function clip(channelId?: string) {
                 onClick: () => Native.showInFolder(path)
             });
         } else {
-            showToast(`Clip saved (${fmtDuration(duration)})`, Toasts.Type.SUCCESS);
+            showToast(`Clip saved (${fmtDuration(duration)})`, "success");
         }
 
         if (settings.store.uploadToChat) {
@@ -184,7 +184,7 @@ async function clip(channelId?: string) {
         }
     } catch (e) {
         console.error("[VcRewind] failed to save clip", e);
-        showToast("VcRewind: failed to save clip, see console", Toasts.Type.FAILURE);
+        showToast("VcRewind: failed to save clip, see console", "failure");
     } finally {
         busy = false;
     }

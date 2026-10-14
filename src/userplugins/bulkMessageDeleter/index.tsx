@@ -5,7 +5,7 @@ import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { definePluginSettings } from "@api/Settings";
 import { classNameFactory } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, Constants, FluxDispatcher, Menu, MessageStore, React, RestAPI, Toasts, UserStore, useEffect, useReducer, useState } from "@webpack/common";
+import { ChannelStore, Constants, FluxDispatcher, Menu, MessageStore, React, RestAPI, showToast, UserStore, useEffect, useReducer, useState } from "@webpack/common";
 
 import managedStyle from "./style.css?managed";
 
@@ -202,13 +202,9 @@ async function runDelete(ids: string[], channelId: string) {
     const wasCancelled = store.cancelled;
     const wasBackground = store.background;
     deactivate();
-    Toasts.show({
-        type: wasCancelled ? Toasts.Type.FAILURE : Toasts.Type.SUCCESS,
-        message: wasCancelled
+    showToast(wasCancelled
             ? `Stopped — deleted ${deleted} before cancel`
-            : `${wasBackground ? "Background: " : ""}Deleted ${deleted} message${deleted !== 1 ? "s" : ""}${failed ? ` · ${failed} failed` : ""}`,
-        id: Toasts.genId(),
-    });
+            : `${wasBackground ? "Background: " : ""}Deleted ${deleted} message${deleted !== 1 ? "s" : ""}${failed ? ` · ${failed} failed` : ""}`, wasCancelled ? "failure" : "success");
 }
 
 function PopoverIconUnchecked() {
@@ -391,7 +387,7 @@ export default definePlugin({
     description: "Select and mass-delete your own messages. Works on ALL message types including grouped. Click-to-select, hover button, keyword filter, slash command, and context menus.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Chat", "Utility"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     dependencies: ["CommandsAPI", "MessagePopoverAPI", "ContextMenuAPI"],
     settings,
     managedStyle,

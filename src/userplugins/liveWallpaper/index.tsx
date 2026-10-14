@@ -7,7 +7,7 @@
 import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, showToast, Toasts } from "@webpack/common";
+import { Button, Forms, React, showToast } from "@webpack/common";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +85,7 @@ function SettingsComponent() {
                                 setCurrentUrl(dataUrl);
                                 setInputValue("");
                                 applyWallpaper();
-                                showToast("Local wallpaper applied!", Toasts.Type.SUCCESS);
+                                showToast("Local wallpaper applied!", "success");
                             }
                         }}
                     >
@@ -103,7 +103,7 @@ function SettingsComponent() {
                                 setCurrentUrl("");
                                 setInputValue("");
                                 applyWallpaper();
-                                showToast("Wallpaper removed", Toasts.Type.SUCCESS);
+                                showToast("Wallpaper removed", "success");
                             }}
                         >
                             🗑️ Delete

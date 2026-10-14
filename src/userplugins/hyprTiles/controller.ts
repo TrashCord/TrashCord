@@ -14,7 +14,6 @@ import {
     RelationshipStore,
     SelectedChannelStore,
     showToast,
-    Toasts,
     UserStore,
 } from "@webpack/common";
 
@@ -140,7 +139,7 @@ export async function reloadHyprTilesRules(showResult = true) {
             result.ok
                 ? "HyprTiles rules reloaded."
                 : `HyprTiles rules reload failed: ${result.error}`,
-            result.ok ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE
+            result.ok ? "success" : "failure"
         );
     }
 
@@ -448,7 +447,7 @@ export function createNewTabGroup() {
     if (!running) return false;
     const groupName = moveFocusedTileIntoNewGroup();
     if (!groupName) return false;
-    showToast(`Created tab group ${groupName}.`, Toasts.Type.SUCCESS);
+    showToast(`Created tab group ${groupName}.`, "success");
     return true;
 }
 

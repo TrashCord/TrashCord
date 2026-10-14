@@ -9,7 +9,7 @@ import managedStyle from "./styles.css?managed";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Channel } from "@vencord/discord-types";
-import { ChannelStore, DraftType, FluxDispatcher, openModal, SelectedChannelStore, showToast, Toasts, UploadHandler } from "@webpack/common";
+import { ChannelStore, DraftType, FluxDispatcher, openModal, SelectedChannelStore, showToast, UploadHandler } from "@webpack/common";
 
 import { AudioEditorModal } from "./AudioEditorModal";
 import { ChoiceModal } from "./ChoiceModal";
@@ -110,7 +110,7 @@ function reAddFiles(files: File[], ctx: UploadContext): void {
     if (files.length === 0) return;
     const channel = resolveChannel(ctx.channelId);
     if (!channel) {
-        showToast("Clipify: channel not found to re-add the file.", Toasts.Type.FAILURE);
+        showToast("Clipify: channel not found to re-add the file.", "failure");
         return;
     }
     files.forEach(f => approvedFiles.add(f));
@@ -118,7 +118,7 @@ function reAddFiles(files: File[], ctx: UploadContext): void {
         UploadHandler.promptToUpload(files, channel, ctx.draftType);
     } catch (err) {
         logger.error("Failed to re-add files to the composer", err);
-        showToast("Clipify: failed to add the file to your message.", Toasts.Type.FAILURE);
+        showToast("Clipify: failed to add the file to your message.", "failure");
     }
 }
 

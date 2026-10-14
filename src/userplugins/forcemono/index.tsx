@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
 import definePlugin, { OptionType } from "@utils/types";
-import { React, Toasts } from "@webpack/common";
+import { React, showToast  } from "@webpack/common";
 import { waitForStore } from "@webpack/common/internal";
 import EventEmitter from "events";
 
@@ -82,11 +82,11 @@ function MonoToggleButton({ iconForeground, hideTooltips, nameplate }: UserAreaR
                 const newValue = !forceMono;
                 settings.store.forceMono = newValue;
 
-                Toasts.show({
-                    message: newValue ? "Force Mono Enabled" : "Force Mono Disabled",
-                    id: "MonoToast",
-                    type: Toasts.Type.MESSAGE
-                });
+                showToast(
+                    newValue ? "Force Mono Enabled" : "Force Mono Disabled",
+                    "message",
+                    { id: "MonoToast" }
+                );
             }}
         />
     );

@@ -10,7 +10,7 @@ import { Devs } from "@utils/constants";
 import { sendMessage } from "@utils/discord";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, FluxDispatcher, Menu, React, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, Menu, React, showToast, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     enabled: {
@@ -409,23 +409,16 @@ function MimicMenuItem(userId: string, username: string, channelId: string) {
                             ? `ℹ️ Stopped mimicking **${username}**`
                             : `✅ Started mimicking **${username}** with content filtering`;
 
-                        Toasts.show({
-                            message: statusMessage,
-                            id: "mimic-troll-status",
-                            type: wasActive ? Toasts.Type.MESSAGE : Toasts.Type.SUCCESS,
-                            options: {
-                                position: Toasts.Position.BOTTOM,
-                            }
-                        });
+                        showToast(
+                            statusMessage,
+                            wasActive ? "message" : "success",
+                            { id: "mimic-troll-status", position: 1 }
+                        );
                     }
                 } else {
-                    Toasts.show({
-                        message: "❌ Failed to toggle mimic status",
+                    showToast("❌ Failed to toggle mimic status", "failure", {
                         id: "mimic-troll-error",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM,
-                        }
+                        position: 1
                     });
                 }
             }}

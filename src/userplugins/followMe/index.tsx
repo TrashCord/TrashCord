@@ -4,189 +4,289 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
+import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { HeaderBarButton } from "@api/HeaderBar";
-import { DataStore } from "@api/index";
-import definePlugin from "@utils/types";
-import { findStoreLazy } from "@webpack";
-import { Menu, React, Toasts, useState, useEffect, UserStore, PermissionStore, PermissionsBits, ChannelStore, RestAPI, Constants } from "@webpack/common";
+import { definePluginSettings } from "@api/Settings";
+import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
+import definePlugin, { OptionType } from "@utils/types";
+import {
+    Button, ChannelStore, Constants, Menu, PermissionsBits, PermissionStore,
+    RestAPI, showToast, useEffect, UserStore, useState, VoiceStateStore,
+} from "@webpack/common";
+import type { SVGProps } from "react";
 
-const VoiceStateStore = findStoreLazy("VoiceStateStore");
+interface VoiceState {
+    userId: string;
+    channelId?: string;
+    oldChannelId?: string;
+}
 
-const DS_KEY = "followme-target-v1";
+const settings = definePluginSettings({
+    targetUserIds: {
+        type: OptionType.STRING,
+        description: "Followed user IDs (managed automatically)",
+        restartNeeded: false,
+        hidden: true,
+        default: "[]",
+    },
+    showToasts: {
+        type: OptionType.BOOLEAN,
+        description: "Show toast notifications",
+        restartNeeded: false,
+        default: true,
+    },
+});
 
-// ── Global state ──────────────────────────────────────────────────────────────
-let targetId: string | null = null;
-let targetName: string = "";
-
+const followed = new Set<string>();
 const listeners = new Set<() => void>();
-function notifyAll() { listeners.forEach(fn => fn()); }
+const inflight = new Map<string, string>();
+let followedList: string[] = [];
 
-function useFollowMeId(): string | null {
+const noop = () => { };
+
+function emit() {
+    followedList = [...followed];
+    listeners.forEach(fn => fn());
+}
+
+function commit() {
+    emit();
+    settings.store.targetUserIds = JSON.stringify(followedList);
+}
+
+function load() {
+    followed.clear();
+    try {
+        const parsed = JSON.parse(settings.store.targetUserIds);
+        if (Array.isArray(parsed)) for (const id of parsed) if (typeof id === "string") followed.add(id);
+    } catch { }
+    emit();
+}
+
+function useFollowedIds() {
     const [, tick] = useState(0);
     useEffect(() => {
         const fn = () => tick(n => n + 1);
         listeners.add(fn);
         return () => { listeners.delete(fn); };
     }, []);
-    return targetId;
+    return followedList;
 }
 
-async function persist() {
-    await DataStore.set(DS_KEY, targetId ? { id: targetId, name: targetName } : null);
+function toast(message: string, type: "success" | "failure" | "message") {
+    if (settings.store.showToasts) showToast(message, type);
 }
 
-async function moveTargetTo(guildId: string, channelId: string) {
-    if (!targetId || !guildId || !channelId) return;
-
-    const targetState = VoiceStateStore.getVoiceStateForUser(targetId);
-    if (!targetState) return;
-
-    if (targetState.channelId === channelId) return;
-
-    const channel = ChannelStore.getChannel(channelId);
-    if (!channel) return;
-    const canMove = PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel);
-
-    if (!canMove) return;
-
-    try {
-        await RestAPI.patch({
-            url: Constants.Endpoints.GUILD_MEMBER(guildId, targetId),
-            body: { channel_id: channelId }
-        });
-    } catch (e) {
-        console.error("[FollowMe] Failed to move user:", e);
-    }
-}
-
-function followMe(userId: string) {
-    if (targetId === userId) return;
-    const user = UserStore?.getUser?.(userId);
-    targetId = userId;
-    targetName = user?.globalName ?? user?.username ?? userId;
-
-    const myId = UserStore.getCurrentUser()?.id;
-    const myState = VoiceStateStore.getVoiceStateForUser(myId);
-    if (myState?.channelId && myState.guildId) {
-        moveTargetTo(myState.guildId, myState.channelId);
-    }
-
-    notifyAll();
-    persist().catch(() => { });
-    Toasts.show({ message: `Following Me: ${targetName} 🏃‍♂️`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
-}
-
-function unfollowMe() {
-    const name = targetName;
-    targetId = null; targetName = "";
-    notifyAll();
-    persist().catch(() => { });
-    Toasts.show({ message: `Stopped forcing ${name} to follow`, type: Toasts.Type.MESSAGE, id: Toasts.genId() });
-}
-
-// ── Icon ──
-function FollowMeIcon({ filled = false }: { filled?: boolean; }) {
+function FollowIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
     return (
-        <svg width="20" height="20" viewBox="0 0 24 24">
-            <path
-                fill={filled ? "#3ba55d" : "currentColor"}
-                d="M15,10V5H13V10.5C13,10.78 13.22,11 13.5,11H18V9H15.5L18.41,6.09L17,4.68L14.09,7.59V5H12V11A1,1 0 0,0 13,12H19A1,1 0 0,0 20,11V5A1,1 0 0,0 19,4H13V2H19A3,3 0 0,1 22,5V11A3,3 0 0,1 19,14H13.81L14.41,15.79L12.5,16.41L11.5,13.5C11.31,12.92 10.77,12.5 10.16,12.5H6.5A1,1 0 0,0 5.5,13.5V20.5A1,1 0 0,0 6.5,21.5H9.5V23.5H6.5A3,3 0 0,1 3.5,20.5V13.5A3,3 0 0,1 6.5,10.5H9.5V7A3,3 0 0,1 12.5,4H13V2H12.5A5,5 0 0,0 7.5,7V10.5H6.5A5,5 0 0,0 1.5,15.5V20.5A5,5 0 0,0 6.5,25.5H9.5V23.5H6.5A3,3 0 0,1 3.5,20.5V15.5A3,3 0 0,1 6.5,12.5H7.5V15.5A1,1 0 0,0 8.5,16.5H11.5L12.5,19.41L14.41,17.5L12,15.09V13.41L15.09,16.5L17,14.59L13.91,11.5H15V10Z"
-            />
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="7" r="4" />
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <path d="M16 11h6M19 8l3 3-3 3" />
         </svg>
     );
 }
 
-// ── HeaderBar Button ──
+function StopFollowIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="7" r="4" />
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <path d="M17 8l5 5M22 8l-5 5" />
+        </svg>
+    );
+}
+
+function getName(userId: string) {
+    return UserStore.getUser(userId)?.username ?? userId;
+}
+
+function guildOf(channelId: string) {
+    return ChannelStore.getChannel(channelId)?.guild_id;
+}
+
+function send(userId: string, channel: { id: string; guild_id: string; }) {
+    if (inflight.get(userId) === channel.id) return;
+    inflight.set(userId, channel.id);
+
+    RestAPI.patch({
+        url: Constants.Endpoints.GUILD_MEMBER(channel.guild_id, userId),
+        body: { channel_id: channel.id },
+    }).catch(noop).finally(() => {
+        if (inflight.get(userId) === channel.id) inflight.delete(userId);
+    });
+}
+
+function pull(userId: string, toChannelId: string, currentChannelId?: string) {
+    if (!currentChannelId || currentChannelId === toChannelId) return;
+
+    const channel = ChannelStore.getChannel(toChannelId);
+    if (!channel?.guild_id || guildOf(currentChannelId) !== channel.guild_id) return;
+    if (!PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) return;
+
+    send(userId, channel);
+}
+
+function pullAll(toChannelId: string) {
+    const channel = ChannelStore.getChannel(toChannelId);
+    if (!channel?.guild_id || !PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) return;
+
+    for (const id of followed) {
+        const current = VoiceStateStore.getVoiceStateForUser(id)?.channelId;
+        if (current && current !== toChannelId && guildOf(current) === channel.guild_id) send(id, channel);
+    }
+}
+
+function followUser(userId: string) {
+    if (followed.has(userId)) return;
+    followed.add(userId);
+    commit();
+
+    const myId = UserStore.getCurrentUser()?.id;
+    const myChannelId = myId ? VoiceStateStore.getVoiceStateForUser(myId)?.channelId : undefined;
+    if (myChannelId) pull(userId, myChannelId, VoiceStateStore.getVoiceStateForUser(userId)?.channelId);
+
+    toast(`FollowMe: user added [${getName(userId)}]`, "success");
+}
+
+function unfollowUser(userId: string) {
+    if (!followed.delete(userId)) return;
+    commit();
+    toast(`FollowMe: user removed [${getName(userId)}]`, "message");
+}
+
+function unfollowAll() {
+    const n = followed.size;
+    if (!n) return;
+    followed.clear();
+    commit();
+    toast(`FollowMe: ${n} user${n === 1 ? "" : "s"} cleared`, "failure");
+}
+
+function TrackedUsersList() {
+    const ids = useFollowedIds();
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span style={{ color: "var(--text-brand)", fontWeight: 700, fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Followed Users {ids.length > 0 ? `(${ids.length})` : ""}
+            </span>
+            {ids.length === 0
+                ? <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>No users followed. Right-click a user to add them.</span>
+                : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "220px", overflowY: "auto", paddingRight: "4px" }}>
+                            {ids.map(id => (
+                                <div key={id} style={{
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    background: "var(--background-tertiary)", borderRadius: "6px", padding: "6px 10px",
+                                    border: "1px solid var(--background-modifier-accent)", flexShrink: 0,
+                                }}>
+                                    <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <span style={{ color: "var(--text-link)", fontSize: "14px", fontWeight: 700 }}>
+                                            {UserStore.getUser(id)?.username ?? "Unknown User"}
+                                        </span>
+                                        <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{id}</span>
+                                    </div>
+                                    <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={() => unfollowUser(id)}>Remove</Button>
+                                </div>
+                            ))}
+                        </div>
+                        <Button style={{ marginTop: "4px" }} size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={unfollowAll}>Clear All</Button>
+                    </div>
+                )}
+        </div>
+    );
+}
+
+const UserContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
+    const userId: string | undefined = props?.user?.id;
+    if (!userId || userId === UserStore.getCurrentUser()?.id) return;
+
+    const isFollowed = followed.has(userId);
+    const icon = isFollowed ? StopFollowIcon : FollowIcon;
+
+    children.splice(-1, 0, (
+        <Menu.MenuGroup key="follow-me-group">
+            <Menu.MenuItem
+                id="follow-me-ctx"
+                label={isFollowed ? "Stop Follow Me" : "Follow Me"}
+                icon={icon}
+                leadingAccessory={{ type: "icon", icon }}
+                action={() => isFollowed ? unfollowUser(userId) : followUser(userId)}
+            />
+        </Menu.MenuGroup>
+    ));
+};
+
 function FollowMeHeaderButton() {
-    const tid = useFollowMeId();
-    if (!tid) return null;
+    const ids = useFollowedIds();
+    if (!ids.length) return null;
+
+    const shown = ids.slice(0, 3).map(getName).join(", ");
+    const extra = ids.length > 3 ? ` +${ids.length - 3}` : "";
 
     return (
         <HeaderBarButton
-            icon={() => (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#3ba55d">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
-                </svg>
-            )}
-            tooltip={`Stop Follow Me: ${targetName}`}
-            onClick={() => unfollowMe()}
+            icon={StopFollowIcon}
+            tooltip={`FollowMe: ${shown}${extra} (click to stop all)`}
+            onClick={unfollowAll}
         />
     );
 }
 
-// ── Context Menu ──
-const ctxPatch: NavContextMenuPatchCallback = (children, props) => {
-    if (!children || !Array.isArray(children)) return;
-    try {
-        const userId: string | undefined = props?.user?.id;
-        if (!userId || userId === UserStore.getCurrentUser()?.id) return;
-
-        const isFollowed = targetId === userId;
-
-        children.push(
-            <Menu.MenuCheckboxItem
-                id="follow-me-ctx"
-                label={isFollowed ? "Stop Follow Me" : "Follow Me"}
-                checked={isFollowed}
-                action={() => { if (isFollowed) unfollowMe(); else followMe(userId); }}
-            />
-        );
-    } catch (e) {
-        console.error("[FollowMe] Context menu patch error:", e);
-    }
-};
-
-// ── Plugin ───────────────────────────────────────────────────────────────────
 export default definePlugin({
     name: "FollowMe",
-    description: "Forces a user to follow you in voice channels (if you have permissions). Right-click a user -> Follow Me.",
-    authors: [{ name: "Nightcord", id: 0n }],
+    description: "Forces one or more users to follow you in voice channels (if you have permissions). Right-click a user -> Follow Me.",
+    authors: [{ name: "Nightcord", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Friends", "Utility"],
     enabledByDefault: false,
+    dependencies: ["HeaderBarAPI"],
+    settings,
+    settingsAboutComponent: TrackedUsersList,
+
+    toolboxActions: {
+        "Open FollowMe Settings": () => openPluginModal(Vencord.Plugins.plugins.FollowMe),
+    },
 
     headerBarButton: {
-        icon: () => <FollowMeIcon filled={true} />,
+        icon: FollowIcon,
         render: FollowMeHeaderButton,
         priority: 6,
     },
 
-    flux: {
-        VOICE_STATE_UPDATES({ voiceStates }) {
-            if (!targetId) return;
-            const myId = UserStore.getCurrentUser()?.id;
-
-            for (const s of voiceStates) {
-                if (s.userId === myId) {
-                    if (s.channelId && s.guildId) {
-                        moveTargetTo(s.guildId, s.channelId);
-                    }
-                }
-                else if (s.userId === targetId) {
-                    const myState = VoiceStateStore.getVoiceStateForUser(myId);
-                    if (myState?.channelId && myState.guildId && s.channelId !== myState.channelId) {
-                        if (s.guildId === myState.guildId) {
-                            moveTargetTo(myState.guildId, myState.channelId);
-                        }
-                    }
-                }
-            }
-        }
+    contextMenus: {
+        "user-context": UserContextMenuPatch,
+        "user-profile-actions": UserContextMenuPatch,
     },
 
-    async start() {
-        const saved = await DataStore.get(DS_KEY) as { id: string; name: string; } | null;
-        if (saved?.id) {
-            targetId = saved.id;
-            targetName = saved.name ?? saved.id;
-        }
-        addContextMenuPatch("user-context", ctxPatch);
-        addContextMenuPatch("user-profile-actions", ctxPatch);
+    start() {
+        load();
     },
 
     stop() {
-        targetId = null; targetName = "";
-        removeContextMenuPatch("user-context", ctxPatch);
-        removeContextMenuPatch("user-profile-actions", ctxPatch);
+        followed.clear();
+        inflight.clear();
+        commit();
+    },
+
+    flux: {
+        VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
+            if (!followed.size) return;
+
+            const myId = UserStore.getCurrentUser()?.id;
+            if (!myId) return;
+
+            for (const s of voiceStates) {
+                if (!s.channelId || s.channelId === s.oldChannelId) continue;
+
+                if (s.userId === myId) {
+                    pullAll(s.channelId);
+                } else if (followed.has(s.userId)) {
+                    const myChannelId = VoiceStateStore.getVoiceStateForUser(myId)?.channelId;
+                    if (myChannelId) pull(s.userId, myChannelId, s.channelId);
+                }
+            }
+        },
     },
 });

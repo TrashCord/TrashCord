@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { IPluginOptionComponentProps, OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Toasts, useEffect, useState } from "@webpack/common";
+import { Button, showToast, useEffect, useState } from "@webpack/common";
 // two lines because formatting removes the two spaces at the end of the line
 /**
  * shortcut: keys & mods in a string, joined by "+"
@@ -84,15 +84,10 @@ function KeymapElement(props: IPluginOptionComponentProps) {
 function isMatch(ev: KeyboardEvent) {
     const s: KeyBind = settings.store.keymap;
     if (!s || Object.entries(s).length === 0) {
-        Toasts.show({
-            id: Toasts.genId(),
-            message: "(CtrlEnterSave) Set your keybind in settings",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.TOP,
+        showToast("(CtrlEnterSave) Set your keybind in settings", "failure", {
+                position: 0,
                 duration: 2000
-            }
-        });
+            });
     }
     return ev.altKey === s.alt
         && ev.key === s.key

@@ -7,7 +7,7 @@
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { classes } from "@utils/misc";
 import { IconComponent } from "@utils/types";
-import { showToast, Toasts, useRef, useState } from "@webpack/common";
+import { showToast, useRef, useState } from "@webpack/common";
 
 import { checkGrammarWithGemini, checkGrammarWithLanguageTool } from "./api";
 import { settings } from "./settings";
@@ -43,13 +43,13 @@ export const FixGrammarChatBarIcon: ChatBarButtonFactory = ({ isMainChat, channe
                 const { backend, language, apiKey } = settings.store;
 
                 if (backend === "gemini" && !apiKey) {
-                    showToast("Please set your Gemini API key in the FixGrammar plugin settings", Toasts.Type.FAILURE);
+                    showToast("Please set your Gemini API key in the FixGrammar plugin settings", "failure");
                     return;
                 }
 
                 const text = getChatInputText(channelId);
                 if (!text) {
-                    showToast("Nothing to fix", Toasts.Type.MESSAGE);
+                    showToast("Nothing to fix", "message");
                     return;
                 }
 
@@ -61,16 +61,16 @@ export const FixGrammarChatBarIcon: ChatBarButtonFactory = ({ isMainChat, channe
                         : await checkGrammarWithLanguageTool(text, language);
 
                     if (corrected === text) {
-                        showToast("No issues found!", Toasts.Type.MESSAGE);
+                        showToast("No issues found!", "message");
                         return;
                     }
 
                     replaceChatInputBox(channelId, corrected);
-                    showToast("Grammar fixed!", Toasts.Type.SUCCESS);
+                    showToast("Grammar fixed!", "success");
                 } catch (e) {
                     showToast(
                         e instanceof Error ? e.message : "Failed to check grammar",
-                        Toasts.Type.FAILURE
+                        "failure"
                     );
                 } finally {
                     loadingRef.current = false;

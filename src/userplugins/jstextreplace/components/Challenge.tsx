@@ -8,7 +8,7 @@ import { ErrorCard } from "@components/ErrorCard";
 import { Link } from "@components/Link";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
-import { Forms, React, Text, TextInput, Toasts, useState } from "@webpack/common";
+import { Forms, React, Text, TextInput, showToast, useState } from "@webpack/common";
 import challengeText from "file://../challenge.mjs";
 
 import { settings } from "..";
@@ -56,7 +56,7 @@ export function Challenge() {
                 !reactiveSettings.hasDoneChallenge ? <TextInput placeholder="The answer to the above" style={{ marginTop: "15px" }} onChange={async value => {
                     if (value === solveChallenge([values[1], values[0], {}, values[2]])) {
                         settings.store.hasDoneChallenge = true;
-                        Toasts.show(Toasts.create("You can now use the plugin.", Toasts.Type.SUCCESS));
+                        showToast("You can now use the plugin.", "success");
                     }
                 }} /> : <Forms.FormText>You can now use the plugin as you have shown some understanding of JS. You are now on your own. <Link onClick={() => { settings.store.hasDoneChallenge = false; setExpanded(false); }}>
                     Disable

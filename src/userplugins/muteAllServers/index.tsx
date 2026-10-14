@@ -7,7 +7,7 @@
 import { addContextMenuPatch, removeContextMenuPatch } from "@api/ContextMenu";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Menu, RestAPI, Toasts, React, FluxDispatcher, GuildStore, GuildChannelStore, ActiveJoinedThreadsStore, ReadStateStore, ChannelStore } from "@webpack/common";
+import { Menu, RestAPI, showToast, React, FluxDispatcher, GuildStore, GuildChannelStore, ActiveJoinedThreadsStore, ReadStateStore, ChannelStore } from "@webpack/common";
 
 const GuildStoreModule = findByPropsLazy("getGuilds");
 
@@ -70,11 +70,7 @@ async function muteAllServers() {
     const guilds = GuildStoreModule.getGuilds();
     const guildIds = Object.keys(guilds);
 
-    Toasts.show({
-        message: "Muting all and clearing notifications…",
-        type: Toasts.Type.MESSAGE,
-        id: Toasts.genId(),
-    });
+    showToast("Muting all and clearing notifications…", "message");
 
     // Step 1: Mark everything as read (Equicord system)
     markAllAsRead();
@@ -110,11 +106,7 @@ async function muteAllServers() {
         }
     }
 
-    Toasts.show({
-        message: `Everything is now muted and read!`,
-        type: Toasts.Type.SUCCESS,
-        id: Toasts.genId(),
-    });
+    showToast(`Everything is now muted and read!`, "success");
 }
 
 const guildContextPatch = (children: any, { guild }: { guild?: any; }) => {

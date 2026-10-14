@@ -1,6 +1,6 @@
 import definePlugin, { OptionType } from "@utils/types";
 import { Devs } from "@utils/constants";
-import { Toasts, FluxDispatcher, UserStore, GuildStore, GuildMemberStore } from "@webpack/common";
+import { showToast, FluxDispatcher, UserStore, GuildStore, GuildMemberStore } from "@webpack/common";
 import { definePluginSettings } from "@api/Settings";
 import { findStoreLazy } from "@webpack";
 import { Menu, RestAPI, React, Button, TextInput, ChannelStore, PermissionStore, Forms, GuildChannelStore } from "@webpack/common";
@@ -176,17 +176,9 @@ function checkVcOwnershipStatus() {
 
     if (settings.store.showVcOwnerStatus && wasOwner !== actuallyIsOwner) {
         if (actuallyIsOwner) {
-            Toasts.show({
-                message: "🟢 You are now the VC owner",
-                type: Toasts.Type.SUCCESS,
-                options: { position: Toasts.Position.BOTTOM, duration: 3000 }
-            });
+            showToast("🟢 You are now the VC owner", "success", { position: 1, duration: 3000 });
         } else {
-            Toasts.show({
-                message: "🔴 Not the VC owner",
-                type: Toasts.Type.MESSAGE,
-                options: { position: Toasts.Position.BOTTOM, duration: 3000 }
-            });
+            showToast("🔴 Not the VC owner", "message", { position: 1, duration: 3000 });
         }
     }
 }
@@ -210,11 +202,7 @@ function getAllUsersInCurrentVc(): string[] {
 function banAllUsersInCurrentVc(): void {
     const usersInVc = getAllUsersInCurrentVc();
     if (usersInVc.length === 0) {
-        Toasts.show({
-            message: "No other users in current VC",
-            type: Toasts.Type.MESSAGE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast("No other users in current VC", "message", { position: 1 });
         return;
     }
 
@@ -222,22 +210,14 @@ function banAllUsersInCurrentVc(): void {
     const newUsers = usersInVc.filter(userId => !currentBannedUsers.includes(userId));
 
     if (newUsers.length === 0) {
-        Toasts.show({
-            message: "All users in VC are already on auto-ban list",
-            type: Toasts.Type.MESSAGE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast("All users in VC are already on auto-ban list", "message", { position: 1 });
         return;
     }
 
     const allBannedUsers = [...currentBannedUsers, ...newUsers];
     settings.store.users = allBannedUsers.join('/');
 
-    Toasts.show({
-        message: `Added ${newUsers.length} users to auto-ban list`,
-        type: Toasts.Type.SUCCESS,
-        options: { position: Toasts.Position.BOTTOM }
-    });
+    showToast(`Added ${newUsers.length} users to auto-ban list`, "success", { position: 1 });
 
     const currentUserId = UserStore.getCurrentUser().id;
     const currentVoiceState = VoiceStateStore.getVoiceStateForUser(currentUserId);
@@ -330,11 +310,7 @@ function MenuItem(id: string) {
                 if (wasAdded) {
                     banninguser(id);
                 } else {
-                    Toasts.show({
-                        message: `Removed ${id} from Auto-Ban List`,
-                        type: Toasts.Type.MESSAGE,
-                        options: { position: Toasts.Position.BOTTOM }
-                    });
+                    showToast(`Removed ${id} from Auto-Ban List`, "message", { position: 1 });
                 }
             }}
         />
@@ -361,11 +337,7 @@ function banninguser(id) {
     }
 
     if (!channelId || !guildId) {
-        Toasts.show({
-            message: `Not in voice channel - ${id} added to auto-ban list`,
-            type: Toasts.Type.MESSAGE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Not in voice channel - ${id} added to auto-ban list`, "message", { position: 1 });
         return;
     }
 
@@ -373,31 +345,19 @@ function banninguser(id) {
     const isOwner = forceCheckVcOwnership(guildId, channelId);
 
     if (!isOwner) {
-        Toasts.show({
-            message: `Not the VC owner - ${id} added to auto-ban list`,
-            type: Toasts.Type.MESSAGE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Not the VC owner - ${id} added to auto-ban list`, "message", { position: 1 });
         return;
     }
 
     // Check if target is in same VC
     const targetVoiceState = VoiceStateStore.getVoiceStateForUser(id);
     if (!targetVoiceState?.channelId || targetVoiceState.channelId !== channelId) {
-        Toasts.show({
-            message: `User ${id} not in your VC - added to auto-ban list`,
-            type: Toasts.Type.MESSAGE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`User ${id} not in your VC - added to auto-ban list`, "message", { position: 1 });
         return;
     }
 
     // Execute ban
-    Toasts.show({
-        message: `Added ${id} to Auto-Ban List & Auto-banning`,
-        type: Toasts.Type.SUCCESS,
-        options: { position: Toasts.Position.BOTTOM }
-    });
+    showToast(`Added ${id} to Auto-Ban List & Auto-banning`, "success", { position: 1 });
 
     setTimeout(() => {
         RestAPI.post({
@@ -420,11 +380,7 @@ function checkExistingUsersInVC(channelId: string) {
     Object.keys(voiceStates).forEach((userId, index) => {
         if (userId === currentUserId || !bannedUsers.includes(userId)) return;
 
-        Toasts.show({
-            message: `Auto banning existing User ${userId}`,
-            type: Toasts.Type.FAILURE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Auto banning existing User ${userId}`, "failure", { position: 1 });
 
         setTimeout(() => {
             RestAPI.post({
@@ -546,19 +502,11 @@ const cb = async (e) => {
         const isOwner = forceCheckVcOwnership(channel.guild_id, state.channelId);
 
         if (!isOwner) {
-            Toasts.show({
-                message: `Not the VC owner - ${state.userId} already on auto-ban list`,
-                type: Toasts.Type.MESSAGE,
-                options: { position: Toasts.Position.BOTTOM }
-            });
+            showToast(`Not the VC owner - ${state.userId} already on auto-ban list`, "message", { position: 1 });
             return;
         }
 
-        Toasts.show({
-            message: `Auto banning User ${state.userId}`,
-            type: Toasts.Type.FAILURE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Auto banning User ${state.userId}`, "failure", { position: 1 });
 
         setTimeout(() => {
             RestAPI.post({

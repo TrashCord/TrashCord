@@ -11,7 +11,7 @@ import { UserAreaButton, UserAreaButtonFactory, UserAreaRenderProps } from "@api
 import { sleep } from "@utils/misc";
 import definePlugin, { PluginNative } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { React, ReactDOM, Toasts, useEffect, useRef,useState } from "@webpack/common";
+import { React, ReactDOM, showToast, useEffect, useRef, useState } from "@webpack/common";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const ChannelStore = findStoreLazy("ChannelStore");
@@ -469,9 +469,9 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
         if (added > 0) {
             await saveAccounts(updated);
             if (!mountedRef.current) return;
-            Toasts.show({ message: `${added} account${added > 1 ? "s" : ""} added${failed > 0 ? `, ${failed} failed` : ""}`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+            showToast(`${added} account${added > 1 ? "s" : ""} added${failed > 0 ? `, ${failed} failed` : ""}`, "success");
         } else {
-            Toasts.show({ message: `All tokens invalid (${failed})`, type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(`All tokens invalid (${failed})`, "failure");
         }
         setTokenInput(""); setAdding(false);
     }
@@ -536,7 +536,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
                 <Dropdown icon={<UserIcon />} label="Active account" value={selectedId} options={accountOptions}
                     onChange={v => {
                         if (v !== "all" && v === getMyId()) {
-                            Toasts.show({ message: "You cannot use your own account as a ghost!", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+                            showToast("You cannot use your own account as a ghost!", "failure");
                             return;
                         }
                         setSelectedId(v);
@@ -706,7 +706,7 @@ const GhostUserAreaButton: UserAreaButtonFactory = ({ iconForeground, hideToolti
 
         if (targets.length === 0) {
             if (storedSelected !== "all" && storedSelected === myId) {
-                Toasts.show({ message: "You cannot connect your own account as a ghost", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+                showToast("You cannot connect your own account as a ghost", "failure");
             }
             openPopover();
             return;
@@ -719,7 +719,7 @@ const GhostUserAreaButton: UserAreaButtonFactory = ({ iconForeground, hideToolti
             await ghostDeactivateAll();
         } else {
             if (!vs?.channelId) {
-                Toasts.show({ message: "Join a voice channel first", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+                showToast("Join a voice channel first", "failure");
                 return;
             }
             for (const acc of targets) {

@@ -10,7 +10,7 @@ import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, React, SelectedChannelStore, showToast, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, React, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 import { buildDecryptModal } from "./decryptModal";
 import { buildModal } from "./modal";
@@ -264,7 +264,7 @@ export async function encrypt(message: string, public_key_recipient: string): Pr
         }
         public_key = await pgp.readKey({ armoredKey: formatKey(settings.store.pgpPublicKey) });
     } catch (e) {
-        showToast("Cannot read your private or public key, try setting them again in the plugin settings", Toasts.Type.FAILURE);
+        showToast("Cannot read your private or public key, try setting them again in the plugin settings", "failure");
         throw e;
     }
 
@@ -274,7 +274,7 @@ export async function encrypt(message: string, public_key_recipient: string): Pr
     try {
         pubKey_r = await pgp.readKey({ armoredKey: processedKey });
     } catch (e) {
-        showToast("The recipient's public key is not valid!", Toasts.Type.FAILURE);
+        showToast("The recipient's public key is not valid!", "failure");
         throw e;
     }
 
@@ -288,7 +288,7 @@ export async function encrypt(message: string, public_key_recipient: string): Pr
         return encrypted;
     } catch (e) {
         if (e instanceof Error) {
-            showToast("Error during encryption.\n" + (e as Error).message, Toasts.Type.FAILURE);
+            showToast("Error during encryption.\n" + (e as Error).message, "failure");
         }
         throw e;
     }
@@ -440,7 +440,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
             const verificationResult = await verifyMessage(message);
             return { data: verificationResult.text, verified: verificationResult.valid };
         } catch (e: any) {
-            showToast("Cannot process signed message: " + e.message, Toasts.Type.FAILURE);
+            showToast("Cannot process signed message: " + e.message, "failure");
             throw e;
         }
     }
@@ -459,7 +459,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
             private_key = privateKeyObj;
         }
     } catch (e) {
-        showToast("Cannot read personal private key", Toasts.Type.FAILURE);
+        showToast("Cannot read personal private key", "failure");
         throw e;
     }
 
@@ -485,7 +485,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
                     }
                 }
             } catch (e) {
-                showToast("Cannot find the senders signature", Toasts.Type.FAILURE);
+                showToast("Cannot find the senders signature", "failure");
                 throw e;
             }
         }
@@ -503,7 +503,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
             verificationKeys: [verificationKey]
         });
     } catch (e) {
-        showToast("Cannot decrypt message: check your private key", Toasts.Type.FAILURE);
+        showToast("Cannot decrypt message: check your private key", "failure");
         throw e;
     }
 
@@ -548,7 +548,7 @@ async function signMessage(text: string): Promise<string> {
             privateKey = privateKeyObj;
         }
     } catch (e) {
-        showToast("Cannot read your private key", Toasts.Type.FAILURE);
+        showToast("Cannot read your private key", "failure");
         throw e;
     }
 

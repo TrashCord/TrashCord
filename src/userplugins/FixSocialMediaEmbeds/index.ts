@@ -21,7 +21,7 @@ import managedStyle from "./style.css?managed";
 import { MessageObject } from "@api/MessageEvents";
 import definePlugin, { OptionType } from "@utils/types";
 import { definePluginSettings } from "@api/Settings";
-import { Toasts, showToast } from "@webpack/common";
+import { showToast } from "@webpack/common";
 import { EmbedChatBarIcon, EmbedIcon } from "./EmbedIcon";
 
 export const settings = definePluginSettings({

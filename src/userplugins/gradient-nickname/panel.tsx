@@ -1,4 +1,4 @@
-import { Button, React, Toasts, Tooltip, UserStore } from "@webpack/common";
+import { Button, React, showToast, Tooltip, UserStore } from "@webpack/common";
 import { loadConfig, saveConfig, emit as emitStorage } from "./storage";
 import { getPrefs, updatePrefs, subscribePrefs } from "./pluginState";
 import { encode } from "./encoding";
@@ -1092,26 +1092,21 @@ export function GradientNicknamePanel() {
                     </select>
                 </div>
 
-                <div style={{ ...styles.section, opacity: 0.4, pointerEvents: "none" as const }} aria-disabled="true">
+                <div style={styles.section}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ ...styles.sectionLabel, marginBottom: 0, marginTop: 0 }}>Glow</div>
-                            <span style={{
-                                background: "var(--background-modifier-accent, #3f4147)",
-                                color: "var(--text-muted, #80848e)",
-                                fontSize: 9,
-                                fontWeight: 700,
-                                textTransform: "uppercase" as const,
-                                padding: "2px 6px",
-                                borderRadius: 8,
-                                letterSpacing: 0.5,
-                            }}>Coming soon</span>
-                        </div>
-                        <ToggleSwitch on={false} onChange={() => {}} />
+                        <div style={styles.sectionLabel}>Glow</div>
+                        <ToggleSwitch on={glow} onChange={setGlow} />
                     </div>
-                    <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                        Glow effect is in development. Enable will arrive in a future update.
-                    </div>
+                    {glow && (
+                        <GlowEditor
+                            stops={glowStops}
+                            setStops={setGlowStops}
+                            intensity={glowIntensity}
+                            setIntensity={setGlowIntensity}
+                            glowAnim={glowAnim}
+                            setGlowAnim={setGlowAnim}
+                        />
+                    )}
                 </div>
 
                 </div>
@@ -1133,13 +1128,12 @@ function CopyBioTagButton({ cfg }: { cfg: any }) {
             await navigator.clipboard.writeText(tag);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-            if (overLimit && Toasts) {
-                Toasts.show({
-                    message: `Tag is ${tag.length} chars but Discord's bio limit is ${BIO_LIMIT}. It won't fit — remove some stops or disable glow.`,
-                    type: Toasts.Type?.FAILURE ?? 2,
-                    id: Toasts.genId?.() ?? String(Date.now()),
-                    options: { duration: 5000, position: Toasts.Position?.BOTTOM ?? 1 },
-                });
+            if (overLimit) {
+                showToast(
+                    `Tag is ${tag.length} chars but Discord's bio limit is ${BIO_LIMIT}. It won't fit — remove some stops or disable glow.`,
+                    "failure",
+                    { duration: 5000, position: 1 }
+                );
             }
         } catch (e) {
             console.error("[GradientNickname] clipboard write failed", e);

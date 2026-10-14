@@ -8,7 +8,7 @@ import { definePluginSettings, Settings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, StartAt } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Forms, TextInput, Toasts, useState } from "@webpack/common";
+import { Button, Forms, TextInput, showToast, useState } from "@webpack/common";
 
 import { darkenColorHex, generateRandomColorHex, saturateColorHex } from "./generateTheme";
 import { themes } from "./themeDefinitions";
@@ -189,11 +189,7 @@ const settings = definePluginSettings({
         default: "",
         component: () => <Button onClick={() => {
             copyCSS();
-            Toasts.show({
-                id: Toasts.genId(),
-                message: "Successfully copied theme!",
-                type: Toasts.Type.SUCCESS
-            });
+            showToast("Successfully copied theme!", "success");
         }} >Copy The CSS for your current configuration.</Button>
     }
 });

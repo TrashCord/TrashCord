@@ -7,7 +7,7 @@
 
 import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal"
 import { React } from "@webpack/common"
-import { Button, Text, Forms, showToast, Toasts } from "@webpack/common"
+import { Button, Text, Forms, showToast } from "@webpack/common"
 import { REPO_URL, UPDATE_COMMAND } from "../utils/updateChecker"
 
 interface RemoteVersionInfo {
@@ -49,7 +49,7 @@ export function UpdateModal({ remoteInfo, installedVersion, onDismiss, modalProp
             setCopied(true)
             setTimeout(() => setCopied(false), 3000)
             try {
-                showToast("Update command copied. Paste it into PowerShell.", Toasts.Type.SUCCESS)
+                showToast("Update command copied. Paste it into PowerShell.", "success")
             } catch {}
         } catch {
             // Clipboard not available — ignore silently.

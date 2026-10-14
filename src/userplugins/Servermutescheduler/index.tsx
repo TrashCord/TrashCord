@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Menu, Toasts } from "@webpack/common";
+import { Menu, showToast } from "@webpack/common";
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 const settings = definePluginSettings({
@@ -100,11 +100,7 @@ function getVoiceUserIds(channelId: string): string[] {
 }
 
 function toast(message: string, type: "success" | "failure" = "success") {
-    Toasts.show({
-        message,
-        type: type === "success" ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE,
-        id: Toasts.genId(),
-    });
+    showToast(message, type === "success" ? "success" : "failure");
 }
 
 // ─── Plugin ───────────────────────────────────────────────────────────────────

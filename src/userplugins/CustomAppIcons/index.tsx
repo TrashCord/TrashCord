@@ -22,7 +22,7 @@ import { localStorage } from "@utils/localStorage";
 import { closeAllModals, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, FluxDispatcher, Forms, React, showToast, Toasts } from "@webpack/common";
+import { Button, FluxDispatcher, Forms, React, showToast } from "@webpack/common";
 
 import AppIconModal from "./AppIconModal";
 
@@ -52,13 +52,13 @@ function removeAppIcon() {
         delete AppIconData.QA[current_icon];
         delete AppIconData.UZ[AppIconData.UZ.findIndex(icon => current_icon === icon?.id)];
         localStorage.setItem("vc_app_icons", JSON.stringify(icons));
-        showToast("Icon successfully deleted!", Toasts.Type.SUCCESS);
+        showToast("Icon successfully deleted!", "success");
         FluxDispatcher.dispatch({
             type: "APP_ICON_UPDATED",
             id: "AppIcon"
         });
     } else {
-        showToast("Cannot delete native App Icons!", Toasts.Type.FAILURE);
+        showToast("Cannot delete native App Icons!", "failure");
         return;
     }
 

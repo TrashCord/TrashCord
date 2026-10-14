@@ -6,7 +6,7 @@ import { UserAreaButton } from "@api/UserArea";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { ApplicationStreamingStore, Menu, Popout, showToast, Toasts, useMemo, useRef, UserStore, useStateFromStores, VoiceActions } from "@webpack/common";
+import { ApplicationStreamingStore, Menu, Popout, showToast, useMemo, useRef, UserStore, useStateFromStores, VoiceActions } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.StreamCrasher as PluginNative<typeof import("./native")>;
 const ApplicationStreamingSettingsStore = findStoreLazy("ApplicationStreamingSettingsStore");
@@ -307,7 +307,7 @@ let recordingHandler: ((e: KeyboardEvent) => void) | null = null;
 function recordKeybind() {
     if (recordingActive) return;
     recordingActive = true;
-    showToast("Press a key combo for the keybind (Esc to cancel)", Toasts.Type.CLOCK);
+    showToast("Press a key combo for the keybind (Esc to cancel)", "clock");
 
     recordingHandler = (e: KeyboardEvent) => {
         e.preventDefault();
@@ -317,7 +317,7 @@ function recordKeybind() {
             window.removeEventListener("keydown", recordingHandler!, true);
             recordingHandler = null;
             recordingActive = false;
-            showToast("Keybind recording cancelled", Toasts.Type.CLOCK);
+            showToast("Keybind recording cancelled", "clock");
             return;
         }
 
@@ -329,7 +329,7 @@ function recordKeybind() {
         recordingActive = false;
         settings.store.keybind = acc;
         if (settings.store.keybindEnabled) tryRegisterKeybind(acc);
-        showToast(`Keybind set to ${acc}`, Toasts.Type.SUCCESS);
+        showToast(`Keybind set to ${acc}`, "success");
     };
 
     window.addEventListener("keydown", recordingHandler, true);

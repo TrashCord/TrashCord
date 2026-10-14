@@ -13,7 +13,7 @@ import { EquicordDevs } from "@utils/constants";
 import { classes } from "@utils/misc";
 import { openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { FluxDispatcher, React, showToast, Toasts, UserStore, useStateFromStores, VoiceStateStore } from "@webpack/common";
+import { FluxDispatcher, React, showToast, UserStore, useStateFromStores, VoiceStateStore } from "@webpack/common";
 
 import { SpatialModal } from "./SpatialModal";
 import {
@@ -40,7 +40,7 @@ function openSpatialAudio() {
     const channelId = userId ? VoiceStateStore.getVoiceStateForUser(userId)?.channelId : null;
 
     if (!channelId) {
-        showToast("Join a voice channel first.", Toasts.Type.FAILURE);
+        showToast("Join a voice channel first.", "failure");
         return;
     }
 

@@ -6,7 +6,7 @@
 
 import { Settings } from "@api/Settings";
 import definePlugin from "@utils/types";
-import { Forms, React, Toasts } from "@webpack/common";
+import { Forms, React, showToast } from "@webpack/common";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -602,19 +602,11 @@ function ThemeStoreModal({ onClose }: { onClose(): void }) {
         try {
             const wasNew = await installTheme(theme);
             setInstalled(prev => new Set(prev).add(theme.id));
-            Toasts.show({
-                id: Toasts.genId(),
-                message: wasNew
+            showToast(wasNew
                     ? `✅ "${theme.name}" installed and activated!`
-                    : `ℹ️ "${theme.name}" is already installed.`,
-                type: wasNew ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE,
-            });
+                    : `ℹ️ "${theme.name}" is already installed.`, wasNew ? "success" : "message");
         } catch (e: any) {
-            Toasts.show({
-                id: Toasts.genId(),
-                message: `❌ Failed: ${e?.message ?? "Unknown error"}`,
-                type: Toasts.Type.FAILURE,
-            });
+            showToast(`❌ Failed: ${e?.message ?? "Unknown error"}`, "failure");
         }
     }
 

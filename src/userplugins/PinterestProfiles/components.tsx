@@ -9,7 +9,7 @@ import { Logger } from "@utils/Logger";
 import { classes } from "@utils/misc";
 import { saveFile } from "@utils/web";
 import { findComponentByCodeLazy } from "@webpack";
-import { ExpressionPickerStore, FluxDispatcher, showToast, Toasts, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { ExpressionPickerStore, FluxDispatcher, showToast, useEffect, useMemo, useRef, useState } from "@webpack/common";
 import { Dispatch, ReactNode, SetStateAction } from "react";
 
 import { cl, ManaSearchBarProps, Native, NativeMediaResult, PinterestImageResult, PinterestPickerProps, PinterestSearchPayload, SearchBucketState, SearchKind, SearchTarget, settings } from "./shared";
@@ -97,7 +97,7 @@ async function applyProfileResult(result: PinterestImageResult, target: SearchKi
     } catch (error) {
         logger.error("Failed to apply Pinterest result", error);
         copyWithToast(result.url, "Media URL copied to clipboard.");
-        showToast("Could not apply that media. The URL was copied instead.", Toasts.Type.FAILURE);
+        showToast("Could not apply that media. The URL was copied instead.", "failure");
     }
 }
 
@@ -107,7 +107,7 @@ async function saveResult(result: PinterestImageResult) {
         saveFile(new File([media.data], media.filename, { type: media.type }));
     } catch (error) {
         logger.error("Failed to save Pinterest result", error);
-        showToast("Could not save that media.", Toasts.Type.FAILURE);
+        showToast("Could not save that media.", "failure");
     }
 }
 
@@ -480,7 +480,7 @@ function PinterestBrowser({
             }));
         } catch (error) {
             logger.error("Pinterest next page failed", error);
-            showToast(error instanceof Error ? error.message : "Could not load more Pinterest results.", Toasts.Type.FAILURE);
+            showToast(error instanceof Error ? error.message : "Could not load more Pinterest results.", "failure");
             setBuckets(current => ({
                 ...current,
                 [kind]: {

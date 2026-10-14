@@ -6,7 +6,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { RestAPI, showToast,Toasts, UserStore } from "@webpack/common";
+import { RestAPI, showToast, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     showToast: {
@@ -34,7 +34,7 @@ async function resetNick(guildId: string, forcedNick: string, currentUserId: str
             });
 
             if (settings.store.showToast) {
-                showToast(`AntiNickname: nickname "${forcedNick}" removed`, Toasts.Type.SUCCESS);
+                showToast(`AntiNickname: nickname "${forcedNick}" removed`, "success");
             }
             return; // success, no need for fallback
         } catch (e1: any) {
@@ -48,12 +48,12 @@ async function resetNick(guildId: string, forcedNick: string, currentUserId: str
         });
 
         if (settings.store.showToast) {
-            showToast(`AntiNickname: nickname "${forcedNick}" removed`, Toasts.Type.SUCCESS);
+            showToast(`AntiNickname: nickname "${forcedNick}" removed`, "success");
         }
     } catch (err: any) {
         console.warn(`[AntiNickname] Failed to reset nickname on ${guildId}:`, err);
         if (settings.store.showToast) {
-            showToast(`AntiNickname: failed to reset nickname (${err?.status ?? "?"})`, Toasts.Type.FAILURE);
+            showToast(`AntiNickname: failed to reset nickname (${err?.status ?? "?"})`, "failure");
         }
     } finally {
         // Release the lock after 2s to allow a future reset if re-nicknamed

@@ -9,7 +9,7 @@ import { Flex } from "@components/Flex";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { User } from "@vencord/discord-types";
-import { Button, DisplayProfileUtils, showToast, Switch, TabBar, Text, TextInput, Toasts, UsernameUtils, useState } from "@webpack/common";
+import { Button, DisplayProfileUtils, showToast, Switch, TabBar, Text, TextInput, UsernameUtils, useState } from "@webpack/common";
 import type { Dispatch, SetStateAction } from "react";
 
 import { emptyOverride, hasFlag, OverrideFlags, settings, UserOverride } from "./data";
@@ -154,7 +154,7 @@ function EditModal({ user, modalProps }: { user: User; modalProps: ModalProps; }
                             const s = settings.store.users ??= {};
                             s[user.id] = override;
                             modalProps.onClose();
-                            showToast("Saved! Switch chats for changes to apply everywhere", Toasts.Type.SUCCESS, { position: Toasts.Position.BOTTOM });
+                            showToast("Saved! Switch chats for changes to apply everywhere", "success", { position: 1 });
                         }}
                     >
                         Save

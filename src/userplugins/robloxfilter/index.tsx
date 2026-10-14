@@ -9,7 +9,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
-import { FluxDispatcher, Toasts } from "@webpack/common";
+import { FluxDispatcher, showToast } from "@webpack/common";
 
 const Flogger = new Logger("RobloxFilter", "#00ff88");
 
@@ -494,11 +494,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
         }
 
         if (settings.store.showWarningToast) {
-            Toasts.show({
-                id: Toasts.genId(),
-                type: Toasts.Type.FAILURE,
-                message: `🛡️ Message blocked: ${categories.join(", ")}`,
-            });
+            showToast(`🛡️ Message blocked: ${categories.join(", ")}`, "failure");
         }
 
         if (settings.store.showWarningNotification) {
@@ -525,11 +521,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
 
         if (settings.store.showWarningToast) {
             const actionLabel = action === "censor" ? "censored" : "replaced";
-            Toasts.show({
-                id: Toasts.genId(),
-                type: Toasts.Type.MESSAGE,
-                message: `🛡️ Message ${actionLabel}: ${categories.join(", ")}`,
-            });
+            showToast(`🛡️ Message ${actionLabel}: ${categories.join(", ")}`, "message");
         }
 
         if (settings.store.showWarningNotification) {

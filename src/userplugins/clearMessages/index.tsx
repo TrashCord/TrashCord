@@ -7,7 +7,7 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { showNotification } from "@api/Notifications";
 import definePlugin from "@utils/types";
 import type { Channel, Message, User } from "@vencord/discord-types";
-import { ChannelStore, Menu, MessageActions, RestAPI, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, Menu, MessageActions, RestAPI, showToast, UserStore } from "@webpack/common";
 
 interface UserContextProps {
     channel?: Channel;
@@ -31,8 +31,8 @@ function TrashIcon() {
     );
 }
 
-function toast(message: string, type = Toasts.Type.MESSAGE) {
-    Toasts.show({ message, type, id: Toasts.genId(), options: { position: Toasts.Position.BOTTOM } });
+function toast(message: string, type = "message") {
+    showToast(message, type, { position: 1 });
 }
 
 // fromMessageId: if set, only delete messages from that message onwards (the
@@ -60,7 +60,7 @@ async function clearMessages(channelId: string, fromMessageId?: string) {
                 const res = await RestAPI.get({ url: `/channels/${channelId}/messages`, query } as any);
                 body = res.body;
             } catch {
-                toast("Failed to fetch messages, stopping.", Toasts.Type.FAILURE);
+                toast("Failed to fetch messages, stopping.", "failure");
                 break;
             }
 
@@ -140,7 +140,7 @@ const patchMessageContext: NavContextMenuPatchCallback = (children, { message }:
             icon={TrashIcon}
             action={() => {
                 if (clearing.has(channelId)) {
-                    toast("Already clearing this channel — open the user menu to stop.", Toasts.Type.FAILURE);
+                    toast("Already clearing this channel — open the user menu to stop.", "failure");
                     return;
                 }
                 clearMessages(channelId, message.id);

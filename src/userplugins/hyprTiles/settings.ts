@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { SettingsSection } from "@components/settings/tabs/plugins/components/Common";
 import { Switch } from "@components/Switch";
 import { OptionType, PluginNative } from "@utils/types";
-import { Button, React, showToast, Toasts, useState } from "@webpack/common";
+import { Button, React, showToast, useState } from "@webpack/common";
 
 import { KeybindEditor } from "./components/KeybindEditor";
 import { actionLabels, allActions, defaultKeybinds, getKeybindSettingKey, HyprTilesKeybindSetting } from "./utils/keybinds";
@@ -24,7 +24,7 @@ function RulesFileControl({ setValue }: { setValue(value: boolean): void; }) {
 
     async function openRulesFile() {
         if (!Native) {
-            showToast("HyprTiles rules file is only available on desktop.", Toasts.Type.FAILURE);
+            showToast("HyprTiles rules file is only available on desktop.", "failure");
             return;
         }
 
@@ -32,7 +32,7 @@ function RulesFileControl({ setValue }: { setValue(value: boolean): void; }) {
         try {
             await Native.openRulesFile(defaultRulesTemplate);
         } catch (error: any) {
-            showToast(`Unable to open HyprTiles rules file: ${error?.message || String(error)}`, Toasts.Type.FAILURE);
+            showToast(`Unable to open HyprTiles rules file: ${error?.message || String(error)}`, "failure");
         } finally {
             setOpening(false);
         }

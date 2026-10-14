@@ -1,6 +1,6 @@
 /*
  * Vencord, a Discord client mod
- * SilentGroupCall — start DM/group calls without ringing the other members.
+ * SilentGroupCall - start DM/group calls without ringing the other members.
  *
  * When you start a call, Discord's client sends a separate
  * `POST /channels/{id}/call/ring` request to notify the other members. This
@@ -22,10 +22,13 @@
  * public API and far more stable, and `RestAPI` is a plain, writable object.
  */
 
+import { findGroupChildrenByChildId } from "@api/ContextMenu";
+import { ChannelToolbarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel } from "@vencord/discord-types";
+import { findByPropsLazy } from "@webpack";
 import {
     ChannelStore,
     ContextMenuApi,
@@ -35,19 +38,16 @@ import {
     RestAPI,
     SelectedChannelStore,
     UserStore,
+    useStateFromStores,
     useState,
 } from "@webpack/common";
 
-// 1 = DM (1-on-1), 3 = GROUP_DM. Stable, documented Discord API values.
 const CHANNEL_TYPE_DM = 1;
 const CHANNEL_TYPE_GROUP_DM = 3;
 
-// Matches the ring endpoint, with or without the API base / version prefix.
 const RING_URL = /\/channels\/(\d+)\/call\/ring(?:$|[?#])/;
 
-// The header call button. Matched by its (English) label, since Discord's class
-// names are hashed and change between builds.
-const CALL_BUTTON = '[aria-label="Start Voice Call"]';
+const AUTO_RING_WINDOW_MS = 15_000;
 
 const settings = definePluginSettings({
     silenceGroupCalls: {
@@ -60,6 +60,26 @@ const settings = definePluginSettings({
         description: "Don't ring the other person when you start a 1-on-1 DM call",
         default: false,
     },
+    contextMenuUser: {
+        type: OptionType.BOOLEAN,
+        description: "Show the silent call option in the DM (user) context menu",
+        default: true,
+    },
+    contextMenuGroup: {
+        type: OptionType.BOOLEAN,
+        description: "Show the silent call options in the group context menu",
+        default: true,
+    },
+    headerButtonUser: {
+        type: OptionType.BOOLEAN,
+        description: "Show a silent call button in the header bar of DMs",
+        default: false,
+    },
+    headerButtonGroup: {
+        type: OptionType.BOOLEAN,
+        description: "Show a silent call button in the header bar of group chats (right-click to pick who to ring)",
+        default: false,
+    },
     disableOnCanary: {
         type: OptionType.BOOLEAN,
         description: "Do nothing when running in Discord Canary (settings are shared between clients)",
@@ -69,7 +89,7 @@ const settings = definePluginSettings({
     debugLogs: {
         type: OptionType.BOOLEAN,
         description: "Log plugin activity to the console (DevTools → Console, filter 'SilentGroupCall')",
-        default: false,
+        default: true,
     },
 });
 
@@ -78,22 +98,16 @@ const debug = (...args: any[]) => {
     if (settings.store.debugLogs) logger.info(...args);
 };
 
-// channelId -> when you joined its call. The automatic ring can follow an async
-// check (1-on-1 DMs ask whether the user is ringable first), hence a window.
-const AUTO_RING_WINDOW_MS = 15_000;
-const pendingAutoRings = new Map<string, number>();
+const ChannelActions: { selectVoiceChannel: (channelId: string) => void; } = findByPropsLazy("disconnect", "selectVoiceChannel");
 
-// channelId -> who to ring, chosen in the call button's right-click picker.
-// Applies to that channel's next automatic ring, within the same window.
-// "all" means let Discord's ring-everyone through untouched.
-type Picks = string[] | "all";
-const pendingPicks = new Map<string, { recipients: Picks; at: number; }>();
+const pendingAutoRings = new Map<string, number>();
+const silentCalls = new Map<string, number>();
+const draftPicks = new Map<string, string[]>();
 
 function onVoiceChannelSelect({ channelId }: { channelId?: string | null; }) {
     if (channelId) pendingAutoRings.set(channelId, Date.now());
 }
 
-/** Consume this channel's join mark; true if it was still fresh. */
 function takePendingAutoRing(channelId: string): boolean {
     const t = pendingAutoRings.get(channelId);
     if (t === undefined) return false;
@@ -101,15 +115,14 @@ function takePendingAutoRing(channelId: string): boolean {
     return Date.now() - t <= AUTO_RING_WINDOW_MS;
 }
 
-/** Consume this channel's picker choice; null if there is none or it's stale. */
-function takePendingPicks(channelId: string): Picks | null {
-    const p = pendingPicks.get(channelId);
-    if (p === undefined) return null;
-    pendingPicks.delete(channelId);
-    return Date.now() - p.at <= AUTO_RING_WINDOW_MS ? p.recipients : null;
+function isSilentCall(channelId: string): boolean {
+    const until = silentCalls.get(channelId);
+    if (until === undefined) return false;
+    if (until > Date.now()) return true;
+    silentCalls.delete(channelId);
+    return false;
 }
 
-/** A ring naming specific users ("Ring to Call") is always deliberate. */
 function isTargetedRing(req: unknown): boolean {
     const recipients = (req as any)?.body?.recipients;
     return Array.isArray(recipients) && recipients.length > 0;
@@ -117,10 +130,7 @@ function isTargetedRing(req: unknown): boolean {
 
 type PostFn = (...args: any[]) => any;
 
-// The original RestAPI.post. null means "not currently patched".
 let originalPost: PostFn | null = null;
-// Whether the wrapper should act. Lets stop() neutralize the wrapper even when
-// another plugin has wrapped RestAPI.post on top of ours (see stop()).
 let active = false;
 
 function getUrl(req: unknown): string | undefined {
@@ -129,71 +139,69 @@ function getUrl(req: unknown): string | undefined {
     return undefined;
 }
 
-type RingDecision =
-    | { action: "pass"; }
-    | { action: "drop"; }
-    | { action: "rewrite"; recipients: string[]; };
-
-function decideRing(channelId: string, req: unknown): RingDecision {
+function shouldDrop(channelId: string, req: unknown): boolean {
     const targeted = isTargetedRing(req);
-    // Always consume both marks, so stale ones can't affect a later manual ring.
     const joined = takePendingAutoRing(channelId);
-    const picks = takePendingPicks(channelId);
-    const auto = (joined || picks !== null) && !targeted;
+    const silentCall = isSilentCall(channelId);
 
-    let channel: any;
-    try {
-        channel = ChannelStore.getChannel(channelId);
-    } catch {
-        channel = undefined;
-    }
-
+    const channel = ChannelStore.getChannel(channelId) as any;
     const inScope =
         channel?.type === CHANNEL_TYPE_GROUP_DM ? settings.store.silenceGroupCalls :
         channel?.type === CHANNEL_TYPE_DM ? settings.store.silenceDMCalls :
         false;
 
-    // An explicit picker choice wins over the silence settings.
-    const decision: RingDecision =
-        !auto || picks === "all" ? { action: "pass" } :
-        picks?.length ? { action: "rewrite", recipients: picks } :
-        picks || inScope ? { action: "drop" } :
-        { action: "pass" };
+    const drop = !targeted && (silentCall || (joined && inScope));
 
     if (settings.store.debugLogs) logger.info("ring request", {
         channelId,
         type: channel?.type,
-        auto,
+        joined,
         targeted,
-        picks,
-        silenceGroupCalls: settings.store.silenceGroupCalls,
-        silenceDMCalls: settings.store.silenceDMCalls,
-        decision: decision.action === "rewrite" ? `ringing only ${(picks as string[]).join(", ")}` :
-            decision.action === "drop" ? "silencing" :
-            picks === "all" ? "ringing everyone (picker)" :
-            auto ? "ringing normally" : "ringing normally (manual ring)",
+        silentCall,
+        inScope,
+        decision: drop ? "silencing" : targeted ? "ringing (targeted)" : "ringing normally",
     });
 
-    return decision;
+    return drop;
 }
 
 function wrappedPost(this: unknown, ...args: any[]) {
     if (active) {
         const match = getUrl(args[0])?.match(RING_URL);
-        if (match) {
-            const decision = decideRing(match[1], args[0]);
-            if (decision.action === "drop") {
-                // Pretend the request succeeded (Discord answers 204 No Content) so
-                // callers awaiting it don't surface an error. No request is sent.
-                return Promise.resolve({ ok: true, status: 204, body: null, headers: {}, text: "" });
-            }
-            if (decision.action === "rewrite") {
-                const req = args[0];
-                args[0] = { ...req, body: { ...req.body, recipients: decision.recipients } };
-            }
+        if (match && shouldDrop(match[1], args[0])) {
+            return Promise.resolve({ ok: true, status: 204, body: null, headers: {}, text: "" });
         }
     }
     return originalPost!.apply(this, args);
+}
+
+type Kind = "dm" | "group";
+
+function isBot(userId: string): boolean {
+    return !!UserStore.getUser(userId)?.bot;
+}
+
+function getKind(channel: Channel | undefined): Kind | null {
+    if (!channel) return null;
+    if (channel.type === CHANNEL_TYPE_GROUP_DM) return "group";
+    if (channel.type === CHANNEL_TYPE_DM && !isBot(channel.recipients[0])) return "dm";
+    return null;
+}
+
+function startCall(channel: Channel, recipients: string[] = []) {
+    silentCalls.set(channel.id, Date.now() + AUTO_RING_WINDOW_MS);
+    draftPicks.delete(channel.id);
+    debug("starting silent call", { channelId: channel.id, recipients });
+
+    ChannelActions.selectVoiceChannel(channel.id);
+    if (recipients.length) RestAPI.post({ url: `/channels/${channel.id}/call/ring`, body: { recipients } });
+}
+
+function toggleDraft(channelId: string, userId: string) {
+    const current = draftPicks.get(channelId) ?? [];
+    const next = current.includes(userId) ? current.filter(x => x !== userId) : [...current, userId];
+    if (next.length) draftPicks.set(channelId, next);
+    else draftPicks.delete(channelId);
 }
 
 function displayName(userId: string): string {
@@ -201,105 +209,190 @@ function displayName(userId: string): string {
     return RelationshipStore.getNickname(userId) ?? user?.globalName ?? user?.username ?? userId;
 }
 
-function RingPicker({ channel, button }: { channel: Channel; button: HTMLElement; }) {
-    const [picked, setPicked] = useState<string[]>([]);
-    const toggle = (id: string) =>
-        setPicked(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+const STRINGS: Record<string, string[]> = {
+    en: ["Silent call", "Ring only…", "Start", "not a friend"],
+    it: ["Chiama in silenzio", "Chiama solo…", "Avvia", "non amico"],
+    es: ["Llamar en silencio", "Llamar solo a…", "Iniciar", "no es amigo"],
+    fr: ["Appel silencieux", "Appeler seulement…", "Lancer", "pas ami"],
+    de: ["Stiller Anruf", "Nur anrufen…", "Starten", "kein Freund"],
+    pt: ["Chamar em silêncio", "Chamar apenas…", "Iniciar", "não é amigo"],
+    nl: ["Stil bellen", "Alleen bellen…", "Start", "geen vriend"],
+    pl: ["Zadzwoń po cichu", "Zadzwoń tylko do…", "Start", "nie jest znajomym"],
+    ru: ["Беззвучный звонок", "Звонить только…", "Начать", "не друг"],
+    tr: ["Sessiz ara", "Sadece şunları ara…", "Başlat", "arkadaş değil"],
+};
 
-    // Discord only lets you ring members you're friends with.
-    const members = channel.recipients.map(id => ({
-        id,
-        name: displayName(id),
-        friend: RelationshipStore.isFriend(id),
-    }));
+function getStrings(): string[] {
+    const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
+    return STRINGS[lang] ?? STRINGS.en;
+}
+
+function BellIcon({ color, className, width = 24, height = 24 }: any) {
+    const fill = color ?? "currentColor";
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <mask id="sgc-icon-mask">
+                <rect width="24" height="24" fill="white" />
+                <path d="M3 3l18 18" stroke="black" strokeWidth="5" strokeLinecap="round" />
+            </mask>
+            <path
+                mask="url(#sgc-icon-mask)"
+                fill={fill}
+                d="M12 22a2.2 2.2 0 0 0 2.2-2.2H9.8A2.2 2.2 0 0 0 12 22Zm6-6v-5a6 6 0 0 0-4.5-5.8V4.5a1.5 1.5 0 0 0-3 0v.7A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2Z"
+            />
+            <path d="M3 3l18 18" stroke={fill} strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+function getMemberItems(channel: Channel, refresh: () => void, idPrefix: string): any[] {
+    const s = getStrings();
+    const picked = draftPicks.get(channel.id) ?? [];
+
+    return channel.recipients.filter(userId => !isBot(userId)).map(userId => {
+        const friend = RelationshipStore.isFriend(userId);
+        const name = displayName(userId);
+        return (
+            <Menu.MenuCheckboxItem
+                key={userId}
+                id={`${idPrefix}-${userId}`}
+                label={friend ? name : `${name} (${s[3]})`}
+                checked={picked.includes(userId)}
+                disabled={!friend}
+                action={() => {
+                    toggleDraft(channel.id, userId);
+                    refresh();
+                }}
+            />
+        );
+    });
+}
+
+function getMenuItems(channel: Channel, kind: Kind, refresh: () => void): any[] {
+    const s = getStrings();
+    const items: any[] = [
+        <Menu.MenuItem key="sgc-silent" id="sgc-silent-call" label={s[0]} action={() => startCall(channel)} />,
+    ];
+
+    if (kind === "group") {
+        const sub = getMemberItems(channel, refresh, "sgc-ring");
+        sub.push(<Menu.MenuSeparator key="sgc-sep" />);
+        sub.push(
+            <Menu.MenuItem
+                key="sgc-start"
+                id="sgc-start"
+                label={`${s[2]} (${(draftPicks.get(channel.id) ?? []).length})`}
+                action={() => startCall(channel, draftPicks.get(channel.id) ?? [])}
+            />
+        );
+        items.push(
+            <Menu.MenuItem key="sgc-ring-who" id="sgc-ring-who" label={s[1]}>
+                {sub}
+            </Menu.MenuItem>
+        );
+    }
+
+    return items;
+}
+
+function PickerMenu({ channel }: { channel: Channel; }) {
+    const [, rerender] = useState(0);
+    const s = getStrings();
 
     return (
         <Menu.Menu
-            navId="silent-group-call-ring-picker"
+            navId="silent-group-call-picker"
             onClose={() => FluxDispatcher.dispatch({ type: "CONTEXT_MENU_CLOSE" })}
-            aria-label="Ring who?"
+            aria-label={s[1]}
         >
-            <Menu.MenuGroup label="Ring who?">
-                {members.map(m => (
-                    <Menu.MenuCheckboxItem
-                        key={m.id}
-                        id={`sgc-ring-${m.id}`}
-                        label={m.friend ? m.name : `${m.name} (not a friend)`}
-                        checked={picked.includes(m.id)}
-                        disabled={!m.friend}
-                        action={() => toggle(m.id)}
-                    />
-                ))}
+            <Menu.MenuGroup label={s[1]}>
+                {getMemberItems(channel, () => rerender(n => n + 1), "sgc-picker")}
             </Menu.MenuGroup>
             <Menu.MenuSeparator />
             <Menu.MenuGroup>
                 <Menu.MenuItem
-                    id="sgc-start-call"
-                    label={picked.length ? `Start call and ring ${picked.length}` : "Start call without ringing"}
-                    action={() => startPickedCall(channel.id, picked, button)}
-                />
-                <Menu.MenuItem
-                    id="sgc-start-call-all"
-                    label="Start call and ring everyone"
-                    action={() => startPickedCall(channel.id, "all", button)}
+                    id="sgc-picker-start"
+                    label={`${s[2]} (${(draftPicks.get(channel.id) ?? []).length})`}
+                    action={() => startCall(channel, draftPicks.get(channel.id) ?? [])}
                 />
             </Menu.MenuGroup>
         </Menu.Menu>
     );
 }
 
-function startPickedCall(channelId: string, recipients: Picks, button: HTMLElement) {
-    const target = button.isConnected ? button : document.querySelector<HTMLElement>(CALL_BUTTON);
-    if (!target) {
-        logger.error("call button disappeared — not starting the call");
-        return;
-    }
+function SilentButton() {
+    settings.use(["headerButtonUser", "headerButtonGroup"]);
+    const channelId = useStateFromStores([SelectedChannelStore], () => SelectedChannelStore.getChannelId());
+    const voiceChannelId = useStateFromStores([SelectedChannelStore], () => SelectedChannelStore.getVoiceChannelId());
 
-    pendingPicks.set(channelId, { recipients, at: Date.now() });
-    debug("picker: starting call", { channelId, recipients });
-    target.click();
+    const channel = channelId ? ChannelStore.getChannel(channelId) : undefined;
+    const kind = getKind(channel);
+    if (!channel || !kind || voiceChannelId === channel.id) return null;
+    if (!(kind === "group" ? settings.store.headerButtonGroup : settings.store.headerButtonUser)) return null;
+
+    return (
+        <ChannelToolbarButton
+            tooltip={getStrings()[0]}
+            position="bottom"
+            icon={BellIcon}
+            onClick={() => startCall(channel)}
+            onContextMenu={kind === "group"
+                ? e => ContextMenuApi.openContextMenu(e, () => <PickerMenu channel={channel} />)
+                : undefined}
+        />
+    );
 }
 
-function onContextMenu(e: MouseEvent) {
-    const button = (e.target as Element | null)?.closest?.<HTMLElement>(CALL_BUTTON);
-    if (!button) return;
-
-    const channel = ChannelStore.getChannel(SelectedChannelStore.getChannelId());
-    if (channel?.type !== CHANNEL_TYPE_GROUP_DM) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    // Native event from a document listener; it carries the same target/position fields.
-    ContextMenuApi.openContextMenu(e as any, () => <RingPicker channel={channel} button={button} />);
+function resolveDM(props: any): Channel | undefined {
+    if (props?.channel) return props.channel;
+    const id = props?.user?.id && ChannelStore.getDMFromUserId(props.user.id);
+    return id ? ChannelStore.getChannel(id) : undefined;
 }
 
-function attachListeners() {
-    FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", onVoiceChannelSelect);
-    document.addEventListener("contextmenu", onContextMenu, true);
-}
+function applyMenu(children: any[], channel: Channel | undefined, anchors: string[], expected: Kind) {
+    const [, rerender] = useState(0);
+    settings.use(["contextMenuUser", "contextMenuGroup"]);
 
-function detachListeners() {
-    FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", onVoiceChannelSelect);
-    document.removeEventListener("contextmenu", onContextMenu, true);
+    const kind = getKind(channel);
+    if (!channel || kind !== expected) return;
+    if (!(expected === "group" ? settings.store.contextMenuGroup : settings.store.contextMenuUser)) return;
+    if (SelectedChannelStore.getVoiceChannelId() === channel.id) return;
+
+    const items = getMenuItems(channel, kind, () => rerender(n => n + 1));
+
+    const group = findGroupChildrenByChildId(anchors, children);
+    if (group) group.splice(group.findIndex((c: any) => anchors.includes(c?.props?.id)) + 1, 0, ...items);
+    else children.push(<Menu.MenuGroup key="sgc-group">{items}</Menu.MenuGroup>);
+
+    debug("context menu entries added", { kind, anchored: !!group });
 }
 
 export default definePlugin({
     name: "SilentGroupCall",
-    description: "Start DM and group calls without ringing the other members — they can still see and join the call, they just don't get the incoming-call notification. Right-click the call button in a group DM to pick who gets rung.",
-    authors: [{ name: "gandhistyle", id: 0n }],
+    description: "Start DM and group calls without ringing the other members - they can still see and join the call, they just don't get the incoming-call notification. Silent call actions in the context menus and the header bar.",
+    authors: [{ name: "gandhistyle", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Utility"],
+    dependencies: ["HeaderBarAPI"],
     enabledByDefault: false,
     settings,
+    contextMenus: {
+        "user-context": (children, props) => applyMenu(children, resolveDM(props), ["call", "user-context-call"], "dm"),
+        "gdm-context": (children, props) => applyMenu(children, props?.channel, ["edit-gdm", "gdm-context-edit-gdm"], "group"),
+    },
+    headerBarButton: {
+        icon: BellIcon,
+        render: SilentButton,
+        location: "channeltoolbar",
+    },
     start() {
         if (settings.store.disableOnCanary && (window as any).GLOBAL_ENV?.RELEASE_CHANNEL === "canary") {
-            logger.info("running in Discord Canary — staying inactive");
+            logger.info("running in Discord Canary - staying inactive");
             return;
         }
 
         if (originalPost) {
-            // Wrapper is still installed from a previous run (see stop()); just re-arm it.
             active = true;
-            attachListeners();
+            FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", onVoiceChannelSelect);
             logger.info("re-enabled ring interception");
             return;
         }
@@ -308,12 +401,12 @@ export default definePlugin({
         try {
             post = RestAPI?.post;
         } catch (e) {
-            logger.error("could not find Discord's HTTP module — plugin inactive", e);
+            logger.error("could not find Discord's HTTP module - plugin inactive", e);
             return;
         }
 
         if (typeof post !== "function") {
-            logger.error("RestAPI.post is not a function — plugin inactive");
+            logger.error("RestAPI.post is not a function - plugin inactive");
             return;
         }
 
@@ -322,26 +415,24 @@ export default definePlugin({
             RestAPI.post = wrappedPost;
         } catch (e) {
             originalPost = null;
-            logger.error("RestAPI.post is not writable — plugin inactive", e);
+            logger.error("RestAPI.post is not writable - plugin inactive", e);
             return;
         }
 
         active = true;
-        attachListeners();
+        FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", onVoiceChannelSelect);
         logger.info("intercepting call ring requests");
     },
 
     stop() {
         active = false;
         pendingAutoRings.clear();
-        pendingPicks.clear();
+        silentCalls.clear();
+        draftPicks.clear();
         if (!originalPost) return;
 
-        detachListeners();
+        FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", onVoiceChannelSelect);
 
-        // Only restore if we're still the outermost wrapper. If another plugin
-        // wrapped on top of us, restoring would clobber its patch, so we leave our
-        // wrapper in place as an inert passthrough instead.
         if (RestAPI.post === wrappedPost) {
             try {
                 RestAPI.post = originalPost;

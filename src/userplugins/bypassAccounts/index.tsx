@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, showToast, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, Forms, React, showToast, TextInput, UserStore } from "@webpack/common";
 
 const Flex = ({ children, style, ...props }: React.PropsWithChildren<{ style?: React.CSSProperties; }>) => (
     <div style={{ display: "flex", ...style }} {...props}>{children}</div>
@@ -120,7 +120,7 @@ function PasswordConfigModal(modalProps: any & { onGenerate: (password: string) 
             const password = PasswordGenerator.generatePassword(config);
             setGeneratedPassword(password);
         } catch (error) {
-            showToast("Failed to generate password", Toasts.Type.FAILURE);
+            showToast("Failed to generate password", "failure");
         } finally {
             setIsGenerating(false);
         }
@@ -128,7 +128,7 @@ function PasswordConfigModal(modalProps: any & { onGenerate: (password: string) 
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(generatedPassword);
-        showToast("Password copied to clipboard!", Toasts.Type.SUCCESS);
+        showToast("Password copied to clipboard!", "success");
     };
 
     const usePassword = () => {
@@ -411,7 +411,7 @@ function LoadAccountsModal(modalProps: any & { onAccountsLoaded: () => void; }) 
         const file = event.target.files?.[0];
         if (file) {
             if (!file.name.endsWith(".dct")) {
-                showToast("Please select a .dct file", Toasts.Type.FAILURE);
+                showToast("Please select a .dct file", "failure");
                 return;
             }
             setSelectedFile(file);
@@ -420,23 +420,23 @@ function LoadAccountsModal(modalProps: any & { onAccountsLoaded: () => void; }) 
 
     const copyPassphrase = () => {
         navigator.clipboard.writeText(passphrase);
-        showToast("Passphrase copied to clipboard!", Toasts.Type.SUCCESS);
+        showToast("Passphrase copied to clipboard!", "success");
     };
 
     const handleLoadAccounts = async () => {
         if (!selectedFile || !passphrase.trim()) {
-            showToast("Please select a file and enter passphrase", Toasts.Type.FAILURE);
+            showToast("Please select a file and enter passphrase", "failure");
             return;
         }
 
         setIsLoading(true);
         try {
             await FileAccountManager.loadAccountsFromFile(selectedFile, passphrase);
-            showToast("Accounts loaded successfully!", Toasts.Type.SUCCESS);
+            showToast("Accounts loaded successfully!", "success");
             modalProps.onAccountsLoaded();
             modalProps.onClose();
         } catch (error) {
-            showToast(error instanceof Error ? error.message : "Failed to load accounts", Toasts.Type.FAILURE);
+            showToast(error instanceof Error ? error.message : "Failed to load accounts", "failure");
         } finally {
             setIsLoading(false);
         }
@@ -485,14 +485,14 @@ function AddAccountModal(modalProps: any & { onAccountAdded: () => void; }) {
 
     const handleAddAccount = async () => {
         if (!username.trim() || !token.trim()) {
-            showToast("Please enter both username and token", Toasts.Type.FAILURE);
+            showToast("Please enter both username and token", "failure");
             return;
         }
 
         const accountId = `account_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         FileAccountManager.addAccount(accountId, username.trim(), token.trim());
 
-        showToast("Account added successfully!", Toasts.Type.SUCCESS);
+        showToast("Account added successfully!", "success");
         modalProps.onAccountAdded();
         modalProps.onClose();
     };
@@ -540,17 +540,17 @@ function CreateAccountsFileModal(modalProps: any & { onFileCreated: () => void; 
 
     const copyPassphrase = () => {
         navigator.clipboard.writeText(passphrase);
-        showToast("Passphrase copied to clipboard!", Toasts.Type.SUCCESS);
+        showToast("Passphrase copied to clipboard!", "success");
     };
 
     const handleCreateFile = async () => {
         if (!passphrase.trim()) {
-            showToast("Please enter a passphrase", Toasts.Type.FAILURE);
+            showToast("Please enter a passphrase", "failure");
             return;
         }
 
         if (passphrase !== confirmPassphrase) {
-            showToast("Passphrases do not match", Toasts.Type.FAILURE);
+            showToast("Passphrases do not match", "failure");
             return;
         }
 
@@ -577,11 +577,11 @@ function CreateAccountsFileModal(modalProps: any & { onFileCreated: () => void; 
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            showToast("Accounts file created!", Toasts.Type.SUCCESS);
+            showToast("Accounts file created!", "success");
             modalProps.onFileCreated();
             modalProps.onClose();
         } catch (error) {
-            showToast("Failed to create accounts file", Toasts.Type.FAILURE);
+            showToast("Failed to create accounts file", "failure");
         } finally {
             setIsCreating(false);
         }
@@ -656,12 +656,12 @@ function AccountSwitcherModal(modalProps: any) {
 
     const switchToAccount = (account: { id: string; username: string; token: string; }) => {
         if (account.token === "current") {
-            showToast("Already using this account", Toasts.Type.MESSAGE);
+            showToast("Already using this account", "message");
             return;
         }
 
         setIsLoading(true);
-        showToast(`Switching to ${account.username}...`, Toasts.Type.SUCCESS);
+        showToast(`Switching to ${account.username}...`, "success");
         loginWithToken(account.token);
         modalProps.onClose();
     };
@@ -670,7 +670,7 @@ function AccountSwitcherModal(modalProps: any) {
         const success = FileAccountManager.removeAccount(accountId);
         if (success) {
             loadAccounts();
-            showToast("Account removed", Toasts.Type.SUCCESS);
+            showToast("Account removed", "success");
         }
     };
 
@@ -704,9 +704,9 @@ function AccountSwitcherModal(modalProps: any) {
     const saveAccountsFile = async () => {
         try {
             await FileAccountManager.saveAccountsToFile();
-            showToast("Accounts saved to file!", Toasts.Type.SUCCESS);
+            showToast("Accounts saved to file!", "success");
         } catch (error) {
-            showToast("Failed to save accounts file", Toasts.Type.FAILURE);
+            showToast("Failed to save accounts file", "failure");
         }
     };
 

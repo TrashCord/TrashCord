@@ -14,7 +14,7 @@ import { Notice } from "@components/Notice";
 import { copyWithToast, getCurrentChannel, insertTextIntoChatInputBox, sendMessage } from "@utils/discord";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { chooseFile } from "@utils/web";
-import { Menu, showToast, Toasts } from "@webpack/common";
+import { Menu, showToast } from "@webpack/common";
 
 const Native = VencordNative?.pluginHelpers?.AnonLi as PluginNative<typeof import("./native")> | undefined;
 const ANON_LI_URL = "https://anon.li/";
@@ -101,25 +101,25 @@ const SafeAnonLiSettingsAbout = ErrorBoundary.wrap(AnonLiSettingsAbout, { noop: 
 async function uploadAnonLiDrop() {
     const apiKey = settings.store.apiKey.trim();
     if (!apiKey) {
-        showToast("Set your Anon.li API key in plugin settings first.", Toasts.Type.FAILURE);
+        showToast("Set your Anon.li API key in plugin settings first.", "failure");
         return;
     }
 
     if (!Native) {
-        showToast("AnonLi native helper is not available. Restart Discord.", Toasts.Type.FAILURE);
+        showToast("AnonLi native helper is not available. Restart Discord.", "failure");
         return;
     }
 
     const channel = getCurrentChannel();
     if (!channel) {
-        showToast("Open a channel before uploading with Anon.li Drop.", Toasts.Type.FAILURE);
+        showToast("Open a channel before uploading with Anon.li Drop.", "failure");
         return;
     }
 
     const file = await chooseFile("*/*");
     if (!file) return;
 
-    showToast(`Uploading ${file.name} to Anon.li.`, Toasts.Type.MESSAGE);
+    showToast(`Uploading ${file.name} to Anon.li.`, "message");
 
     const result = await Native.uploadDrop(
         apiKey,
@@ -131,7 +131,7 @@ async function uploadAnonLiDrop() {
     );
 
     if (!result.success) {
-        showToast(result.error, Toasts.Type.FAILURE);
+        showToast(result.error, "failure");
         return;
     }
 

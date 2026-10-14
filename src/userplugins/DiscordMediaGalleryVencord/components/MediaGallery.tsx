@@ -7,7 +7,7 @@
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Message, RenderModalProps } from "@vencord/discord-types";
-import { ChannelStore, Modal, showToast, Toasts, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { ChannelStore, Modal, showToast, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
 import { DownloadManager } from "../downloadManager";
 import { fetchOlderMessages, getMessagesFromStore, getOldestMessageId, mergeMessages, scanMessagesForMedia } from "../mediaScanner";
@@ -210,10 +210,10 @@ export function MediaGalleryModal({
                 setAllMessages(prev => mergeMessages(prev, older));
             } else {
                 setHasMore(false);
-                showToast("Reached beginning of channel history", Toasts.Type.MESSAGE);
+                showToast("Reached beginning of channel history", "message");
             }
         } catch {
-            showToast("Failed to fetch older messages", Toasts.Type.FAILURE);
+            showToast("Failed to fetch older messages", "failure");
         } finally {
             setIsLoadingMore(false);
         }

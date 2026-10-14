@@ -14,7 +14,7 @@ import { SettingsTab as STab, wrapTab } from "@components/settings/tabs/BaseTab"
 import { PluginCard } from "@components/settings/tabs/plugins/PluginCard";
 import { classes, isObjectEmpty } from "@utils/misc";
 import { relaunch } from "@utils/native";
-import { Alerts, Toasts, useEffect, useState } from "@webpack/common";
+import { Alerts, showToast, useEffect, useState } from "@webpack/common";
 
 import userpluginInstaller, { Native } from "..";
 import { cl, CLONE_LINK_REGEX, showInstallFinishedAlert } from "../misc/constants";
@@ -140,11 +140,7 @@ function UserPluginsTab() {
                                     plugin: Vencord.Plugins.plugins[plugin.name],
                                     disabled: false,
                                     onRestartNeeded() {
-                                        Toasts.show({
-                                            id: Toasts.genId(),
-                                            type: Toasts.Type.MESSAGE,
-                                            message: "Restart to apply changes!"
-                                        });
+                                        showToast("Restart to apply changes!", "message");
                                     }
                                 });
                                 ReworkedAddonCard.props.footer = <div className={cl("plugin-footer")}>

@@ -9,11 +9,32 @@ import { RenderModalProps, User } from "@vencord/discord-types";
 import type { Embed, Message } from "@vencord/discord-types";
 import { waitFor, filters, findByCodeLazy, findByPropsLazy } from "@webpack";
 import {
-    AuthenticationStore, ConnectedAccount, Constants, FluxDispatcher,
-    openModal, Modal, TextInput, Checkbox, Button, Forms, Text,
-    DisplayProfileUtils, ScrollerThin, UserProfileStore, UserStore,
-    UsernameUtils, useStateFromStores, TabBar, useState, useRef, useEffect,
-    showToast, Toasts, SearchableSelect, RestAPI, MessageStore, Parser,
+    AuthenticationStore,
+    ConnectedAccount,
+    Constants,
+    FluxDispatcher,
+    openModal,
+    Modal,
+    TextInput,
+    Checkbox,
+    Button,
+    Forms,
+    Text,
+    DisplayProfileUtils,
+    ScrollerThin,
+    UserProfileStore,
+    UserStore,
+    UsernameUtils,
+    useStateFromStores,
+    TabBar,
+    useState,
+    useRef,
+    useEffect,
+    showToast,
+    SearchableSelect,
+    RestAPI,
+    MessageStore,
+    Parser,
 } from "@webpack/common";
 
 interface BadgeEntry {
@@ -1312,7 +1333,7 @@ function ConnectionsSection() {
             ? normalizeDomain(newName)
             : newName.trim();
         if (!name) {
-            showToast(connectionNeedsDomain(pickType) ? "Enter a domain" : "Enter a handle", Toasts.Type.FAILURE);
+            showToast(connectionNeedsDomain(pickType) ? "Enter a domain" : "Enter a handle", "failure");
             return;
         }
 
@@ -1500,18 +1521,18 @@ function ConfigSection() {
         a.download = `larp-${name}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast("Config downloaded", Toasts.Type.SUCCESS);
+        showToast("Config downloaded", "success");
     };
 
     const doImport = (raw: string) => {
         const data = parseLarpImport(raw);
         if (!data) {
-            showToast("Invalid config JSON", Toasts.Type.FAILURE);
+            showToast("Invalid config JSON", "failure");
             return;
         }
         applyLarpExportData(data);
         setImportText("");
-        showToast("Config applied", Toasts.Type.SUCCESS);
+        showToast("Config applied", "success");
     };
 
     return (

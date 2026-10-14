@@ -1,7 +1,7 @@
 import { CloudUpload as TCloudUpload } from "@vencord/discord-types";
 import { DraftType } from "@vencord/discord-types/enums";
 import { findLazy } from "@webpack";
-import { showToast, Toasts, UploadAttachmentStore } from "@webpack/common";
+import { showToast, UploadAttachmentStore } from "@webpack/common";
 
 import { COMPRESS_SYMBOL, ORIGINAL_GET_SIZE_SYMBOL } from "./constants";
 import { settings } from "./settings";
@@ -698,5 +698,5 @@ export function getUploadsForChannel(channelId: string) {
 export function maybeShowBlockedSendToast(message: string) {
     if (Date.now() - lastBlockedSendToastAt < 1500) return;
     lastBlockedSendToastAt = Date.now();
-    showToast(message, Toasts.Type.FAILURE);
+    showToast(message, "failure");
 }

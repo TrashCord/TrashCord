@@ -11,7 +11,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Message } from "@vencord/discord-types";
-import { Menu, Parser, React, Toasts, useEffect, useState } from "@webpack/common";
+import { Menu, Parser, React, showToast, useEffect, useState } from "@webpack/common";
 
 const encryptSettings = definePluginSettings({
     location: {
@@ -210,7 +210,7 @@ function DecryptionAccessory({ message }: { message: Message; }) {
             </button>
             {" | "}
             <button
-                onClick={() => { navigator.clipboard.writeText(decrypted); Toasts.show({ message: "Copied!", type: Toasts.Type.SUCCESS, id: Toasts.genId() }); }}
+                onClick={() => { navigator.clipboard.writeText(decrypted); showToast("Copied!", "success"); }}
                 style={{
                     background: "none", border: "none", color: "var(--text-link)",
                     cursor: "pointer", padding: 0, font: "inherit", fontStyle: "italic",
@@ -239,15 +239,11 @@ const messageContextPatch = (children: any, { message }: { message: any; }) => {
                             if (setter) {
                                 setter(found.text);
                             } else {
-                                Toasts.show({ message: `🔓 ${found.text}`, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                                showToast(`🔓 ${found.text}`, "success");
                             }
-                            Toasts.show({ message: `Technique detected: ${found.technique}`, type: Toasts.Type.MESSAGE, id: Toasts.genId() });
+                            showToast(`Technique detected: ${found.technique}`, "message");
                         } else {
-                            Toasts.show({
-                                message: "❌ Unable to decrypt — no technique worked",
-                                type: Toasts.Type.FAILURE,
-                                id: Toasts.genId(),
-                            });
+                            showToast("❌ Unable to decrypt — no technique worked", "failure");
                         }
                     }}
                 />
@@ -308,11 +304,7 @@ export default definePlugin({
         const technique = Math.floor(Math.random() * 400);
         const encrypted = encrypt(messageObj.content, technique);
         if (encrypted.length > 2000) {
-            Toasts.show({
-                message: `❌ Message too long to encrypt (${encrypted.length}/2000)`,
-                type: Toasts.Type.FAILURE,
-                id: Toasts.genId(),
-            });
+            showToast(`❌ Message too long to encrypt (${encrypted.length}/2000)`, "failure");
             return { cancel: true };
         }
         messageObj.content = encrypted;

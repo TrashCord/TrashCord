@@ -11,7 +11,7 @@ import { classes } from "@utils/misc";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
 import { saveFile } from "@utils/web";
 import { findByPropsLazy } from "@webpack";
-import { FluxDispatcher, showToast, Toasts, useEffect, useLayoutEffect, useMemo, useRef, useState } from "@webpack/common";
+import { FluxDispatcher, showToast, useEffect, useLayoutEffect, useMemo, useRef, useState } from "@webpack/common";
 
 // @webpack/common's "ReactDOM" export is not guaranteed to exist across
 // Vencord/Equicord/Testcord versions (it was removed in some recent builds
@@ -298,7 +298,7 @@ async function applyProfileResult(result: PinterestImageResult, target: SearchKi
     } catch (error) {
         logger.error("Failed to apply Pinterest result", error);
         copyWithToast(result.url, t("copied"));
-        showToast(t("applyFailed"), Toasts.Type.FAILURE);
+        showToast(t("applyFailed"), "failure");
         return false;
     }
 }
@@ -309,7 +309,7 @@ async function saveResult(result: PinterestImageResult) {
         saveFile(new File([media.data], media.filename, { type: media.type }));
     } catch (error) {
         logger.error("Failed to save Pinterest result", error);
-        showToast(t("saveFailed"), Toasts.Type.FAILURE);
+        showToast(t("saveFailed"), "failure");
     }
 }
 
@@ -376,7 +376,7 @@ async function writeFavoritesForTarget(
         );
     } catch (error) {
         logger.error(`Could not save Pinterest ${target.toLowerCase()} favorites`, error);
-        showToast(t("favoritesFailed"), Toasts.Type.FAILURE);
+        showToast(t("favoritesFailed"), "failure");
     }
 }
 
@@ -586,7 +586,7 @@ function ThemePicker({
         const EyeDropperCtor = (window as any).EyeDropper;
 
         if (!EyeDropperCtor) {
-            showToast(t("colorFailed"), Toasts.Type.FAILURE);
+            showToast(t("colorFailed"), "failure");
             return;
         }
 
@@ -1556,7 +1556,7 @@ function PinterestBrowser({
             if (generation !== requestGenerationRef.current[mode]) return;
             logger.error("Next page failed", error);
             // Background prefetches fail silently; the user can still press Next.
-            if (advance) showToast(t("searchFailed"), Toasts.Type.FAILURE);
+            if (advance) showToast(t("searchFailed"), "failure");
             setBucketsForMode(mode, current => ({
                 ...current,
                 [kind]: {
@@ -1931,7 +1931,7 @@ function EffectsEditor({
 
         load().catch(error => {
             logger.error("Editor could not open the media", error);
-            showToast(t("editorFailed"), Toasts.Type.FAILURE);
+            showToast(t("editorFailed"), "failure");
             onDone({ kind: "original" });
         });
 
@@ -2015,7 +2015,7 @@ function EffectsEditor({
             setTab("text");
             setTick(value => value + 1);
         } catch {
-            showToast(t("addImageFailed"), Toasts.Type.FAILURE);
+            showToast(t("addImageFailed"), "failure");
         }
     }
 
@@ -2089,9 +2089,9 @@ function EffectsEditor({
                 addTextLayer(text.slice(0, 300));
                 return;
             }
-            showToast(t("clipboardEmpty"), Toasts.Type.MESSAGE);
+            showToast(t("clipboardEmpty"), "message");
         } catch {
-            showToast(t("clipboardHint"), Toasts.Type.MESSAGE);
+            showToast(t("clipboardHint"), "message");
         }
     }
 
@@ -2171,7 +2171,7 @@ function EffectsEditor({
                 onDone({ kind: "edited", file, dataUrl: bytesToDataUrl(bytes, "image/gif") });
             } catch (error) {
                 logger.error("Could not render the edited GIF", error);
-                showToast(error instanceof Error ? error.message : "Could not apply those edits to the GIF.", Toasts.Type.FAILURE);
+                showToast(error instanceof Error ? error.message : "Could not apply those edits to the GIF.", "failure");
                 setBusy(false);
                 setProgress("");
             }
@@ -2197,7 +2197,7 @@ function EffectsEditor({
             onDone({ kind: "edited", file, dataUrl: canvas.toDataURL(mime, 0.93) });
         } catch (error) {
             logger.error("Could not render the edited image", error);
-            showToast(t("editFailed"), Toasts.Type.FAILURE);
+            showToast(t("editFailed"), "failure");
             onDone({ kind: "original" });
         }
     }
@@ -2551,16 +2551,16 @@ export function PinterestProfileModal({ target, onEditFile, onApplied, ...props 
                         }
 
                         if (!file) {
-                            showToast(t("downloadFailed"), Toasts.Type.FAILURE);
+                            showToast(t("downloadFailed"), "failure");
                             return;
                         }
 
                         if (file.size > TARGET_BYTES) {
-                            showToast(t("resize", { size: (file.size / 1048576).toFixed(1) }), Toasts.Type.MESSAGE);
+                            showToast(t("resize", { size: (file.size / 1048576).toFixed(1) }), "message");
                             try {
                                 file = await fitUnderLimit(file);
                             } catch (error) {
-                                showToast(error instanceof Error ? error.message : t("tooLarge"), Toasts.Type.FAILURE);
+                                showToast(error instanceof Error ? error.message : t("tooLarge"), "failure");
                                 return;
                             }
                         }

@@ -6,7 +6,7 @@
 
 import { showNotification } from "@api/Notifications";
 import { saveFile } from "@utils/web";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import { ACTIONS, DEFAULT_COLOR } from "./constants";
 import { settings } from "./settings";
@@ -59,12 +59,7 @@ export function notifyAction(record: FakeActionRecord) {
     const text = describeAction(record);
 
     if (settings.store.showToast) {
-        Toasts.show({
-            id: Toasts.genId(),
-            message: `${meta.emoji} ${text}`,
-            type: Toasts.Type.SUCCESS,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`${meta.emoji} ${text}`, "success", { position: 1 });
     }
 
     if (settings.store.showNotification) {
@@ -82,12 +77,7 @@ export function notifyAction(record: FakeActionRecord) {
 export function notifyVoiceOff(type: "mute" | "deafen", targetName: string) {
     if (!settings.store.showToast) return;
     const meta = ACTIONS[type];
-    Toasts.show({
-        id: Toasts.genId(),
-        message: `${meta.emoji} ${targetName} is no longer ${meta.verb}`,
-        type: Toasts.Type.MESSAGE,
-        options: { position: Toasts.Position.BOTTOM }
-    });
+    showToast(`${meta.emoji} ${targetName} is no longer ${meta.verb}`, "message", { position: 1 });
 }
 
 /** Trigger a browser download of the history as a timestamped JSON file. */

@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
-import { Button, ChannelStore, Forms, Toasts, useEffect, useState } from "@webpack/common";
+import { Button, ChannelStore, Forms, showToast, useEffect, useState } from "@webpack/common";
 
 const CHANNEL_TYPE_DM = 1;
 const CHANNEL_TYPE_GROUP_DM = 3;
@@ -93,11 +93,7 @@ async function applyMute(muted: boolean): Promise<void> {
     const update = getUpdateGuildNotificationSettings();
     if (!update) {
         setRunning(false);
-        Toasts.show({
-            message: "Could not find the internal update function.",
-            type: Toasts.Type.FAILURE,
-            id: Toasts.genId(),
-        });
+        showToast("Could not find the internal update function.", "failure");
         return;
     }
 
@@ -109,19 +105,11 @@ async function applyMute(muted: boolean): Promise<void> {
     try {
         await update("@me", { channel_overrides: channelOverrides });
         setRunning(false);
-        Toasts.show({
-            message: `${muted ? "Muted" : "Unmuted"} ${ids.length} ${targetLabel()}.`,
-            type: Toasts.Type.SUCCESS,
-            id: Toasts.genId(),
-        });
+        showToast(`${muted ? "Muted" : "Unmuted"} ${ids.length} ${targetLabel()}.`, "success");
     } catch (e) {
         setRunning(false);
         const errMsg = e instanceof Error ? e.message : String(e);
-        Toasts.show({
-            message: `Failed to apply (${errMsg}).`,
-            type: Toasts.Type.FAILURE,
-            id: Toasts.genId(),
-        });
+        showToast(`Failed to apply (${errMsg}).`, "failure");
     }
 }
 

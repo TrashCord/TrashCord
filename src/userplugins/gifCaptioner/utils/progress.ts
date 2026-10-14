@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
+
+let toastCounter = 0;
 
 export default class ProgressDisplay {
     private message = "";
@@ -13,16 +15,12 @@ export default class ProgressDisplay {
     private timer: ReturnType<typeof setInterval> | null = null;
 
     constructor(message: string) {
-        this.toastId = Toasts.genId();
+        this.toastId = `gif-captioner-progress-${Date.now()}-${toastCounter++}`;
         this.setLoading(message);
     }
 
     private show(message: string) {
-        Toasts.show({
-            message,
-            type: Toasts.Type.MESSAGE,
-            id: this.toastId
-        });
+        showToast(message, "message", { id: this.toastId });
     }
 
     private formatLoading() {

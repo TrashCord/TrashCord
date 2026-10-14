@@ -1,6 +1,6 @@
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { FluxDispatcher, QuestStore, RestAPI, showToast, Toasts } from "@webpack/common";
+import { FluxDispatcher, QuestStore, RestAPI, showToast } from "@webpack/common";
 import type { Quest } from "@vencord/discord-types";
 import { QuestTargetedContent } from "@vencord/discord-types/enums";
 
@@ -88,7 +88,7 @@ async function doRun(): Promise<void> {
     if (!qc) {
         if (!warnedNoQuestify) {
             warnedNoQuestify = true;
-            showToast("AutoCompleteQuestify: Questify not found or not enabled!", Toasts.Type.FAILURE);
+            showToast("AutoCompleteQuestify: Questify not found or not enabled!", "failure");
         }
         return;
     }
@@ -124,7 +124,7 @@ async function doRun(): Promise<void> {
         if (notify) {
             showToast(
                 `AutoCompleteQuestify → ${q.config?.messages?.questName ?? q.id}`,
-                Toasts.Type.SUCCESS,
+                "success",
             );
         }
     }

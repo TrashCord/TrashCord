@@ -29,7 +29,7 @@ import { Alerts } from "@webpack/common";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
-import { Button, FluxDispatcher, Menu, React, showToast, Text, Toasts, UserStore, useState, useEffect, useRef } from "@webpack/common";
+import { Button, FluxDispatcher, Menu, React, showToast, Text, UserStore, useState, useEffect, useRef } from "@webpack/common";
 
 const PanelButton = findComponentByCodeLazy(".GREEN,positionKeyStemOverride:");
 const ChannelStoreMod = findByPropsLazy("getChannel", "getDMFromUserId");
@@ -505,7 +505,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         setNewProfileName("");
         setIsCreatingProfile(false);
         handleProfileSwitch(profile.id);
-        showToast(`Profile "${profile.name}" created`, Toasts.Type.SUCCESS);
+        showToast(`Profile "${profile.name}" created`, "success");
     };
 
     const handleDeleteProfile = async (profileId: string) => {
@@ -530,7 +530,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 await saveProfilesToDataStore();
                 setProfileList(getProfileList());
                 if (currentProfileId === profileId) handleProfileSwitch(DEFAULT_PROFILE_ID);
-                showToast("Profile deleted", Toasts.Type.SUCCESS);
+                showToast("Profile deleted", "success");
             }
         });
     };
@@ -548,7 +548,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         await saveProfilesToDataStore();
         setProfileList(getProfileList());
         setEditingProfileId(null);
-        showToast("Profile renamed", Toasts.Type.SUCCESS);
+        showToast("Profile renamed", "success");
     };
 
     const handleDroppedFiles = async (files: FileList | File[]) => {
@@ -575,7 +575,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
             }
             loadImages();
             if (added > 0) {
-                showToast(`Added: ${added}`, Toasts.Type.SUCCESS);
+                showToast(`Added: ${added}`, "success");
                 forceUploadPreview();
             }
         } catch {
@@ -637,7 +637,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 }
                 loadImages();
                 if (added > 0) {
-                    showToast(`Added: ${added}`, Toasts.Type.SUCCESS);
+                    showToast(`Added: ${added}`, "success");
                     forceUploadPreview();
                 }
             } catch {
@@ -659,7 +659,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         loadImages();
         setProfileList(getProfileList());
         if (profile.dataUris.length > 0) { userSelectedIndex = currentSlideIndex; forceUploadPreview(); }
-        showToast("Deleted", Toasts.Type.MESSAGE);
+        showToast("Deleted", "message");
     };
 
     const handleClearAll = async () => {
@@ -678,7 +678,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 setImages([]);
                 setPendingIndex(0);
                 setProfileList(getProfileList());
-                showToast("All deleted", Toasts.Type.MESSAGE);
+                showToast("All deleted", "message");
             }
         });
     };
@@ -714,7 +714,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         a.download = `customstream-backup-${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast("Backup exported!", Toasts.Type.SUCCESS);
+        showToast("Backup exported!", "success");
     };
 
     const handleImport = () => {
@@ -756,7 +756,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                         setProfileList(getProfileList());
                         setPendingIndex(getActiveProfile().currentIndex);
                         loadImages();
-                        showToast("Backup imported!", Toasts.Type.SUCCESS);
+                        showToast("Backup imported!", "success");
                     }
                 });
             } catch {
@@ -787,7 +787,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 setImages([]);
                 setPendingIndex(0);
                 notifyImageChange();
-                showToast("Reset complete", Toasts.Type.MESSAGE);
+                showToast("Reset complete", "message");
             }
         });
     };
@@ -802,7 +802,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         savedRef.current = true;
         notifyImageChange();
         forceUploadPreview();
-        showToast("Saved!", Toasts.Type.SUCCESS);
+        showToast("Saved!", "success");
         rootProps.onClose();
     };
 
@@ -837,7 +837,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
             setPendingIndex(newPendingIndex);
             currentSlideIndex = newPendingIndex;
             loadImages();
-            showToast(`Moved: #${draggedIndex + 1} → #${toIndex + 1}`, Toasts.Type.SUCCESS);
+            showToast(`Moved: #${draggedIndex + 1} → #${toIndex + 1}`, "success");
         }
         setDraggedIndex(null);
         setDragOverIndex(null);

@@ -9,7 +9,7 @@ import managedStyle from "./styles.css?managed";
 import { ApplicationCommandInputType, ApplicationCommandOptionType, findOption, sendBotMessage } from "@api/Commands";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 import { openBadgeSpooferModal } from "./components/BadgeSpooferModal";
 import { badgeSpooferEngine } from "./engine";
@@ -84,11 +84,7 @@ export default definePlugin({
                     content: `Starting Badge Spoofer: **${hours}h** play, **${streamHours}h** stream per game. Progress shows in toasts, or use \`/badgespoof-dashboard\`.`
                 });
 
-                Toasts.show({
-                    id: Toasts.genId(),
-                    message: `Badge Spoofer launched (${hours}h play, ${streamHours}h stream)...`,
-                    type: Toasts.Type.MESSAGE
-                });
+                showToast(`Badge Spoofer launched (${hours}h play, ${streamHours}h stream)...`, "message");
 
                 badgeSpooferEngine.startSpoofing({
                     hours,
@@ -99,11 +95,7 @@ export default definePlugin({
                     fingerprint,
                     onProgress: progress => {
                         if (!progress.isRunning) {
-                            Toasts.show({
-                                id: Toasts.genId(),
-                                message: `Badge Spoofer Finished: ${progress.sent} games claimed!`,
-                                type: Toasts.Type.SUCCESS
-                            });
+                            showToast(`Badge Spoofer Finished: ${progress.sent} games claimed!`, "success");
                         }
                     }
                 });

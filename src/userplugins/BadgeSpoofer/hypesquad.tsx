@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Forms, React, RestAPI, showToast, Text, Toasts, UserStore } from "@webpack/common";
+import { Button, Forms, React, RestAPI, showToast, Text, UserStore } from "@webpack/common";
 
 export const HOUSE_FLAGS = { 1: 64, 2: 128, 3: 256 } as const;
 
@@ -27,7 +27,7 @@ export async function applyHouse(houseId: HouseId): Promise<boolean> {
     try {
         showToast(
             houseId === 0 ? "Leaving HypeSquad…" : `Updating HypeSquad house to ${name}…`,
-            Toasts.Type.MESSAGE
+            "message"
         );
 
         if (houseId === 0)
@@ -39,11 +39,11 @@ export async function applyHouse(houseId: HouseId): Promise<boolean> {
             houseId === 0
                 ? "Left HypeSquad. Reload Discord (Ctrl+R) to see your badge removed."
                 : `HypeSquad house updated: ${name}! Reload Discord (Ctrl+R) to see your badge.`,
-            Toasts.Type.SUCCESS
+            "success"
         );
         return true;
     } catch (err: any) {
-        showToast(`Failed to change house: ${err?.message ?? err}`, Toasts.Type.FAILURE);
+        showToast(`Failed to change house: ${err?.message ?? err}`, "failure");
         return false;
     }
 }

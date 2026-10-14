@@ -20,7 +20,7 @@ import {
     PermissionStore,
     RestAPI,
     SelectedChannelStore,
-    Toasts,
+    showToast,
     UserStore,
 } from "@webpack/common";
 
@@ -232,7 +232,7 @@ const settings = definePluginSettings({
 
 function toast(message: string, type: number) {
     if (settings.store.showToasts)
-        Toasts.show({ message, id: Toasts.genId(), type });
+        showToast(message, type);
 }
 
 function cancelRejoin() {
@@ -244,14 +244,14 @@ function cancelRejoin() {
 function tryRejoin(channelId: string) {
     const max = settings.store.maxRetries;
     if (max > 0 && retryCount >= max) {
-        toast(`AntiDisconnect: Gave up after ${max} attempt(s).`, Toasts.Type.FAILURE);
+        toast(`AntiDisconnect: Gave up after ${max} attempt(s).`, "failure");
         cancelRejoin();
         return;
     }
     retryCount++;
     isRejoining = true;
     const label = max > 0 ? ` (attempt ${retryCount}/${max})` : "";
-    toast(`AntiDisconnect: Rejoining...${label}`, Toasts.Type.MESSAGE);
+    toast(`AntiDisconnect: Rejoining...${label}`, "message");
     internalSelectVoiceChannel(channelId);
 }
 
@@ -282,7 +282,7 @@ async function restoreNick(guildId: string, forcedNick: string) {
                 url: `/users/@me/guilds/${guildId}/profile`,
                 body: { nick: target },
             });
-            toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
+            toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, "success");
             return;
         } catch {}
 
@@ -290,7 +290,7 @@ async function restoreNick(guildId: string, forcedNick: string) {
             url: `/guilds/${guildId}/members/@me`,
             body: { nick: target ?? "" },
         });
-        toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, Toasts.Type.SUCCESS);
+        toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, "success");
     } catch {
     } finally {
         setTimeout(() => resettingNickGuilds.delete(guildId), 5000);
@@ -319,7 +319,7 @@ function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "
         antiDeafenServer: "AntiDeafenServer (Perms)",
     };
     const on = settings.store[key] as boolean;
-    toast(`${labels[key]} ${on ? "- Enabled" : "- Disabled"}`, on ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE);
+    toast(`${labels[key]} ${on ? "- Enabled" : "- Disabled"}`, on ? "success" : "failure");
 }
 
 const RtcChannelContext: NavContextMenuPatchCallback = children => {
@@ -402,7 +402,7 @@ export default definePlugin({
 
                 if (isMove) {
                     if (_antiMove && !isRejoining) {
-                        toast("AntiMove: Moved back to your channel.", Toasts.Type.MESSAGE);
+                        toast("AntiMove: Moved back to your channel.", "message");
                         const target = oldChannelId!;
                         Promise.resolve().then(() => internalSelectVoiceChannel(target));
                         continue;
@@ -442,7 +442,7 @@ export default definePlugin({
                     const uid = myUserId;
                     setTimeout(() => {
                         patchMember(uid, guildId, { mute: false })
-                            .then(() => toast("AntiMute: Server mute removed.", Toasts.Type.SUCCESS))
+                            .then(() => toast("AntiMute: Server mute removed.", "success"))
                             .catch(() => { try { VoiceActions.toggleSelfMute(); } catch {} });
                     }, 100);
                 }
@@ -451,7 +451,7 @@ export default definePlugin({
                     const uid = myUserId;
                     setTimeout(() => {
                         patchMember(uid, guildId, { deaf: false })
-                            .then(() => toast("AntiDeafen: Server deafen removed.", Toasts.Type.SUCCESS))
+                            .then(() => toast("AntiDeafen: Server deafen removed.", "success"))
                             .catch(() => { try { VoiceActions.toggleSelfDeaf(); } catch {} });
                     }, 100);
                 }

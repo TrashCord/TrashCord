@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, FluxDispatcher, SelectedChannelStore, showToast, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 const AgeVerificationStatus = {
     TEEN: 2,
@@ -21,7 +21,7 @@ const settings = definePluginSettings({
         default: false,
         onChange(newValue: boolean) {
             apply();
-            showToast(`Age group set to ${newValue ? "teen" : "adult"}`, Toasts.Type.SUCCESS);
+            showToast(`Age group set to ${newValue ? "teen" : "adult"}`, "success");
         }
     },
     allowNsfwChannels: {

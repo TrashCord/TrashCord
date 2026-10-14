@@ -9,7 +9,7 @@ import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
 import { getUserSettingLazy } from "@api/UserSettings";
 import definePlugin, { PluginNative } from "@utils/types";
 import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { FluxDispatcher, Menu, Popout, RestAPI, showToast, Toasts, useRef, useState, UserStore } from "@webpack/common";
+import { FluxDispatcher, Menu, Popout, RestAPI, showToast, useRef, useState, UserStore } from "@webpack/common";
 
 const STORE_KEY = "ProfilePresets_v2";
 const MODAL_ID = "vc-profile-presets-modal";
@@ -74,12 +74,12 @@ function UserAreaPresetQuickButton(props: UserAreaRenderProps) {
                                     label={p.name}
                                     action={async () => {
                                         closePopout();
-                                        toast(`Applying "${p.name}"…`, Toasts.Type.MESSAGE);
+                                        toast(`Applying "${p.name}"…`, "message");
                                         const failures = await applyPreset(p);
                                         if (failures.length === 0) {
-                                            toast(`Applied "${p.name}"!`, Toasts.Type.SUCCESS);
+                                            toast(`Applied "${p.name}"!`, "success");
                                         } else {
-                                            toast(`Applied with notes: ${failures.join(", ")}`, Toasts.Type.FAILURE);
+                                            toast(`Applied with notes: ${failures.join(", ")}`, "failure");
                                         }
                                     }}
                                 />
@@ -193,8 +193,8 @@ function renderInModalToast(targetModal: HTMLElement, message: string, type: any
     toastContainer.innerHTML = "";
 
     const toastPill = document.createElement("div");
-    const isSuccess = type === Toasts.Type.SUCCESS;
-    const isFailure = type === Toasts.Type.FAILURE;
+    const isSuccess = type === "success";
+    const isFailure = type === "failure";
 
     const borderColor = isSuccess ? "rgba(35, 165, 90, 0.5)" : (isFailure ? "rgba(242, 63, 67, 0.5)" : "rgba(88, 101, 242, 0.5)");
     const iconColor = isSuccess ? "#23a55a" : (isFailure ? "#f23f43" : "#5865f2");
@@ -233,7 +233,7 @@ function renderInModalToast(targetModal: HTMLElement, message: string, type: any
     }, 3000);
 }
 
-function toast(message: string, type = Toasts.Type.MESSAGE) {
+function toast(message: string, type = "message") {
     const activeModal = document.querySelector(`#${MODAL_ID} > div, #${PREVIEW_MODAL_ID} > div`) as HTMLElement | null;
     if (activeModal) {
         renderInModalToast(activeModal, message, type);
@@ -1095,7 +1095,7 @@ async function applyPresetWithUI(
         const failures = await applyPreset(preset);
         if (failures.length === 0) {
             showModalTopBanner(targetModal, `Preset "${preset.name}" applied successfully! All cosmetics saved.`, "success");
-            toast(`Applied "${preset.name}".`, Toasts.Type.SUCCESS);
+            toast(`Applied "${preset.name}".`, "success");
             await new Promise(r => setTimeout(r, 700));
             if (lockOverlay) lockOverlay.remove();
             removeModalTopBanner(targetModal);
@@ -1103,7 +1103,7 @@ async function applyPresetWithUI(
         } else {
             if (lockOverlay) lockOverlay.remove();
             showModalTopBanner(targetModal, `Applied with notes: ${failures.join(", ")}`, "failure");
-            toast(`Applied with notes: ${failures.join(", ")}`, Toasts.Type.FAILURE);
+            toast(`Applied with notes: ${failures.join(", ")}`, "failure");
             if (clickedButton) {
                 clickedButton.disabled = false;
                 clickedButton.textContent = "Apply";
@@ -1133,7 +1133,7 @@ function exportPresetsToFile(presetsToExport: ProfilePreset[], filename = "all-d
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast(`Exported ALL ${presetsToExport.length} preset(s) to ${filename}`, Toasts.Type.SUCCESS);
+    toast(`Exported ALL ${presetsToExport.length} preset(s) to ${filename}`, "success");
 }
 
 async function importPresetsFromFile(): Promise<void> {
@@ -1159,7 +1159,7 @@ async function importPresetsFromFile(): Promise<void> {
                 } else if (data && typeof data === "object" && data.id && data.name) {
                     importedList = [data as ProfilePreset];
                 } else {
-                    toast("Invalid preset file format.", Toasts.Type.FAILURE);
+                    toast("Invalid preset file format.", "failure");
                     resolve();
                     return;
                 }
@@ -1188,11 +1188,11 @@ async function importPresetsFromFile(): Promise<void> {
                 }
 
                 await setPresets(existing);
-                toast(`Successfully imported ALL ${addedCount} preset(s)!`, Toasts.Type.SUCCESS);
+                toast(`Successfully imported ALL ${addedCount} preset(s)!`, "success");
                 openModal();
             } catch (err) {
                 console.error("[ProfilePresets] Import failed", err);
-                toast(`Import failed: ${err instanceof Error ? err.message : String(err)}`, Toasts.Type.FAILURE);
+                toast(`Import failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
             }
             resolve();
         };
@@ -1507,7 +1507,7 @@ function openRenameModal(preset: ProfilePreset, onSaved: () => void) {
     save.onclick = async () => {
         const newName = input.value.trim();
         if (!newName) {
-            toast("Please enter a valid preset name", Toasts.Type.FAILURE);
+            toast("Please enter a valid preset name", "failure");
             return;
         }
         closeModal(RENAME_ID);
@@ -1519,7 +1519,7 @@ function openRenameModal(preset: ProfilePreset, onSaved: () => void) {
             if (Native?.savePresetFiles) {
                 Native.savePresetFiles(presets[index]).catch(() => {});
             }
-            toast(`Renamed preset to "${newName}"`, Toasts.Type.SUCCESS);
+            toast(`Renamed preset to "${newName}"`, "success");
             onSaved();
         }
     };
@@ -2047,7 +2047,7 @@ async function openModal() {
     exportAllBtn.onclick = async () => {
         const presets = await getPresets();
         if (presets.length === 0) {
-            toast("No presets to export.", Toasts.Type.FAILURE);
+            toast("No presets to export.", "failure");
             return;
         }
         exportPresetsToFile(presets, `all-profile-presets-${Date.now()}.json`);
@@ -2086,7 +2086,7 @@ async function openModal() {
     saveBtn.onclick = async () => {
         const name = input.value.trim();
         if (!name) {
-            toast("Please enter a preset name", Toasts.Type.FAILURE);
+            toast("Please enter a preset name", "failure");
             return;
         }
 
@@ -2111,11 +2111,11 @@ async function openModal() {
                 await setPresets(currentPresets);
                 input.value = "";
                 cachedPresets = await getPresets();
-                toast(`Saved preset "${name}"!`, Toasts.Type.SUCCESS);
+                toast(`Saved preset "${name}"!`, "success");
                 renderFilteredListSync();
             } catch (err) {
                 console.error("[ProfilePresets] Capture error", err);
-                toast(`Failed to save preset: ${err instanceof Error ? err.message : String(err)}`, Toasts.Type.FAILURE);
+                toast(`Failed to save preset: ${err instanceof Error ? err.message : String(err)}`, "failure");
             } finally {
                 saveBtn.disabled = false;
             }
@@ -2238,12 +2238,12 @@ async function openModal() {
                                     Native.savePresetFiles(freshPreset).catch(() => {});
                                 }
                                 cachedPresets = await getPresets();
-                                toast(`Overwrote "${preset.name}" with current profile!`, Toasts.Type.SUCCESS);
+                                toast(`Overwrote "${preset.name}" with current profile!`, "success");
                                 renderFilteredListSync();
                             }
                         } catch (err) {
                             console.error("[ProfilePresets] Overwrite failed", err);
-                            toast(`Overwrite failed`, Toasts.Type.FAILURE);
+                            toast(`Overwrite failed`, "failure");
                         }
                     },
                     "Overwrite Now",
@@ -2280,7 +2280,7 @@ async function openModal() {
                             }
                         }
                         cachedPresets = await getPresets();
-                        toast(`Deleted "${preset.name}".`, Toasts.Type.SUCCESS);
+                        toast(`Deleted "${preset.name}".`, "success");
                         renderFilteredListSync();
                     },
                     "Delete Preset",

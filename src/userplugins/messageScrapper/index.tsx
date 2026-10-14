@@ -15,7 +15,7 @@ import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, M
 import { showItemInFolder } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { Button, ChannelStore, Constants, ContextMenuApi, GuildStore, Menu, React, RelationshipStore, RestAPI, Toasts, UserStore } from "@webpack/common";
+import { Button, ChannelStore, Constants, ContextMenuApi, GuildStore, Menu, React, RelationshipStore, RestAPI, showToast, UserStore } from "@webpack/common";
 
 type DeletedLogItem = {
     channelId: string;
@@ -471,7 +471,7 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
 
     async function start() {
         if (isProcessRunning) {
-            Toasts.show({ id: Toasts.genId(), type: Toasts.Type.FAILURE, message: "Process is already running" });
+            showToast("Process is already running", "failure");
             return;
         }
 
@@ -480,14 +480,14 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
         settings.store.selectedGuilds = selectedGuilds.join(",");
 
         if (!mode) {
-            Toasts.show({ id: Toasts.genId(), type: Toasts.Type.FAILURE, message: "Please select a mode (DM or Server)" });
+            showToast("Please select a mode (DM or Server)", "failure");
             return;
         }
 
         const whitelistSet = new Set(wl);
         const myId = UserStore.getCurrentUser()?.id;
         if (!myId) {
-            Toasts.show({ id: Toasts.genId(), type: Toasts.Type.FAILURE, message: "Could not determine current user." });
+            showToast("Could not determine current user.", "failure");
             return;
         }
 
@@ -987,9 +987,9 @@ async function openMessageScrapperModal() {
 function stopMessageScrapper() {
     if (isProcessRunning) {
         shouldStopProcess = true;
-        Toasts.show({ id: Toasts.genId(), type: Toasts.Type.MESSAGE, message: "Stopping Message Scrapper..." });
+        showToast("Stopping Message Scrapper...", "message");
     } else {
-        Toasts.show({ id: Toasts.genId(), type: Toasts.Type.FAILURE, message: "No process running" });
+        showToast("No process running", "failure");
     }
 }
 

@@ -13,7 +13,7 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, MediaEngineStore, React, RelationshipStore, SelectedChannelStore, showToast, Toasts, UserStore, VoiceStateStore } from "@webpack/common";
+import { Button, MediaEngineStore, React, RelationshipStore, SelectedChannelStore, showToast, UserStore, VoiceStateStore } from "@webpack/common";
 
 import { VolumeHold } from "./protection";
 
@@ -499,7 +499,7 @@ function mute(userId: string, score: number) {
     logger.debug(`muted ${userId} at ${Math.round(toDb(score))} dB stereo`);
 
     if (settings.store.notify) {
-        showToast(`StereoGuard muted ${displayName(userId)} for obnoxious stereo (${Math.round(toDb(score))} dB).`, Toasts.Type.MESSAGE);
+        showToast(`StereoGuard muted ${displayName(userId)} for obnoxious stereo (${Math.round(toDb(score))} dB).`, "message");
     }
 }
 
@@ -521,7 +521,7 @@ function unmute(userId: string, mode: "manual" | "auto" | "silent") {
         mode === "auto"
             ? `StereoGuard auto-unmuted ${displayName(userId)} after ${formatDuration(settings.store.autoUnmute)}.`
             : `StereoGuard unmuted ${displayName(userId)}.`,
-        Toasts.Type.MESSAGE
+        "message"
     );
 }
 
@@ -757,7 +757,7 @@ function StereoGuardButton({ iconForeground, hideTooltips, nameplate }: UserArea
                 settings.store.enabled = !enabled;
                 showToast(
                     `Stereo Guard ${settings.store.enabled ? "enabled" : "disabled"}.`,
-                    Toasts.Type.MESSAGE
+                    "message"
                 );
             }}
         />

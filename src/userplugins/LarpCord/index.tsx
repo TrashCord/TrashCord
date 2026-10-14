@@ -18,7 +18,7 @@ import { fetchUserProfile } from "@utils/discord";
 import { parseUrl } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import type { ProfileEffect, RenderModalProps, User } from "@vencord/discord-types";
-import { AuthenticationStore, Constants, FluxDispatcher, IconUtils, Menu, Modal, openModal, React, RestAPI, Select, SettingsRouter, SnowflakeUtils, Toasts, UserProfileStore, UserStore } from "@webpack/common";
+import { AuthenticationStore, Constants, FluxDispatcher, IconUtils, Menu, Modal, openModal, React, RestAPI, Select, SettingsRouter, SnowflakeUtils, showToast, UserProfileStore, UserStore } from "@webpack/common";
 
 const ICON_SETTING_KEYS: "showIcon"[] = ["showIcon"];
 
@@ -384,7 +384,7 @@ function getProfileEffectPreview(effect: ProfileEffect) {
 }
 
 function showLarpCordToast(message: string) {
-    Toasts.show({ message, type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+    showToast(message, "success");
 }
 
 interface CustomProfileData {

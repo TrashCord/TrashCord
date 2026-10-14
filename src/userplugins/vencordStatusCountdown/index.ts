@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
 import definePlugin, { OptionType } from "@utils/types";
-import { Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const CustomStatus = getUserSettingLazy<Partial<{
     text: string
@@ -58,11 +58,7 @@ function getStatusString(): string | undefined {
     const today = new Date().getTime();
     const goalDay = new Date(settings.store.date).getTime();
     if (isNaN(goalDay)) {
-        Toasts.show({
-            message: "Invalid target date",
-            type: Toasts.Type.FAILURE,
-            id: Toasts.genId()
-        });
+        showToast("Invalid target date", "failure");
         return;
     }
 

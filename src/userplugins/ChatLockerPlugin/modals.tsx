@@ -1,4 +1,4 @@
-import { openModal, Modal, React, useState, Forms, TextInput, Toasts, SelectedChannelStore } from "@webpack/common";
+import { openModal, Modal, React, useState, Forms, TextInput, showToast, SelectedChannelStore } from "@webpack/common";
 import { getHash, setHash, lock, unlock, isLocked, SALT, hasPassword } from "./storage";
 import { refreshOverlay } from "./overlayManager"; // we'll provide this
 
@@ -37,7 +37,7 @@ export function SetPasswordModal({ modalProps, channelId }: { modalProps: any; c
         setError("");
         await setHash(channelId, await hashPassword(pwd));
         lock(channelId);
-        Toasts.show({ type: Toasts.Type.SUCCESS, message: "🔒 Channel locked" });
+        showToast("🔒 Channel locked", "success");
         modalProps.onClose();
         refreshAll();
     };
@@ -68,7 +68,7 @@ export function UnlockModal({ modalProps, channelId }: { modalProps: any; channe
         if (!stored) { setError("No password set."); setBusy(false); return; }
         if ((await hashPassword(pwd)) === stored) {
             unlock(channelId);
-            Toasts.show({ type: Toasts.Type.SUCCESS, message: "🔓 Unlocked" });
+            showToast("🔓 Unlocked", "success");
             modalProps.onClose();
             refreshAll();
         } else {
@@ -103,7 +103,7 @@ export function ChangePasswordModal({ modalProps, channelId }: { modalProps: any
         const stored = await getHash(channelId);
         if (!stored || (await hashPassword(oldPwd)) !== stored) { setError("Current password is incorrect."); return; }
         await setHash(channelId, await hashPassword(newPwd));
-        Toasts.show({ type: Toasts.Type.SUCCESS, message: "🔑 Password changed" });
+        showToast("🔑 Password changed", "success");
         modalProps.onClose();
         refreshAll();
     };
@@ -136,7 +136,7 @@ export function RemoveLockModal({ modalProps, channelId }: { modalProps: any; ch
         if ((await hashPassword(pwd)) === stored) {
             await setHash(channelId, null);
             unlock(channelId);
-            Toasts.show({ type: Toasts.Type.SUCCESS, message: "🔓 Password removed and channel unlocked" });
+            showToast("🔓 Password removed and channel unlocked", "success");
             modalProps.onClose();
             refreshAll();
         } else {
@@ -179,7 +179,7 @@ export const actRelock = () => {
     const id = SelectedChannelStore.getChannelId();
     if (!id) return;
     lock(id);
-    Toasts.show({ type: Toasts.Type.INFO, message: "🔒 Locked" });
+    showToast("🔒 Locked", "info");
     refreshAll();
 };
 

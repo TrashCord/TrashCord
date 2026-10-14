@@ -11,7 +11,7 @@ import { copyWithToast } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import definePlugin from "@utils/types";
 import { ProfileEffect, User } from "@vencord/discord-types";
-import { Button, Toasts, UserStore } from "@webpack/common";
+import { Button, showToast, UserStore } from "@webpack/common";
 import virtualMerge from "virtual-merge";
 
 import style from "./index.css?managed";
@@ -372,11 +372,7 @@ export default definePlugin({
             useUsersProfileStore.getState().fetchDecorations();
             useUsersProfileStore.getState().fetchProfileEffects();
             useUsersProfileStore.getState().fetchBadges();
-            Toasts.show({
-                message: "Successfully refetched fakeProfile!",
-                id: Toasts.genId(),
-                type: Toasts.Type.SUCCESS
-            });
+            showToast("Successfully refetched fakeProfile!", "success");
         }
     },
     addCopy3y3Button: ErrorBoundary.wrap(function ({ primary, accent }: { primary: number; accent: number; }) {

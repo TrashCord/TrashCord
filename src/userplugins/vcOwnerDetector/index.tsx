@@ -14,7 +14,7 @@ import { Logger } from "@utils/Logger";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy,findStoreLazy } from "@webpack";
-import { Button, ChannelStore, FluxDispatcher, Forms, Menu, React, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, ChannelStore, FluxDispatcher, Forms, Menu, React, showToast, TextInput, UserStore } from "@webpack/common";
 
 const logger = new Logger("vcOwnerDetector");
 
@@ -43,14 +43,9 @@ const settings = definePluginSettings({
 
 function checkvcownerlol(guildId: string, channelId?: string) {
     if (!guildId || !channelId) {
-        Toasts.show({
-            message: "No guild or channel found!",
-            id: `atticus-error-${Date.now()}`,
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM,
-                duration: 2000
-            }
+        showToast("No guild or channel found!", "failure", {
+            duration: 2000,
+            position: 1
         });
         return;
     }
@@ -59,28 +54,18 @@ function checkvcownerlol(guildId: string, channelId?: string) {
     const guildSetting = guildDetectionSettings.find(g => g.name === guildId);
 
     if (!guildSetting) {
-        Toasts.show({
-            message: "This guild is not configured for VC owner detection!",
-            id: `atticus-not-configured-${Date.now()}`,
-            type: Toasts.Type.MESSAGE,
-            options: {
-                position: Toasts.Position.BOTTOM,
-                duration: 2000
-            }
+        showToast("This guild is not configured for VC owner detection!", "message", {
+            duration: 2000,
+            position: 1
         });
         return;
     }
 
     const channel = ChannelStore.getChannel(channelId);
     if (!channel?.permissionOverwrites) {
-        Toasts.show({
-            message: "No permission overwrites found in this channel!",
-            id: `atticus-no-perms-${Date.now()}`,
-            type: Toasts.Type.MESSAGE,
-            options: {
-                position: Toasts.Position.BOTTOM,
-                duration: 2000
-            }
+        showToast("No permission overwrites found in this channel!", "message", {
+            duration: 2000,
+            position: 1
         });
         return;
     }
@@ -126,14 +111,9 @@ function checkvcownerlol(guildId: string, channelId?: string) {
                         settings.store.amivcowner = true;
                     }
 
-                    Toasts.show({
-                        message: `Current VC Owner: ${ownerName}`,
-                        id: `atticus-owner-found-${Date.now()}`,
-                        type: Toasts.Type.SUCCESS,
-                        options: {
-                            position: Toasts.Position.BOTTOM,
-                            duration: 2000
-                        }
+                    showToast(`Current VC Owner: ${ownerName}`, "success", {
+                        duration: 2000,
+                        position: 1
                     });
                 }
             }
@@ -143,14 +123,9 @@ function checkvcownerlol(guildId: string, channelId?: string) {
     });
 
     if (!ownerFound) {
-        Toasts.show({
-            message: "No VC owner found with the configured permissions!",
-            id: `atticus-no-owner-${Date.now()}`,
-            type: Toasts.Type.MESSAGE,
-            options: {
-                position: Toasts.Position.BOTTOM,
-                duration: 2000
-            }
+        showToast("No VC owner found with the configured permissions!", "message", {
+            duration: 2000,
+            position: 1
         });
     }
 }

@@ -10,7 +10,7 @@ import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
-import { Button, Forms, IconUtils, React, showToast, Text, Toasts, useEffect, useState } from "@webpack/common";
+import { Button, Forms, IconUtils, React, showToast, Text, useEffect, useState } from "@webpack/common";
 
 import { clearTarget, getCachedTarget, getManualProfile, loadTarget, logger, saveManualProfile, setEnabled, settings } from "./data";
 
@@ -298,7 +298,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         settings.store.targetMode = "lookup";
         const id = value.trim();
         if (!ID_RE.test(id)) {
-            showToast("Enter a valid Discord user ID.", Toasts.Type.FAILURE);
+            showToast("Enter a valid Discord user ID.", "failure");
             return;
         }
         setBusy(true);
@@ -307,10 +307,10 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
             setTarget(next);
             setEnabled(true);
             setEnabledLocal(true);
-            showToast(`Spoofing as ${next.user.username}.`, Toasts.Type.SUCCESS);
+            showToast(`Spoofing as ${next.user.username}.`, "success");
         } catch (e: any) {
             logger.error("apply failed", e);
-            showToast(e?.message || "Failed to load that user.", Toasts.Type.FAILURE);
+            showToast(e?.message || "Failed to load that user.", "failure");
         } finally {
             setBusy(false);
         }
@@ -322,7 +322,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
 
         const premiumType = Number(manualPremiumType);
         if (!Number.isInteger(premiumType) || premiumType < 0 || premiumType > 3) {
-            showToast("Nitro type must be between 0 and 3.", Toasts.Type.FAILURE);
+            showToast("Nitro type must be between 0 and 3.", "failure");
             return;
         }
 
@@ -364,7 +364,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         setTarget(manual);
         setEnabled(true);
         setEnabledLocal(true);
-        showToast(`Spoofing as ${username}.`, Toasts.Type.SUCCESS);
+        showToast(`Spoofing as ${username}.`, "success");
     }
 
     function clear() {
@@ -372,11 +372,11 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         setTarget(null);
         setEnabledLocal(false);
         setValue("");
-        showToast("Cleared spoof target.", Toasts.Type.MESSAGE);
+        showToast("Cleared spoof target.", "message");
     }
 
     function toggle(v: boolean) {
-        if (v && !target) { showToast("Pick a target user first.", Toasts.Type.FAILURE); return; }
+        if (v && !target) { showToast("Pick a target user first.", "failure"); return; }
         setEnabled(v);
         setEnabledLocal(v);
     }
@@ -392,10 +392,10 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
                 const dataUrl = await readImageAsDataUrl(file);
                 if (kind === "avatar") setManualAvatarDataUrl(dataUrl);
                 else setManualBannerDataUrl(dataUrl);
-                showToast(`${kind === "avatar" ? "Avatar" : "Banner"} uploaded.`, Toasts.Type.SUCCESS);
+                showToast(`${kind === "avatar" ? "Avatar" : "Banner"} uploaded.`, "success");
             } catch (e) {
                 logger.error("image upload failed", e);
-                showToast("Failed to read the image.", Toasts.Type.FAILURE);
+                showToast("Failed to read the image.", "failure");
             }
         };
         input.click();

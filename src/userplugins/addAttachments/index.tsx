@@ -23,7 +23,7 @@ import definePlugin from "@utils/types";
 import type { Message } from "@vencord/discord-types";
 import { MessageFlags } from "@vencord/discord-types/enums";
 import { findByPropsLazy, findLazy } from "@webpack";
-import { ChannelStore, Constants, FluxDispatcher, Menu, MessageStore, PermissionsBits, PermissionStore, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, Constants, FluxDispatcher, Menu, MessageStore, PermissionsBits, PermissionStore, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const uniqueIdProp = findLazy(m => typeof m.uniqueId === "function");
 const { getUserMaxFileSize } = findByPropsLazy("getUserMaxFileSize");
@@ -93,12 +93,12 @@ const addAttachments = async (channelId: string, messageId: string, files: FileL
     const oversizedCount = files.length - uploadableFiles.length;
 
     if (oversizedCount) {
-        showToast(`${oversizedCount} file(s) exceed your upload limit and were skipped`, Toasts.Type.FAILURE);
+        showToast(`${oversizedCount} file(s) exceed your upload limit and were skipped`, "failure");
     }
 
     if (!uploadableFiles.length) return;
 
-    showToast("Uploading, this can take a while...", Toasts.Type.CLOCK);
+    showToast("Uploading, this can take a while...", "clock");
 
     const fileArray = uploadableFiles.map(file => ({
         filename: file.name,
@@ -140,7 +140,7 @@ const addAttachments = async (channelId: string, messageId: string, files: FileL
         }
     }
 
-    showToast("Attachments added successfully!", Toasts.Type.SUCCESS);
+    showToast("Attachments added successfully!", "success");
 };
 
 const removeLastAttachment = async (channelId: string, messageId: string, attachments: any[]) => {
@@ -156,7 +156,7 @@ const removeLastAttachment = async (channelId: string, messageId: string, attach
         }
     }
 
-    showToast("Attachment removed!", Toasts.Type.SUCCESS);
+    showToast("Attachment removed!", "success");
 };
 
 const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { message }: { message?: Message; }) => {

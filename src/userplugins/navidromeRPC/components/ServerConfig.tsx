@@ -5,7 +5,7 @@
  */
 
 import { relaunch } from "@utils/native";
-import { Alerts, Button, Toasts } from "@webpack/common";
+import { Alerts, Button, showToast } from "@webpack/common";
 
 import { settings } from "..";
 import { checkCSP, cl, navidromePassword } from "../utils/constants";
@@ -56,7 +56,7 @@ export function ServerConfig() {
             let valid = true;
             if (!settings.store.serverURL || !settings.store.username || !navidromePassword.get()) valid = false;
             if (settings.store.serverURL) try { new URL(settings.store.serverURL); } catch { valid = false; }
-            if (!valid) return void Toasts.show(Toasts.create("Make sure that all fields are properly filled!", Toasts.Type.FAILURE));
+            if (!valid) return void showToast("Make sure that all fields are properly filled!", "failure");
 
             if (settings.store.serverURL && await checkCSP(settings.store.serverURL)) {
                 settings.store.isLoggedIn = true;

@@ -16,7 +16,6 @@ import {
   FluxDispatcher,
   Menu,
   showToast,
-  Toasts,
 } from "@webpack/common";
 
 // Find ChannelActionCreators to close DMs
@@ -83,7 +82,7 @@ async function closeAllDMs() {
     });
 
     if (dmsToClose.length === 0) {
-      showToast("ℹ️ No DMs to close", Toasts.Type.MESSAGE);
+      showToast("ℹ️ No DMs to close", "message");
       return;
     }
 
@@ -96,11 +95,11 @@ async function closeAllDMs() {
     // Success notification
     showToast(
       `✅ ${closedCount} DM(s) closed with 50ms rate limit`,
-      Toasts.Type.SUCCESS
+      "success"
     );
   } catch (error) {
     console.error("Error closing DMs:", error);
-    showToast("❌ Error closing DMs", Toasts.Type.FAILURE);
+    showToast("❌ Error closing DMs", "failure");
   }
 }
 

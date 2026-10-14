@@ -14,7 +14,7 @@ import {
     ModalRoot,
     openModal,
 } from "@utils/modal";
-import { Button, ChannelStore, Forms, React, SelectedChannelStore, showToast, TextArea, Toasts, useEffect } from "@webpack/common";
+import { Button, ChannelStore, Forms, React, SelectedChannelStore, showToast, TextArea, useEffect } from "@webpack/common";
 
 import { encrypt } from "./index";
 
@@ -26,7 +26,7 @@ function Modal(props: ModalProps) {
     try {
         recipientId = ChannelStore.getChannel(SelectedChannelStore.getChannelId()).recipients[0];
     } catch (e) {
-        showToast("Cannot find the recipient id of the message", Toasts.Type.FAILURE);
+        showToast("Cannot find the recipient id of the message", "failure");
         throw e;
     }
     const [pKey, setPKey] = React.useState("");

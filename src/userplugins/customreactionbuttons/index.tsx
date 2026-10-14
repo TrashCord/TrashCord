@@ -11,7 +11,7 @@ import { Paragraph } from "@components/Paragraph";
 import { Devs } from "@utils/constants";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, ChannelStore, Constants, PermissionsBits, PermissionStore, React, RestAPI, TextInput, Toasts } from "@webpack/common";
+import { Button, ChannelStore, Constants, PermissionsBits, PermissionStore, React, RestAPI, TextInput, showToast } from "@webpack/common";
 
 const BUTTONS_KEY = "CustomReactionButtons_buttons";
 interface ReactionButton {
@@ -235,12 +235,7 @@ export default definePlugin({
                 url: Constants.Endpoints.REACTION(channelId, messageId, emojiParam, "@me")
             });
         } catch {
-            Toasts.show({
-                message: "Failed to add reaction",
-                type: Toasts.Type.FAILURE,
-                id: Toasts.genId(),
-                options: { duration: 3000 }
-            });
+            showToast("Failed to add reaction", "failure", { duration: 3000 });
         }
     }
 });

@@ -8,7 +8,7 @@ import { classNameFactory } from "@api/Styles";
 import { Flex } from "@components/Flex";
 import { Switch } from "@components/Switch";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, TextInput, showToast, UserStore } from "@webpack/common";
 
 import { useUsersProfileStore } from "../lib/stores/UsersProfileStore";
 import { settings } from "../settings";
@@ -78,11 +78,7 @@ export function fakeProfileSection({ hideTitle = false, hideDivider = false, noM
                     useUsersProfileStore.getState().fetchDecorations();
                     useUsersProfileStore.getState().fetch(userId, true);
                     useUsersProfileStore.getState().fetchProfileEffects();
-                    Toasts.show({
-                        message: "Successfully refetched fakeProfile!",
-                        id: Toasts.genId(),
-                        type: Toasts.Type.SUCCESS
-                    });
+                    showToast("Successfully refetched fakeProfile!", "success");
                 }}
                 size={Button.Sizes.SMALL}
             >

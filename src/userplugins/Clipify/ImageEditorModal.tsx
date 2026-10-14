@@ -7,7 +7,7 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Modal, React, showToast, Toasts, useCallback, useEffect, useRef, useState } from "@webpack/common";
+import { Modal, React, showToast, useCallback, useEffect, useRef, useState } from "@webpack/common";
 
 import { CensorMark, CensorStyle, exportImage, loadImage, OutputFormat, Point, Rect, renderPreview } from "./image";
 import { LayoutSwitch } from "./Layout";
@@ -110,7 +110,7 @@ function ImageEditorInner({ modalProps, file, defaultLayout, onComplete }: Image
             })
             .catch(err => {
                 logger.error("Failed to load image", err);
-                showToast("Clipify: couldn't load this image.", Toasts.Type.FAILURE);
+                showToast("Clipify: couldn't load this image.", "failure");
                 modalProps.onClose();
             });
         return () => {
@@ -230,10 +230,10 @@ function ImageEditorInner({ modalProps, file, defaultLayout, onComplete }: Image
                 quality: quality / 100
             });
             onComplete(edited);
-            showToast("Image edited and added to your message!", Toasts.Type.SUCCESS);
+            showToast("Image edited and added to your message!", "success");
             modalProps.onClose();
         } catch (err) {
-            showToast(`Edit failed: ${err instanceof Error ? err.message : String(err)}`, Toasts.Type.FAILURE);
+            showToast(`Edit failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
             setExporting(false);
         }
     }, [exporting, img, file, marks, crop, resize, style, intensity, adv, format, quality, onComplete, modalProps]);

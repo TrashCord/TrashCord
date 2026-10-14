@@ -7,7 +7,7 @@
 import definePlugin, { OptionType } from "@utils/types";
 import { definePluginSettings } from "@api/Settings";
 import { findByCodeLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore, Toasts, UserStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     intervalMs: {
@@ -77,7 +77,7 @@ function stopSpam() {
     cachedGuildId = cachedChannelId = null;
     uid = "";
     removeStyle();
-    Toasts.show({ message: "⏹ ScreenshareSpammer - Stopped", type: Toasts.Type.SUCCESS, id: Toasts.genId(), options: { duration: 1500 } });
+    showToast("⏹ ScreenshareSpammer - Stopped", "success", { duration: 1500 });
 }
 
 async function getSource(): Promise<any> {
@@ -96,7 +96,7 @@ async function startSpam() {
 
     cachedChannelId = SelectedChannelStore.getVoiceChannelId();
     if (!cachedChannelId) {
-        Toasts.show({ message: "❌ Not in a voice channel", type: Toasts.Type.FAILURE, id: Toasts.genId(), options: { duration: 2000 } });
+        showToast("❌ Not in a voice channel", "failure", { duration: 2000 });
         return;
     }
 
@@ -107,11 +107,11 @@ async function startSpam() {
         src = await getSource();
     } catch (e) {
         console.error("[ScreenshareSpammer] getSource error:", e);
-        Toasts.show({ message: "❌ Failed to get screen source", type: Toasts.Type.FAILURE, id: Toasts.genId(), options: { duration: 2500 } });
+        showToast("❌ Failed to get screen source", "failure", { duration: 2500 });
         return;
     }
     if (!src) {
-        Toasts.show({ message: "❌ No screen source found", type: Toasts.Type.FAILURE, id: Toasts.genId(), options: { duration: 2500 } });
+        showToast("❌ No screen source found", "failure", { duration: 2500 });
         return;
     }
 
@@ -129,7 +129,7 @@ async function startSpam() {
     document.addEventListener("keydown", keyListener);
     FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", onVoiceSelect);
     injectStyle();
-    Toasts.show({ message: "📡 Spamming Started — Ctrl+Shift+S to Stop", type: Toasts.Type.MESSAGE, id: "ss-spam", options: { duration: 2500 } });
+    showToast( "📡 Spamming Started - Ctrl+Shift+S to Stop", "message", { id: "ss-spam", duration: 2500 });
     interval = setInterval(tick, settings.store.intervalMs);
 }
 

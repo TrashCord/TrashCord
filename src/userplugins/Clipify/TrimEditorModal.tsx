@@ -7,7 +7,7 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Modal, React, showToast, Toasts, useCallback, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { Modal, React, showToast, useCallback, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
 import { terminateFFmpeg, TrimMode, trimWithFFmpeg } from "./ffmpeg";
 import { LayoutSwitch } from "./Layout";
@@ -367,7 +367,7 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
                 // Network blocked / core failed to load → degrade gracefully.
                 showToast(hasEffects
                     ? "FFmpeg unavailable — effects skipped, using MediaRecorder."
-                    : "FFmpeg unavailable — falling back to MediaRecorder.", Toasts.Type.MESSAGE);
+                    : "FFmpeg unavailable — falling back to MediaRecorder.", "message");
                 setProgress(0);
             }
         }
@@ -385,7 +385,7 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
         setPlaying(false);
 
         if (selectionLength < MIN_SELECTION) {
-            showToast("Selection is too short to trim.", Toasts.Type.FAILURE);
+            showToast("Selection is too short to trim.", "failure");
             return;
         }
 
@@ -396,11 +396,11 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
         try {
             const trimmed = await runExport();
             onComplete(trimmed);
-            showToast("Video trimmed and added to your message!", Toasts.Type.SUCCESS);
+            showToast("Video trimmed and added to your message!", "success");
             modalProps.onClose();
         } catch (err) {
             if (!signalRef.current.cancelled) {
-                showToast(`Trim failed: ${err instanceof Error ? err.message : String(err)}`, Toasts.Type.FAILURE);
+                showToast(`Trim failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
             }
             setExporting(false);
         }

@@ -42,7 +42,7 @@ import { Margins } from "@utils/margins";
 import definePlugin, { PluginNative } from "@utils/types";
 import { RenderModalProps } from "@vencord/discord-types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Forms, LocaleStore, Menu, Modal, openModal, Select, Toasts, useEffect, useState, useStateFromStores } from "@webpack/common";
+import { Button, Forms, LocaleStore, Menu, Modal, openModal, Select, showToast, useEffect, useState, useStateFromStores } from "@webpack/common";
 
 import type { AudioApp as LinuxAudioApp } from "./platform/linux";
 import type { AudioApp as WindowsAudioApp } from "./platform/windows";
@@ -62,11 +62,7 @@ function useT() {
 }
 
 function notifySuccess(message: string) {
-    Toasts.show({
-        message,
-        id: Toasts.genId(),
-        type: Toasts.Type.SUCCESS
-    });
+    showToast(message, "success");
 }
 
 function errorMessage(err: unknown): string {
@@ -74,11 +70,7 @@ function errorMessage(err: unknown): string {
 }
 
 function notifyError(err: unknown) {
-    Toasts.show({
-        message: errorMessage(err),
-        id: Toasts.genId(),
-        type: Toasts.Type.FAILURE
-    });
+    showToast(errorMessage(err), "failure");
 }
 
 function LinuxPanel() {

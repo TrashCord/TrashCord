@@ -9,7 +9,7 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { Devs } from "@utils/constants";
 import { findStoreLazy, findByPropsLazy } from "@webpack";
-import { ChannelStore, Menu, React, Toasts, showToast, SelectedChannelStore, FluxDispatcher, RelationshipStore, UserStore } from "@webpack/common";
+import { ChannelStore, Menu, React, showToast, SelectedChannelStore, FluxDispatcher, RelationshipStore, UserStore } from "@webpack/common";
 import { sendMessage } from "@utils/discord";
 
 const MessageActions = findByPropsLazy("deleteMessage");
@@ -295,19 +295,19 @@ async function setWallpaperFromFile(channelId: string) {
     const file = await pickFileRaw();
     if (!file) return;
 
-    showToast("Uploading wallpaper to Imgur for sync...", Toasts.Type.MESSAGE);
+    showToast("Uploading wallpaper to Imgur for sync...", "message");
     const imgurUrl = await uploadToImgur(file);
 
     if (imgurUrl) {
         saveWallpaper(channelId, imgurUrl, false);
-        showToast("Wallpaper uploaded and synced!", Toasts.Type.SUCCESS);
+        showToast("Wallpaper uploaded and synced!", "success");
     } else {
         // Local fallback if upload fails
         const reader = new FileReader();
         reader.onload = () => {
             const dataUrl = reader.result as string;
             saveWallpaper(channelId, dataUrl, true);
-            showToast("Imgur upload failed. Wallpaper applied locally only.", Toasts.Type.FAILURE);
+            showToast("Imgur upload failed. Wallpaper applied locally only.", "failure");
         };
         reader.readAsDataURL(file);
     }
@@ -317,13 +317,13 @@ async function setWallpaperFromUrl(channelId: string) {
     const url = await promptUrl();
     if (url) {
         saveWallpaper(channelId, url, false);
-        showToast("Wallpaper applied and synced!", Toasts.Type.SUCCESS);
+        showToast("Wallpaper applied and synced!", "success");
     }
 }
 
 function removeWallpaper(channelId: string) {
     saveWallpaper(channelId, "");
-    showToast("Wallpaper deleted", Toasts.Type.SUCCESS);
+    showToast("Wallpaper deleted", "success");
 }
 
 // ── Context Menu Patches ───────────────────────────────────────────────────────

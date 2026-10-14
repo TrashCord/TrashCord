@@ -9,7 +9,7 @@ import { Devs } from "@utils/constants";
 import { makeLazy } from "@utils/lazy";
 import definePlugin, { OptionType } from "@utils/types";
 import { findStoreLazy } from "@webpack";
-import { FluxDispatcher, SelectedChannelStore, Toasts, UserStore } from "@webpack/common";
+import { FluxDispatcher, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 
@@ -71,13 +71,9 @@ const cb = e => {
         (state.userId === UserStore.getCurrentUser().id &&
             snitchList.some(id => VoiceStateStore.getVoiceStatesForChannel(state.channelId)[id]))
     ) {
-        Toasts.show({
-            message: `SNITCH ALERT: User ${state.userId} detected`,
+        showToast(`SNITCH ALERT: User ${state.userId} detected`, "failure", {
             id: "snitch-alert",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+            position: 1
         });
         audio();
     }
@@ -89,13 +85,9 @@ const onTypingStart = ({ userId, channelId }: { userId: string; channelId: strin
     if (userId === UserStore.getCurrentUser().id) return;
     if (!isSnitch(userId)) return;
 
-    Toasts.show({
-        message: `SNITCH ALERT: User ${userId} is typing`,
+    showToast(`SNITCH ALERT: User ${userId} is typing`, "failure", {
         id: "snitch-typing-alert",
-        type: Toasts.Type.FAILURE,
-        options: {
-            position: Toasts.Position.BOTTOM
-        }
+        position: 1
     });
     audio();
 };

@@ -33,7 +33,7 @@ import {
   FluxDispatcher,
   Forms,
   React,
-  Toasts,
+  showToast,
   UserStore,
 } from "@webpack/common";
 
@@ -94,7 +94,7 @@ function reportApiFailure(error: unknown) {
     return message;
 
   lastApiFailure = { message, time: now };
-  Toasts.show(message, Toasts.Type.FAILURE);
+  showToast(message, "failure");
   return message;
 }
 

@@ -7,7 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import type { VoiceState } from "@vencord/discord-types";
-import { ChannelStore, FluxDispatcher, GuildMemberStore, GuildRoleStore, GuildStore, MediaEngineStore, PermissionsBits, SelectedChannelStore, showToast, Toasts, UserStore, VoiceStateStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, GuildMemberStore, GuildRoleStore, GuildStore, MediaEngineStore, PermissionsBits, SelectedChannelStore, showToast, UserStore, VoiceStateStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     owners: {
@@ -73,7 +73,7 @@ function isStaff(guildId: string, userId: string) {
 function turnCameraOff(message: string) {
     if (!MediaEngineStore.isVideoEnabled()) return;
     FluxDispatcher.dispatch({ type: "MEDIA_ENGINE_SET_VIDEO_ENABLED", enabled: false });
-    if (settings.store.notify) showToast(message, Toasts.Type.MESSAGE);
+    if (settings.store.notify) showToast(message, "message");
 }
 
 function checkChannel() {

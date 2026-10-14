@@ -13,7 +13,7 @@ import { Devs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal, type RenderModalProps } from "@utils/modal";
 import definePlugin, { type PluginNative } from "@utils/types";
-import { Button, Forms, React, showToast, TabBar, TextArea, TextInput, Toasts, useEffect, useRef, useState } from "@webpack/common";
+import { Button, Forms, React, showToast, TabBar, TextArea, TextInput, useEffect, useRef, useState } from "@webpack/common";
 
 const WEBHOOK_HISTORY_KEY = "WebhookSend_history";
 const MAX_HISTORY = 20;
@@ -397,9 +397,9 @@ function EmbedsTab({ embeds, setEmbeds }: {
                 } else if (typeof parsed === "object" && parsed !== null) {
                     setEmbeds([parsed]);
                 }
-                showToast("Embeds imported.", Toasts.Type.SUCCESS);
+                showToast("Embeds imported.", "success");
             } catch {
-                showToast("Invalid JSON file.", Toasts.Type.FAILURE);
+                showToast("Invalid JSON file.", "failure");
             }
         };
         reader.readAsText(file);
@@ -427,7 +427,7 @@ function EmbedsTab({ embeds, setEmbeds }: {
                     onClick={() => {
                         const json = JSON.stringify(embeds, null, 2);
                         navigator.clipboard.writeText(json);
-                        showToast("Copied to clipboard.", Toasts.Type.SUCCESS);
+                        showToast("Copied to clipboard.", "success");
                     }}
                 >
                     Export JSON
@@ -599,7 +599,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
     async function onSend() {
         const trimmedUrl = webhookUrl.trim();
         if (!trimmedUrl) {
-            showToast("Webhook URL is required.", Toasts.Type.FAILURE);
+            showToast("Webhook URL is required.", "failure");
             return;
         }
 
@@ -607,17 +607,17 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             parsedUrl = new URL(trimmedUrl);
         } catch {
-            showToast("Webhook URL is invalid.", Toasts.Type.FAILURE);
+            showToast("Webhook URL is invalid.", "failure");
             return;
         }
 
         if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-            showToast("Webhook URL must use HTTP or HTTPS.", Toasts.Type.FAILURE);
+            showToast("Webhook URL must use HTTP or HTTPS.", "failure");
             return;
         }
 
         if (!parsedUrl.pathname.includes("/api/webhooks/")) {
-            showToast("This does not look like a Discord webhook URL.", Toasts.Type.FAILURE);
+            showToast("This does not look like a Discord webhook URL.", "failure");
             return;
         }
 
@@ -625,7 +625,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             embedsParsed = embeds.filter(e => e.title || e.description || e.fields?.length);
         } catch {
-            showToast("Invalid embed data.", Toasts.Type.FAILURE);
+            showToast("Invalid embed data.", "failure");
             return;
         }
 
@@ -633,7 +633,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             allowedMentions = parseJson<AllowedMentions>(allowedMentionsJson, "Allowed mentions");
         } catch (e) {
-            showToast(e instanceof Error ? e.message : "Invalid allowed mentions JSON.", Toasts.Type.FAILURE);
+            showToast(e instanceof Error ? e.message : "Invalid allowed mentions JSON.", "failure");
             return;
         }
 
@@ -641,12 +641,12 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             rawOverride = parseJson<Record<string, any>>(rawJsonOverride, "Raw JSON override");
         } catch (e) {
-            showToast(e instanceof Error ? e.message : "Invalid raw JSON.", Toasts.Type.FAILURE);
+            showToast(e instanceof Error ? e.message : "Invalid raw JSON.", "failure");
             return;
         }
 
         if (!content.trim() && !embedsParsed?.length) {
-            showToast("Add content or at least one embed.", Toasts.Type.FAILURE);
+            showToast("Add content or at least one embed.", "failure");
             return;
         }
 
@@ -691,11 +691,11 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
             }
 
             setHistory(await saveHistory(trimmedUrl, username.trim() || undefined));
-            showToast("Webhook sent successfully.", Toasts.Type.SUCCESS);
+            showToast("Webhook sent successfully.", "success");
             rootProps.onClose();
         } catch (error) {
             const message = error instanceof Error ? error.message : "Unknown webhook error.";
-            showToast(message, Toasts.Type.FAILURE);
+            showToast(message, "failure");
         } finally {
             setIsSending(false);
         }

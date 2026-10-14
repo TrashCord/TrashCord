@@ -10,7 +10,7 @@ import { Devs } from "@utils/constants";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { Button, ChannelStore, FluxDispatcher, Forms, GuildChannelStore, GuildStore, Menu, React, RestAPI, TextInput, Toasts, UserStore } from "@webpack/common";
+import { Button, ChannelStore, FluxDispatcher, Forms, GuildChannelStore, GuildStore, Menu, React, RestAPI, showToast, TextInput, UserStore } from "@webpack/common";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const sessionStore = findByPropsLazy("getSessionId");
@@ -350,21 +350,13 @@ function ServerConfigManager() {
                     category: "No channels found"
                 }]);
 
-                Toasts.show({
-                    message: "No channels discovered automatically. You may need to manually enter a channel ID.",
-                    type: Toasts.Type.FAILURE,
-                    options: { position: Toasts.Position.BOTTOM }
-                });
+                showToast("No channels discovered automatically. You may need to manually enter a channel ID.", "failure", { position: 1 });
             }
 
         } catch (e) {
             console.error("[Multi-Ban] Error during aggressive channel scan:", e);
             setAvailableChannels([]);
-            Toasts.show({
-                message: `Channel scanning error: ${(e as any).message}`,
-                type: Toasts.Type.FAILURE,
-                options: { position: Toasts.Position.BOTTOM }
-            });
+            showToast(`Channel scanning error: ${(e as any).message}`, "failure", { position: 1 });
         } finally {
             setLoadingChannels(false);
         }
@@ -377,22 +369,14 @@ function ServerConfigManager() {
 
     const addNewConfig = () => {
         if (!selectedGuildId || !selectedChannelId) {
-            Toasts.show({
-                message: "Please select both a server and a channel",
-                type: Toasts.Type.FAILURE,
-                options: { position: Toasts.Position.BOTTOM }
-            });
+            showToast("Please select both a server and a channel", "failure", { position: 1 });
             return;
         }
 
         // Check if this server is already configured
         const existingConfig = configs.find((config: any) => config.serverId === selectedGuildId);
         if (existingConfig) {
-            Toasts.show({
-                message: "This server is already configured. Remove the existing configuration first.",
-                type: Toasts.Type.FAILURE,
-                options: { position: Toasts.Position.BOTTOM }
-            });
+            showToast("This server is already configured. Remove the existing configuration first.", "failure", { position: 1 });
             return;
         }
 
@@ -411,22 +395,14 @@ function ServerConfigManager() {
         setSelectedChannelId("");
         setNewCommand("!voice-ban");
 
-        Toasts.show({
-            message: "Server configuration added successfully",
-            type: Toasts.Type.SUCCESS,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast("Server configuration added successfully", "success", { position: 1 });
     };
 
     const removeConfig = (index: number) => {
         const updatedConfigs = configs.filter((_, i) => i !== index);
         saveConfigs(updatedConfigs);
 
-        Toasts.show({
-            message: "Server configuration removed",
-            type: Toasts.Type.MESSAGE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast("Server configuration removed", "message", { position: 1 });
     };
 
     const getGuildName = (guildId: string) => {
@@ -748,14 +724,11 @@ function MenuItem(id: string) {
                         if (targetVoiceState?.channelId === currentVoiceState.channelId) {
                             const serverConfig = getCurrentServerConfig();
                             if (serverConfig && hasPermissionInServer(serverConfig.serverId, serverConfig.requireBanPermission)) {
-                                Toasts.show({
-                                    message: `Auto banning User ${id} (added to list while in VC)`,
-                                    id: "multi-auto-ban-immediate",
-                                    type: Toasts.Type.SUCCESS,
-                                    options: {
-                                        position: Toasts.Position.BOTTOM
-                                    }
-                                });
+                                showToast(
+                                    `Auto banning User ${id} (added to list while in VC)`,
+                                    "success",
+                                    { id: "multi-auto-ban-immediate", position: 1 }
+                                );
 
                                 const t = setTimeout(() => {
                                     pendingBanTimeouts.delete(t);
@@ -767,14 +740,11 @@ function MenuItem(id: string) {
                         }
                     }
 
-                    Toasts.show({
-                        message: `Added User ${id} to multi-server ban list`,
-                        id: "multi-auto-ban-add",
-                        type: Toasts.Type.SUCCESS,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                    showToast(
+                        `Added User ${id} to multi-server ban list`,
+                        "success",
+                        { id: "multi-auto-ban-add", position: 1 }
+                    );
                 } else {
                     // Removing user from ban list - do it directly
                     const updatedList = bannedUsers.filter(userId => userId !== id);
@@ -785,14 +755,11 @@ function MenuItem(id: string) {
                     const updatedReasons = currentReasons.filter(entry => !entry.startsWith(`${id}/`));
                     settings.store.reasons = updatedReasons.join(".");
 
-                    Toasts.show({
-                        message: `Removed User ${id} from multi-server ban list`,
-                        id: "multi-auto-ban-remove",
-                        type: Toasts.Type.MESSAGE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
-                    });
+                    showToast(
+                        `Removed User ${id} from multi-server ban list`,
+                        "message",
+                        { id: "multi-auto-ban-remove", position: 1 }
+                    );
                 }
             }}
         />
@@ -806,11 +773,7 @@ function sendBanCommand(userId: string, channelId: string, command: string, cont
     // Validate inputs
     if (!channelId || !userId || !command) {
         console.error(`[Multi-Ban] Missing required parameters - channelId: ${channelId}, userId: ${userId}, command: ${command}`);
-        Toasts.show({
-            message: `Invalid parameters for ban command${context}`,
-            type: Toasts.Type.FAILURE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Invalid parameters for ban command${context}`, "failure", { position: 1 });
         return;
     }
 
@@ -818,11 +781,7 @@ function sendBanCommand(userId: string, channelId: string, command: string, cont
     const channel = ChannelStore.getChannel(channelId);
     if (!channel) {
         console.error(`[Multi-Ban] Channel not found: ${channelId}`);
-        Toasts.show({
-            message: `Channel not found (ID: ${channelId})${context}`,
-            type: Toasts.Type.FAILURE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Channel not found (ID: ${channelId})${context}`, "failure", { position: 1 });
         return;
     }
 
@@ -840,11 +799,7 @@ function sendBanCommand(userId: string, channelId: string, command: string, cont
         body: messageBody
     }).then(response => {
         console.log(`[Multi-Ban] Successfully sent command${context}:`, response);
-        Toasts.show({
-            message: `Ban command sent successfully${context}`,
-            type: Toasts.Type.SUCCESS,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Ban command sent successfully${context}`, "success", { position: 1 });
     }).catch(error => {
         console.error(`[Multi-Ban] Failed to send ban command${context}:`, error);
 
@@ -858,11 +813,7 @@ function sendBanCommand(userId: string, channelId: string, command: string, cont
             errorMessage = `HTTP ${error.status}`;
         }
 
-        Toasts.show({
-            message: `Failed to send ban command${context}: ${errorMessage}`,
-            type: Toasts.Type.FAILURE,
-            options: { position: Toasts.Position.BOTTOM }
-        });
+        showToast(`Failed to send ban command${context}: ${errorMessage}`, "failure", { position: 1 });
 
         // Log the full error for debugging
         console.log("[Multi-Ban] Full error object:", error);
@@ -873,26 +824,19 @@ function sendBanCommand(userId: string, channelId: string, command: string, cont
 function banUserInCurrentServer(userId: string) {
     const serverConfig = getCurrentServerConfig();
     if (!serverConfig) {
-        Toasts.show({
-            message: "No server configuration found for current server",
+        showToast("No server configuration found for current server", "failure", {
             id: "multi-ban-error",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
+            position: 1
         });
         return;
     }
 
     if (!hasPermissionInServer(serverConfig.serverId, serverConfig.requireBanPermission)) {
-        Toasts.show({
-            message: "No permission to ban in this server (missing Ban Members permission)",
-            id: "multi-ban-permission-error",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
-        });
+        showToast(
+            "No permission to ban in this server (missing Ban Members permission)",
+            "failure",
+            { id: "multi-ban-permission-error", position: 1 }
+        );
         return;
     }
 
@@ -927,11 +871,7 @@ function checkExistingUsersInVC(channelId: string) {
         if (userId === currentUserId) return; // Don't ban yourself
 
         if (bannedUsers.includes(userId)) {
-            Toasts.show({
-                message: `Auto banning existing User ${userId} in voice channel`,
-                type: Toasts.Type.SUCCESS,
-                options: { position: Toasts.Position.BOTTOM }
-            });
+            showToast(`Auto banning existing User ${userId} in voice channel`, "success", { position: 1 });
 
             // Add delay between multiple bans to prevent rate limiting
             const timeout = setTimeout(() => {
@@ -968,14 +908,11 @@ export default definePlugin({
         FluxDispatcher.subscribe("VOICE_STATE_UPDATES", voiceStateCallback);
         document.addEventListener("keydown", handleKeyDown);
 
-        Toasts.show({
-            message: "Multi-Server Auto-Ban loaded! Press Alt+B to configure settings.",
-            id: "multi-auto-ban-loaded",
-            type: Toasts.Type.SUCCESS,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
-        });
+        showToast(
+            "Multi-Server Auto-Ban loaded! Press Alt+B to configure settings.",
+            "success",
+            { id: "multi-auto-ban-loaded", position: 1 }
+        );
     },
     stop() {
         pluginActive = false;
@@ -1016,37 +953,28 @@ const voiceStateCallback = async (e: any) => {
     if (bannedUsers.includes(state.userId)) {
         const serverConfig = getCurrentServerConfig();
         if (!serverConfig) {
-            Toasts.show({
-                message: `User ${state.userId} is on ban list but no server config found`,
-                id: "multi-ban-no-config",
-                type: Toasts.Type.FAILURE,
-                options: {
-                    position: Toasts.Position.BOTTOM
-                }
-            });
+            showToast(
+                `User ${state.userId} is on ban list but no server config found`,
+                "failure",
+                { id: "multi-ban-no-config", position: 1 }
+            );
             return;
         }
 
         if (!hasPermissionInServer(serverConfig.serverId, serverConfig.requireBanPermission)) {
-            Toasts.show({
-                message: `User ${state.userId} joined but you lack permission to ban (missing Ban Members permission)`,
-                id: "multi-ban-no-permission",
-                type: Toasts.Type.FAILURE,
-                options: {
-                    position: Toasts.Position.BOTTOM
-                }
-            });
+            showToast(
+                `User ${state.userId} joined but you lack permission to ban (missing Ban Members permission)`,
+                "failure",
+                { id: "multi-ban-no-permission", position: 1 }
+            );
             return;
         }
 
-        Toasts.show({
-            message: `Auto banning User ${state.userId} via multi-server system`,
-            id: "multi-auto-ban-trigger",
-            type: Toasts.Type.SUCCESS,
-            options: {
-                position: Toasts.Position.BOTTOM
-            }
-        });
+        showToast(
+            `Auto banning User ${state.userId} via multi-server system`,
+            "success",
+            { id: "multi-auto-ban-trigger", position: 1 }
+        );
 
         // Send ban command with working logic from original
         const t = setTimeout(() => {

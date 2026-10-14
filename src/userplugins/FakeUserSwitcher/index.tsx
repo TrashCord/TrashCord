@@ -13,7 +13,7 @@ import { openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import type { User } from "@vencord/discord-types";
 import { findByProps, waitFor } from "@webpack";
-import { ApplicationAssetUtils, ChannelStore, FluxDispatcher, GuildMemberStore, IconUtils, Menu, PresenceStore, React, RestAPI, showToast, SnowflakeUtils, Toasts, Tooltip, UsernameUtils, UserStore } from "@webpack/common";
+import { ApplicationAssetUtils, ChannelStore, FluxDispatcher, GuildMemberStore, IconUtils, Menu, PresenceStore, React, RestAPI, showToast, SnowflakeUtils, Tooltip, UsernameUtils, UserStore } from "@webpack/common";
 
 import { _setOriginalGetCurrentUser, clearTarget, getActiveTargetForGuild, getCachedTarget, getOriginalMeId, getRealCurrentUser, getSavedIdentityForSwitcherId, getSavedUsers, getSwitcherAccounts, isActive, isCurrentUser, isManualSavedIdentity, loadCacheFromSettings, loadTarget, logger, makeDateInRange, preLoadGuildTargets, resolveBadge, setEnabled, setSavedUsers, setTarget, settings, subscribe, targetsCache } from "./data";
 import { FakeUserProfileModal } from "./legacyModal";
@@ -1511,15 +1511,15 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user }) =
             id="fake-user-switcher-clone"
             label="Clone User to Fake User Switcher"
             action={async () => {
-                showToast(`Cloning profile of ${user.username}...`, Toasts.Type.MESSAGE);
+                showToast(`Cloning profile of ${user.username}...`, "message");
                 try {
                     await loadTarget(user.id);
                     setEnabled(true);
                     settings.store.manualMode = false;
-                    showToast(`Spoofing as ${user.username}!`, Toasts.Type.SUCCESS);
+                    showToast(`Spoofing as ${user.username}!`, "success");
                 } catch (e: any) {
                     logger.error("Context menu clone failed", e);
-                    showToast(e?.message || "Failed to clone user profile.", Toasts.Type.FAILURE);
+                    showToast(e?.message || "Failed to clone user profile.", "failure");
                 }
             }}
         />
@@ -1768,7 +1768,7 @@ async function activateSwitcherIdentity(action: any) {
         if (settings.store.spoofActive) {
             clearTarget();
             emitInternalAccountSwitcherChange();
-            showToast("Restored your real account locally.", Toasts.Type.SUCCESS);
+            showToast("Restored your real account locally.", "success");
         }
         return;
     }
@@ -1787,26 +1787,26 @@ async function activateSwitcherIdentity(action: any) {
             settings.store.manualAvatar = saved.manualAvatar ?? saved.avatar ?? "";
             settings.store.manualMode = true;
             setEnabled(true);
-            showToast(`Spoofing as ${saved.name}`, Toasts.Type.SUCCESS);
+            showToast(`Spoofing as ${saved.name}`, "success");
         } else {
             const cachedTarget = targetsCache.get(saved.id);
             if (cachedTarget) {
                 setTarget(cachedTarget);
                 settings.store.manualMode = false;
                 setEnabled(true);
-                showToast(`Spoofing as ${cachedTarget.user.globalName || cachedTarget.user.username}`, Toasts.Type.SUCCESS);
+                showToast(`Spoofing as ${cachedTarget.user.globalName || cachedTarget.user.username}`, "success");
                 loadTarget(saved.id, true, true).catch(() => { });
             } else {
                 const next = await loadTarget(saved.id);
                 settings.store.manualMode = false;
                 setEnabled(true);
-                showToast(`Spoofing as ${next.user.globalName || next.user.username}`, Toasts.Type.SUCCESS);
+                showToast(`Spoofing as ${next.user.globalName || next.user.username}`, "success");
             }
         }
         emitInternalAccountSwitcherChange();
     } catch (e) {
         logger.error("Failed to activate fake account-switcher identity", e);
-        showToast("Failed to activate fake identity.", Toasts.Type.FAILURE);
+        showToast("Failed to activate fake identity.", "failure");
     }
 }
 
@@ -1818,7 +1818,7 @@ function removeSwitcherIdentity(action: any) {
         const list = getSavedUsers().filter(s => s.id !== id);
         setSavedUsers(list);
         emitInternalAccountSwitcherChange();
-        showToast(`Removed saved identity: ${saved.name}`, Toasts.Type.SUCCESS);
+        showToast(`Removed saved identity: ${saved.name}`, "success");
         if (settings.store.spoofActive && settings.store.targetId === id) {
             clearTarget();
         }

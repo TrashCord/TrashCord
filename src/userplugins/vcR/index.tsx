@@ -12,7 +12,7 @@ import { sleep } from "@utils/misc";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize,openModal } from "@utils/modal";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, Menu, React, Text,TextInput, Toasts } from "@webpack/common";
+import { Button, Forms, Menu, React, showToast, Text, TextInput } from "@webpack/common";
 import { CSSProperties } from "react";
 
 const DISCORD_GATEWAY = "wss://gateway.discord.gg/?v=9&encoding=json";
@@ -295,13 +295,9 @@ let selectedChannelId = "";
 
 function stopExecution() {
     shouldStop = true;
-    Toasts.show({
-        message: "Stopping VC Raper successfully.",
+    showToast("Stopping VC Raper successfully.", "failure", {
         id: "stop",
-        type: Toasts.Type.FAILURE,
-        options: {
-            position: Toasts.Position.BOTTOM
-        }
+        position: 1
     });
     console.log("stopped vc raper");
 }
@@ -716,13 +712,9 @@ function createVCMenuItem(guildId: string, id?: string) {
                 if (typeof id === "string") {
                     selectedChannelId = id;
                 } else {
-                    Toasts.show({
-                        message: "Failed - channel not found",
+                    showToast("Failed - channel not found", "failure", {
                         id: "channel-fail",
-                        type: Toasts.Type.FAILURE,
-                        options: {
-                            position: Toasts.Position.BOTTOM
-                        }
+                        position: 1
                     });
                     selectedChannelId = "";
                 }

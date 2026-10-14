@@ -10,7 +10,7 @@ import { definePluginSettings } from "@api/Settings";
 import { sendMessage } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Modal, moment, openModal, SelectedChannelStore, Toasts, useMemo, useState } from "@webpack/common";
+import { Modal, moment, openModal, SelectedChannelStore, showToast, useMemo, useState } from "@webpack/common";
 import { RenderModalProps } from "@vencord/discord-types";
 
 const GuildChannelStore = findByPropsLazy("getChannels", "getSortedChannelIds");
@@ -53,11 +53,7 @@ function startInterval() {
                 msg.sendAt - now > 0
             ) {
                 msg.notified = true;
-                Toasts.show({
-                    message: `Sending "${msg.content.slice(0, 30)}..." in 1 minute`,
-                    type: Toasts.Type.MESSAGE,
-                    id: Toasts.genId(),
-                });
+                showToast(`Sending "${msg.content.slice(0, 30)}..." in 1 minute`, "message");
             }
             if (now >= msg.sendAt) {
                 try {
@@ -67,7 +63,7 @@ function startInterval() {
                             : msg.content;
                     sendMessage(msg.channelId, { content });
                     if (settings.store.showNotifications)
-                        Toasts.show({ message: "Message sent!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                        showToast("Message sent!", "success");
                 } catch {}
                 if (msg.repeat && (msg.repeatCount === 0 || msg.repeatDone + 1 < msg.repeatCount)) {
                     msg.sendAt     = Date.now() + msg.repeatMs;
@@ -266,16 +262,16 @@ function SchedulerModal(props: RenderModalProps & { channelId: string; }) {
 
     function schedule() {
         if (!isRandom && !message.trim()) {
-            Toasts.show({ message: ar ? "اكتب الرسالة أولاً" : "Write a message first", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(ar ? "اكتب الرسالة أولاً" : "Write a message first", "failure");
             return;
         }
         if (isRandom && randomPool.length < 2) {
-            Toasts.show({ message: ar ? "أضف رسالتين على الأقل" : "Add at least 2 messages for random", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(ar ? "أضف رسالتين على الأقل" : "Add at least 2 messages for random", "failure");
             return;
         }
         const delay = getDelay();
         if (!delay) {
-            Toasts.show({ message: ar ? "حدد وقت صحيح" : "Enter a valid time", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast(ar ? "حدد وقت صحيح" : "Enter a valid time", "failure");
             return;
         }
         scheduled.push({
@@ -292,14 +288,14 @@ function SchedulerModal(props: RenderModalProps & { channelId: string; }) {
         setPending([...scheduled]);
         setMessage("");
         setRandomPool([]);
-        Toasts.show({ message: ar ? "تم الجدولة!" : "Scheduled!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast(ar ? "تم الجدولة!" : "Scheduled!", "success");
     }
 
     function saveMessage() {
         if (!message.trim()) return;
         savedMessages.push(message.trim());
         setSaved([...savedMessages]);
-        Toasts.show({ message: ar ? "تم الحفظ" : "Saved!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+        showToast(ar ? "تم الحفظ" : "Saved!", "success");
     }
 
     function cancelScheduled(id: string) {
@@ -358,9 +354,9 @@ function SchedulerModal(props: RenderModalProps & { channelId: string; }) {
                     const data = JSON.parse(ev.target?.result as string);
                     if (Array.isArray(data.scheduled)) { scheduled.push(...data.scheduled); setPending([...scheduled]); }
                     if (Array.isArray(data.saved))     { savedMessages.push(...data.saved); setSaved([...savedMessages]); }
-                    Toasts.show({ message: ar ? "تم الاستيراد!" : "Imported!", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+                    showToast(ar ? "تم الاستيراد!" : "Imported!", "success");
                 } catch {
-                    Toasts.show({ message: "Invalid file", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+                    showToast("Invalid file", "failure");
                 }
             };
             reader.readAsText(file);

@@ -5,104 +5,20 @@
  */
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { definePluginSettings, useSettings } from "@api/Settings";
-import ErrorBoundary from "@components/ErrorBoundary";
-import { Devs } from "@utils/constants";
-import { classes } from "@utils/misc";
+import { HeaderBarButton } from "@api/HeaderBar";
+import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import type { Channel, User } from "@vencord/discord-types";
-import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
-import {
-    ChannelStore,
-    Menu,
-    PermissionsBits,
-    PermissionStore,
-    React,
-    Toasts,
-    UserStore
-} from "@webpack/common";
-import type { PropsWithChildren, SVGProps } from "react";
-
-const HeaderBarIcon = findComponentByCodeLazy(".HEADER_BAR_BADGE_TOP:", '.iconBadge,"top"');
-
-interface BaseIconProps extends IconProps {
-    viewBox: string;
-}
-
-interface IconProps extends SVGProps<SVGSVGElement> {
-    className?: string;
-    height?: string | number;
-    width?: string | number;
-}
-
-function Icon({
-    height = 24,
-    width = 24,
-    className,
-    children,
-    viewBox,
-    ...svgProps
-}: PropsWithChildren<BaseIconProps>) {
-    return (
-        <svg
-            className={classes(className, "vc-icon")}
-            role="img"
-            width={width}
-            height={height}
-            viewBox={viewBox}
-            {...svgProps}
-        >
-            {children}
-        </svg>
-    );
-}
-
-function FollowIcon(props: IconProps) {
-    return (
-        <Icon
-            {...props}
-            className={classes(props.className, "vc-follow-icon")}
-            viewBox="0 -960 960 960"
-        >
-            <path
-                fill="currentColor"
-                d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Zm0-108q96-86 158-147.5t98-107q36-45.5 50-81t14-70.5q0-60-40-100t-100-40q-47 0-87 26.5T518-680h-76q-15-41-55-67.5T300-774q-60 0-100 40t-40 100q0 35 14 70.5t50 81q36 45.5 98 107T480-228Zm0-273Z"
-            />
-        </Icon>
-    );
-}
-
-function UnfollowIcon(props: IconProps) {
-    return (
-        <Icon
-            {...props}
-            className={classes(props.className, "vc-unfollow-icon")}
-            viewBox="0 -960 960 960"
-        >
-            <path
-                fill="currentColor"
-                d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z"
-            />
-        </Icon>
-    );
-}
+import type { User } from "@vencord/discord-types";
+import { ChannelStore, Constants, Menu, PermissionsBits, PermissionStore, RestAPI, showToast, useEffect, UserStore, useState, VoiceStateStore } from "@webpack/common";
+import type { SVGProps } from "react";
 
 interface VoiceState {
     userId: string;
     channelId?: string;
     oldChannelId?: string;
-    deaf: boolean;
-    mute: boolean;
-    selfDeaf: boolean;
-    selfMute: boolean;
-    selfStream: boolean;
-    selfVideo: boolean;
-    sessionId: string;
-    suppress: boolean;
-    requestToSpeakTimestamp: string | null;
 }
 
-export const settings = definePluginSettings({
+const settings = definePluginSettings({
     disconnectUserId: {
         type: OptionType.STRING,
         description: "Target user ID to auto-disconnect",
@@ -110,167 +26,151 @@ export const settings = definePluginSettings({
         hidden: true,
         default: "",
     },
+    showToasts: {
+        type: OptionType.BOOLEAN,
+        description: "Show toast notifications",
+        restartNeeded: false,
+        default: true,
+    },
 });
 
-const Auth: { getToken: () => string; } = findByPropsLazy("getToken");
+let targetId = "";
+let kickedChannelId: string | null = null;
+const listeners = new Set<() => void>();
 
-async function disconnectGuildMember(guildId: string, userId: string) {
-    const token = Auth?.getToken?.();
-    if (!token) {
-        Toasts.show({
-            message: "Cannot get auth token to disconnect user",
-            id: Toasts.genId(),
-            type: Toasts.Type.FAILURE
-        });
-        return;
-    }
+function toast(message: string, type: "success" | "failure") {
+    if (settings.store.showToasts) showToast(message, type);
+}
 
+function useTargetId() {
+    const [, tick] = useState(0);
+    useEffect(() => {
+        const fn = () => tick(n => n + 1);
+        listeners.add(fn);
+        return () => { listeners.delete(fn); };
+    }, []);
+    return targetId;
+}
+
+function setTarget(userId: string) {
+    targetId = userId;
+    kickedChannelId = null;
+    settings.store.disconnectUserId = userId;
+    listeners.forEach(fn => fn());
+}
+
+function DisconnectIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" />
+        </svg>
+    );
+}
+
+function getName(userId: string) {
+    return UserStore.getUser(userId)?.username ?? userId;
+}
+
+async function disconnectMember(guildId: string, userId: string, channelId: string) {
+    kickedChannelId = channelId;
     try {
-        const response = await fetch(`/api/v9/guilds/${guildId}/members/${userId}`, {
-            method: "PATCH",
-            headers: {
-                "Authorization": token,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ channel_id: null })
+        await RestAPI.patch({
+            url: Constants.Endpoints.GUILD_MEMBER(guildId, userId),
+            body: { channel_id: null }
         });
-
-        if (response.ok) {
-            Toasts.show({
-                message: "User disconnected from voice",
-                id: Toasts.genId(),
-                type: Toasts.Type.SUCCESS
-            });
-        } else {
-            Toasts.show({
-                message: `Failed to disconnect user (${response.status})`,
-                id: Toasts.genId(),
-                type: Toasts.Type.FAILURE
-            });
-        }
-    } catch (error) {
-        Toasts.show({
-            message: "Network error while disconnecting user",
-            id: Toasts.genId(),
-            type: Toasts.Type.FAILURE
-        });
+        toast(`${getName(userId)} disconnected from voice`, "success");
+    } catch {
+        kickedChannelId = null;
+        toast(`Failed to disconnect ${getName(userId)}`, "failure");
     }
 }
 
-interface UserContextProps {
-    channel: Channel;
-    guildId?: string;
-    user: User;
-}
-
-const UserContext: NavContextMenuPatchCallback = (children, { user }: UserContextProps) => {
+const UserContext: NavContextMenuPatchCallback = (children, { user }: { user: User; }) => {
     if (!user || user.id === UserStore.getCurrentUser().id) return;
-    const isActive = settings.store.disconnectUserId === user.id;
-    const label = "Disconnect user";
-    const icon = isActive ? UnfollowIcon : FollowIcon;
+    const isActive = targetId === user.id;
 
     children.splice(-1, 0, (
         <Menu.MenuGroup key="disconnect-user-group">
-            <Menu.MenuItem
+            <Menu.MenuCheckboxItem
                 id="disconnect-user"
-                label={label}
-                action={() => {
-                    settings.store.disconnectUserId = isActive ? "" : user.id;
-                }}
-                icon={icon}
+                label="Auto-Disconnect User"
+                checked={isActive}
+                action={() => setTarget(isActive ? "" : user.id)}
             />
         </Menu.MenuGroup>
     ));
 };
 
+function DisconnectHeaderButton() {
+    const id = useTargetId();
+    if (!id) return null;
+
+    return (
+        <HeaderBarButton
+            icon={DisconnectIcon}
+            tooltip={`Auto-Disconnect: ${getName(id)} (click to stop)`}
+            onClick={() => setTarget("")}
+        />
+    );
+}
+
 export default definePlugin({
     name: "DisconnectUser",
     description: "Adds a context menu entry to auto-disconnect a user when they join voice",
-    authors: [{ id: 1242811215110082584n, name: "Jeasus" }, { name: "emirvaki", id: 1357545010848989247n }],
+    authors: [{ id: 1242811215110082584n, name: "Jeasus" }, { name: "emirvaki", id: 1357545010848989247n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Utility"],
     enabledByDefault: false,
     settings,
 
-    patches: [
-      {
-        find: "\"avatarContainerClass\",\"userNameClassName\"",
-        replacement: {
-            match: /(\((\i),\i\){.+?\.flipped]):(\i}\),children:\[)/,
-            replace: "$1$3$self.renderButtons($2?.user),"
-        }
-      },
-      {
-        find: "toolbar:function",
-        replacement: {
-            match: /(function \i\(\i\){)(.{1,200}toolbar.{1,100}mobileToolbar)/,
-            replace: "$1$self.addIconToToolBar(arguments[0]);$2"
-        }
-      }
-    ],
+    headerBarButton: {
+        icon: DisconnectIcon,
+        render: DisconnectHeaderButton,
+        priority: 6,
+    },
 
     contextMenus: {
         "user-context": UserContext
     },
 
+    start() {
+        targetId = settings.store.disconnectUserId;
+        kickedChannelId = null;
+        listeners.forEach(fn => fn());
+    },
+
+    stop() {
+        targetId = "";
+        kickedChannelId = null;
+        listeners.forEach(fn => fn());
+    },
+
     flux: {
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
-            const targetUserId = settings.store.disconnectUserId;
-            if (!targetUserId) return;
+            if (!targetId) return;
 
             for (const { userId, channelId, oldChannelId } of voiceStates) {
-                if (userId !== targetUserId) continue;
-                if (channelId && channelId !== oldChannelId) {
-                    const channel = ChannelStore.getChannel(channelId);
-                    if (!channel) continue;
-                    const guildId = (channel as any).guild_id ?? (channel as any).guildId;
-                    if (!guildId) continue;
+                if (userId !== targetId) continue;
 
-                    if (!PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) {
-                        Toasts.show({
-                            message: "Missing MOVE_MEMBERS permission to disconnect user",
-                            id: Toasts.genId(),
-                            type: Toasts.Type.FAILURE
-                        });
-                        continue;
-                    }
-
-                    void disconnectGuildMember(guildId, userId);
+                if (!channelId) {
+                    kickedChannelId = null;
+                    continue;
                 }
+
+                if (channelId === oldChannelId || channelId === kickedChannelId) continue;
+                if (VoiceStateStore.getVoiceStateForUser(userId)?.channelId !== channelId) continue;
+
+                const channel = ChannelStore.getChannel(channelId);
+                const guildId = channel?.guild_id;
+                if (!guildId) continue;
+
+                if (!PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) {
+                    kickedChannelId = channelId;
+                    toast("Missing MOVE_MEMBERS permission to disconnect user", "failure");
+                    continue;
+                }
+
+                disconnectMember(guildId, userId, channelId);
             }
         },
-    },
-
-    FollowIndicator() {
-        const { plugins: { DisconnectUser: { disconnectUserId } } } = useSettings(["plugins.DisconnectUser.disconnectUserId"]);
-        if (disconnectUserId) {
-            const current = UserStore.getUser(disconnectUserId);
-            return (
-                <HeaderBarIcon
-                    tooltip={`Disconnect user: ${current?.username ?? disconnectUserId} (right-click to disable)`}
-                    icon={UnfollowIcon}
-                    onClick={() => { }}
-                    onContextMenu={(e) => {
-                        e.preventDefault();
-                        settings.store.disconnectUserId = "";
-                    }}
-                />
-            );
-        }
-        return null;
-    },
-
-    addIconToToolBar(e: { toolbar: React.ReactNode[] | React.ReactNode; }) {
-        const icon = (
-            <ErrorBoundary noop={true} key="disconnect-indicator">
-                <this.FollowIndicator />
-            </ErrorBoundary>
-        );
-        if (Array.isArray(e.toolbar)) {
-            // Toolbar array ise ikonları sona ekle ki başka plugin ikonları da kalır
-            e.toolbar.push(icon);
-        } else {
-            // Tek node ise array yapıp önce kendi ikonunu ekle
-            e.toolbar = [icon, e.toolbar];
-        }
     },
 });

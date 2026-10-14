@@ -12,7 +12,7 @@ import { sleep } from "@utils/misc";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps, findByPropsLazy, findStoreLazy } from "@webpack";
-import { Forms, Menu, React, showToast, Toasts, useEffect, useMemo, useState } from "@webpack/common";
+import { Forms, Menu, React, showToast, useEffect, useMemo, useState } from "@webpack/common";
 
 const GuildStore = findStoreLazy("GuildStore");
 const GuildActions = findByPropsLazy("leaveGuild");
@@ -107,7 +107,7 @@ function LeaveAllServersModal({ rootProps }: { rootProps: any; }) {
 
         setStatus("done");
         setProgress(`${count} server${count > 1 ? "s" : ""} left successfully`);
-        showToast(`${count} servers left successfully!`, Toasts.Type.SUCCESS);
+        showToast(`${count} servers left successfully!`, "success");
     };
 
     function getGuildIcon(g: GuildEntry) {

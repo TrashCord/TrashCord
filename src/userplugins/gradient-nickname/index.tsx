@@ -281,8 +281,8 @@ function applyGradient(el: HTMLElement, userId: string) {
     el.style.setProperty("background-clip", "text", "important");
     el.style.setProperty("color", "transparent", "important");
     el.style.setProperty("-webkit-text-fill-color", "transparent", "important");
-    // Glow temporarily disabled — upcoming feature, gated off regardless of cfg.glow.
-    const GLOW_ENABLED = false;
+    // Glow temporarily enabled — upcoming feature, gated off regardless of cfg.glow.
+    const GLOW_ENABLED = true;
     if (GLOW_ENABLED && cfg.glow) {
         const glowList = (cfg.glowStops && cfg.glowStops.length > 0
             ? cfg.glowStops.map(s => s.color)

@@ -1,5 +1,5 @@
 import definePlugin, { OptionType } from "@utils/types";
-import { FluxDispatcher, Toasts, UserStore } from "@webpack/common";
+import { FluxDispatcher, showToast, UserStore } from "@webpack/common";
 import { findByPropsLazy } from "@webpack";
 import { definePluginSettings } from "@api/Settings";
 
@@ -257,25 +257,13 @@ const handleMessage = (payload: any) => {
 
             const displayName = message.author.globalName ?? message.author.username;
 
-            Toasts.show({
-                message: `🚫 Blocked: ${displayName} (detected language: ${bannedLanguage.toUpperCase()})`,
-                type: Toasts.Type.FAILURE,
-                id: Toasts.genId(),
-            });
+            showToast(`🚫 Blocked: ${displayName} (detected language: ${bannedLanguage.toUpperCase()})`, "failure");
         } catch (err) {
             console.error("[AutoLanguageBlock] Failed to block user:", err);
-            Toasts.show({
-                message: "❌ An error occurred while trying to block the user",
-                type: Toasts.Type.FAILURE,
-                id: Toasts.genId(),
-            });
+            showToast("❌ An error occurred while trying to block the user", "failure");
         }
     } else {
-        Toasts.show({
-            message: "❌ RelationshipActions API not available",
-            type: Toasts.Type.FAILURE,
-            id: Toasts.genId(),
-        });
+        showToast("❌ RelationshipActions API not available", "failure");
     }
 };
 

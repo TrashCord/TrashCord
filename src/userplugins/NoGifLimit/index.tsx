@@ -13,7 +13,7 @@ import { Devs } from "@utils/constants";
 import { getCurrentChannel, sendMessage } from "@utils/discord";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, Menu, React, showToast, Toasts, useState } from "@webpack/common";
+import { ChannelStore, Menu, React, showToast, useState } from "@webpack/common";
 
 import type { CaptionMedia } from "../gifCaptioner/types";
 import GifCaptionerModal from "../gifCaptioner/ui/modal";
@@ -343,9 +343,9 @@ async function deleteFolder(folderId: string): Promise<boolean> {
 
 function notify(body: string, type: string = "info") {
     if (!settings.store.showNotifications) return;
-    var toastType = Toasts.Type.MESSAGE;
-    if (type === "success") toastType = Toasts.Type.SUCCESS;
-    else if (type === "error") toastType = Toasts.Type.FAILURE;
+    var toastType = "message";
+    if (type === "success") toastType = "success";
+    else if (type === "error") toastType = "failure";
     showToast(body, toastType);
 }
 

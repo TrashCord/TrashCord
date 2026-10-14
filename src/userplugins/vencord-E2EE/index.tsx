@@ -26,8 +26,12 @@ import {
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { updateMessage } from "@api/MessageUpdater";
 import {
-    showToast, Toasts,
-    FluxDispatcher, ChannelStore, MessageStore, UserStore, React,
+    showToast,
+    FluxDispatcher,
+    ChannelStore,
+    MessageStore,
+    UserStore,
+    React,
 } from "@webpack/common";
 import { sendMessage } from "@utils/discord";
 import { Logger } from "@utils/Logger";
@@ -233,7 +237,7 @@ async function acceptInvite(channelId: string, s: Session): Promise<Session | nu
         sessions.delete(channelId);
         await persistSessions();
         notifyStateChange();
-        showToast("🔐 Handshake failed — invitation was corrupt.", Toasts.Type.FAILURE);
+        showToast("🔐 Handshake failed — invitation was corrupt.", "failure");
         return null;
     }
     try {
@@ -247,7 +251,7 @@ async function acceptInvite(channelId: string, s: Session): Promise<Session | nu
         return newSession;
     } catch (e) {
         log.error("Failed to build ACK", e);
-        showToast("🔐 Handshake failed.", Toasts.Type.FAILURE);
+        showToast("🔐 Handshake failed.", "failure");
         return null;
     }
 }
@@ -297,7 +301,7 @@ const onSend: MessageSendListener = async (channelId, msg) => {
             showToast(
                 `🔐 E2EE handshake accepted.${safety} ` +
                 "Your message wasn't sent — please retype it after the lock turns green.",
-                Toasts.Type.SUCCESS
+                "success"
             );
         }
         return { cancel: true };
@@ -325,7 +329,7 @@ const onSend: MessageSendListener = async (channelId, msg) => {
             String(e).includes("no sending chain")
                 ? "🔐 Waiting for the peer's first encrypted message — try again in a moment."
                 : "🔐 Encryption failed; aborting send.",
-            Toasts.Type.FAILURE
+            "failure"
         );
         return { cancel: true };
     }
@@ -357,7 +361,7 @@ const onEdit: MessageEditListener = (channelId, messageId) => {
 
     showToast(
         "🔐 Edit blocked: edits are not encrypted and would leak plaintext. Send a new message instead.",
-        Toasts.Type.FAILURE
+        "failure"
     );
     return { cancel: true };
 };
@@ -465,7 +469,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                     "⚠️ E2EE: peer wants to start a secure channel, but their identity key has " +
                     "CHANGED since you last talked. This could be a new install — or an attacker. " +
                     "Verify the safety number out of band before accepting!",
-                    Toasts.Type.FAILURE
+                    "failure"
                 );
             } else {
                 showToast(
@@ -530,12 +534,12 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                     "⚠️ E2EE: secure channel established, but the peer's identity key has " +
                     "CHANGED since you last talked. Verify the safety number " +
                     `(${newSession.safetyNum}) out of band before trusting this channel!`,
-                    Toasts.Type.FAILURE
+                    "failure"
                 );
             } else if (settings.store.showSafetyNumberOnReady) {
                 showToast(
                     `🔐 Secure channel established. Safety #: ${newSession.safetyNum}`,
-                    Toasts.Type.SUCCESS
+                    "success"
                 );
             }
             await markProcessed(message.id);
@@ -639,12 +643,12 @@ function sendRaw(channelId: string, content: string) {
         .then((res: any) => {
             if (res?.ok === false) {
                 log.error("sendRaw: send failed", res);
-                showToast("🔐 Failed to send E2EE message — check your connection.", Toasts.Type.FAILURE);
+                showToast("🔐 Failed to send E2EE message — check your connection.", "failure");
             }
         })
         .catch((e: any) => {
             log.error("sendRaw: send rejected", e);
-            showToast("🔐 Failed to send E2EE message — see console for details.", Toasts.Type.FAILURE);
+            showToast("🔐 Failed to send E2EE message — see console for details.", "failure");
         });
 }
 
@@ -761,7 +765,7 @@ async function onLockClicked(channelId: string) {
                 const safety = settings.store.showSafetyNumberOnReady
                     ? ` Safety #: ${sess.safetyNum}.`
                     : "";
-                showToast(`🔐 E2EE handshake accepted.${safety}`, Toasts.Type.SUCCESS);
+                showToast(`🔐 E2EE handshake accepted.${safety}`, "success");
             }
         } else if (!pending || pending.phase === "none") {
             // Start the handshake immediately instead of waiting for (and

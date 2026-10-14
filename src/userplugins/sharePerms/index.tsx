@@ -11,7 +11,7 @@ import { FolderIcon as VFolderIcon, SafetyIcon as VSafetyIcon } from "@component
 import { ModalCloseButton,ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Avatar, Button, ChannelStore, FluxDispatcher, Forms, GuildStore, IconUtils, React, RelationshipStore, RestAPI, ScrollerThin, SearchableSelect, Select, showToast, Text, Toasts, useMemo,UserStore } from "@webpack/common";
+import { Avatar, Button, ChannelStore, FluxDispatcher, Forms, GuildStore, IconUtils, React, RelationshipStore, RestAPI, ScrollerThin, SearchableSelect, Select, showToast, Text, useMemo, UserStore } from "@webpack/common";
 
 const ShieldIcon = (props: any) => <VSafetyIcon width={props.width || 24} height={props.height || 24} {...props} />;
 
@@ -240,7 +240,7 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
         setUsers(updated);
         saveSharedUsers(updated);
         setNewUserIds([]);
-        showToast("Access granted and users notified", Toasts.Type.SUCCESS);
+        showToast("Access granted and users notified", "success");
     };
 
     const removeUser = async (index: number) => {

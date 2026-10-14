@@ -6,7 +6,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
-import { MediaEngineStore, showToast, Toasts } from "@webpack/common";
+import { MediaEngineStore, showToast } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.MicSwitchFix as PluginNative<typeof import("./native")>;
 
@@ -49,7 +49,7 @@ async function syncPinnedDevice() {
     try {
         const res = await Native.pinDevice(name, settings.store.alsoSetSystemDefault);
         if (res?.error) {
-            showToast(res.error, Toasts.Type.FAILURE);
+            showToast(res.error, "failure");
             console.error("[MicSwitchFix]", res.error);
         } else {
             debugLog(name === null ? "unpinned (using system default)" : `pinned -> ${res.pinned}`);

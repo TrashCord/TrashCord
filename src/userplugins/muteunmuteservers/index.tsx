@@ -8,7 +8,7 @@ import { addContextMenuPatch, removeContextMenuPatch } from "@api/ContextMenu";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Menu, RestAPI, Toasts } from "@webpack/common";
+import { Menu, RestAPI, showToast } from "@webpack/common";
 
 const GuildStoreModule = findByPropsLazy("getGuilds");
 
@@ -33,11 +33,7 @@ async function setAllGuildsMuted(muted: boolean) {
     const guildIds = Object.keys(guilds);
     const label = muted ? "Muting" : "Unmuting";
 
-    Toasts.show({
-        message: `${label} all servers…`,
-        type: Toasts.Type.MESSAGE,
-        id: Toasts.genId(),
-    });
+    showToast(`${label} all servers…`, "message");
 
     let count = 0;
     for (const id of guildIds) {
@@ -62,11 +58,7 @@ async function setAllGuildsMuted(muted: boolean) {
         }
     }
 
-    Toasts.show({
-        message: `${label} done! ${count}/${guildIds.length} servers updated.`,
-        type: Toasts.Type.SUCCESS,
-        id: Toasts.genId(),
-    });
+    showToast(`${label} done! ${count}/${guildIds.length} servers updated.`, "success");
 }
 
 const guildContextPatch = (children: any, { guild }: { guild?: any }) => {

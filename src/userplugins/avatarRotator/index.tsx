@@ -3,7 +3,7 @@ import { UserAreaButton }       from "@api/UserArea";
 import { definePluginSettings } from "@api/Settings";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, React, RestAPI, Toasts, UserStore } from "@webpack/common";
+import { Button, React, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const SK        = "AvatarRotator_v6";
 const DEFAULT_S = 300;
@@ -66,9 +66,9 @@ function sfShuffle(len: number): number[] {
     return a;
 }
 
-function toast(msg: string, type: Toasts.Type = Toasts.Type.SUCCESS) {
+function toast(msg: string, type: "message" | "success" | "failure" = "success") {
     if (!settings.store.showToast) return;
-    Toasts.show({ message: msg, type, id: Toasts.genId() });
+    showToast(msg, type);
 }
 
 function getExt(data: string): string {
@@ -371,7 +371,7 @@ async function applyAvatar(entry: AvatarEntry): Promise<void> {
         toast(`Avatar → ${entry.label}`);
     } catch (e: any) {
         const msg = e?.body?.errors?.avatar?._errors?.[0]?.message ?? e?.body?.message ?? e?.message ?? "Unknown";
-        toast(`Failed: ${msg}`, Toasts.Type.FAILURE);
+        toast(`Failed: ${msg}`, "failure");
     }
 }
 
@@ -410,7 +410,7 @@ function startRotator(immediate = false) {
 
 function stopRotator() {
     if (rotatorTimer) { clearTimeout(rotatorTimer); rotatorTimer = null; }
-    toast("Avatar Rotator stopped", Toasts.Type.MESSAGE);
+    toast("Avatar Rotator stopped", "message");
 }
 
 function startNitroWatcher() {
@@ -423,11 +423,11 @@ function startNitroWatcher() {
         if (!hasNitro() && !gifExcl) {
             setExcluded([...excl, "gif"]);
             if (rotatorTimer) { clearTimeout(rotatorTimer); rotatorTimer = null; schedule(); }
-            Toasts.show({ message: "No Nitro detected - GIFs excluded from rotation", type: Toasts.Type.FAILURE, id: Toasts.genId() });
+            showToast("No Nitro detected - GIFs excluded from rotation", "failure");
         } else if (hasNitro() && gifExcl && settings.store.nitroCheck) {
             setExcluded(excl.filter(e => e !== "gif"));
             if (rotatorTimer) { clearTimeout(rotatorTimer); rotatorTimer = null; schedule(); }
-            Toasts.show({ message: "Nitro detected - GIFs re-included in rotation", type: Toasts.Type.SUCCESS, id: Toasts.genId() });
+            showToast("Nitro detected - GIFs re-included in rotation", "success");
         }
     };
     check();
@@ -860,13 +860,13 @@ function AvatarRotatorModal({ modalProps, onToggle }: { modalProps: any; onToggl
 
     const handleAddUrl = async () => {
         const url = urlInput.trim();
-        if (!url) { toast("Please enter a URL", Toasts.Type.FAILURE); return; }
+        if (!url) { toast("Please enter a URL", "failure"); return; }
         let parsed: URL;
         try { parsed = new URL(url); if (!["http:", "https:"].includes(parsed.protocol)) throw new Error(); }
-        catch { toast("Invalid URL - must start with http:// or https://", Toasts.Type.FAILURE); return; }
+        catch { toast("Invalid URL - must start with http:// or https://", "failure"); return; }
         const label = labelInput.trim() || parsed.pathname.split("/").pop()?.replace(/\.[^.]+$/, "") || "Avatar";
         setLoading(true);
-        toast("Fetching image…", Toasts.Type.MESSAGE);
+        toast("Fetching image…", "message");
         try {
             const ctrl = new AbortController();
             const timeout = setTimeout(() => ctrl.abort(), 15000);
@@ -880,7 +880,7 @@ function AvatarRotatorModal({ modalProps, onToggle }: { modalProps: any; onToggl
             if (blob.size > 50_000_000) throw new Error("Image too large (>50 MB)");
             const data = await blobToDataUrl(blob);
             if (!data.startsWith("data:image/")) throw new Error("Could not read image data");
-            toast("Image loaded", Toasts.Type.SUCCESS);
+            toast("Image loaded", "success");
             setLoading(false);
             openCropFor(data, async (cropped, cp) => {
                 const previewData = await genPreview(cropped, cp);
@@ -888,7 +888,7 @@ function AvatarRotatorModal({ modalProps, onToggle }: { modalProps: any; onToggl
                 setUrlInput(""); setLabelInput(""); toast(`Added "${label}"`);
             });
         } catch (e: any) {
-            toast(e?.name === "AbortError" ? "Request timed out (15s)" : `Failed: ${e.message ?? "Unknown"}`, Toasts.Type.FAILURE);
+            toast(e?.name === "AbortError" ? "Request timed out (15s)" : `Failed: ${e.message ?? "Unknown"}`, "failure");
             setLoading(false);
         }
     };
@@ -906,7 +906,7 @@ function AvatarRotatorModal({ modalProps, onToggle }: { modalProps: any; onToggl
                     commit([...avatars, { id: uid(), label: files[0].name.replace(/\.[^.]+$/, ""), data: cropped, cropParams: cp, previewData }]);
                     toast("Added");
                 });
-            } catch { toast("Failed to read file", Toasts.Type.FAILURE); setLoading(false); }
+            } catch { toast("Failed to read file", "failure"); setLoading(false); }
         } else {
             const entries: AvatarEntry[] = [];
             for (const f of files) {
@@ -925,8 +925,8 @@ function AvatarRotatorModal({ modalProps, onToggle }: { modalProps: any; onToggl
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0]; if (!f) return;
         setLoading(true);
-        try { const imp = await importJSON(f); if (!imp.length) toast("No valid avatars in file", Toasts.Type.MESSAGE); else { commit([...avatars, ...imp]); toast(`Imported ${imp.length}`); } }
-        catch { toast("Import failed - invalid JSON", Toasts.Type.FAILURE); }
+        try { const imp = await importJSON(f); if (!imp.length) toast("No valid avatars in file", "message"); else { commit([...avatars, ...imp]); toast(`Imported ${imp.length}`); } }
+        catch { toast("Import failed - invalid JSON", "failure"); }
         setLoading(false); e.target.value = "";
     };
 

@@ -9,7 +9,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, FluxDispatcher, Menu, React, RestAPI, Toasts,UserStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, Menu, React, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     isEnabled: {
@@ -276,26 +276,18 @@ class ShareBanManager {
     private showError(message: string) {
         if (!settings.store.showStatusMessages) return;
 
-        Toasts.show({
-            message: `❌ ${message}`,
+        showToast(`❌ ${message}`, "failure", {
             id: "share-ban-perm-error",
-            type: Toasts.Type.FAILURE,
-            options: {
-                position: Toasts.Position.BOTTOM,
-            }
+            position: 1,
         });
     }
 
     private showSuccess(message: string) {
         if (!settings.store.showStatusMessages) return;
 
-        Toasts.show({
-            message: `✅ ${message}`,
+        showToast(`✅ ${message}`, "success", {
             id: "share-ban-perm-success",
-            type: Toasts.Type.SUCCESS,
-            options: {
-                position: Toasts.Position.BOTTOM,
-            }
+            position: 1,
         });
     }
 
@@ -350,23 +342,16 @@ const UserContext: NavContextMenuPatchCallback = (children, props) => {
                                 ? `❌ Removed voice ban permission from **${user.username}**`
                                 : `✅ Granted voice ban permission to **${user.username}**`;
 
-                            Toasts.show({
-                                message: statusMessage,
-                                id: "share-ban-perm-status",
-                                type: wasAuthorized ? Toasts.Type.MESSAGE : Toasts.Type.SUCCESS,
-                                options: {
-                                    position: Toasts.Position.BOTTOM,
-                                }
-                            });
+                            showToast(
+                                statusMessage,
+                                wasAuthorized ? "message" : "success",
+                                { id: "share-ban-perm-status", position: 1 }
+                            );
                         }
                     } else {
-                        Toasts.show({
-                            message: "❌ Failed to toggle authorization",
+                        showToast("❌ Failed to toggle authorization", "failure", {
                             id: "share-ban-perm-error",
-                            type: Toasts.Type.FAILURE,
-                            options: {
-                                position: Toasts.Position.BOTTOM,
-                            }
+                            position: 1,
                         });
                     }
                 }}
