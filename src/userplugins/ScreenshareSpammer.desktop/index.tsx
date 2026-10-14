@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import definePlugin, { OptionType } from "@utils/types";
+import { HeaderBarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
+import definePlugin, { OptionType } from "@utils/types";
 import { findByCodeLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore, showToast, useEffect, UserStore, useState } from "@webpack/common";
+import type { SVGProps } from "react";
 
 const settings = definePluginSettings({
     intervalMs: {
@@ -30,6 +32,41 @@ let stopEvt:   Readonly<object> | null = null;
 let deleteEvt: Readonly<object> | null = null;
 let cachedGuildId:   string | null = null;
 let cachedChannelId: string | null = null;
+
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach(fn => fn());
+
+function useSpamActive() {
+    const [, tick] = useState(0);
+    useEffect(() => {
+        const fn = () => tick(n => n + 1);
+        listeners.add(fn);
+        return () => { listeners.delete(fn); };
+    }, []);
+    return interval !== null;
+}
+
+function ScreenshareStopIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6v2h3v2H7v-2h3v-2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v9h16V6H4z" />
+            <rect x="9" y="8" width="6" height="5" rx="1" fill="currentColor" />
+        </svg>
+    );
+}
+
+function SpamHeaderButton() {
+    const active = useSpamActive();
+    if (!active) return null;
+
+    return (
+        <HeaderBarButton
+            icon={ScreenshareStopIcon}
+            tooltip="ScreenshareSpammer Started (click to stop)"
+            onClick={stopSpam}
+        />
+    );
+}
 
 function injectStyle() {
     if (styleEl) return;
@@ -77,6 +114,7 @@ function stopSpam() {
     cachedGuildId = cachedChannelId = null;
     uid = "";
     removeStyle();
+    notify();
     showToast("⏹ ScreenshareSpammer - Stopped", "success", { duration: 1500 });
 }
 
@@ -131,6 +169,7 @@ async function startSpam() {
     injectStyle();
     showToast( "📡 Spamming Started - Ctrl+Shift+S to Stop", "message", { id: "ss-spam", duration: 2500 });
     interval = setInterval(tick, settings.store.intervalMs);
+    notify();
 }
 
 export default definePlugin({
@@ -141,6 +180,13 @@ export default definePlugin({
     enabledByDefault: false,
     settings,
     stop() { stopSpam(); },
+
+    headerBarButton: {
+        icon: ScreenshareStopIcon,
+        render: SpamHeaderButton,
+        priority: 6,
+    },
+
     contextMenus: {
         "rtc-channel"(children) {
             children.push(
