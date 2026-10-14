@@ -89,40 +89,24 @@ export interface ToastOptions {
     duration?: number;
 }
 
-const DiscordToasts: t.Toasts = mapMangledModuleLazy(".currentToastMap.has(", {
+export const Toasts: t.Toasts = mapMangledModuleLazy(".currentToastMap.has(", {
     show: filters.byCode(".currentToastMap.has("),
     pop: filters.byCode(".delete(")
 });
 
 export const createToast: t.createToast = findByCodeLazy('variant:"default",icon:', ".duration");
 
-export const Toasts = {
-    Type: {
-        MESSAGE: "message",
-        SUCCESS: "success",
-        FAILURE: "failure",
-        CUSTOM: "custom",
-        CLIP: "clip",
-        LINK: "link",
-        FORWARD: "forward",
-        BOOKMARK: "bookmark",
-        CLOCK: "clock"
-    } as const,
-    Position: { TOP: 0, BOTTOM: 1 } as const,
-    genId: () => (Math.random() || Math.random()).toString(36).slice(2),
-    show(data: any) {
-        if ("text" in data) {
-            DiscordToasts.show(data);
-        } else {
-            DiscordToasts.show(createToast(data.message, data.type, data.options));
-        }
-    },
-    pop: (context?: string) => DiscordToasts.pop(context),
-    create: (message: string, type?: t.ToastType, options?: ToastOptions) => createToast(message, type, options)
-};
-
+/**
+ * Show a simple toast. If you need more options, use Toasts.show manually
+ */
 export function showToast(message: string, type: t.ToastType = "message", options?: ToastOptions) {
-    DiscordToasts.show(createToast(message, type, options));
+    // FIXME once Discord makes up their mind and stops changing this API every update
+    try {
+        Toasts.show(createToast(message, type, options));
+    } catch {
+        // @ts-ignore
+        Toasts.show({ text: message, variant: type });
+    }
 }
 
 export const UserUtils = {
