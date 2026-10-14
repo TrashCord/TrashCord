@@ -21,6 +21,11 @@ interface VoiceState {
     oldChannelId?: string;
 }
 
+interface Target {
+    id: string;
+    guild_id: string;
+}
+
 const settings = definePluginSettings({
     targetUserIds: {
         type: OptionType.STRING,
@@ -37,10 +42,16 @@ const settings = definePluginSettings({
     },
 });
 
+const MAX_ACTIVE = 5;
+const THROTTLE_MS = 3000;
+
 const followed = new Set<string>();
 const listeners = new Set<() => void>();
-const inflight = new Map<string, string>();
+const desired = new Map<string, Target>();
+const queue = new Set<string>();
+const lastToast = new Map<string, number>();
 let followedList: string[] = [];
+let active = 0;
 
 function emit() {
     followedList = [...followed];
@@ -75,6 +86,17 @@ function toast(message: string, type: "success" | "failure" | "message") {
     if (settings.store.showToasts) showToast(message, type);
 }
 
+function throttledToast(message: string, type: "success" | "failure" | "message") {
+    const now = Date.now();
+    if (now - (lastToast.get(message) ?? 0) < THROTTLE_MS) return;
+    lastToast.set(message, now);
+    toast(message, type);
+}
+
+function denyToast() {
+    throttledToast("FollowMe: no permission to move members", "failure");
+}
+
 function FollowIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
     return (
         <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -103,18 +125,44 @@ function guildOf(channelId: string) {
     return ChannelStore.getChannel(channelId)?.guild_id;
 }
 
-function send(userId: string, channel: { id: string; guild_id: string; }) {
-    if (inflight.get(userId) === channel.id) return;
-    inflight.set(userId, channel.id);
+function drain() {
+    while (active < MAX_ACTIVE && queue.size) {
+        const userId: string = queue.values().next().value!;
+        queue.delete(userId);
 
-    RestAPI.patch({
-        url: `/guilds/${channel.guild_id}/members/${userId}`,
-        body: { channel_id: channel.id },
-    })
-        .catch(() => toast(`FollowMe: move failed [${getName(userId)}]`, "failure"))
-        .finally(() => {
-            if (inflight.get(userId) === channel.id) inflight.delete(userId);
-        });
+        const target = desired.get(userId);
+        if (!target || !followed.has(userId)) {
+            desired.delete(userId);
+            continue;
+        }
+
+        const current = VoiceStateStore.getVoiceStateForUser(userId)?.channelId;
+        if (!current || current === target.id) {
+            desired.delete(userId);
+            continue;
+        }
+
+        active++;
+        RestAPI.patch({
+            url: `/guilds/${target.guild_id}/members/${userId}`,
+            body: { channel_id: target.id },
+        })
+            .catch((e: any) => {
+                if (e?.status === 403) denyToast();
+                else throttledToast("FollowMe: move failed for some users", "failure");
+            })
+            .finally(() => {
+                if (desired.get(userId) === target) desired.delete(userId);
+                active--;
+                drain();
+            });
+    }
+}
+
+function send(userId: string, channel: Target) {
+    desired.set(userId, channel);
+    queue.add(userId);
+    drain();
 }
 
 function pull(userId: string, toChannelId: string, currentChannelId?: string) {
@@ -122,18 +170,31 @@ function pull(userId: string, toChannelId: string, currentChannelId?: string) {
 
     const channel = ChannelStore.getChannel(toChannelId);
     if (!channel?.guild_id || guildOf(currentChannelId) !== channel.guild_id) return;
-    if (!PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) return;
+    if (!PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) {
+        denyToast();
+        return;
+    }
 
     send(userId, channel);
 }
 
 function pullAll(toChannelId: string) {
     const channel = ChannelStore.getChannel(toChannelId);
-    if (!channel?.guild_id || !PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) return;
+    if (!channel?.guild_id) return;
+
+    let canMove: boolean | undefined;
 
     for (const id of followed) {
         const current = VoiceStateStore.getVoiceStateForUser(id)?.channelId;
-        if (current && current !== toChannelId && guildOf(current) === channel.guild_id) send(id, channel);
+        if (!current || current === toChannelId || guildOf(current) !== channel.guild_id) continue;
+
+        canMove ??= PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel);
+        if (!canMove) {
+            denyToast();
+            return;
+        }
+
+        send(id, channel);
     }
 }
 
@@ -151,6 +212,8 @@ function followUser(userId: string) {
 
 function unfollowUser(userId: string) {
     if (!followed.delete(userId)) return;
+    desired.delete(userId);
+    queue.delete(userId);
     commit();
     toast(`FollowMe: user removed [${getName(userId)}]`, "message");
 }
@@ -159,6 +222,8 @@ function unfollowAll() {
     const n = followed.size;
     if (!n) return;
     followed.clear();
+    desired.clear();
+    queue.clear();
     commit();
     toast(`FollowMe: ${n} user${n === 1 ? "" : "s"} cleared`, "failure");
 }
@@ -266,7 +331,10 @@ export default definePlugin({
 
     stop() {
         followed.clear();
-        inflight.clear();
+        desired.clear();
+        queue.clear();
+        lastToast.clear();
+        active = 0;
         commit();
     },
 
