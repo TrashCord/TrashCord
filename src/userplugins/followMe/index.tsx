@@ -42,16 +42,20 @@ const settings = definePluginSettings({
     },
 });
 
+const MAX_ACTIVE = 3;
 const THROTTLE_MS = 3000;
 const IGNORED_CODES = new Set([40032, 10007]);
 
 const followed = new Set<string>();
 const listeners = new Set<() => void>();
 const pending = new Map<string, Target>();
+const queue = new Set<string>();
+const tries = new Map<string, number>();
 const known = new Map<string, string | null>();
 const lastToast = new Map<string, number>();
 let followedList: string[] = [];
-let chain: Promise<unknown> = Promise.resolve();
+let active = 0;
+let lastMine: string | undefined;
 
 function emit() {
     followedList = [...followed];
@@ -121,37 +125,56 @@ function getName(userId: string) {
     return UserStore.getUser(userId)?.username ?? userId;
 }
 
-async function run(userId: string, retried = false) {
-    const target = pending.get(userId);
-    pending.delete(userId);
-    if (!target || !followed.has(userId)) return;
+function drain() {
+    while (active < MAX_ACTIVE && queue.size) {
+        const userId = queue.values().next().value as string;
+        queue.delete(userId);
 
-    try {
-        await RestAPI.patch({
-            url: `/guilds/${target.guild_id}/members/${userId}`,
-            body: { channel_id: target.id },
-        });
-        throttledToast("FollowMe: users moved", "success");
-    } catch (e: any) {
-        if (e?.status === 403) {
-            denyToast();
-            return;
-        }
+        const target = pending.get(userId);
+        pending.delete(userId);
+        if (!target || !followed.has(userId)) continue;
 
-        if (!retried && known.get(userId) !== null) {
-            if (!pending.has(userId)) pending.set(userId, target);
-            chain = chain.then(() => run(userId, true));
-            return;
-        }
+        active++;
 
-        if (!IGNORED_CODES.has(e?.body?.code)) throttledToast(`FollowMe: move failed (${e?.status ?? "error"})`, "failure");
+        Promise.resolve()
+            .then(() => RestAPI.patch({
+                url: `/guilds/${target.guild_id}/members/${userId}`,
+                body: { channel_id: target.id },
+            }))
+            .then(() => { tries.delete(userId); })
+            .catch((e: any) => {
+                if (e?.status === 403) {
+                    tries.delete(userId);
+                    denyToast();
+                    return;
+                }
+
+                const ignored = IGNORED_CODES.has(e?.body?.code);
+                const n = tries.get(userId) ?? 0;
+
+                if (!ignored && n < 1) {
+                    tries.set(userId, n + 1);
+                    if (!pending.has(userId)) {
+                        pending.set(userId, target);
+                        queue.add(userId);
+                    }
+                    return;
+                }
+
+                tries.delete(userId);
+                if (!ignored) throttledToast(`FollowMe: move failed (${e?.status ?? "error"})`, "failure");
+            })
+            .finally(() => {
+                active--;
+                drain();
+            });
     }
 }
 
 function send(userId: string, channel: Target) {
-    const queued = pending.has(userId);
     pending.set(userId, channel);
-    if (!queued) chain = chain.then(() => run(userId));
+    queue.add(userId);
+    drain();
 }
 
 function pull(userId: string, toChannelId: string) {
@@ -176,6 +199,12 @@ function pullAll(toChannelId: string) {
     }
 }
 
+function onMine(channelId: string) {
+    if (channelId === lastMine) return;
+    lastMine = channelId;
+    pullAll(channelId);
+}
+
 function followUser(userId: string) {
     if (followed.has(userId)) return;
     followed.add(userId);
@@ -190,6 +219,8 @@ function followUser(userId: string) {
 function unfollowUser(userId: string) {
     if (!followed.delete(userId)) return;
     pending.delete(userId);
+    queue.delete(userId);
+    tries.delete(userId);
     known.delete(userId);
     commit();
     toast(`FollowMe: user removed [${getName(userId)}]`, "message");
@@ -200,6 +231,8 @@ function unfollowAll() {
     if (!n) return;
     followed.clear();
     pending.clear();
+    queue.clear();
+    tries.clear();
     known.clear();
     commit();
     toast(`FollowMe: ${n} user${n === 1 ? "" : "s"} cleared`, "failure");
@@ -309,13 +342,30 @@ export default definePlugin({
     stop() {
         followed.clear();
         pending.clear();
+        queue.clear();
+        tries.clear();
         known.clear();
         lastToast.clear();
-        chain = Promise.resolve();
+        active = 0;
+        lastMine = undefined;
         commit();
     },
 
     flux: {
+        VOICE_CHANNEL_SELECT({ channelId }: { channelId?: string | null; }) {
+            if (!channelId) {
+                lastMine = undefined;
+                return;
+            }
+            if (!followed.size) return;
+
+            try {
+                onMine(channelId);
+            } catch (e) {
+                throttledToast(`FollowMe: error (${(e as Error)?.message ?? "unknown"})`, "failure");
+            }
+        },
+
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             if (!followed.size) return;
 
@@ -328,17 +378,18 @@ export default definePlugin({
 
                 for (const s of voiceStates) {
                     if (s.userId === myId) {
-                        if (s.channelId && s.channelId !== s.oldChannelId) mine = s.channelId;
+                        if (s.channelId) mine = s.channelId;
+                        else lastMine = undefined;
                         continue;
                     }
                     if (!followed.has(s.userId)) continue;
 
                     known.set(s.userId, s.channelId ?? null);
-                    if (s.channelId && s.channelId !== s.oldChannelId) (moved ??= []).push(s.userId);
+                    if (s.channelId) (moved ??= []).push(s.userId);
                 }
 
-                if (mine) {
-                    pullAll(mine);
+                if (mine && mine !== lastMine) {
+                    onMine(mine);
                     return;
                 }
 
