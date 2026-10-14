@@ -29,5 +29,5 @@ export type createToast = (message: string, type?: ToastType, options?: ToastOpt
 export interface Toasts {
     show: showToast;
     pop: popToast;
-    create: createToast;
+    /*create: createToast;*/
 }
