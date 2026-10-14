@@ -551,27 +551,32 @@ export default definePlugin({
     flux: {
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             if (waitingChannelId) {
-                for (const { userId, channelId, oldChannelId } of voiceStates) {
-                    if (!waitingTriggerUsers.has(userId)) continue;
-                    if (oldChannelId !== waitingChannelId || channelId === waitingChannelId) continue;
+                const target = waitingChannelId;
+                const targetChannel = ChannelStore.getChannel(target);
 
-                    const target = waitingChannelId;
+                if (!targetChannel) {
                     cancelWait();
+                } else {
+                    const states = VoiceStateStore.getVoiceStatesForChannel(target);
+                    const hasRoom = !targetChannel.userLimit || Object.keys(states).length < targetChannel.userLimit;
+                    const triggerLeft = [...waitingTriggerUsers].some(id => !states[id]);
 
-                    if (settings.store.waitNotificationSound) playAudio(WAIT_SOUND_URL);
+                    if (hasRoom && triggerLeft) {
+                        cancelWait();
 
-                    if (settings.store.waitAutoJoin) {
-                        joinVoiceChannel(target);
-                        if (settings.store.showToasts)
-                            showToast("WaitForSlot: slot available, rejoining!", "success");
-                    } else {
-                        const ch = ChannelStore.getChannel(target);
-                        showNotice(`A spot opened in #${ch?.name ?? target}!`, "Rejoin", () => {
-                            popNotice();
+                        if (settings.store.waitNotificationSound) playAudio(WAIT_SOUND_URL);
+
+                        if (settings.store.waitAutoJoin) {
                             joinVoiceChannel(target);
-                        });
+                            if (settings.store.showToasts)
+                                showToast("WaitForSlot: slot available, rejoining!", "success");
+                        } else {
+                            showNotice(`A spot opened in #${targetChannel.name}!`, "Rejoin", () => {
+                                popNotice();
+                                joinVoiceChannel(target);
+                            });
+                        }
                     }
-                    break;
                 }
             }
 

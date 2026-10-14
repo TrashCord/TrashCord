@@ -9,10 +9,9 @@ import { HeaderBarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import definePlugin, { OptionType } from "@utils/types";
-import { findStoreLazy } from "@webpack";
 import {
-    Button, ChannelStore, Menu, PermissionsBits, PermissionStore,
-    RestAPI, SelectedChannelStore, showToast, useEffect, UserStore, useState,
+    Button, ChannelStore, Menu, RestAPI, SelectedChannelStore,
+    showToast, useEffect, UserStore, useState, VoiceStateStore,
 } from "@webpack/common";
 import type { SVGProps } from "react";
 
@@ -26,10 +25,6 @@ interface Target {
     id: string;
     guild_id: string;
 }
-
-const VoiceStore: {
-    getAllVoiceStates(): Record<string, Record<string, { channelId?: string | null; }>>;
-} = findStoreLazy("VoiceStateStore");
 
 const settings = definePluginSettings({
     targetUserIds: {
@@ -47,16 +42,16 @@ const settings = definePluginSettings({
     },
 });
 
-const MAX_ACTIVE = 5;
 const THROTTLE_MS = 3000;
+const IGNORED_CODES = new Set([40032, 10007]);
 
 const followed = new Set<string>();
 const listeners = new Set<() => void>();
-const desired = new Map<string, Target>();
-const queue = new Set<string>();
+const pending = new Map<string, Target>();
+const known = new Map<string, string | null>();
 const lastToast = new Map<string, number>();
 let followedList: string[] = [];
-let active = 0;
+let chain: Promise<unknown> = Promise.resolve();
 
 function emit() {
     followedList = [...followed];
@@ -126,65 +121,44 @@ function getName(userId: string) {
     return UserStore.getUser(userId)?.username ?? userId;
 }
 
-function guildOf(channelId: string) {
-    return ChannelStore.getChannel(channelId)?.guild_id;
-}
+async function run(userId: string, retried = false) {
+    const target = pending.get(userId);
+    pending.delete(userId);
+    if (!target || !followed.has(userId)) return;
 
-function channelOf(userId: string): string | null {
     try {
-        for (const users of Object.values(VoiceStore.getAllVoiceStates())) {
-            const state = users[userId];
-            if (state) return state.channelId ?? null;
-        }
-    } catch { }
-    return null;
-}
-
-function drain() {
-    while (active < MAX_ACTIVE && queue.size) {
-        const userId = queue.values().next().value as string;
-        queue.delete(userId);
-
-        const target = desired.get(userId);
-        if (!target || !followed.has(userId) || channelOf(userId) === target.id) {
-            desired.delete(userId);
-            continue;
+        await RestAPI.patch({
+            url: `/guilds/${target.guild_id}/members/${userId}`,
+            body: { channel_id: target.id },
+        });
+        throttledToast("FollowMe: users moved", "success");
+    } catch (e: any) {
+        if (e?.status === 403) {
+            denyToast();
+            return;
         }
 
-        active++;
+        if (!retried && known.get(userId) !== null) {
+            if (!pending.has(userId)) pending.set(userId, target);
+            chain = chain.then(() => run(userId, true));
+            return;
+        }
 
-        Promise.resolve()
-            .then(() => RestAPI.patch({
-                url: `/guilds/${target.guild_id}/members/${userId}`,
-                body: { channel_id: target.id },
-            }))
-            .catch((e: any) => {
-                if (e?.status === 403) denyToast();
-                else throttledToast(`FollowMe: move failed (${e?.status ?? "error"})`, "failure");
-            })
-            .finally(() => {
-                if (desired.get(userId) === target) desired.delete(userId);
-                active--;
-                drain();
-            });
+        if (!IGNORED_CODES.has(e?.body?.code)) throttledToast(`FollowMe: move failed (${e?.status ?? "error"})`, "failure");
     }
 }
 
 function send(userId: string, channel: Target) {
-    desired.set(userId, channel);
-    queue.add(userId);
-    drain();
+    const queued = pending.has(userId);
+    pending.set(userId, channel);
+    if (!queued) chain = chain.then(() => run(userId));
 }
 
-function pull(userId: string, toChannelId: string, currentChannelId?: string | null) {
-    if (!currentChannelId || currentChannelId === toChannelId) return;
+function pull(userId: string, toChannelId: string) {
+    if (known.get(userId) === toChannelId) return;
 
     const channel = ChannelStore.getChannel(toChannelId);
-    if (!channel?.guild_id || guildOf(currentChannelId) !== channel.guild_id) return;
-    if (!PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel)) {
-        denyToast();
-        return;
-    }
+    if (!channel?.guild_id) return;
 
     send(userId, channel);
 }
@@ -193,18 +167,11 @@ function pullAll(toChannelId: string) {
     const channel = ChannelStore.getChannel(toChannelId);
     if (!channel?.guild_id) return;
 
-    let canMove: boolean | undefined;
+    const inside = VoiceStateStore.getVoiceStatesForChannel(toChannelId);
 
     for (const id of followed) {
-        const current = channelOf(id);
-        if (!current || current === toChannelId || guildOf(current) !== channel.guild_id) continue;
-
-        canMove ??= PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel);
-        if (!canMove) {
-            denyToast();
-            return;
-        }
-
+        const current = known.get(id);
+        if (current === null || current === toChannelId || inside?.[id]) continue;
         send(id, channel);
     }
 }
@@ -215,15 +182,15 @@ function followUser(userId: string) {
     commit();
 
     const myChannelId = SelectedChannelStore.getVoiceChannelId();
-    if (myChannelId) pull(userId, myChannelId, channelOf(userId));
+    if (myChannelId && !VoiceStateStore.getVoiceStatesForChannel(myChannelId)?.[userId]) pull(userId, myChannelId);
 
     toast(`FollowMe: user added [${getName(userId)}]`, "success");
 }
 
 function unfollowUser(userId: string) {
     if (!followed.delete(userId)) return;
-    desired.delete(userId);
-    queue.delete(userId);
+    pending.delete(userId);
+    known.delete(userId);
     commit();
     toast(`FollowMe: user removed [${getName(userId)}]`, "message");
 }
@@ -232,8 +199,8 @@ function unfollowAll() {
     const n = followed.size;
     if (!n) return;
     followed.clear();
-    desired.clear();
-    queue.clear();
+    pending.clear();
+    known.clear();
     commit();
     toast(`FollowMe: ${n} user${n === 1 ? "" : "s"} cleared`, "failure");
 }
@@ -341,10 +308,10 @@ export default definePlugin({
 
     stop() {
         followed.clear();
-        desired.clear();
-        queue.clear();
+        pending.clear();
+        known.clear();
         lastToast.clear();
-        active = 0;
+        chain = Promise.resolve();
         commit();
     },
 
@@ -352,18 +319,35 @@ export default definePlugin({
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             if (!followed.size) return;
 
-            const myId = UserStore.getCurrentUser()?.id;
-            if (!myId) return;
+            try {
+                const myId = UserStore.getCurrentUser()?.id;
+                if (!myId) return;
 
-            for (const s of voiceStates) {
-                if (!s.channelId || s.channelId === s.oldChannelId) continue;
+                let mine: string | undefined;
+                let moved: string[] | undefined;
 
-                if (s.userId === myId) {
-                    pullAll(s.channelId);
-                } else if (followed.has(s.userId)) {
-                    const myChannelId = SelectedChannelStore.getVoiceChannelId();
-                    if (myChannelId) pull(s.userId, myChannelId, s.channelId);
+                for (const s of voiceStates) {
+                    if (s.userId === myId) {
+                        if (s.channelId && s.channelId !== s.oldChannelId) mine = s.channelId;
+                        continue;
+                    }
+                    if (!followed.has(s.userId)) continue;
+
+                    known.set(s.userId, s.channelId ?? null);
+                    if (s.channelId && s.channelId !== s.oldChannelId) (moved ??= []).push(s.userId);
                 }
+
+                if (mine) {
+                    pullAll(mine);
+                    return;
+                }
+
+                if (!moved) return;
+                const myChannelId = SelectedChannelStore.getVoiceChannelId();
+                if (!myChannelId) return;
+                for (const id of moved) pull(id, myChannelId);
+            } catch (e) {
+                throttledToast(`FollowMe: error (${(e as Error)?.message ?? "unknown"})`, "failure");
             }
         },
     },
