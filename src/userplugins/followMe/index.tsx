@@ -9,9 +9,10 @@ import { HeaderBarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import definePlugin, { OptionType } from "@utils/types";
+import { findStoreLazy } from "@webpack";
 import {
     Button, ChannelStore, Menu, PermissionsBits, PermissionStore,
-    RestAPI, showToast, useEffect, UserStore, useState, VoiceStateStore,
+    RestAPI, SelectedChannelStore, showToast, useEffect, UserStore, useState,
 } from "@webpack/common";
 import type { SVGProps } from "react";
 
@@ -25,6 +26,10 @@ interface Target {
     id: string;
     guild_id: string;
 }
+
+const VoiceStore: {
+    getAllVoiceStates(): Record<string, Record<string, { channelId?: string | null; }>>;
+} = findStoreLazy("VoiceStateStore");
 
 const settings = definePluginSettings({
     targetUserIds: {
@@ -125,30 +130,34 @@ function guildOf(channelId: string) {
     return ChannelStore.getChannel(channelId)?.guild_id;
 }
 
+function channelOf(userId: string): string | null {
+    try {
+        for (const users of Object.values(VoiceStore.getAllVoiceStates())) {
+            const state = users[userId];
+            if (state) return state.channelId ?? null;
+        }
+    } catch { }
+    return null;
+}
+
 function drain() {
     while (active < MAX_ACTIVE && queue.size) {
         const userId = queue.values().next().value as string;
         queue.delete(userId);
 
         const target = desired.get(userId);
-        if (!target || !followed.has(userId)) {
+        if (!target || !followed.has(userId) || channelOf(userId) === target.id) {
             desired.delete(userId);
             continue;
         }
 
         active++;
 
-        let request: Promise<unknown>;
-        try {
-            request = RestAPI.patch({
+        Promise.resolve()
+            .then(() => RestAPI.patch({
                 url: `/guilds/${target.guild_id}/members/${userId}`,
                 body: { channel_id: target.id },
-            });
-        } catch (e) {
-            request = Promise.reject(e);
-        }
-
-        request
+            }))
             .catch((e: any) => {
                 if (e?.status === 403) denyToast();
                 else throttledToast(`FollowMe: move failed (${e?.status ?? "error"})`, "failure");
@@ -167,7 +176,7 @@ function send(userId: string, channel: Target) {
     drain();
 }
 
-function pull(userId: string, toChannelId: string, currentChannelId?: string) {
+function pull(userId: string, toChannelId: string, currentChannelId?: string | null) {
     if (!currentChannelId || currentChannelId === toChannelId) return;
 
     const channel = ChannelStore.getChannel(toChannelId);
@@ -187,7 +196,7 @@ function pullAll(toChannelId: string) {
     let canMove: boolean | undefined;
 
     for (const id of followed) {
-        const current = VoiceStateStore.getVoiceStateForUser(id)?.channelId;
+        const current = channelOf(id);
         if (!current || current === toChannelId || guildOf(current) !== channel.guild_id) continue;
 
         canMove ??= PermissionStore.can(PermissionsBits.MOVE_MEMBERS, channel);
@@ -205,9 +214,8 @@ function followUser(userId: string) {
     followed.add(userId);
     commit();
 
-    const myId = UserStore.getCurrentUser()?.id;
-    const myChannelId = myId ? VoiceStateStore.getVoiceStateForUser(myId)?.channelId : undefined;
-    if (myChannelId) pull(userId, myChannelId, VoiceStateStore.getVoiceStateForUser(userId)?.channelId);
+    const myChannelId = SelectedChannelStore.getVoiceChannelId();
+    if (myChannelId) pull(userId, myChannelId, channelOf(userId));
 
     toast(`FollowMe: user added [${getName(userId)}]`, "success");
 }
@@ -353,7 +361,7 @@ export default definePlugin({
                 if (s.userId === myId) {
                     pullAll(s.channelId);
                 } else if (followed.has(s.userId)) {
-                    const myChannelId = VoiceStateStore.getVoiceStateForUser(myId)?.channelId;
+                    const myChannelId = SelectedChannelStore.getVoiceChannelId();
                     if (myChannelId) pull(s.userId, myChannelId, s.channelId);
                 }
             }
