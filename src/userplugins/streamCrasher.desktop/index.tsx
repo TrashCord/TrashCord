@@ -1,53 +1,192 @@
-import { definePluginSettings } from "@api/Settings";
-import { openPluginModal } from "@components/settings";
-import ErrorBoundary from "@components/ErrorBoundary";
 import type { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton } from "@api/UserArea";
-import { Devs } from "@utils/constants";
+import ErrorBoundary from "@components/ErrorBoundary";
+import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
-import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { ApplicationStreamingStore, Menu, Popout, showToast, useMemo, useRef, UserStore, useStateFromStores, VoiceActions } from "@webpack/common";
+import { findByPropsLazy, findStoreLazy } from "@webpack";
+import { Menu, Popout, Select, SelectedChannelStore, showToast, useEffect, useRef, useState, useStateFromStores } from "@webpack/common";
 
-const Native = VencordNative.pluginHelpers.StreamCrasher as PluginNative<typeof import("./native")>;
-const ApplicationStreamingSettingsStore = findStoreLazy("ApplicationStreamingSettingsStore");
+declare const MediaStreamTrackProcessor: any;
+declare const MediaStreamTrackGenerator: any;
 
-async function tryRegisterKeybind(accelerator: string) {
-    const acc = accelerator || "F6";
-    return await Native.registerGlobalKeybind(acc);
-}
+const Native = VencordNative.pluginHelpers.CamCrasher as PluginNative<typeof import("./native")>;
+const MediaEngineStore = findStoreLazy("MediaEngineStore");
+const MediaEngineActions = findByPropsLazy("setVideoDevice");
+
+const BUTTON_ID = "cam-crasher-account-button";
 
 export const crashModeLabels: Record<string, { value: string; subText?: string; }> = {
-    freeze:   { value: "Freeze",       subText: "Freezes the stream" },
-    flashing: { value: "Flashing",     subText: "Looping black/white flash" },
-    white:    { value: "White Screen" },
-    colors:   { value: "Color Cycle",  subText: "Looping rainbow cycle" },
-    static:   { value: "Static",       subText: "TV Noise" },
-    bsod:     { value: "Crash Screen", subText: "OS-specific BSOD" },
-    image:    { value: "Image",        subText: "PNG/JPG/GIF/WebP, URL or local path" }
+    freeze: { value: "Freeze", subText: "Freezes the camera" },
+    flashing: { value: "Flashing", subText: "Looping black/white flash" },
+    white: { value: "White Screen" },
+    colors: { value: "Color Cycle", subText: "Looping rainbow cycle" },
+    static: { value: "Static", subText: "TV Noise" },
+    bsod: { value: "Crash Screen", subText: "OS-specific BSOD" },
+    image: { value: "Image", subText: "PNG/JPG/WebP, URL or local path" }
 };
 
+let crashed = false;
+let modeCache = "freeze";
+let suppress = false;
+let previousDevice: string | null = null;
+let fallbackUsed = false;
+let lastSwitchAt = 0;
+let lastFire = 0;
+let originalGetUserMedia: any = null;
+let restorers: Array<() => void> = [];
+let imageBitmap: ImageBitmap | null = null;
+let imageVersion = 0;
+let imageToken = 0;
+let drawnKey = "";
+
+const wrapped = new WeakSet<object>();
+const sent = new Set<object>();
+const listeners = new Set<() => void>();
+
+function emit() {
+    listeners.forEach(fn => fn());
+}
+
+function useCamState() {
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const fn = () => setTick(n => n + 1);
+        listeners.add(fn);
+        return () => void listeners.delete(fn);
+    }, []);
+    return { switched: previousDevice !== null };
+}
+
+function inCall() {
+    return !!SelectedChannelStore.getVoiceChannelId();
+}
+
+function videoOn() {
+    return MediaEngineStore.isVideoEnabled?.() ?? true;
+}
+
+function listDevices(): any[] {
+    return Object.values<any>(MediaEngineStore.getVideoDevices?.() ?? {});
+}
+
+function safeName() {
+    return (settings.store.manualCamera || settings.store.safeCameraName || "").trim();
+}
+
+async function registerKeybind(accelerator: string) {
+    const ok = await Native.registerKeybind(accelerator || "F7");
+    if (!ok) showToast("Keybind unavailable, pick another one", "failure");
+}
+
+function playToggleSound(enabled: boolean) {
+    if (!settings.store.soundEnabled || suppress) return;
+    try {
+        const ctx = new AudioContext({ sinkId: "communications" } as any);
+        const play = () => {
+            const t = ctx.currentTime;
+            const gain = ctx.createGain();
+            gain.connect(ctx.destination);
+
+            if (enabled) {
+                const len = Math.floor(ctx.sampleRate * 0.028);
+                const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = "highpass";
+                filter.frequency.value = 2400;
+                filter.connect(gain);
+                gain.gain.value = 0.06;
+
+                const first = ctx.createBufferSource();
+                const second = ctx.createBufferSource();
+                first.buffer = buf;
+                second.buffer = buf;
+                first.connect(filter);
+                second.connect(filter);
+                first.start(t);
+                second.start(t + 0.085);
+                second.onended = () => ctx.close();
+            } else {
+                const osc = ctx.createOscillator();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(210, t);
+                osc.frequency.exponentialRampToValueAtTime(70, t + 0.13);
+                gain.gain.setValueAtTime(0.08, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                osc.connect(gain);
+                osc.start(t);
+                osc.stop(t + 0.16);
+                osc.onended = () => ctx.close();
+            }
+        };
+        if (ctx.state === "suspended") ctx.resume().then(play).catch(() => ctx.close());
+        else play();
+    } catch { }
+}
+
+function StatusPanel() {
+    const { isEnabled } = settings.use(["isEnabled"]);
+    const { switched } = useCamState();
+    const active = useStateFromStores([MediaEngineStore, SelectedChannelStore], () => inCall() && videoOn());
+
+    const path = !active
+        ? "No active camera"
+        : sent.size > 0
+            ? "Hooked (all crash modes work)"
+            : "Native (uses the safe camera)";
+
+    return (
+        <div className="vc-cc-panel">
+            <div className="vc-cc-row">
+                <span className={`vc-cc-dot${isEnabled || switched ? " on" : ""}`} />
+                <span className="vc-cc-title">{isEnabled || switched ? "Protection active" : "Protection idle"}</span>
+                <button type="button" className="vc-cc-btn" onClick={panic}>
+                    {isEnabled || switched ? "Restore" : "Test"}
+                </button>
+            </div>
+            <div className="vc-cc-sub">Camera path: {path}</div>
+        </div>
+    );
+}
+
+function SafeCameraPicker() {
+    const { safeCameraName } = settings.use(["safeCameraName"]);
+    const devices = useStateFromStores([MediaEngineStore], () => MediaEngineStore.getVideoDevices?.());
+    const options = Object.values<any>(devices ?? {}).map(d => ({ label: d.name, value: d.name }));
+
+    return (
+        <div className="vc-cc-field">
+            <div className="vc-cc-label">Safe Camera</div>
+            <Select
+                options={options}
+                placeholder="Select a detected camera"
+                isSelected={(v: string) => v === safeCameraName}
+                select={(v: string) => {
+                    settings.store.safeCameraName = v;
+                    settings.store.manualCamera = "";
+                }}
+                serialize={(v: string) => v}
+            />
+            <div className="vc-cc-sub">Used by Switch and by the native fallback. Type a name below to override.</div>
+        </div>
+    );
+}
+
 export const settings = definePluginSettings({
-    isEnabled: {
-        type: OptionType.BOOLEAN,
-        description: "Crashing state",
-        default: false,
-        onChange: val => { isEnabledCache = val; if (!suppressStateChange) { playToggleSound(val); updateStream(val); } }
+    status: {
+        type: OptionType.COMPONENT,
+        component: StatusPanel
     },
-    keybindEnabled: {
-        type: OptionType.BOOLEAN,
-        description: "Toggle the crasher with a global keybind (works even when Discord is not focused)",
-        default: true,
-        onChange: val => {
-            if (val) tryRegisterKeybind(settings.store.keybind);
-            else Native.unregisterGlobalKeybind();
-            syncKeybindLoop();
-        }
-    },
-    keybind: {
-        type: OptionType.STRING,
-        description: "Global keybind accelerator. Use 'Set Keybind' in the right-click options menu to record it by pressing keys, or type one manually (e.g. F6, Control+F3)",
-        default: "F6",
-        onChange: val => { if (settings.store.keybindEnabled) tryRegisterKeybind(val); }
+    panicAction: {
+        type: OptionType.SELECT,
+        description: "What the button and the keybind do",
+        options: [
+            { label: "Crash Camera", value: "crash", default: true },
+            { label: "Switch to Safe Camera", value: "switch" }
+        ]
     },
     crashMode: {
         type: OptionType.SELECT,
@@ -55,209 +194,385 @@ export const settings = definePluginSettings({
         options: Object.entries(crashModeLabels).map(([value, { value: label, subText }], i) => ({
             label, value, subtext: subText, default: i === 0
         })),
-        onChange: () => {
-            if (!settings.store.isEnabled) { Native.updateCrashMode(); return; }
-            updateStream(false);
-            setTimeout(() => updateStream(true), 80);
+        onChange: val => {
+            modeCache = val;
+            drawnKey = "";
+            refreshImage();
         }
     },
     imageUrl: {
         type: OptionType.STRING,
-        description: "Image/GIF/WebP URL or local path (e.g. C:\\img.gif or https://...)",
+        description: "Image URL or local path (e.g. C:\\img.png or https://...)",
         default: "",
-        placeholder: "https://example.com/image.gif",
-        componentProps: { onBlur: () => Native.updateCrashMode() },
+        placeholder: "https://example.com/image.png",
+        componentProps: { onBlur: () => refreshImage() },
         hidden() { return this.store.crashMode !== "image"; }
+    },
+    safeCameraName: {
+        type: OptionType.COMPONENT,
+        component: SafeCameraPicker
+    },
+    manualCamera: {
+        type: OptionType.STRING,
+        description: "Safe camera name typed manually (overrides the detected one, partial match)",
+        default: "",
+        placeholder: "OBS Virtual Camera"
+    },
+    fallbackSwitch: {
+        type: OptionType.BOOLEAN,
+        description: "Native camera fallback: when the crasher cannot hook the camera, switch to the safe camera instead of leaving it exposed",
+        default: true
+    },
+    hookStream: {
+        type: OptionType.BOOLEAN,
+        description: "Hook camera streams for freeze and crash modes (applies the next time the camera starts)",
+        default: true
     },
     buttonLocation: {
         type: OptionType.SELECT,
         description: "Where to place the crasher button (applies instantly, no restart)",
         options: [
-            { label: "Account Section", value: "account", default: true },
-            { label: "Streaming Panel", value: "stream" },
-            { label: "Hidden (keybind / context menu only)", value: "none" }
+            { label: "Hidden (camera context menu / keybind only)", value: "none", default: true },
+            { label: "Account Section", value: "account" }
         ]
+    },
+    keybindEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Global keybind (works even when Discord is not focused)",
+        default: true,
+        onChange: val => {
+            if (val) registerKeybind(settings.store.keybind);
+            else Native.unregisterKeybind();
+        }
+    },
+    keybind: {
+        type: OptionType.STRING,
+        description: "Keybind accelerator. Use 'Set Keybind' in the camera context menu to record it, or type one (e.g. F7, Control+F3)",
+        default: "F7",
+        onChange: val => { if (settings.store.keybindEnabled) registerKeybind(val); }
     },
     soundEnabled: {
         type: OptionType.BOOLEAN,
-        description: "Play a sound when the crasher is toggled on or off",
+        description: "Play a sound when the crasher is toggled",
         default: true
     },
-    autoDisableOnStream: {
+    autoDisableOnCamera: {
         type: OptionType.BOOLEAN,
-        description: "Always disable the crasher when a stream starts or Discord launches (recommended)",
+        description: "Disable the crasher when the camera is turned on or off, or when you change voice channel",
         default: true
+    },
+    isEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Crashing state",
+        default: false,
+        hidden: true,
+        onChange: val => applyCrash(val)
     }
 });
 
-let suppressStateChange = false;
-let isEnabledCache = false;
+async function refreshImage() {
+    const token = ++imageToken;
+    imageBitmap?.close();
+    imageBitmap = null;
+    imageVersion++;
+    const mode = settings.store.crashMode;
+    if (mode !== "image" && mode !== "bsod") return;
+    const source = mode === "bsod" ? "@bsod" : (settings.store.imageUrl || "").trim();
+    if (!source) return;
 
-function playToggleSound(enabled: boolean) {
-    if (!settings.store.soundEnabled || suppressStateChange) return;
+    const uri = await Native.loadImage(source);
+    if (!uri || token !== imageToken) return;
+
     try {
-        const ctx = new AudioContext({ sinkId: "communications" } as any);
-        const play = () => {
-            const t = ctx.currentTime;
-            if (enabled) {
-                const gain = ctx.createGain();
-                gain.connect(ctx.destination);
-                const o1 = ctx.createOscillator();
-                const o2 = ctx.createOscillator();
-                o1.type = "sine"; o1.frequency.value = 523;
-                o2.type = "sine"; o2.frequency.value = 784;
-                o1.connect(gain); o2.connect(gain);
-                gain.gain.setValueAtTime(0, t);
-                gain.gain.linearRampToValueAtTime(0.020, t + 0.008);
-                gain.gain.setValueAtTime(0.020, t + 0.055);
-                gain.gain.linearRampToValueAtTime(0, t + 0.075);
-                gain.gain.setValueAtTime(0, t + 0.09);
-                gain.gain.linearRampToValueAtTime(0.020, t + 0.1);
-                gain.gain.setValueAtTime(0.020, t + 0.165);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.21);
-                o1.start(t); o1.stop(t + 0.075);
-                o2.start(t + 0.09); o2.stop(t + 0.21);
-                o2.onended = () => ctx.close();
-            } else {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.type = "triangle";
-                osc.frequency.setValueAtTime(500, t);
-                osc.frequency.exponentialRampToValueAtTime(220, t + 0.15);
-                gain.gain.setValueAtTime(0.020, t);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
-                osc.start(t); osc.stop(t + 0.18);
-                osc.onended = () => ctx.close();
-            }
-        };
-        if (ctx.state === "suspended") ctx.resume().then(play).catch(() => ctx.close());
-        else play();
-    } catch {}
+        const mime = uri.slice(5, uri.indexOf(";"));
+        const bin = atob(uri.slice(uri.indexOf(",") + 1));
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
+        if (token !== imageToken) { bmp.close(); return; }
+        imageBitmap = bmp;
+        imageVersion++;
+    } catch { }
 }
 
-let lastSourceId: string | null = null;
-let lastQualityOptions: { preset?: number; resolution?: number; frameRate?: number; } | null = null;
-let crashSourceId: string | null = null;
-let lastCrashSourceId: string | null = null;
-let currentUpdate: Promise<void> | null = null;
-let pendingState: boolean | null = null;
-let crashUpdateInProgress = false;
-let savedQuality: { preset: number; resolution: number; frameRate: number; } | null = null;
+const canvas = new OffscreenCanvas(640, 360);
+const ctx = canvas.getContext("2d", { alpha: false })!;
+const noiseCanvas = new OffscreenCanvas(128, 72);
+const noiseCtx = noiseCanvas.getContext("2d", { alpha: false })!;
+const noiseImage = noiseCtx.createImageData(128, 72);
+const COLORS = ["#f00", "#ff8000", "#ff0", "#0f0", "#0ff", "#00f"];
 
-function setLastSourceId(sourceId: string | null, qualityOptions?: any): boolean {
-    if (settings.store.isEnabled) return false;
-    if (!sourceId || sourceId === crashSourceId || sourceId === lastCrashSourceId || crashUpdateInProgress) return false;
-    lastSourceId = sourceId;
-    if (qualityOptions?.frameRate > 0) lastQualityOptions = qualityOptions;
-    lastCrashSourceId = null;
+function renderContent(w: number, h: number): string {
+    const ch = w > 0 && h > 0 ? Math.max(2, Math.round((640 * h / w) / 2) * 2) : 360;
+    const t = Date.now();
+    const phase = modeCache === "flashing" ? Math.floor(t / 120) % 2
+        : modeCache === "colors" ? Math.floor(t / 200) % 6
+            : modeCache === "static" ? Math.floor(t / 130)
+                : 0;
+    const key = `${modeCache}:${phase}:${imageVersion}:${ch}`;
+    if (key === drawnKey) return key;
+    drawnKey = key;
+
+    if (canvas.height !== ch) canvas.height = ch;
+    const W = canvas.width;
+    const H = canvas.height;
+
+    switch (modeCache) {
+        case "white":
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, W, H);
+            break;
+        case "flashing":
+            ctx.fillStyle = phase ? "#fff" : "#000";
+            ctx.fillRect(0, 0, W, H);
+            break;
+        case "colors":
+            ctx.fillStyle = COLORS[phase];
+            ctx.fillRect(0, 0, W, H);
+            break;
+        case "static": {
+            const d = noiseImage.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const v = Math.random() * 255 | 0;
+                d[i] = d[i + 1] = d[i + 2] = v;
+                d[i + 3] = 255;
+            }
+            noiseCtx.putImageData(noiseImage, 0, 0);
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(noiseCanvas, 0, 0, W, H);
+            break;
+        }
+        case "image":
+        case "bsod":
+            if (imageBitmap) {
+                ctx.drawImage(imageBitmap, 0, 0, W, H);
+                break;
+            }
+        default:
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, W, H);
+    }
+    return key;
+}
+
+function wrapStream(stream: MediaStream): MediaStream {
+    const [track] = stream.getVideoTracks();
+    if (!track || track.getSettings().displaySurface) return stream;
+
+    const processor = new MediaStreamTrackProcessor({ track });
+    const generator = new MediaStreamTrackGenerator({ kind: "video" });
+    wrapped.add(generator);
+
+    let last: VideoFrame | null = null;
+    let cached: VideoFrame | null = null;
+    let cachedKey = "";
+
+    processor.readable
+        .pipeThrough(new TransformStream<VideoFrame, VideoFrame>({
+            transform(frame, controller) {
+                if (!crashed) {
+                    if (cached) { cached.close(); cached = null; cachedKey = ""; }
+                    if (modeCache === "freeze") {
+                        last?.close();
+                        last = frame.clone();
+                    } else if (last) {
+                        last.close();
+                        last = null;
+                    }
+                    controller.enqueue(frame);
+                    return;
+                }
+
+                const ts = frame.timestamp;
+
+                if (modeCache === "freeze") {
+                    if (!last) {
+                        last = frame.clone();
+                        controller.enqueue(frame);
+                        return;
+                    }
+                    frame.close();
+                    controller.enqueue(new VideoFrame(last, { timestamp: ts }));
+                    return;
+                }
+
+                const key = renderContent(frame.displayWidth, frame.displayHeight);
+                frame.close();
+                if (!cached || key !== cachedKey) {
+                    cached?.close();
+                    cached = new VideoFrame(canvas, { timestamp: ts });
+                    cachedKey = key;
+                }
+                controller.enqueue(new VideoFrame(cached, { timestamp: ts }));
+            },
+            flush() {
+                last?.close();
+                cached?.close();
+                last = null;
+                cached = null;
+            }
+        }))
+        .pipeTo(generator.writable)
+        .catch(() => { });
+
+    const stop = generator.stop.bind(generator);
+    generator.stop = () => {
+        if (sent.delete(generator)) emit();
+        track.stop();
+        stop();
+    };
+
+    const cloneTrack = generator.clone?.bind(generator);
+    if (cloneTrack) {
+        generator.clone = () => {
+            const copy = cloneTrack();
+            wrapped.add(copy);
+            return copy;
+        };
+    }
+
+    return new MediaStream([generator, ...stream.getAudioTracks()]);
+}
+
+function hook(proto: any, key: string) {
+    const original = proto?.[key];
+    if (typeof original !== "function") return;
+    proto[key] = function (this: any, ...args: any[]) {
+        const t = args[0];
+        if (t && typeof t === "object" && wrapped.has(t) && !sent.has(t)) {
+            sent.add(t);
+            emit();
+        }
+        return original.apply(this, args);
+    };
+    restorers.push(() => { proto[key] = original; });
+}
+
+function installCapture() {
+    if (originalGetUserMedia || typeof MediaStreamTrackProcessor === "undefined") return;
+    const md = navigator.mediaDevices as any;
+    originalGetUserMedia = md.getUserMedia;
+    md.getUserMedia = async function (constraints?: MediaStreamConstraints) {
+        const stream = await originalGetUserMedia.call(md, constraints);
+        const video = constraints?.video;
+        if (!settings.store.hookStream || !video || (typeof video === "object" && (video as any).mandatory)) return stream;
+        try { return wrapStream(stream); } catch { return stream; }
+    };
+    hook(window.RTCPeerConnection?.prototype, "addTrack");
+    hook(window.RTCPeerConnection?.prototype, "addTransceiver");
+    hook(window.RTCRtpSender?.prototype, "replaceTrack");
+}
+
+function uninstallCapture() {
+    if (!originalGetUserMedia) return;
+    delete (navigator.mediaDevices as any).getUserMedia;
+    originalGetUserMedia = null;
+    restorers.forEach(fn => fn());
+    restorers = [];
+    sent.clear();
+}
+
+function pickSafeDevice(current: string | undefined) {
+    const needle = (safeName() || "virtual").toLowerCase();
+    return listDevices().find(d => d.id !== current && (d.id === needle || d.name?.toLowerCase().includes(needle)));
+}
+
+function switchCamera(): boolean {
+    const current = MediaEngineStore.getVideoDeviceId?.();
+    const target = pickSafeDevice(current);
+    if (!target) {
+        showToast("Safe camera not found. Pick one in the camera menu or type it in settings", "failure");
+        return false;
+    }
+    previousDevice = current ?? "";
+    lastSwitchAt = Date.now();
+    MediaEngineActions.setVideoDevice(target.id);
+    emit();
     return true;
 }
 
-async function getSourceId(isEnabled: boolean): Promise<string> {
-    if (isEnabled) {
-        if (!lastSourceId) {
-            const sources = await DiscordNative.desktopCapture.getDesktopCaptureSources({ types: ["screen"], thumbnailSize: { width: 0, height: 0 } });
-            lastSourceId = sources[0]?.id ?? "default";
-        }
-        crashSourceId = await Native.createCrashSource();
-        lastCrashSourceId = crashSourceId;
-        return crashSourceId ?? "";
+function restoreCamera() {
+    const id = previousDevice;
+    previousDevice = null;
+    fallbackUsed = false;
+    if (id) {
+        lastSwitchAt = Date.now();
+        MediaEngineActions.setVideoDevice(id);
     }
-    crashSourceId = null;
-    if (lastSourceId) return lastSourceId;
-    const sources = await DiscordNative.desktopCapture.getDesktopCaptureSources({ types: ["screen"], thumbnailSize: { width: 0, height: 0 } });
-    return sources[0]?.id ?? "default";
+    emit();
 }
 
-function resolveRestoreQuality() {
-    if (lastQualityOptions?.frameRate > 0) {
-        return {
-            preset: lastQualityOptions.preset ?? 2,
-            resolution: lastQualityOptions.resolution ?? 720,
-            frameRate: lastQualityOptions.frameRate
-        };
-    }
-    const s = ApplicationStreamingSettingsStore?.getState?.() ?? {};
-    return {
-        preset: s.preset ?? 2,
-        resolution: s.resolution ?? 720,
-        frameRate: (s.fps && s.fps > 0) ? s.fps : 60
-    };
+function toggleSwitch() {
+    if (previousDevice !== null) restoreCamera();
+    else switchCamera();
 }
 
-async function doUpdateStream(isEnabled: boolean) {
-    try {
-        let streaming = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-        if (!streaming) {
-            await new Promise(r => setTimeout(r, 500));
-            streaming = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-            if (!streaming) return;
+function applyCrash(val: boolean) {
+    crashed = val;
+    drawnKey = "";
+    playToggleSound(val);
+
+    if (val) {
+        if (!suppress && inCall() && videoOn()) {
+            if (sent.size > 0) {
+                showToast("Crasher on, camera hooked", "success");
+            } else if (!settings.store.fallbackSwitch) {
+                showToast("Native camera: crasher cannot hook it, use Switch to Safe Camera", "failure");
+            } else if (previousDevice !== null) {
+                fallbackUsed = true;
+            } else if (switchCamera()) {
+                fallbackUsed = true;
+                showToast("Native camera: switched to safe camera", "success");
+            }
         }
-
-        crashUpdateInProgress = true;
-
-        if (isEnabled && !savedQuality) {
-            const s = ApplicationStreamingSettingsStore?.getState?.() ?? {};
-            savedQuality = {
-                preset: s.preset ?? 2,
-                resolution: s.resolution ?? 720,
-                frameRate: (s.fps && s.fps > 0) ? s.fps : 60
-            };
-        }
-
-        const sourceId = await getSourceId(isEnabled);
-        if (!sourceId) { crashUpdateInProgress = false; return; }
-
-        const type = sourceId.includes(":") ? sourceId.split(":")[0] : "screen";
-        const sound = isEnabled ? false : (ApplicationStreamingSettingsStore?.getState?.()?.soundshareEnabled ?? false);
-        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 60 } : (savedQuality ?? resolveRestoreQuality());
-        if (!isEnabled) savedQuality = null;
-
-        VoiceActions.setGoLiveSource({
-            desktopSettings: { sourceId, type, sound },
-            qualityOptions,
-            context: "stream"
-        });
-
-        await new Promise(r => setTimeout(r, 100));
-        crashUpdateInProgress = false;
-
-        if (!isEnabled) Native.stopCrashSource();
-    } catch {
-        crashUpdateInProgress = false;
+    } else if (fallbackUsed && previousDevice !== null) {
+        restoreCamera();
     }
+    emit();
 }
 
-function updateStream(isEnabled: boolean) {
-    if (currentUpdate) {
-        pendingState = isEnabled;
+function setCrash(on: boolean) {
+    settings.store.isEnabled = on;
+}
+
+function panic() {
+    if (crashed || previousDevice !== null) {
+        if (crashed) setCrash(false);
+        if (previousDevice !== null) restoreCamera();
         return;
     }
-    currentUpdate = doUpdateStream(isEnabled).finally(() => {
-        currentUpdate = null;
-        if (pendingState !== null) {
-            const next = pendingState;
-            pendingState = null;
-            updateStream(next);
-        }
-    });
+    if (settings.store.panicAction === "switch") switchCamera();
+    else setCrash(true);
 }
 
-const Button = findComponentByCodeLazy(".GREEN,positionKeyStemOverride:");
+function onVideoToggle() {
+    if (!settings.store.autoDisableOnCamera || !crashed) return;
+    if (Date.now() - lastSwitchAt < 1500) return;
+    suppress = true;
+    settings.store.isEnabled = false;
+    suppress = false;
+}
 
-const CrashIcon = ({ isEnabled }) => (
-    <svg width="18" height="18" viewBox="0 0 24 24">
+const CamIcon = ({ active }: { active: boolean; }) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path
-            fill={isEnabled ? "var(--icon-voice-muted)" : "currentColor"}
-            d="M18.75 6c0 2.08-1.19 3.91-3 4.98V12c0 .83-.67 1.5-1.5 1.5h-4.5c-.83 0-1.5-.67-1.5-1.5v-1.02c-1.81-1.08-3-2.91-3-4.98C5.25 2.69 8.27 0 12 0s6.75 2.69 6.75 6zM9.38 8.25c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm6.75-1.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5.67 1.5 1.5 1.5 1.5-.67 1.5-1.5zM4.8 15c.3-.6 1-.85 1.6-.55L12 17l5.6-2.55c.6-.3 1.35-.05 1.6.55s.05 1.35-.55 1.6L14.8 18l3.65 1.6c.6.3.85 1 .55 1.6s-1 .85-1.6.55L12 19l-5.6 2.75c-.6.3-1.35.05-1.6-.55s-.05-1.35.55-1.6L9.2 18l-3.65-1.6c-.6-.3-.85-1-.55-1.6z"
+            fill={active ? "var(--status-danger)" : "currentColor"}
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d={active
+                ? "M4 5h9.5A3.5 3.5 0 0 1 17 8.5v7a3.5 3.5 0 0 1-3.5 3.5H4A3.5 3.5 0 0 1 .5 15.5v-7A3.5 3.5 0 0 1 4 5zM9.7 8 6.5 12.5h2.3L8 16l3.5-4.6H9.2z"
+                : "M4 5h9.5A3.5 3.5 0 0 1 17 8.5v7a3.5 3.5 0 0 1-3.5 3.5H4A3.5 3.5 0 0 1 .5 15.5v-7A3.5 3.5 0 0 1 4 5zM8.75 9.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"}
+        />
+        <path
+            fill={active ? "var(--status-danger)" : "currentColor"}
+            d="M18.5 10.4l3-1.9a.9.9 0 0 1 1.4.77v5.46a.9.9 0 0 1-1.4.77l-3-1.9z"
         />
     </svg>
 );
 
 const SettingsIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.49.37 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.22 0 .43-.17.48-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/>
+        <path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.49.37 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.22 0 .43-.17.48-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z" />
     </svg>
 );
 
@@ -301,12 +616,15 @@ function buildAccelerator(e: KeyboardEvent): string | null {
     return parts.join("+");
 }
 
-let recordingActive = false;
 let recordingHandler: ((e: KeyboardEvent) => void) | null = null;
 
+function stopRecording() {
+    if (recordingHandler) window.removeEventListener("keydown", recordingHandler, true);
+    recordingHandler = null;
+}
+
 function recordKeybind() {
-    if (recordingActive) return;
-    recordingActive = true;
+    if (recordingHandler) return;
     showToast("Press a key combo for the keybind (Esc to cancel)", "clock");
 
     recordingHandler = (e: KeyboardEvent) => {
@@ -314,9 +632,7 @@ function recordKeybind() {
         e.stopImmediatePropagation();
 
         if (e.code === "Escape") {
-            window.removeEventListener("keydown", recordingHandler!, true);
-            recordingHandler = null;
-            recordingActive = false;
+            stopRecording();
             showToast("Keybind recording cancelled", "clock");
             return;
         }
@@ -324,171 +640,130 @@ function recordKeybind() {
         const acc = buildAccelerator(e);
         if (!acc) return;
 
-        window.removeEventListener("keydown", recordingHandler!, true);
-        recordingHandler = null;
-        recordingActive = false;
+        stopRecording();
         settings.store.keybind = acc;
-        if (settings.store.keybindEnabled) tryRegisterKeybind(acc);
         showToast(`Keybind set to ${acc}`, "success");
     };
 
     window.addEventListener("keydown", recordingHandler, true);
 }
 
-function buildCrashModeSubmenu(idPrefix: string, crashMode: string) {
-    return (
-        <Menu.MenuItem id={`${idPrefix}-mode`} label="Crash Mode">
+function buildItems(prefix: string) {
+    const { isEnabled, crashMode, panicAction, keybindEnabled } = settings.store;
+    const keybind = settings.store.keybind || "F7";
+    const switched = previousDevice !== null;
+    const safe = safeName().toLowerCase();
+    const devices = listDevices();
+
+    return [
+        <Menu.MenuCheckboxItem
+            key={`${prefix}-toggle`}
+            id={`${prefix}-toggle`}
+            label={isEnabled ? "Disable StreamCrasher" : "Enable StreamCrasher"}
+            subtext={isEnabled && fallbackUsed ? "Native camera: using the safe camera" : undefined}
+            checked={isEnabled}
+            action={() => setCrash(!settings.store.isEnabled)}
+        />,
+        <Menu.MenuItem key={`${prefix}-mode`} id={`${prefix}-mode`} label="StreamCrash Mode">
             {Object.entries(crashModeLabels).map(([value, { value: label, subText }]) => (
                 <Menu.MenuCheckboxItem
                     key={value}
-                    id={`${idPrefix}-mode-${value}`}
+                    id={`${prefix}-mode-${value}`}
                     label={label}
                     subtext={subText}
                     checked={crashMode === value}
-                    action={() => settings.store.crashMode = value}
+                    action={() => { settings.store.crashMode = value; }}
                 />
             ))}
-        </Menu.MenuItem>
-    );
-}
-
-function CrasherContextMenu({ closePopout }: { closePopout: () => void; }) {
-    const { isEnabled, keybindEnabled, crashMode, buttonLocation, keybind } = settings.use([
-        "isEnabled", "keybindEnabled", "crashMode", "buttonLocation", "keybind"
-    ]);
-
-    return (
-        <Menu.Menu navId="stream-crasher-context" onClose={closePopout}>
-            <Menu.MenuCheckboxItem
-                id="ctx-toggle"
-                label={isEnabled ? "Disable Crasher" : "Enable Crasher"}
-                checked={isEnabled}
-                action={() => settings.store.isEnabled = !settings.store.isEnabled}
-            />
-
-            <Menu.MenuSeparator />
-
-            {buildCrashModeSubmenu("ctx", crashMode)}
-
-            <Menu.MenuItem id="ctx-location" label="Button Location">
-                {([
-                    { label: "Account Section", value: "account" },
-                    { label: "Streaming Panel", value: "stream" },
-                    { label: "Hidden", value: "none" }
-                ] as const).map(opt => (
+        </Menu.MenuItem>,
+        <Menu.MenuSeparator key={`${prefix}-sep-a`} />,
+        <Menu.MenuCheckboxItem
+            key={`${prefix}-switch`}
+            id={`${prefix}-switch`}
+            label="Use Safe Camera"
+            checked={switched}
+            action={toggleSwitch}
+        />,
+        <Menu.MenuItem key={`${prefix}-safe`} id={`${prefix}-safe`} label="Safe Camera">
+            {devices.length === 0
+                ? <Menu.MenuItem id={`${prefix}-safe-none`} label="No cameras found" disabled />
+                : devices.map(d => (
                     <Menu.MenuCheckboxItem
-                        key={opt.value}
-                        id={`ctx-loc-${opt.value}`}
-                        label={opt.label}
-                        checked={buttonLocation === opt.value}
-                        action={() => settings.store.buttonLocation = opt.value}
+                        key={d.id}
+                        id={`${prefix}-safe-${d.id}`}
+                        label={d.name}
+                        checked={!!safe && d.name?.toLowerCase().includes(safe)}
+                        action={() => {
+                            settings.store.safeCameraName = d.name;
+                            settings.store.manualCamera = "";
+                        }}
                     />
                 ))}
-            </Menu.MenuItem>
-
-            <Menu.MenuSeparator />
-
+        </Menu.MenuItem>,
+        <Menu.MenuSeparator key={`${prefix}-sep-b`} />,
+        <Menu.MenuItem key={`${prefix}-action`} id={`${prefix}-action`} label="Button / Keybind Action">
             <Menu.MenuCheckboxItem
-                id="ctx-keybind-toggle"
-                label="Enable Global Keybind"
-                checked={keybindEnabled}
-                action={() => settings.store.keybindEnabled = !settings.store.keybindEnabled}
+                id={`${prefix}-action-crash`}
+                label="Crash Camera"
+                checked={panicAction === "crash"}
+                action={() => { settings.store.panicAction = "crash"; }}
             />
-
-            <Menu.MenuItem
-                id="ctx-keybind-record"
-                label={`Set Keybind (${keybind || "F6"})`}
-                action={recordKeybind}
+            <Menu.MenuCheckboxItem
+                id={`${prefix}-action-switch`}
+                label="Switch to Safe Camera"
+                checked={panicAction === "switch"}
+                action={() => { settings.store.panicAction = "switch"; }}
             />
-
-            <Menu.MenuSeparator />
-
-            <Menu.MenuItem
-                id="ctx-settings"
-                label="Crasher Settings"
-                icon={SettingsIcon}
-                action={() => openPluginModal(StreamCrasherPlugin)}
-            />
-        </Menu.Menu>
-    );
-}
-
-const StreamCrasherPatch: NavContextMenuPatchCallback = children => {
-    const isEnabled = settings.store.isEnabled;
-    const crashMode = settings.store.crashMode;
-    const keybind = settings.store.keybind || "F6";
-
-    children.splice(3, 0,
+        </Menu.MenuItem>,
         <Menu.MenuCheckboxItem
-            id="stream-crasher-toggle"
-            label={isEnabled ? "Disable Crasher" : "Enable Crasher"}
-            checked={isEnabled}
-            action={() => settings.store.isEnabled = !settings.store.isEnabled}
+            key={`${prefix}-keybind-toggle`}
+            id={`${prefix}-keybind-toggle`}
+            label="Enable Global Keybind"
+            checked={keybindEnabled}
+            action={() => { settings.store.keybindEnabled = !settings.store.keybindEnabled; }}
         />,
-        buildCrashModeSubmenu("scm", crashMode),
         <Menu.MenuItem
-            id="stream-crasher-keybind"
+            key={`${prefix}-keybind-record`}
+            id={`${prefix}-keybind-record`}
             label={`Set Keybind (${keybind})`}
             action={recordKeybind}
         />,
         <Menu.MenuItem
-            id="stream-crasher-settings"
-            label="Crasher Settings"
+            key={`${prefix}-settings`}
+            id={`${prefix}-settings`}
+            label="StreamCrasher Settings"
             icon={SettingsIcon}
-            action={() => openPluginModal(StreamCrasherPlugin)}
+            action={() => openPluginModal(CamCrasherPlugin)}
         />
-    );
+    ];
+}
+
+const CamCrasherPatch: NavContextMenuPatchCallback = children => {
+    children.push(<Menu.MenuSeparator />, ...buildItems("vcc"));
 };
 
-function CrashButton() {
-    const buttonRef = useRef(null);
-    const { isEnabled } = settings.use(["isEnabled"]);
-    const userId = useMemo(() => UserStore.getCurrentUser()?.id, []);
-    const isStreaming = useStateFromStores(
-        [ApplicationStreamingStore],
-        () => ApplicationStreamingStore.getActiveStreamForUser(userId) != null
-    );
-
-    if (!isStreaming) return null;
+function CrasherPopoutMenu({ closePopout }: { closePopout: () => void; }) {
+    settings.use(["isEnabled", "crashMode", "panicAction", "keybind", "keybindEnabled", "safeCameraName", "manualCamera"]);
+    useStateFromStores([MediaEngineStore], () => MediaEngineStore.getVideoDevices?.());
+    useCamState();
 
     return (
-        <Popout
-            position="top"
-            align="left"
-            animation={Popout.Animation.FADE}
-            spacing={4}
-            targetElementRef={buttonRef}
-            renderPopout={({ closePopout }) => <CrasherContextMenu closePopout={closePopout} />}
-        >
-            {({ onClick: openPopout }) => (
-                <div ref={buttonRef}>
-                    <Button
-                        aria-checked={isEnabled}
-                        aria-label={isEnabled ? "Disable Crasher" : "Enable Crasher"}
-                        icon={() => <CrashIcon isEnabled={isEnabled} />}
-                        onClick={() => settings.store.isEnabled = !settings.store.isEnabled}
-                        onContextMenu={openPopout}
-                        plated={false}
-                        redGlow={isEnabled}
-                        role="switch"
-                        tooltipText={isEnabled ? "Disable Crasher (right-click for options)" : "Enable Crasher (right-click for options)"}
-                    />
-                </div>
-            )}
-        </Popout>
+        <Menu.Menu navId="cam-crasher-context" onClose={closePopout}>
+            {buildItems("ccp")}
+        </Menu.Menu>
     );
 }
 
-function CrashButtonAccount() {
+function CamButtonAccount() {
     const buttonRef = useRef(null);
-    const { isEnabled } = settings.use(["isEnabled"]);
-    const userId = useMemo(() => UserStore.getCurrentUser()?.id, []);
-    const isStreaming = useStateFromStores(
-        [ApplicationStreamingStore],
-        () => ApplicationStreamingStore.getActiveStreamForUser(userId) != null
-    );
+    const { buttonLocation, isEnabled } = settings.use(["buttonLocation", "isEnabled"]);
+    const { switched } = useCamState();
+    const inVideo = useStateFromStores([MediaEngineStore, SelectedChannelStore], () => inCall() && videoOn());
 
-    if (!isStreaming) return null;
+    if (buttonLocation !== "account" || !inVideo) return null;
+
+    const active = isEnabled || switched;
+    const tooltip = active ? "Restore Camera (right-click for options)" : "Protect Camera (right-click for options)";
 
     return (
         <Popout
@@ -497,18 +772,18 @@ function CrashButtonAccount() {
             animation={Popout.Animation.FADE}
             spacing={4}
             targetElementRef={buttonRef}
-            renderPopout={({ closePopout }) => <CrasherContextMenu closePopout={closePopout} />}
+            renderPopout={({ closePopout }) => <CrasherPopoutMenu closePopout={closePopout} />}
         >
             {({ onClick: openPopout }) => (
-                <div ref={buttonRef} className="vc-sc-wrap">
+                <div ref={buttonRef} className="vc-cc-wrap">
                     <UserAreaButton
-                        tooltipText={isEnabled ? "Disable Crasher (right-click for options)" : "Enable Crasher (right-click for options)"}
-                        icon={<CrashIcon isEnabled={isEnabled} />}
+                        tooltipText={tooltip}
+                        icon={<CamIcon active={active} />}
                         role="switch"
-                        aria-checked={isEnabled}
-                        onClick={() => settings.store.isEnabled = !settings.store.isEnabled}
+                        aria-checked={active}
+                        onClick={panic}
                         onContextMenu={openPopout}
-                        className={`vc-streamcrasher-btn${isEnabled ? " danger" : ""}`}
+                        className={`vc-camcrasher-btn${active ? " danger" : ""}`}
                     />
                 </div>
             )}
@@ -516,150 +791,77 @@ function CrashButtonAccount() {
     );
 }
 
-function CrashButtonStream() {
-    const { buttonLocation } = settings.use(["buttonLocation"]);
-    if (buttonLocation !== "stream") return null;
-    return <CrashButton />;
-}
+const CamButtonWrapped = ErrorBoundary.wrap(CamButtonAccount, { noop: true });
 
-let keybindLoopActive = false;
+const styles = `
+.vc-camcrasher-btn { color: var(--interactive-normal); margin-left: 4px; }
+.vc-cc-wrap { width: fit-content; min-width: 0; }
+.vc-cc-panel { padding: 12px 14px; border-radius: 8px; margin-bottom: 8px; background: var(--background-base-lower, var(--background-secondary)); }
+.vc-cc-row { display: flex; align-items: center; gap: 10px; }
+.vc-cc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--interactive-muted, #4e5058); }
+.vc-cc-dot.on { background: var(--status-danger, #f23f43); }
+.vc-cc-title { flex: 1; font-weight: 600; color: var(--text-strong, var(--header-primary)); }
+.vc-cc-sub { margin-top: 6px; font-size: 12px; color: var(--text-subtle, var(--text-muted)); }
+.vc-cc-btn { padding: 4px 14px; border: 0; border-radius: 6px; cursor: pointer; font-weight: 500; color: #fff; background: var(--brand-500, #5865f2); }
+.vc-cc-btn:hover { filter: brightness(1.1); }
+.vc-cc-field { margin-bottom: 8px; }
+.vc-cc-label { margin-bottom: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-strong, var(--header-secondary)); }
+`;
 
-let isStreamingNow = false;
-
-async function keybindLoop() {
-    keybindLoopActive = true;
-    while (keybindLoopActive) {
-        await Native.waitForKeybind();
-        if (keybindLoopActive && isStreamingNow && settings.store.keybindEnabled)
-            settings.store.isEnabled = !settings.store.isEnabled;
-    }
-}
-
-function stopKeybindLoop() {
-    if (!keybindLoopActive) return;
-    keybindLoopActive = false;
-    void Native.cancelKeybindWait();
-}
-
-function syncKeybindLoop() {
-    if (settings.store.keybindEnabled && isStreamingNow) {
-        if (!keybindLoopActive) void keybindLoop();
-    } else {
-        stopKeybindLoop();
-    }
-}
-
-const styles = `.vc-streamcrasher-btn { color: var(--interactive-normal); margin-left: 4px; } .vc-sc-wrap { width: fit-content; min-width: 0; }`;
-
-const StreamCrasherPlugin = definePlugin({
-    name: "StreamCrasher",
-    description: "Crashes/Freezes your stream in Discord calls when you're screensharing",
-    authors: [Devs.RoScripter999, { name: "zfrancesck1", id: 456195985404592149n }],
-    tags: ["Voice", "Utility", "Privacy"],
+const CamCrasherPlugin = definePlugin({
+    name: "CamCrasher",
+    description: "Crash, freeze or swap your webcam with a global keybind when something private shows up in a call. Includes all StreamCrasher modes.",
+    authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    tags: ["Voice", "Privacy", "Utility"],
     enabledByDefault: false,
-    searchTerms: ["StreamFreezer", "ScreenshareCrasher"],
+    searchTerms: ["CameraCrasher", "WebcamFreeze", "CamFreeze", "CameraPanic"],
     settings,
     styles,
+
     contextMenus: {
-        "manage-streams": StreamCrasherPatch
-    },
-
-    start() {
-        suppressStateChange = true;
-        settings.store.isEnabled = false;
-        suppressStateChange = false;
-        isEnabledCache = false;
-
-        isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-        if (settings.store.keybindEnabled) tryRegisterKeybind(settings.store.keybind);
-        syncKeybindLoop();
-
-        setTimeout(() => {
-            Vencord.Api.UserArea.addUserAreaButton("stream-crasher-account-button", () =>
-                settings.store.buttonLocation === "account" ? <CrashButtonAccount /> : null
-            );
-        }, 500);
-    },
-
-    stop() {
-        if (recordingActive && recordingHandler) {
-            window.removeEventListener("keydown", recordingHandler, true);
-            recordingHandler = null;
-            recordingActive = false;
-        }
-        Native.unregisterGlobalKeybind();
-        stopKeybindLoop();
-        Vencord.Api.UserArea.removeUserAreaButton("stream-crasher-account-button");
+        "video-device-context": CamCrasherPatch
     },
 
     flux: {
-        STREAM_CREATE() {
-            isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-            syncKeybindLoop();
-            if (settings.store.autoDisableOnStream !== false) {
-                suppressStateChange = true;
-                settings.store.isEnabled = false;
-                suppressStateChange = false;
-                isEnabledCache = false;
-                Native.stopCrashSource();
-            } else if (isStreamingNow && settings.store.isEnabled) {
-                playToggleSound(true);
-                updateStream(true);
-            }
-        },
-        STREAM_UPDATE() {
-            isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-        },
-        STREAM_DELETE() {
-            isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-            syncKeybindLoop();
-        },
-        MEDIA_ENGINE_SET_GO_LIVE_SOURCE(data) {
-            isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-            syncKeybindLoop();
-            const sourceId = data.settings?.desktopSettings?.sourceId;
-            const qualityOptions = data.settings?.qualityOptions;
-            if (sourceId && sourceId !== "" && setLastSourceId(sourceId, qualityOptions) && settings.store.isEnabled && settings.store.autoDisableOnStream === false) {
-                playToggleSound(true);
-                updateStream(true);
-            }
-        },
-        STREAM_STOP() {
-            if (settings.store.autoDisableOnStream !== false) {
-                suppressStateChange = true;
-                settings.store.isEnabled = false;
-                suppressStateChange = false;
-                isEnabledCache = false;
-            }
-            isStreamingNow = false;
-            syncKeybindLoop();
-            Native.stopCrashSource();
-        }
+        MEDIA_ENGINE_SET_VIDEO_ENABLED: onVideoToggle,
+        VOICE_CHANNEL_SELECT: onVideoToggle
     },
 
-    patches: [
-        {
-            find: "_handleVideo",
-            replacement: {
-                match: /if\(\i\.\i\.supports\(\i\.\i\.VIDEO\)&&null!=this\._connection&&this\.userId!==\i\)\{/,
-                replace: 'if($self.isSettingEnabled&&this.context==="Stream")return;$&'
-            }
-        },
-        {
-            find: "ClipsPanelButton",
-            replacement: {
-                match: /return ([\w$]+&&[\w$]+)\?(\(0,[\w$.]+\)\([\w$.]+,\{disabled:[^,]+,tooltipText:[\w$.]+,onClick:\(\)=>\{[^}]*\},onContextMenu:[\w$.]+,icon:[\w$.]+\}\)):null/,
-                replace: "return $1?[$2,$self.CrashButtonStream()]:null"
-            }
-        }
-    ],
+    start() {
+        suppress = true;
+        settings.store.isEnabled = false;
+        suppress = false;
+        crashed = false;
+        previousDevice = null;
+        fallbackUsed = false;
+        modeCache = settings.store.crashMode;
+        drawnKey = "";
 
-    get isSettingEnabled() {
-        return isEnabledCache;
+        installCapture();
+        refreshImage();
+        if (settings.store.keybindEnabled) registerKeybind(settings.store.keybind);
+        Vencord.Api.UserArea.addUserAreaButton(BUTTON_ID, () => <CamButtonWrapped />);
     },
 
-    CrashButtonAccount: ErrorBoundary.wrap(CrashButtonAccount, { noop: true }),
-    CrashButtonStream: ErrorBoundary.wrap(CrashButtonStream, { noop: true })
+    stop() {
+        stopRecording();
+        if (previousDevice !== null) restoreCamera();
+        crashed = false;
+        uninstallCapture();
+        Native.unregisterKeybind();
+        Vencord.Api.UserArea.removeUserAreaButton(BUTTON_ID);
+        imageToken++;
+        imageBitmap?.close();
+        imageBitmap = null;
+        listeners.clear();
+    },
+
+    onKeybind() {
+        const now = Date.now();
+        if (now - lastFire < 300) return;
+        lastFire = now;
+        panic();
+    }
 });
 
-export default StreamCrasherPlugin;
+export default CamCrasherPlugin;
