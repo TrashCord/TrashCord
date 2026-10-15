@@ -337,7 +337,7 @@ function recordKeybind() {
 
 function buildCrashModeSubmenu(idPrefix: string, crashMode: string) {
     return (
-        <Menu.MenuItem id={`${idPrefix}-mode`} label="Crash Mode">
+        <Menu.MenuItem id={`${idPrefix}-mode`} label="StreamCrash Mode">
             {Object.entries(crashModeLabels).map(([value, { value: label, subText }]) => (
                 <Menu.MenuCheckboxItem
                     key={value}
@@ -361,7 +361,7 @@ function CrasherContextMenu({ closePopout }: { closePopout: () => void; }) {
         <Menu.Menu navId="stream-crasher-context" onClose={closePopout}>
             <Menu.MenuCheckboxItem
                 id="ctx-toggle"
-                label={isEnabled ? "Disable Crasher" : "Enable Crasher"}
+                label={isEnabled ? "Disable StreamCrasher" : "Enable StreamCrasher"}
                 checked={isEnabled}
                 action={() => settings.store.isEnabled = !settings.store.isEnabled}
             />
@@ -405,7 +405,7 @@ function CrasherContextMenu({ closePopout }: { closePopout: () => void; }) {
 
             <Menu.MenuItem
                 id="ctx-settings"
-                label="Crasher Settings"
+                label="StreamCrasher Settings"
                 icon={SettingsIcon}
                 action={() => openPluginModal(StreamCrasherPlugin)}
             />
@@ -421,7 +421,7 @@ const StreamCrasherPatch: NavContextMenuPatchCallback = children => {
     children.splice(3, 0,
         <Menu.MenuCheckboxItem
             id="stream-crasher-toggle"
-            label={isEnabled ? "Disable Crasher" : "Enable Crasher"}
+            label={isEnabled ? "Disable StreamCrasher" : "Enable StreamCrasher"}
             checked={isEnabled}
             action={() => settings.store.isEnabled = !settings.store.isEnabled}
         />,
@@ -433,7 +433,7 @@ const StreamCrasherPatch: NavContextMenuPatchCallback = children => {
         />,
         <Menu.MenuItem
             id="stream-crasher-settings"
-            label="Crasher Settings"
+            label="StreamCrasher Settings"
             icon={SettingsIcon}
             action={() => openPluginModal(StreamCrasherPlugin)}
         />
@@ -464,14 +464,14 @@ function CrashButton() {
                 <div ref={buttonRef}>
                     <Button
                         aria-checked={isEnabled}
-                        aria-label={isEnabled ? "Disable Crasher" : "Enable Crasher"}
+                        aria-label={isEnabled ? "Disable StreamCrasher" : "Enable StreamCrasher"}
                         icon={() => <CrashIcon isEnabled={isEnabled} />}
                         onClick={() => settings.store.isEnabled = !settings.store.isEnabled}
                         onContextMenu={openPopout}
                         plated={false}
                         redGlow={isEnabled}
                         role="switch"
-                        tooltipText={isEnabled ? "Disable Crasher (right-click for options)" : "Enable Crasher (right-click for options)"}
+                        tooltipText={isEnabled ? "Disable StreamCrasher (right-click for options)" : "Enable StreamCrasher (right-click for options)"}
                     />
                 </div>
             )}
@@ -502,7 +502,7 @@ function CrashButtonAccount() {
             {({ onClick: openPopout }) => (
                 <div ref={buttonRef} className="vc-sc-wrap">
                     <UserAreaButton
-                        tooltipText={isEnabled ? "Disable Crasher (right-click for options)" : "Enable Crasher (right-click for options)"}
+                        tooltipText={isEnabled ? "Disable StreamCrasher (right-click for options)" : "Enable StreamCrasher (right-click for options)"}
                         icon={<CrashIcon isEnabled={isEnabled} />}
                         role="switch"
                         aria-checked={isEnabled}
