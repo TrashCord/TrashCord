@@ -102,7 +102,7 @@ function getRandomVoiceChannel(triggeredGuildId: string, excludeChannelId: strin
             if (excludedChannels.includes(ch.id)) continue;
             if (settings.store.rvAvoidStages && ch.isGuildStageVoice?.()) continue;
             if (!PermissionStore.can(PermissionsBits.CONNECT, ch)) continue;
-            if (settings.store.rvAvoidAfk && !PermissionStore.can(PermissionsBits.SPEAK, ch)) continue;
+            if (settings.store.rvAvoidAFK && !PermissionStore.can(PermissionsBits.SPEAK, ch)) continue;
 
             const states = VoiceStateStore.getVoiceStatesForChannel(ch.id);
             const stateValues = Object.values(states) as any[];
@@ -317,7 +317,7 @@ export const settings = definePluginSettings({
         default: false,
         description: "Avoid joining stage channels",
     },
-    rvAvoidAfk: {
+    rvAvoidAFK: {
         type: OptionType.BOOLEAN,
         default: false,
         description: "Avoid joining AFK channels",
