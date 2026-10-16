@@ -436,7 +436,7 @@ export const settings = definePluginSettings({
     keybindEnabled: {
         type: OptionType.BOOLEAN,
         description: "Start the stream with a global keybind (works even when Discord is not focused)",
-        default: false,
+        default: true,
         onChange: scheduleSync
     },
     keybindRecorder: {
