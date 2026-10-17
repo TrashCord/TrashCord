@@ -24,14 +24,16 @@ let suppress = false;
 let previousDevice: string | null = null;
 let lastSwitchAt = 0;
 let lastFire = 0;
-let lastVideo = false;
 let lastChannel: string | null = null;
+let keybindActive = false;
+let watching = false;
 
 const heldBroadcast = new Map<any, any>();
 const listeners = new Set<() => void>();
 
 function emit() {
     listeners.forEach(fn => fn());
+    syncKeybind();
 }
 
 function useCamState() {
@@ -54,9 +56,10 @@ function videoOn() {
 
 function cameraState(): "on" | "fake" | "off" {
     if (!inCall()) return "off";
-    if (videoOn()) return "on";
     const me = UserStore.getCurrentUser()?.id;
-    return me && VoiceStateStore.getVoiceStateForUser?.(me)?.selfVideo ? "fake" : "off";
+    const selfVideo = !!(me && VoiceStateStore.getVoiceStateForUser?.(me)?.selfVideo);
+    if (!selfVideo) return "off";
+    return videoOn() ? "on" : "fake";
 }
 
 function listDevices(): any[] {
@@ -72,8 +75,47 @@ async function registerKeybind(accelerator: string) {
     if (!ok) notify("Keybind unavailable, pick another one", "failure");
 }
 
+function keybindWanted() {
+    return settings.store.keybindEnabled && cameraState() === "on";
+}
+
+function syncKeybind() {
+    if (!watching) return;
+    const want = keybindWanted();
+    if (want === keybindActive) return;
+    keybindActive = want;
+    if (want) void registerKeybind(settings.store.keybind);
+    else void Native.unregisterKeybind();
+}
+
+function onStoreChange() {
+    syncKeybind();
+    syncCamera();
+}
+
+function onVoiceState(data: any) {
+    const me = UserStore.getCurrentUser()?.id;
+    if (me && data?.voiceStates?.some((v: any) => v.userId === me)) onStoreChange();
+}
+
+function startWatch() {
+    if (watching) return;
+    watching = true;
+    MediaEngineStore.addChangeListener(onStoreChange);
+    FluxDispatcher.subscribe("VOICE_STATE_UPDATES", onVoiceState);
+    FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", onStoreChange);
+}
+
+function stopWatch() {
+    if (!watching) return;
+    watching = false;
+    MediaEngineStore.removeChangeListener(onStoreChange);
+    FluxDispatcher.unsubscribe("VOICE_STATE_UPDATES", onVoiceState);
+    FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", onStoreChange);
+}
+
 function playToggleSound(on: boolean) {
-    if (!settings.store.soundEnabled || suppress) return;
+    if (!settings.store.soundEnabled || suppress || !inCall()) return;
     try {
         const ctx = new AudioContext({ sinkId: "communications" } as any);
         const play = () => {
@@ -134,6 +176,7 @@ function hideSupported() {
 }
 
 function holdBroadcast(on: boolean) {
+    let acted = false;
     for (const c of videoConnections()) {
         if (typeof c.setVideoBroadcast !== "function") continue;
         try {
@@ -146,15 +189,18 @@ function holdBroadcast(on: boolean) {
                     };
                 }
                 heldBroadcast.get(c).call(c, false);
+                acted = true;
             } else if (heldBroadcast.has(c)) {
                 const original = heldBroadcast.get(c);
                 heldBroadcast.delete(c);
                 c.setVideoBroadcast = original;
-                original.call(c, videoOn());
+                original.call(c, cameraState() === "on");
+                acted = true;
             }
         } catch { }
     }
     if (!on) heldBroadcast.clear();
+    return acted;
 }
 
 function pickBackupDevice(current: string | undefined) {
@@ -187,26 +233,7 @@ function restoreCamera(silent = false) {
     emit();
 }
 
-let watching = false;
 let buttonAdded = false;
-
-function watchCamera(on: boolean) {
-    if (on === watching) return;
-    watching = on;
-    if (on) {
-        lastVideo = videoOn();
-        lastChannel = SelectedChannelStore.getVoiceChannelId() ?? null;
-        MediaEngineStore.addChangeListener(syncCamera);
-        SelectedChannelStore.addChangeListener(syncCamera);
-        FluxDispatcher.subscribe("MEDIA_ENGINE_SET_VIDEO_ENABLED", syncCamera);
-        FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", syncCamera);
-    } else {
-        MediaEngineStore.removeChangeListener(syncCamera);
-        SelectedChannelStore.removeChangeListener(syncCamera);
-        FluxDispatcher.unsubscribe("MEDIA_ENGINE_SET_VIDEO_ENABLED", syncCamera);
-        FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", syncCamera);
-    }
-}
 
 function syncButton() {
     const want = settings.store.buttonLocation === "account";
@@ -218,12 +245,20 @@ function syncButton() {
 
 function applyHidden(val: boolean) {
     hidden = val;
-    playToggleSound(val);
-    holdBroadcast(val);
-    watchCamera(val);
-    if (val && !suppress && inCall() && videoOn() && !hideSupported()) {
+    const acted = holdBroadcast(val);
+
+    if (val && !acted) {
+        hidden = false;
+        suppress = true;
+        settings.store.isEnabled = false;
+        suppress = false;
         notify("Hide Camera is not supported on this Discord build, use the backup camera", "failure");
+        emit();
+        return;
     }
+
+    if (acted) playToggleSound(val);
+    if (val) lastChannel = SelectedChannelStore.getVoiceChannelId() ?? null;
     emit();
 }
 
@@ -233,8 +268,11 @@ function setHidden(on: boolean) {
 
 function panic() {
     if (hidden || previousDevice !== null) {
+        const on = cameraState() === "on";
+        if (!on) suppress = true;
         if (hidden) setHidden(false);
-        if (previousDevice !== null) restoreCamera();
+        if (previousDevice !== null) restoreCamera(!on);
+        suppress = false;
         return;
     }
     if (cameraState() !== "on") {
@@ -245,15 +283,10 @@ function panic() {
     else setHidden(true);
 }
 
-function syncCamera(data?: any) {
+function syncCamera() {
+    if (previousDevice !== null && cameraState() !== "on" && Date.now() - lastSwitchAt >= 2000) restoreCamera(true);
     if (!hidden || !settings.store.autoDisableOnCamera) return;
-
-    const video = typeof data?.enabled === "boolean" ? data.enabled : videoOn();
-    const channel = SelectedChannelStore.getVoiceChannelId() ?? null;
-    if (video === lastVideo && channel === lastChannel) return;
-    lastVideo = video;
-    lastChannel = channel;
-
+    if (cameraState() === "on" && (SelectedChannelStore.getVoiceChannelId() ?? null) === lastChannel) return;
     if (Date.now() - lastSwitchAt < 2000) return;
 
     suppress = true;
@@ -351,18 +384,15 @@ export const settings = definePluginSettings({
     },
     keybindEnabled: {
         type: OptionType.BOOLEAN,
-        description: "Global keybind (works even when Discord is not focused)",
+        description: "Global keybind, active only while your camera is on in a call (works even when Discord is not focused)",
         default: true,
-        onChange: val => {
-            if (val) registerKeybind(settings.store.keybind);
-            else Native.unregisterKeybind();
-        }
+        onChange: () => syncKeybind()
     },
     keybind: {
         type: OptionType.STRING,
         description: "Keybind accelerator, e.g. F7 or Control+F3. You can also record it from the camera context menu",
         default: "F7",
-        onChange: val => { if (settings.store.keybindEnabled) registerKeybind(val); }
+        onChange: val => { if (keybindActive) void registerKeybind(val); }
     },
     soundEnabled: {
         type: OptionType.BOOLEAN,
@@ -628,19 +658,22 @@ const CamCrasherPlugin = definePlugin({
         }
         hidden = false;
         previousDevice = null;
+        keybindActive = false;
         if (!settings.store.keybind || settings.store.keybind === "F8") settings.store.keybind = "F7";
 
-        if (settings.store.keybindEnabled) registerKeybind(settings.store.keybind);
+        startWatch();
+        syncKeybind();
         syncButton();
     },
 
     stop() {
-        watchCamera(false);
+        stopWatch();
         stopRecording();
         hidden = false;
         holdBroadcast(false);
         if (previousDevice !== null) restoreCamera(true);
-        Native.unregisterKeybind();
+        keybindActive = false;
+        void Native.unregisterKeybind();
         if (buttonAdded) {
             buttonAdded = false;
             Vencord.Api.UserArea.removeUserAreaButton(BUTTON_ID);
@@ -649,6 +682,7 @@ const CamCrasherPlugin = definePlugin({
     },
 
     onKeybind() {
+        if (cameraState() !== "on") return;
         const now = Date.now();
         if (now - lastFire < 300) return;
         lastFire = now;
