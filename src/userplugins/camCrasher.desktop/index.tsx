@@ -5,7 +5,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { Menu, Popout, Select, SelectedChannelStore, showToast, useEffect, useRef, useState, useStateFromStores } from "@webpack/common";
+import { FluxDispatcher, Menu, Popout, Select, SelectedChannelStore, showToast, useEffect, UserStore, useRef, useState, useStateFromStores, VoiceStateStore } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.CamCrasher as PluginNative<typeof import("./native")>;
 const MediaEngineStore = findStoreLazy("MediaEngineStore");
@@ -50,6 +50,13 @@ function inCall() {
 
 function videoOn() {
     return !!MediaEngineStore.isVideoEnabled?.();
+}
+
+function cameraState(): "on" | "fake" | "off" {
+    if (!inCall()) return "off";
+    if (videoOn()) return "on";
+    const me = UserStore.getCurrentUser()?.id;
+    return me && VoiceStateStore.getVoiceStateForUser?.(me)?.selfVideo ? "fake" : "off";
 }
 
 function listDevices(): any[] {
@@ -191,9 +198,13 @@ function watchCamera(on: boolean) {
         lastChannel = SelectedChannelStore.getVoiceChannelId() ?? null;
         MediaEngineStore.addChangeListener(syncCamera);
         SelectedChannelStore.addChangeListener(syncCamera);
+        FluxDispatcher.subscribe("MEDIA_ENGINE_SET_VIDEO_ENABLED", syncCamera);
+        FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", syncCamera);
     } else {
         MediaEngineStore.removeChangeListener(syncCamera);
         SelectedChannelStore.removeChangeListener(syncCamera);
+        FluxDispatcher.unsubscribe("MEDIA_ENGINE_SET_VIDEO_ENABLED", syncCamera);
+        FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", syncCamera);
     }
 }
 
@@ -226,18 +237,23 @@ function panic() {
         if (previousDevice !== null) restoreCamera();
         return;
     }
+    if (cameraState() !== "on") {
+        notify("Turn on your camera first", "failure");
+        return;
+    }
     if (settings.store.panicAction === "switch") switchCamera();
     else setHidden(true);
 }
 
-function syncCamera() {
-    const video = videoOn();
+function syncCamera(data?: any) {
+    if (!hidden || !settings.store.autoDisableOnCamera) return;
+
+    const video = typeof data?.enabled === "boolean" ? data.enabled : videoOn();
     const channel = SelectedChannelStore.getVoiceChannelId() ?? null;
-    const changed = video !== lastVideo || channel !== lastChannel;
+    if (video === lastVideo && channel === lastChannel) return;
     lastVideo = video;
     lastChannel = channel;
 
-    if (!changed || !hidden || !settings.store.autoDisableOnCamera) return;
     if (Date.now() - lastSwitchAt < 2000) return;
 
     suppress = true;
@@ -257,18 +273,21 @@ const ui = {
 function StatusPanel() {
     const { isEnabled } = settings.use(["isEnabled"]);
     const { switched } = useCamState();
-    const inVideo = useStateFromStores([MediaEngineStore, SelectedChannelStore], () => inCall() && videoOn());
+    const state = useStateFromStores([MediaEngineStore, SelectedChannelStore, VoiceStateStore], () => cameraState());
 
     const active = isEnabled || switched;
-    const title = isEnabled ? "Camera hidden" : switched ? "Backup camera active" : "Camera visible";
-    const hint = !inVideo ? "Join a call with your camera on to use it" : hideSupported() ? "Hide Camera is ready" : "Hide Camera is not supported here, use the backup camera";
+    const usable = active || state === "on";
+    const title = isEnabled ? "Camera hidden" : switched ? "Backup camera active" : state === "on" ? "Camera visible" : state === "fake" ? "Fake camera active" : "Camera off";
+    const hint = active || state === "on"
+        ? hideSupported() ? "Hide Camera is ready" : "Hide Camera is not supported here, use the backup camera"
+        : state === "fake" ? "Fake Camera is on, your real camera is off" : "Join a call and turn on your camera to use CamCrasher";
 
     return (
         <div style={ui.panel}>
             <div style={ui.row}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: active ? "var(--status-danger, #f23f43)" : "var(--status-positive, #23a55a)" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: active ? "var(--status-danger, #f23f43)" : state === "on" ? "var(--status-positive, #23a55a)" : "var(--interactive-muted, #4e5058)" }} />
                 <span style={ui.title}>{title}</span>
-                <button type="button" style={ui.button} onClick={panic}>{active ? "Restore" : "Test"}</button>
+                <button type="button" disabled={!usable} style={{ ...ui.button, opacity: usable ? 1 : 0.5, cursor: usable ? "pointer" : "not-allowed" }} onClick={panic}>{active ? "Restore" : "Test"}</button>
             </div>
             <div style={ui.sub}>{hint}</div>
         </div>
@@ -530,6 +549,7 @@ function buildItems(prefix: string) {
 }
 
 const CamCrasherPatch: NavContextMenuPatchCallback = children => {
+    if (!hidden && previousDevice === null && cameraState() !== "on") return;
     children.push(<Menu.MenuSeparator />, ...buildItems("vcc"));
 };
 
@@ -549,9 +569,9 @@ function CamButtonAccount() {
     const buttonRef = useRef(null);
     const { isEnabled } = settings.use(["isEnabled"]);
     const { switched } = useCamState();
-    const inVideo = useStateFromStores([MediaEngineStore, SelectedChannelStore], () => inCall() && videoOn());
+    const camOn = useStateFromStores([MediaEngineStore, SelectedChannelStore, VoiceStateStore], () => cameraState() === "on");
 
-    if (!inVideo) return null;
+    if (!camOn && !isEnabled && !switched) return null;
 
     const active = isEnabled || switched;
     const tooltip = active ? "Show Camera (right-click for options)" : "Hide Camera (right-click for options)";
