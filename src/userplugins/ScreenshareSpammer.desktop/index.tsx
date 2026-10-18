@@ -16,6 +16,11 @@ const settings = definePluginSettings({
         type: OptionType.NUMBER,
         description: "Tick interval (ms) [Default: 429 & Recommended: 429+]",
         default: 429
+    },
+    showStartButton: {
+        type: OptionType.BOOLEAN,
+        description: "Show a start button in the header bar while not spamming",
+        default: false
     }
 });
 
@@ -46,24 +51,47 @@ function useSpamActive() {
     return interval !== null;
 }
 
+const WAVES = "M5 9a3.5 3.5 0 0 0 0 6M19 9a3.5 3.5 0 0 1 0 6M2.5 6.5a7.5 7.5 0 0 0 0 11M21.5 6.5a7.5 7.5 0 0 1 0 11";
+
+function ScreenshareStartIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
+    return (
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d={WAVES} />
+            <path fill="currentColor" d="M13.2 3 6.5 13h4.3l-.9 8 6.6-10h-4.3z" />
+        </svg>
+    );
+}
+
 function ScreenshareStopIcon({ className, width = 24, height = 24 }: SVGProps<SVGSVGElement>) {
     return (
-        <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6v2h3v2H7v-2h3v-2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v9h16V6H4z" />
-            <rect x="9" y="8" width="6" height="5" rx="1" fill="currentColor" />
+        <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d={WAVES} />
+            <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="var(--status-danger, #f23f43)" />
         </svg>
     );
 }
 
 function SpamHeaderButton() {
     const active = useSpamActive();
-    if (!active) return null;
+    const { showStartButton } = settings.use(["showStartButton"]);
+
+    if (active) {
+        return (
+            <HeaderBarButton
+                icon={ScreenshareStopIcon}
+                tooltip="ScreenshareSpammer Started (click to stop)"
+                onClick={stopSpam}
+            />
+        );
+    }
+
+    if (!showStartButton) return null;
 
     return (
         <HeaderBarButton
-            icon={ScreenshareStopIcon}
-            tooltip="ScreenshareSpammer Started (click to stop)"
-            onClick={stopSpam}
+            icon={ScreenshareStartIcon}
+            tooltip="Start ScreenshareSpammer"
+            onClick={startSpam}
         />
     );
 }
@@ -144,7 +172,7 @@ async function startSpam() {
     try {
         src = await getSource();
     } catch (e) {
-        console.error("[ScreenshareSpammer] getSource error:", e);
+        /* console.error("[ScreenshareSpammer] getSource error:", e); */
         showToast("❌ Failed to get screen source", "failure", { duration: 2500 });
         return;
     }
@@ -180,6 +208,10 @@ export default definePlugin({
     enabledByDefault: false,
     settings,
     get isSpamming() { return interval !== null; },
+    subscribe(fn: () => void) {
+        listeners.add(fn);
+        return () => { listeners.delete(fn); };
+    },
     stop() { stopSpam(); },
 
     headerBarButton: {

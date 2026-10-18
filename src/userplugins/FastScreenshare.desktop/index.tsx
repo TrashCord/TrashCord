@@ -59,6 +59,24 @@ function isStreaming() {
     return ApplicationStreamingStore.getCurrentUserActiveStream() != null;
 }
 
+function spammer(): any {
+    try {
+        return (Vencord.Plugins.plugins as any).ScreenshareSpammer;
+    } catch {
+        return undefined;
+    }
+}
+
+function isSpamActive() {
+    return spammer()?.isSpamming === true;
+}
+
+function useSpamActive() {
+    const [, tick] = useState(0);
+    useEffect(() => spammer()?.subscribe?.(() => tick(n => n + 1)), []);
+    return isSpamActive();
+}
+
 async function loadSources(withWindows: boolean): Promise<Source[]> {
     try {
         const res: any[] = await DiscordNative.desktopCapture.getDesktopCaptureSources({
@@ -343,8 +361,9 @@ function SourceMenu() {
 function HeaderButton() {
     const { showButton, showWhileStreaming } = settings.use(["showButton", "showWhileStreaming"]);
     const streaming = useStateFromStores([ApplicationStreamingStore], isStreaming);
+    const spamming = useSpamActive();
 
-    if (!showButton || (streaming && !showWhileStreaming)) return null;
+    if (!showButton || spamming || (streaming && !showWhileStreaming)) return null;
 
     return (
         <div style={{ display: "contents" }} onContextMenu={e => ContextMenuApi.openContextMenu(e, () => <SourceMenu />)}>
@@ -520,6 +539,7 @@ const plugin = definePlugin({
 
     flux: {
         STREAM_DELETE({ streamKey }: { streamKey?: string; }) {
+            if (isSpamActive()) return;
             if (streamKey?.endsWith(`:${UserStore.getCurrentUser()?.id}`)) onBackup = false;
         }
     },
@@ -535,6 +555,7 @@ const plugin = definePlugin({
     },
 
     onKeybind(slot: Slot) {
+        if (isSpamActive()) return;
         const now = Date.now();
         if (now - lastFire < 300) return;
         lastFire = now;
