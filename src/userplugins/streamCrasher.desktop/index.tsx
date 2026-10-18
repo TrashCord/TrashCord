@@ -58,7 +58,7 @@ export const settings = definePluginSettings({
         onChange: () => {
             if (!settings.store.isEnabled) { Native.updateCrashMode(); return; }
             updateStream(false);
-            setTimeout(() => updateStream(true), 80);
+            updateStream(true);
         }
     },
     imageUrl: {
@@ -211,7 +211,7 @@ async function doUpdateStream(isEnabled: boolean) {
 
         const type = sourceId.includes(":") ? sourceId.split(":")[0] : "screen";
         const sound = isEnabled ? false : (ApplicationStreamingSettingsStore?.getState?.()?.soundshareEnabled ?? false);
-        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 30 } : (savedQuality ?? resolveRestoreQuality());
+        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 15 } : (savedQuality ?? resolveRestoreQuality());
         if (!isEnabled) savedQuality = null;
 
         VoiceActions.setGoLiveSource({
@@ -414,6 +414,7 @@ function CrasherContextMenu({ closePopout }: { closePopout: () => void; }) {
 }
 
 const StreamCrasherPatch: NavContextMenuPatchCallback = children => {
+    if (ApplicationStreamingStore.getCurrentUserActiveStream() == null || isSpamActive()) return;
     const isEnabled = settings.store.isEnabled;
     const crashMode = settings.store.crashMode;
     const keybind = settings.store.keybind || "F6";
@@ -446,7 +447,7 @@ function CrashButton() {
     const userId = useMemo(() => UserStore.getCurrentUser()?.id, []);
     const isStreaming = useStateFromStores(
         [ApplicationStreamingStore],
-        () => ApplicationStreamingStore.getActiveStreamForUser(userId) != null
+        () => !isSpamActive() && ApplicationStreamingStore.getActiveStreamForUser(userId) != null
     );
 
     if (!isStreaming) return null;
@@ -485,7 +486,7 @@ function CrashButtonAccount() {
     const userId = useMemo(() => UserStore.getCurrentUser()?.id, []);
     const isStreaming = useStateFromStores(
         [ApplicationStreamingStore],
-        () => ApplicationStreamingStore.getActiveStreamForUser(userId) != null
+        () => !isSpamActive() && ApplicationStreamingStore.getActiveStreamForUser(userId) != null
     );
 
     if (!isStreaming) return null;
@@ -523,6 +524,7 @@ function CrashButtonStream() {
 }
 
 let keybindLoopActive = false;
+let buttonTimer: ReturnType<typeof setTimeout> | null = null;
 
 let isStreamingNow = false;
 
@@ -549,6 +551,18 @@ function syncKeybindLoop() {
     }
 }
 
+function isSpamActive() {
+    try {
+        return (Vencord.Plugins.plugins as any).ScreenshareSpammer?.isSpamming === true;
+    } catch {
+        return false;
+    }
+}
+
+function swallowEngineRejection(e: PromiseRejectionEvent) {
+    if (String(e.reason?.message).includes("`sourceId` and `type` are required")) e.preventDefault();
+}
+
 const styles = `.vc-streamcrasher-btn { color: var(--interactive-normal); margin-left: 4px; } .vc-sc-wrap { width: fit-content; min-width: 0; }`;
 
 const StreamCrasherPlugin = definePlugin({
@@ -573,8 +587,10 @@ const StreamCrasherPlugin = definePlugin({
         isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
         if (settings.store.keybindEnabled) tryRegisterKeybind(settings.store.keybind);
         syncKeybindLoop();
+        window.addEventListener("unhandledrejection", swallowEngineRejection);
 
-        setTimeout(() => {
+        buttonTimer = setTimeout(() => {
+            buttonTimer = null;
             Vencord.Api.UserArea.addUserAreaButton("stream-crasher-account-button", () =>
                 settings.store.buttonLocation === "account" ? <CrashButtonAccount /> : null
             );
@@ -587,6 +603,8 @@ const StreamCrasherPlugin = definePlugin({
             recordingHandler = null;
             recordingActive = false;
         }
+        window.removeEventListener("unhandledrejection", swallowEngineRejection);
+        if (buttonTimer !== null) { clearTimeout(buttonTimer); buttonTimer = null; }
         Native.unregisterGlobalKeybind();
         stopKeybindLoop();
         Vencord.Api.UserArea.removeUserAreaButton("stream-crasher-account-button");
@@ -594,6 +612,7 @@ const StreamCrasherPlugin = definePlugin({
 
     flux: {
         STREAM_CREATE() {
+            if (isSpamActive()) return;
             isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
             syncKeybindLoop();
             if (settings.store.autoDisableOnStream !== false) {
@@ -608,15 +627,23 @@ const StreamCrasherPlugin = definePlugin({
             }
         },
         STREAM_UPDATE() {
+            if (isSpamActive()) return;
             isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
         },
         STREAM_DELETE() {
+            if (isSpamActive()) return;
             isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
             syncKeybindLoop();
         },
         MEDIA_ENGINE_SET_GO_LIVE_SOURCE(data) {
+            if (isSpamActive()) return;
             isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
             syncKeybindLoop();
+            const ds = data.settings?.desktopSettings;
+            if (isEnabledCache && !crashUpdateInProgress && ds?.sound) {
+                const next = { ...data.settings, desktopSettings: { ...ds, type: ds.type ?? (ds.sourceId?.includes(":") ? ds.sourceId.split(":")[0] : "screen"), sound: false } };
+                queueMicrotask(() => VoiceActions.setGoLiveSource(next));
+            }
             const sourceId = data.settings?.desktopSettings?.sourceId;
             const qualityOptions = data.settings?.qualityOptions;
             if (sourceId && sourceId !== "" && setLastSourceId(sourceId, qualityOptions) && settings.store.isEnabled && settings.store.autoDisableOnStream === false) {
@@ -625,6 +652,7 @@ const StreamCrasherPlugin = definePlugin({
             }
         },
         STREAM_STOP() {
+            if (isSpamActive()) return;
             if (settings.store.autoDisableOnStream !== false) {
                 suppressStateChange = true;
                 settings.store.isEnabled = false;

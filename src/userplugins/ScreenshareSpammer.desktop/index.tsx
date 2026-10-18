@@ -179,6 +179,7 @@ export default definePlugin({
     tags: ["Voice", "Fun", "Spam", "Shortcuts"],
     enabledByDefault: false,
     settings,
+    get isSpamming() { return interval !== null; },
     stop() { stopSpam(); },
 
     headerBarButton: {
