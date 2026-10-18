@@ -211,7 +211,7 @@ async function doUpdateStream(isEnabled: boolean) {
 
         const type = sourceId.includes(":") ? sourceId.split(":")[0] : "screen";
         const sound = isEnabled ? false : (ApplicationStreamingSettingsStore?.getState?.()?.soundshareEnabled ?? false);
-        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 60 } : (savedQuality ?? resolveRestoreQuality());
+        const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 30 } : (savedQuality ?? resolveRestoreQuality());
         if (!isEnabled) savedQuality = null;
 
         VoiceActions.setGoLiveSource({

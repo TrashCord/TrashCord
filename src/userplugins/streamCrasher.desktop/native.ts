@@ -1,11 +1,11 @@
 import { RendererSettings } from "@main/settings";
 import { app, BrowserWindow, desktopCapturer, globalShortcut, type IpcMainInvokeEvent, net, powerSaveBlocker } from "electron";
-import { existsSync, statSync, watch, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
+import { createConnection, createServer, type Server, type Socket } from "net";
 import { join } from "path";
 import { platform } from "os";
 
-const TEMP_HTML_PATH = join(app.getPath("temp"), "vc-streamcrasher.html");
-const KEYBIND_SIGNAL_PATH = join(app.getPath("temp"), "vc-sc-keybind.signal");
+const TEMP_HTML_PATH = join(app.getPath("temp"), `vc-streamcrasher-${process.pid}.html`);
 
 const HTML_WHITE = "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#fff;overflow:hidden}</style></head><body></body></html>";
 
@@ -124,10 +124,10 @@ function loadCrashContent(html: string, needsFile: boolean) {
     if (needsFile) {
         try {
             writeFileSync(TEMP_HTML_PATH, html, "utf-8");
-            crashedWindow?.loadFile(TEMP_HTML_PATH);
+            crashedWindow?.loadFile(TEMP_HTML_PATH).catch(() => { });
         } catch { }
     } else {
-        crashedWindow?.loadURL(`data:text/html,${encodeURIComponent(html)}`);
+        crashedWindow?.loadURL(`data:text/html,${encodeURIComponent(html)}`).catch(() => { });
     }
 }
 
@@ -173,7 +173,7 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
     creating = true;
 
     activeMode = modeKey;
-    crashedWindow = new BrowserWindow({
+    const win = new BrowserWindow({
         width: 1920,
         height: 1080,
         show: false,
@@ -188,33 +188,39 @@ export async function createCrashSource(_e: IpcMainInvokeEvent): Promise<string 
         y: -9999,
         roundedCorners: false
     });
+    crashedWindow = win;
+    cachedSourceId = null;
 
-    crashedWindow.webContents.setBackgroundThrottling(false);
-    crashedWindow.webContents.on("render-process-gone", () => resetState());
-    crashedWindow.once("closed", () => resetState());
+    win.webContents.setBackgroundThrottling(false);
+    win.webContents.on("render-process-gone", () => { if (crashedWindow === win) resetState(); });
+    win.once("closed", () => { if (crashedWindow === win) resetState(); });
 
     await new Promise<void>(resolve => {
-        crashedWindow?.once("closed", resolve);
-        crashedWindow?.once("ready-to-show", resolve);
+        win.once("closed", resolve);
+        win.once("ready-to-show", resolve);
         if (needsFile) {
             try { writeFileSync(TEMP_HTML_PATH, html, "utf-8"); } catch { }
-            crashedWindow?.loadFile(TEMP_HTML_PATH);
+            win.loadFile(TEMP_HTML_PATH).catch(() => { });
         } else {
-            crashedWindow?.loadURL(`data:text/html,${encodeURIComponent(html)}`);
+            win.loadURL(`data:text/html,${encodeURIComponent(html)}`).catch(() => { });
         }
     });
 
-    if (!isWindowAlive()) { creating = false; return null; }
+    if (crashedWindow !== win || win.isDestroyed()) { creating = false; return null; }
 
     await new Promise(r => setTimeout(r, 150));
 
-    if (!isWindowAlive()) { creating = false; return null; }
+    if (crashedWindow !== win || win.isDestroyed()) { creating = false; return null; }
 
-    crashedWindow!.showInactive();
-    cachedSourceId = await findSourceId();
+    win.showInactive();
+    const id = win.getMediaSourceId() || await findSourceId();
+
+    if (crashedWindow !== win || win.isDestroyed()) { creating = false; return null; }
+
+    cachedSourceId = id;
     creating = false;
     startBlocker();
-    return cachedSourceId;
+    return id;
 }
 
 export async function updateCrashMode(_e: IpcMainInvokeEvent) {
@@ -241,116 +247,137 @@ export function stopCrashSource(_e: IpcMainInvokeEvent) {
     crashedWindow!.destroy();
 }
 
-let registeredAccelerator: string | null = null;
-let pendingAccelerator: string | null = null;
-let retryTimer: NodeJS.Timeout | null = null;
-let lastSignalMtime = 0;
-let signalWatcher: ReturnType<typeof watch> | null = null;
+const PORT = 47654;
+const HOST = "127.0.0.1";
+const ROUNDS = [0, 150, 400, 1000];
 
-let keyDownActive = false;
-let keyUpTimer: NodeJS.Timeout | null = null;
-let keybindPendingCount = 0;
+type Channel = {
+    accelerator: string;
+    dead: boolean;
+    owned: boolean;
+    server: Server | null;
+    peer: Socket | null;
+    peers: Set<Socket>;
+};
 
-const keybindResolvers: Array<() => void> = [];
+let channel: Channel | null = null;
+const waiters: Array<() => void> = [];
 
-function notifyRenderers() {
-    if (keybindResolvers.length > 0) {
-        const rs = keybindResolvers.splice(0);
-        for (const r of rs) r();
-    } else if (keybindPendingCount < 1) {
-        keybindPendingCount++;
-    }
+function notify() {
+    for (const resolve of waiters.splice(0)) resolve();
 }
 
-function fireSignal() {
-    try { writeFileSync(KEYBIND_SIGNAL_PATH, "1"); } catch {}
+function fire(ch: Channel) {
+    if (!ch.dead) notify();
 }
 
-function stopSignalWatch() {
-    if (signalWatcher) { try { signalWatcher.close(); } catch {} signalWatcher = null; }
+function press(ch: Channel) {
+    fire(ch);
+    const data = `${ch.accelerator}\n`;
+    for (const s of ch.peers) s.write(data);
 }
 
-function startSignalWatch() {
-    stopSignalWatch();
-    try {
-        if (!existsSync(KEYBIND_SIGNAL_PATH)) writeFileSync(KEYBIND_SIGNAL_PATH, "0");
-        lastSignalMtime = statSync(KEYBIND_SIGNAL_PATH).mtimeMs;
-        signalWatcher = watch(KEYBIND_SIGNAL_PATH, () => {
-            if (registeredAccelerator) return;
-            try {
-                const mtime = statSync(KEYBIND_SIGNAL_PATH).mtimeMs;
-                if (mtime > lastSignalMtime) { lastSignalMtime = mtime; notifyRenderers(); }
-            } catch {}
-        });
-    } catch {}
-}
-
-function stopRetry() {
-    if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
-}
-
-function attemptRegister(accelerator: string): boolean {
-    try {
-        const ok = globalShortcut.register(accelerator, () => {
-            if (keyUpTimer) clearTimeout(keyUpTimer);
-            keyUpTimer = setTimeout(() => { keyDownActive = false; keyUpTimer = null; }, 100);
-            if (keyDownActive) return;
-            keyDownActive = true;
-            notifyRenderers();
-            fireSignal();
-        });
-        if (ok) { registeredAccelerator = accelerator; pendingAccelerator = null; stopRetry(); stopSignalWatch(); }
-        return ok;
-    } catch { return false; }
-}
-
-function startRetry(accelerator: string) {
-    stopRetry();
-    pendingAccelerator = accelerator;
-    retryTimer = setInterval(() => {
-        if (!pendingAccelerator) { stopRetry(); return; }
-        attemptRegister(pendingAccelerator);
-    }, 2000);
-}
-
-try {
-    app.on("browser-window-focus", () => {
-        if (pendingAccelerator && !registeredAccelerator) attemptRegister(pendingAccelerator);
+function serve(ch: Channel) {
+    if (ch.server) return;
+    const s = createServer(sock => {
+        sock.setNoDelay(true);
+        ch.peers.add(sock);
+        sock.on("close", () => ch.peers.delete(sock));
+        sock.on("error", () => sock.destroy());
     });
-} catch { }
+    s.on("error", () => { if (ch.server === s) ch.server = null; });
+    s.listen(PORT, HOST);
+    ch.server = s;
+}
 
-export function registerGlobalKeybind(_e: IpcMainInvokeEvent, accelerator: string): boolean {
+function connect(ch: Channel) {
+    return new Promise<boolean>(resolve => {
+        const s = createConnection(PORT, HOST);
+        let linked = false;
+        s.on("connect", () => {
+            if (ch.dead) {
+                s.destroy();
+                resolve(false);
+                return;
+            }
+            linked = true;
+            ch.peer = s;
+            resolve(true);
+        });
+        s.on("data", data => {
+            if (data.toString().split("\n").includes(ch.accelerator)) fire(ch);
+        });
+        s.on("error", () => {
+            s.destroy();
+            if (!linked) resolve(false);
+        });
+        s.on("close", () => {
+            if (ch.peer !== s) return;
+            ch.peer = null;
+            if (!ch.dead) void acquire(ch);
+        });
+    });
+}
+
+async function acquire(ch: Channel): Promise<boolean> {
+    for (const delay of ROUNDS) {
+        if (delay) await new Promise(r => setTimeout(r, delay));
+        if (ch.dead) return false;
+        try {
+            if (globalShortcut.register(ch.accelerator, () => press(ch))) {
+                ch.owned = true;
+                serve(ch);
+                return true;
+            }
+        } catch {
+            return false;
+        }
+        if (await connect(ch)) return true;
+    }
+    return false;
+}
+
+function release(ch: Channel) {
+    ch.dead = true;
+    if (ch.owned) {
+        try { globalShortcut.unregister(ch.accelerator); } catch { }
+        ch.owned = false;
+    }
+    ch.server?.close();
+    ch.server = null;
+    for (const s of ch.peers) s.destroy();
+    ch.peers.clear();
+    const p = ch.peer;
+    ch.peer = null;
+    p?.destroy();
+}
+
+export async function registerGlobalKeybind(_e: IpcMainInvokeEvent, accelerator: string): Promise<boolean> {
     unregisterGlobalKeybind();
     if (!accelerator) return false;
-    const ok = attemptRegister(accelerator);
-    if (!ok) { startSignalWatch(); startRetry(accelerator); }
-    return ok;
+    const ch: Channel = { accelerator, dead: false, owned: false, server: null, peer: null, peers: new Set() };
+    channel = ch;
+    const ok = await acquire(ch);
+    const superseded = ch.dead;
+    if (!ok && !superseded) {
+        release(ch);
+        if (channel === ch) channel = null;
+    }
+    return ok || superseded;
 }
 
 export function unregisterGlobalKeybind(_e?: IpcMainInvokeEvent) {
-    stopRetry();
-    stopSignalWatch();
-    pendingAccelerator = null;
-    if (registeredAccelerator) {
-        globalShortcut.unregister(registeredAccelerator);
-        registeredAccelerator = null;
-    }
-    keybindPendingCount = 0;
-    if (keybindResolvers.length > 0) {
-        const rs = keybindResolvers.splice(0);
-        for (const r of rs) r();
-    }
+    if (!channel) return;
+    release(channel);
+    channel = null;
 }
 
 export function waitForKeybind(_e: IpcMainInvokeEvent): Promise<void> {
-    if (keybindPendingCount > 0) { keybindPendingCount--; return Promise.resolve(); }
-    return new Promise(resolve => { keybindResolvers.push(resolve); });
+    return new Promise(resolve => { waiters.push(resolve); });
 }
 
 export function cancelKeybindWait(_e: IpcMainInvokeEvent): void {
-    keybindPendingCount = 0;
-    if (keybindResolvers.length > 0) {
-        const rs = keybindResolvers.splice(0);
-        for (const r of rs) r();
-    }
+    notify();
 }
+
+app.on("will-quit", () => unregisterGlobalKeybind());

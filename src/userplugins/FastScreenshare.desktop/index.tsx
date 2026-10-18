@@ -47,8 +47,12 @@ let onBackup = false;
 let lastFire = 0;
 let recorder: ((e: KeyboardEvent) => void) | null = null;
 
+function notify(message: string, type: string) {
+    if (settings.store.toasts) showToast(message, type);
+}
+
 function fail(message: string) {
-    showToast(message, "failure");
+    notify(message, "failure");
 }
 
 function isStreaming() {
@@ -243,7 +247,7 @@ function stopRecording() {
 function recordKeybind(slot: Slot) {
     if (recorder) return;
     void Native.unregisterAll();
-    showToast("Press a key combo (Esc to cancel)", "clock");
+    notify("Press a key combo (Esc to cancel)", "clock");
 
     recorder = (e: KeyboardEvent) => {
         e.preventDefault();
@@ -262,7 +266,7 @@ function recordKeybind(slot: Slot) {
         if (slot === "main") settings.store.keybind = acc;
         else settings.store.backupKeybind = acc;
         syncKeys();
-        showToast(`Keybind set to ${acc}`, "success");
+        notify(`Keybind set to ${acc}`, "success");
     };
 
     window.addEventListener("keydown", recorder, true);
@@ -423,7 +427,7 @@ export const settings = definePluginSettings({
     showWhileStreaming: {
         type: OptionType.BOOLEAN,
         description: "Keep the button visible while streaming (left click stops the stream)",
-        default: false
+        default: true
     },
     mainPicker: {
         type: OptionType.COMPONENT,
@@ -485,6 +489,11 @@ export const settings = definePluginSettings({
         description: "Play a sound when swapping to the backup stream and back",
         default: true,
         hidden() { return !this.store.backupEnabled; }
+    },
+    toasts: {
+        type: OptionType.BOOLEAN,
+        description: "Show toast notifications",
+        default: false
     }
 });
 
@@ -495,7 +504,6 @@ const plugin = definePlugin({
     tags: ["Voice", "Media", "Utility"],
     enabledByDefault: false,
     searchTerms: ["InstantScreenshare", "QuickStream", "ScreenshareKeybind", "BackupStream"],
-    dependencies: ["EquicordToolbox"],
     settings,
 
     headerBarButton: {
