@@ -10,14 +10,16 @@ import {
 } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
 import { CogWheel } from "@components/Icons";
+import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
-import { findByProps } from "@webpack";
-import { Button, Forms, GuildStore, Menu, showToast, UserStore, useEffect, useState } from "@webpack/common";
+import { Button, Forms, GuildStore, Menu, RestAPI, showToast, UserStore, useEffect, useState } from "@webpack/common";
 
 type MessageNotifications = 0 | 1 | 2;
 
 const knownGuilds = new Set<string>();
+const recent = new Map<string, number>();
 let startupDone = false;
+let startupTimer: ReturnType<typeof setTimeout> | undefined;
 
 let isRunning = false;
 const runningListeners = new Set<(v: boolean) => void>();
@@ -94,58 +96,42 @@ function buildGuildFields(): Record<string, unknown> {
     const fields: Record<string, unknown> = {
         suppress_everyone: s.suppressEveryone,
         suppress_roles: s.suppressRoles,
-        notify_highlights: s.suppressHighlights ? 1 : 2,
+        notify_highlights: s.suppressHighlights ? 1 : 0,
         mute_scheduled_events: s.muteScheduledEvents,
         mobile_push: s.mobilePush,
-        flags: s.showAllChannels ? 0 : (1 << 12),
         muted: s.muteServer,
         mute_config: s.muteServer ? { selected_time_window: -1, end_time: null } : null,
     };
+    if (s.showAllChannels) fields.flags = 0;
     if (s.messageNotifications !== 3) {
         fields.message_notifications = s.messageNotifications as MessageNotifications;
     }
     return fields;
 }
 
-function getToken(): string {
-    return findByProps("getToken")?.getToken?.() ?? "";
-}
-
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
-
 async function patchGuildsSettings(guildsPayload: Record<string, unknown>): Promise<void> {
-    const token = getToken();
-    if (!token) throw new Error("No token");
-
-    while (true) {
-        const res = await fetch("https://discord.com/api/v9/users/@me/guilds/settings", {
-            method: "PATCH",
-            headers: {
-                "Authorization": token,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ guilds: guildsPayload }),
-        });
-
-        if (res.ok) return;
-
-        if (res.status === 429) {
-            let waitMs = 3000;
-            try {
-                const body = await res.clone().json();
-                if (body.retry_after) waitMs = Math.ceil(body.retry_after * 1000) + 500;
-            } catch { }
-            await sleep(waitMs);
-            continue;
-        }
-
-        throw new Error(`HTTP ${res.status}`);
-    }
+    await RestAPI.patch({
+        url: "/users/@me/guilds/settings",
+        body: { guilds: guildsPayload }
+    });
 }
 
 async function applyToGuild(guildId: string): Promise<void> {
     if (!guildId || guildId === "@me" || guildId === "null") return;
     await patchGuildsSettings({ [guildId]: buildGuildFields() });
+}
+
+async function autoApply(guildId: string, notify = false): Promise<void> {
+    if (!settings.store.applyToNew) return;
+    const last = recent.get(guildId);
+    if (last !== undefined && Date.now() - last < 15000) return;
+    recent.set(guildId, Date.now());
+    try {
+        await applyToGuild(guildId);
+        if (notify) showToast({ text: "AutoServerNotifications Settings applied to New Server.", variant: "success" });
+    } catch {
+        recent.delete(guildId);
+    }
 }
 
 async function applyToAll(): Promise<void> {
@@ -181,34 +167,34 @@ async function applyToAll(): Promise<void> {
     });
 }
 
-const makeContextMenuPatch: (withIcon: boolean) => NavContextMenuPatchCallback =
-    (withIcon) => (children, { guild }: any) => {
-        if (!guild) return;
+const contextMenuPatch: NavContextMenuPatchCallback = (children, { guild }: any) => {
+    if (!guild) return;
 
-        const menuItem = (
-            <Menu.MenuItem
-                id="asn-apply"
-                label="Apply AutoNotification Settings"
-                icon={withIcon ? CogWheel : void 0}
-                action={() => {
-                    applyToGuild(guild.id)
-                        .then(() => showToast({ text: "Notification settings applied.", variant: "success" }))
-                        .catch(() => showToast({ text: "Failed to apply settings.", variant: "critical" }));
-                }}
-            />
-        );
+    const menuItem = (
+        <Menu.MenuItem
+            id="asn-apply"
+            label="Apply AutoNotification Settings"
+            icon={CogWheel}
+            leadingAccessory={{ type: "icon", icon: CogWheel }}
+            action={() => {
+                applyToGuild(guild.id)
+                    .then(() => showToast({ text: "AutoServerNotifications Settings applied.", variant: "success" }))
+                    .catch(() => showToast({ text: "AutoServerNotifications: Failed to apply Settings.", variant: "critical" }));
+            }}
+        />
+    );
 
-        const group = findGroupChildrenByChildId("privacy", children);
-        if (group) {
-            group.push(menuItem);
-        } else {
-            children.push(menuItem);
-        }
-    };
+    const group = findGroupChildrenByChildId("privacy", children);
+    if (group) {
+        group.push(menuItem);
+    } else {
+        children.push(menuItem);
+    }
+};
 
 export default definePlugin({
     name: "AutoServerNotifications",
-    description: "Apply custom notification settings to all servers, with auto-apply on join and a right-click context menu.",
+    description: "Apply custom notification Settings to all Servers, with auto-apply on join and a right-click context menu.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Servers", "Notifications", "Mute", "Server", "Auto"],
     enabledByDefault: false,
@@ -219,53 +205,52 @@ export default definePlugin({
             find: ",acceptInvite(",
             replacement: {
                 match: /INVITE_ACCEPT_SUCCESS.+?,(\i)=\i\?\.guild_id.+?;/,
-                replace: (m: string, guildId: string) => `${m}$self.applyToGuild(${guildId});`,
+                replace: (m: string, guildId: string) => `${m}$self.autoApply(${guildId});`,
             },
         },
         {
             find: "{joinGuild:",
             replacement: {
-                match: /guildId:(\i),lurker:(\i).{0,20}}\)\);/,
+                match: /guildId:(\i),lurker:(\i).{0,20}}\);/,
                 replace: (m: string, guildId: string, lurker: string) =>
-                    `${m}if(!${lurker})$self.applyToGuild(${guildId});`,
+                    `${m}if(!${lurker})$self.autoApply(${guildId});`,
             },
         },
     ],
 
     contextMenus: {
-        "guild-context": makeContextMenuPatch(false),
-        "guild-header-popout": makeContextMenuPatch(true),
+        "guild-context": contextMenuPatch,
+        "guild-header-popout": contextMenuPatch,
     },
 
-    applyToGuild,
+    autoApply,
 
     start() {
         for (const id of Object.keys(GuildStore.getGuilds())) knownGuilds.add(id);
-        setTimeout(() => { startupDone = true; }, 5000);
+        startupTimer = setTimeout(() => { startupDone = true; }, 5000);
     },
 
     stop() {
+        clearTimeout(startupTimer);
         knownGuilds.clear();
+        recent.clear();
         startupDone = false;
     },
 
     flux: {
-        GUILD_CREATE(event: { guild: { id: string; }; }) {
-            if (!settings.store.applyToNew) return;
-            if (!startupDone || knownGuilds.has(event.guild.id)) {
-                knownGuilds.add(event.guild.id);
+        GUILD_CREATE({ guild }: { guild: { id: string; }; }) {
+            const id = guild.id;
+            if (!startupDone || knownGuilds.has(id)) {
+                knownGuilds.add(id);
                 return;
             }
-            knownGuilds.add(event.guild.id);
-            sleep(3000)
-                .then(() => applyToGuild(event.guild.id))
-                .then(() => showToast({ text: "Notification settings applied to new server.", variant: "success" }))
-                .catch(() => { });
+            knownGuilds.add(id);
+            sleep(3000).then(() => autoApply(id, true));
         },
 
         GUILD_JOIN_REQUEST_UPDATE({ guildId, request, status }: any) {
             if (status === "APPROVED" && request.user_id === UserStore.getCurrentUser().id) {
-                sleep(3000).then(() => applyToGuild(guildId)).catch(() => { });
+                sleep(3000).then(() => autoApply(guildId));
             }
         },
     },
@@ -276,8 +261,8 @@ export default definePlugin({
             <Forms.FormSection>
                 <Forms.FormText style={{ marginBottom: 8 }}>
                     {running
-                        ? "Applying settings to all servers, please wait…"
-                        : "Apply the settings above to all your current servers at once."
+                        ? "Applying Settings to all Servers, please wait…"
+                        : "Apply the Settings above to all your current Servers at once."
                     }
                 </Forms.FormText>
                 <Button
@@ -286,7 +271,7 @@ export default definePlugin({
                     disabled={running}
                     onClick={applyToAll}
                 >
-                    {running ? "Applying…" : "Apply to all servers"}
+                    {running ? "Applying…" : "Apply to all Servers"}
                 </Button>
             </Forms.FormSection>
         );
