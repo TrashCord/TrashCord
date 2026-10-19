@@ -246,10 +246,10 @@ async function bcrApplyColor(hex: string): Promise<void> {
             await RestAPI.patch({ url: "/users/@me", body: { banner_color: hex } });
             if (!pluginActive) return;
             bcrCurrentColor = hex; bcrOnColorApplied?.(hex);
-            if (settings.store.bannerShowToast) showToast(`Banner → ${hex}`, "success");
+            if (settings.store.bannerShowToast) showToast({ text: `Banner → ${hex}`, variant: "success" });
             await bcrSaveData();
         } catch (e: any) {
-            if (settings.store.bannerShowToast) showToast(`Banner failed: ${e?.body?.message ?? "Unknown"}`, "failure");
+            if (settings.store.bannerShowToast) showToast({ text: `Banner failed: ${e?.body?.message ?? "Unknown"}`, variant: "critical" });
         }
     })();
     bcrApplyPromise = p;
@@ -1214,12 +1214,12 @@ function doGlobalStop(durationMs: number | null) {
         globalStopTimer = setTimeout(() => {
             isManualStop = false; globalStopEndTime = null; globalStopTimer = null;
             if (pluginActive && !wasInvisible) startAllRotators();
-            showToast("All Rotators resumed (timer ended)", "success");
+            showToast({ text: "All Rotators resumed (timer ended)", variant: "success" });
         }, durationMs);
     } else {
         globalStopEndTime = null;
     }
-    showToast(durationMs ? `Rotators stopped for ${formatStopDuration(durationMs)}` : "All Rotators stopped", "message");
+    showToast({ text: durationMs ? `Rotators stopped for ${formatStopDuration(durationMs)}` : "All Rotators stopped" });
 }
 
 function doGlobalResume() {
@@ -1227,7 +1227,7 @@ function doGlobalResume() {
     if (globalStopTimer) { clearTimeout(globalStopTimer); globalStopTimer = null; }
     globalStopEndTime = null;
     if (pluginActive) startAllRotators();
-    showToast("All Rotators resumed", "success");
+    showToast({ text: "All Rotators resumed", variant: "success" });
 }
 
 function getMyCurrentStatus(): string {
@@ -1249,11 +1249,11 @@ function startInvisibleWatcher() {
             wasInvisible = true;
             stopAllRotators();
             void applyOnCloseAll();
-            showToast("Invisible detected - Rotators paused", "message");
+            showToast({ text: "Invisible detected - Rotators paused" });
         } else if (!nowInvis && wasInvisible) {
             wasInvisible = false;
             if (!isManualStop && pluginActive) startAllRotators();
-            showToast("Status visible - Rotators resumed", "success");
+            showToast({ text: "Status visible - Rotators resumed", variant: "success" });
         }
     }, 3000);
 }
@@ -3121,9 +3121,9 @@ function arSfShuffle(len: number): number[] {
     return a;
 }
 
-function arToast(msg: string, type: "message" | "success" | "failure" = "success") {
+function arToast(msg: string, type: "default" | "success" | "critical" = "success") {
     if (!settings.store.avatarShowToast) return;
-    showToast(msg, type);
+    showToast({ text: msg, variant: type });
 }
 
 function arGetExt(data: string): string {

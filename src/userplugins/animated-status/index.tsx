@@ -132,9 +132,9 @@ export default definePlugin({
     },
     async begin(preset?: string) {
         const all = safeParse<StatusStep[]>(settings.store.statuses, []);
-        if (!all.length) return showToast("Add some statuses first!", "failure");
+        if (!all.length) return showToast({ text: "Add some statuses first!", variant: "critical" });
         const items = preset ? all.filter(s => s.preset === preset) : all;
-        if (!items.length) return showToast(`No "${preset}" statuses found`, "failure");
+        if (!items.length) return showToast({ text: `No "${preset}" statuses found`, variant: "critical" });
         if (state.interval) clearInterval(state.interval);
         state.currentIndex = 0;
         await this.setStatus(items[0]);
@@ -145,7 +145,7 @@ export default definePlugin({
         }), Math.max(settings.store.interval * 1000, MIN_INTERVAL * 1000));
         state.isRunning = true;
         notifyRunningListeners();
-        showToast("Animated status started!", "success");
+        showToast({ text: "Animated status started!", variant: "success" });
     },
     async next(preset?: string) {
         const all = safeParse<StatusStep[]>(settings.store.statuses, []);
@@ -210,7 +210,7 @@ function EditableStatusCard({ status, presetNames, onSave, onCancel }: { status:
 
     const handleSave = () => {
         const parsed = parseEmoji(editText);
-        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return showToast("Please enter some text or an emoji!", "failure");
+        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return showToast({ text: "Please enter some text or an emoji!", variant: "critical" });
         onSave({ ...parsed, preset: editPreset.trim() || undefined, status: editStatus });
     };
 
@@ -263,21 +263,21 @@ function SettingsModal({ onClose, transitionState }: { onClose: () => void; tran
     const addStatus = () => {
         if (!inputText.trim()) return;
         const parsed = parseEmoji(inputText);
-        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return showToast("Please enter some text or an emoji!", "failure");
+        if (!parsed.text.trim().length && !(parsed.emojiId || parsed.emojiName)) return showToast({ text: "Please enter some text or an emoji!", variant: "critical" });
         const newStatus: StatusStep = { ...parsed, preset: preset.trim() || undefined, status: selectedStatus };
         const updated = [...statuses, newStatus];
         setStatuses(updated);
         settings.store.statuses = JSON.stringify(updated);
         setInputText("");
         setPreset("");
-        showToast("Status added!", "success");
+        showToast({ text: "Status added!", variant: "success" });
     };
     const deleteStatus = (index: number) => {
         const updated = statuses.filter((_, i) => i !== index);
         setStatuses(updated);
         settings.store.statuses = JSON.stringify(updated);
         if (editingIndex === index) setEditingIndex(null);
-        showToast("Status deleted", "success");
+        showToast({ text: "Status deleted", variant: "success" });
     };
     const saveEdit = (index: number, updated: StatusStep) => {
         const all = [...statuses];
@@ -285,7 +285,7 @@ function SettingsModal({ onClose, transitionState }: { onClose: () => void; tran
         setStatuses(all);
         settings.store.statuses = JSON.stringify(all);
         setEditingIndex(null);
-        showToast("Status saved!", "success");
+        showToast({ text: "Status saved!", variant: "success" });
     };
     const cancelEdit = () => setEditingIndex(null);
     const startAnimation = (preset: string | null) => {
@@ -320,7 +320,7 @@ function SettingsModal({ onClose, transitionState }: { onClose: () => void; tran
                         <PresetsTab statuses={statuses} setStatuses={setStatuses} presetNames={presetNames} running={running} runningPreset={runningPreset} onStart={startAnimation} onStop={stopAnimation} onPresetChange={() => setPresetListTrigger(t => t + 1)} />
                     )}
                     {currentTab === Tab.SETTINGS && (
-                        <SettingsTab statuses={statuses} interval={settings.store.interval} randomize={settings.store.randomize} autoStart={settings.store.autoStart} onIntervalChange={val => { settings.store.interval = val; plugin?.updateInterval(val); }} onRandomizeChange={v => settings.store.randomize = v} onAutoStartChange={v => settings.store.autoStart = v} onClearAll={() => { settings.store.statuses = "[]"; setStatuses([]); showToast("All statuses cleared", "success"); }} />
+                        <SettingsTab statuses={statuses} interval={settings.store.interval} randomize={settings.store.randomize} autoStart={settings.store.autoStart} onIntervalChange={val => { settings.store.interval = val; plugin?.updateInterval(val); }} onRandomizeChange={v => settings.store.randomize = v} onAutoStartChange={v => settings.store.autoStart = v} onClearAll={() => { settings.store.statuses = "[]"; setStatuses([]); showToast({ text: "All statuses cleared", variant: "success" }); }} />
                     )}
                     {currentTab === Tab.INFO && <InfoTab />}
                 </ModalContent>
@@ -483,13 +483,13 @@ function PresetsTab({ statuses, setStatuses, presetNames, running, runningPreset
     };
     const createPreset = () => {
         const name = newPresetName.trim();
-        if (!name) return showToast("Please enter a preset name", "failure");
-        if (presets.some(p => p.name.toLowerCase() === name.toLowerCase())) return showToast("A preset with this name already exists", "failure");
+        if (!name) return showToast({ text: "Please enter a preset name", variant: "critical" });
+        if (presets.some(p => p.name.toLowerCase() === name.toLowerCase())) return showToast({ text: "A preset with this name already exists", variant: "critical" });
         const newPreset: Preset = { id: Date.now().toString(), name };
         settings.store.presets = JSON.stringify([...presets, newPreset]);
         setNewPresetName("");
         onPresetChange();
-        showToast(`Preset "${name}" created! Add statuses to it in the Statuses tab.`, "success");
+        showToast({ text: `Preset "${name}" created! Add statuses to it in the Statuses tab.`, variant: "success" });
     };
     const deletePreset = (preset: Preset) => {
         const statusCount = statuses.filter(s => s.preset === preset.name).length;
@@ -499,13 +499,13 @@ function PresetsTab({ statuses, setStatuses, presetNames, running, runningPreset
         settings.store.statuses = JSON.stringify(updatedStatuses);
         if (runningPreset === preset.name) onStop();
         onPresetChange();
-        showToast(`Preset "${preset.name}" deleted${statusCount > 0 ? ` (${statusCount} statuses unassigned)` : ""}`, "success");
+        showToast({ text: `Preset "${preset.name}" deleted${statusCount > 0 ? ` (${statusCount} statuses unassigned)` : ""}`, variant: "success" });
     };
     const startEditingPreset = (preset: Preset) => { setEditingPresetId(preset.id); setEditingPresetName(preset.name); };
     const savePresetEdit = (presetId: string) => {
         const newName = editingPresetName.trim();
         if (!newName) return setEditingPresetId(null);
-        if (presets.find(p => p.id !== presetId && p.name.toLowerCase() === newName.toLowerCase())) return showToast("A preset with this name already exists", "failure");
+        if (presets.find(p => p.id !== presetId && p.name.toLowerCase() === newName.toLowerCase())) return showToast({ text: "A preset with this name already exists", variant: "critical" });
         const preset = presets.find(p => p.id === presetId);
         if (!preset) return;
         const oldName = preset.name;
@@ -515,12 +515,12 @@ function PresetsTab({ statuses, setStatuses, presetNames, running, runningPreset
         settings.store.statuses = JSON.stringify(updatedStatuses);
         setEditingPresetId(null);
         onPresetChange();
-        showToast(`Preset renamed to "${newName}"`, "success");
+        showToast({ text: `Preset renamed to "${newName}"`, variant: "success" });
     };
     const cancelPresetEdit = () => setEditingPresetId(null);
     const runPreset = (preset: Preset) => {
         const presetStatuses = statusesByPresetName.get(preset.name) ?? [];
-        if (presetStatuses.length === 0) return showToast(`No statuses in "${preset.name}". Add some in the Statuses tab!`, "failure");
+        if (presetStatuses.length === 0) return showToast({ text: `No statuses in "${preset.name}". Add some in the Statuses tab!`, variant: "critical" });
         onStart(preset.name);
     };
     return (

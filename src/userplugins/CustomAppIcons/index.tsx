@@ -52,13 +52,13 @@ function removeAppIcon() {
         delete AppIconData.QA[current_icon];
         delete AppIconData.UZ[AppIconData.UZ.findIndex(icon => current_icon === icon?.id)];
         localStorage.setItem("vc_app_icons", JSON.stringify(icons));
-        showToast("Icon successfully deleted!", "success");
+        showToast({ text: "Icon successfully deleted!", variant: "success" });
         FluxDispatcher.dispatch({
             type: "APP_ICON_UPDATED",
             id: "AppIcon"
         });
     } else {
-        showToast("Cannot delete native App Icons!", "failure");
+        showToast({ text: "Cannot delete native App Icons!", variant: "critical" });
         return;
     }
 

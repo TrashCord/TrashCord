@@ -137,7 +137,7 @@ const formatLabel = (label: string) =>
     label.replace(/[A-Z]/g, match => ` ${match}`).replace(/^./, match => match.toUpperCase());
 
 const toast = (message: string, type: string = "success") =>
-    showToast(message, type);
+    showToast({ text: message, variant: type });
 
 const getMutualFriendId = (value: unknown) => {
     if (typeof value !== "object" || value == null) return;

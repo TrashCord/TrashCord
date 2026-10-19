@@ -56,7 +56,7 @@ export function ServerConfig() {
             let valid = true;
             if (!settings.store.serverURL || !settings.store.username || !navidromePassword.get()) valid = false;
             if (settings.store.serverURL) try { new URL(settings.store.serverURL); } catch { valid = false; }
-            if (!valid) return void showToast("Make sure that all fields are properly filled!", "failure");
+            if (!valid) return void showToast({ text: "Make sure that all fields are properly filled!", variant: "critical" });
 
             if (settings.store.serverURL && await checkCSP(settings.store.serverURL)) {
                 settings.store.isLoggedIn = true;

@@ -176,9 +176,9 @@ function checkVcOwnershipStatus() {
 
     if (settings.store.showVcOwnerStatus && wasOwner !== actuallyIsOwner) {
         if (actuallyIsOwner) {
-            showToast("🟢 You are now the VC owner", "success", { position: 1, duration: 3000 });
+            showToast({ text: "🟢 You are now the VC owner", variant: "success", position: "bottom", duration: 3000 });
         } else {
-            showToast("🔴 Not the VC owner", "message", { position: 1, duration: 3000 });
+            showToast({ text: "🔴 Not the VC owner", position: "bottom", duration: 3000 });
         }
     }
 }
@@ -202,7 +202,7 @@ function getAllUsersInCurrentVc(): string[] {
 function banAllUsersInCurrentVc(): void {
     const usersInVc = getAllUsersInCurrentVc();
     if (usersInVc.length === 0) {
-        showToast("No other users in current VC", "message", { position: 1 });
+        showToast({ text: "No other users in current VC", position: "bottom" });
         return;
     }
 
@@ -210,14 +210,14 @@ function banAllUsersInCurrentVc(): void {
     const newUsers = usersInVc.filter(userId => !currentBannedUsers.includes(userId));
 
     if (newUsers.length === 0) {
-        showToast("All users in VC are already on auto-ban list", "message", { position: 1 });
+        showToast({ text: "All users in VC are already on auto-ban list", position: "bottom" });
         return;
     }
 
     const allBannedUsers = [...currentBannedUsers, ...newUsers];
     settings.store.users = allBannedUsers.join('/');
 
-    showToast(`Added ${newUsers.length} users to auto-ban list`, "success", { position: 1 });
+    showToast({ text: `Added ${newUsers.length} users to auto-ban list`, variant: "success", position: "bottom" });
 
     const currentUserId = UserStore.getCurrentUser().id;
     const currentVoiceState = VoiceStateStore.getVoiceStateForUser(currentUserId);
@@ -310,7 +310,7 @@ function MenuItem(id: string) {
                 if (wasAdded) {
                     banninguser(id);
                 } else {
-                    showToast(`Removed ${id} from Auto-Ban List`, "message", { position: 1 });
+                    showToast({ text: `Removed ${id} from Auto-Ban List`, position: "bottom" });
                 }
             }}
         />
@@ -337,7 +337,7 @@ function banninguser(id) {
     }
 
     if (!channelId || !guildId) {
-        showToast(`Not in voice channel - ${id} added to auto-ban list`, "message", { position: 1 });
+        showToast({ text: `Not in voice channel - ${id} added to auto-ban list`, position: "bottom" });
         return;
     }
 
@@ -345,19 +345,19 @@ function banninguser(id) {
     const isOwner = forceCheckVcOwnership(guildId, channelId);
 
     if (!isOwner) {
-        showToast(`Not the VC owner - ${id} added to auto-ban list`, "message", { position: 1 });
+        showToast({ text: `Not the VC owner - ${id} added to auto-ban list`, position: "bottom" });
         return;
     }
 
     // Check if target is in same VC
     const targetVoiceState = VoiceStateStore.getVoiceStateForUser(id);
     if (!targetVoiceState?.channelId || targetVoiceState.channelId !== channelId) {
-        showToast(`User ${id} not in your VC - added to auto-ban list`, "message", { position: 1 });
+        showToast({ text: `User ${id} not in your VC - added to auto-ban list`, position: "bottom" });
         return;
     }
 
     // Execute ban
-    showToast(`Added ${id} to Auto-Ban List & Auto-banning`, "success", { position: 1 });
+    showToast({ text: `Added ${id} to Auto-Ban List & Auto-banning`, variant: "success", position: "bottom" });
 
     setTimeout(() => {
         RestAPI.post({
@@ -380,7 +380,7 @@ function checkExistingUsersInVC(channelId: string) {
     Object.keys(voiceStates).forEach((userId, index) => {
         if (userId === currentUserId || !bannedUsers.includes(userId)) return;
 
-        showToast(`Auto banning existing User ${userId}`, "failure", { position: 1 });
+        showToast({ text: `Auto banning existing User ${userId}`, variant: "critical", position: "bottom" });
 
         setTimeout(() => {
             RestAPI.post({
@@ -502,11 +502,11 @@ const cb = async (e) => {
         const isOwner = forceCheckVcOwnership(channel.guild_id, state.channelId);
 
         if (!isOwner) {
-            showToast(`Not the VC owner - ${state.userId} already on auto-ban list`, "message", { position: 1 });
+            showToast({ text: `Not the VC owner - ${state.userId} already on auto-ban list`, position: "bottom" });
             return;
         }
 
-        showToast(`Auto banning User ${state.userId}`, "failure", { position: 1 });
+        showToast({ text: `Auto banning User ${state.userId}`, variant: "critical", position: "bottom" });
 
         setTimeout(() => {
             RestAPI.post({

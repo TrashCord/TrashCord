@@ -48,7 +48,7 @@ const SafeFloeP2PSettingsAbout = ErrorBoundary.wrap(FloeP2PSettingsAbout, { noop
 async function runNativeAction<T>(action: FloeAction<T>, fallbackError: string): Promise<T | null> {
     const native = Native;
     if (!native) {
-        showToast("Floe native helper is not available. Restart Discord.", "failure");
+        showToast({ text: "Floe native helper is not available. Restart Discord.", variant: "critical" });
         return null;
     }
 
@@ -61,7 +61,7 @@ async function runNativeAction<T>(action: FloeAction<T>, fallbackError: string):
 
         if (!result.success || !result.data) {
             logger.warn(formatNativeActionLog("Floe native action failed.", fallbackError, result));
-            showToast(result.error ?? fallbackError, "failure");
+            showToast({ text: result.error ?? fallbackError, variant: "critical" });
             return null;
         }
 
@@ -69,7 +69,7 @@ async function runNativeAction<T>(action: FloeAction<T>, fallbackError: string):
         return result.data;
     } catch (error) {
         logger.error(fallbackError, error);
-        showToast(fallbackError, "failure");
+        showToast({ text: fallbackError, variant: "critical" });
         return null;
     }
 }
@@ -98,11 +98,11 @@ function publishSendSession(session: FloeSession): void {
     const shareText = getShareText(session);
     if (shareText) {
         insertTextIntoChatInputBox(shareText + " ");
-        showToast("Floe link inserted in chat.", "success");
+        showToast({ text: "Floe link inserted in chat.", variant: "success" });
         return;
     }
 
-    showToast("Floe started, but no code or link was printed yet.", "message");
+    showToast({ text: "Floe started, but no code or link was printed yet." });
 }
 
 async function sendFiles(): Promise<void> {
@@ -119,21 +119,21 @@ async function installFloe(): Promise<void> {
     const result = await runNativeAction(native => native.installFloe(), "Could not install Floe.");
     if (!result) return;
 
-    showToast("Floe install finished.", "success");
+    showToast({ text: "Floe install finished.", variant: "success" });
 }
 
 async function updateFloe(): Promise<void> {
     const result = await runNativeAction(native => native.updateFloe(), "Could not update Floe.");
     if (!result) return;
 
-    showToast("Floe update finished.", "success");
+    showToast({ text: "Floe update finished.", variant: "success" });
 }
 
 async function cancelLatestSession(): Promise<void> {
     const session = await runNativeAction(native => native.cancelLatestSession(), "Could not cancel the Floe session.");
     if (!session) return;
 
-    showToast("Floe session cancelled.", "success");
+    showToast({ text: "Floe session cancelled.", variant: "success" });
 }
 
 function formatSession(session: FloeSession): string {
@@ -184,7 +184,7 @@ function ReceiveModal({ modalProps }: { modalProps: RenderModalProps; }) {
 
     async function receive(): Promise<void> {
         if (!locator.trim()) {
-            showToast("Enter a Floe code or link.", "failure");
+            showToast({ text: "Enter a Floe code or link.", variant: "critical" });
             return;
         }
 
@@ -193,7 +193,7 @@ function ReceiveModal({ modalProps }: { modalProps: RenderModalProps; }) {
             const session = await runNativeAction(native => native.startReceive(locator, outputDir), "Could not start Floe receive.");
             if (!session) return;
 
-            showToast("Floe receive session started.", "success");
+            showToast({ text: "Floe receive session started.", variant: "success" });
             modalProps.onClose();
         } finally {
             setBusy(false);

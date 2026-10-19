@@ -53,7 +53,7 @@ function startInterval() {
                 msg.sendAt - now > 0
             ) {
                 msg.notified = true;
-                showToast(`Sending "${msg.content.slice(0, 30)}..." in 1 minute`, "message");
+                showToast({ text: `Sending "${msg.content.slice(0, 30)}..." in 1 minute` });
             }
             if (now >= msg.sendAt) {
                 try {
@@ -63,7 +63,7 @@ function startInterval() {
                             : msg.content;
                     sendMessage(msg.channelId, { content });
                     if (settings.store.showNotifications)
-                        showToast("Message sent!", "success");
+                        showToast({ text: "Message sent!", variant: "success" });
                 } catch {}
                 if (msg.repeat && (msg.repeatCount === 0 || msg.repeatDone + 1 < msg.repeatCount)) {
                     msg.sendAt     = Date.now() + msg.repeatMs;
@@ -262,16 +262,16 @@ function SchedulerModal(props: RenderModalProps & { channelId: string; }) {
 
     function schedule() {
         if (!isRandom && !message.trim()) {
-            showToast(ar ? "اكتب الرسالة أولاً" : "Write a message first", "failure");
+            showToast({ text: ar ? "اكتب الرسالة أولاً" : "Write a message first", variant: "critical" });
             return;
         }
         if (isRandom && randomPool.length < 2) {
-            showToast(ar ? "أضف رسالتين على الأقل" : "Add at least 2 messages for random", "failure");
+            showToast({ text: ar ? "أضف رسالتين على الأقل" : "Add at least 2 messages for random", variant: "critical" });
             return;
         }
         const delay = getDelay();
         if (!delay) {
-            showToast(ar ? "حدد وقت صحيح" : "Enter a valid time", "failure");
+            showToast({ text: ar ? "حدد وقت صحيح" : "Enter a valid time", variant: "critical" });
             return;
         }
         scheduled.push({
@@ -288,14 +288,14 @@ function SchedulerModal(props: RenderModalProps & { channelId: string; }) {
         setPending([...scheduled]);
         setMessage("");
         setRandomPool([]);
-        showToast(ar ? "تم الجدولة!" : "Scheduled!", "success");
+        showToast({ text: ar ? "تم الجدولة!" : "Scheduled!", variant: "success" });
     }
 
     function saveMessage() {
         if (!message.trim()) return;
         savedMessages.push(message.trim());
         setSaved([...savedMessages]);
-        showToast(ar ? "تم الحفظ" : "Saved!", "success");
+        showToast({ text: ar ? "تم الحفظ" : "Saved!", variant: "success" });
     }
 
     function cancelScheduled(id: string) {
@@ -354,9 +354,9 @@ function SchedulerModal(props: RenderModalProps & { channelId: string; }) {
                     const data = JSON.parse(ev.target?.result as string);
                     if (Array.isArray(data.scheduled)) { scheduled.push(...data.scheduled); setPending([...scheduled]); }
                     if (Array.isArray(data.saved))     { savedMessages.push(...data.saved); setSaved([...savedMessages]); }
-                    showToast(ar ? "تم الاستيراد!" : "Imported!", "success");
+                    showToast({ text: ar ? "تم الاستيراد!" : "Imported!", variant: "success" });
                 } catch {
-                    showToast("Invalid file", "failure");
+                    showToast({ text: "Invalid file", variant: "critical" });
                 }
             };
             reader.readAsText(file);

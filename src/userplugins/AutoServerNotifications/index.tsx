@@ -173,9 +173,12 @@ async function applyToAll(): Promise<void> {
     }
 
     setRunning(false);
-    showToast(fail === 0
+    showToast({
+        text: fail === 0
             ? `Applied to ${ok} servers.`
-            : `Applied to ${ok} servers, ${fail} failed.`, fail === 0 ? "success" : "failure");
+            : `Applied to ${ok} servers, ${fail} failed.`,
+        variant: fail === 0 ? "success" : "critical"
+    });
 }
 
 const makeContextMenuPatch: (withIcon: boolean) => NavContextMenuPatchCallback =
@@ -189,8 +192,8 @@ const makeContextMenuPatch: (withIcon: boolean) => NavContextMenuPatchCallback =
                 icon={withIcon ? CogWheel : void 0}
                 action={() => {
                     applyToGuild(guild.id)
-                        .then(() => showToast("Notification settings applied.", "success"))
-                        .catch(() => showToast("Failed to apply settings.", "failure"));
+                        .then(() => showToast({ text: "Notification settings applied.", variant: "success" }))
+                        .catch(() => showToast({ text: "Failed to apply settings.", variant: "critical" }));
                 }}
             />
         );
@@ -256,7 +259,7 @@ export default definePlugin({
             knownGuilds.add(event.guild.id);
             sleep(3000)
                 .then(() => applyToGuild(event.guild.id))
-                .then(() => showToast("Notification settings applied to new server.", "success"))
+                .then(() => showToast({ text: "Notification settings applied to new server.", variant: "success" }))
                 .catch(() => { });
         },
 

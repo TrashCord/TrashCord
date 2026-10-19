@@ -160,10 +160,11 @@ function updateAutoMute() {
 function autoMute(reason: string) {
     if (!MediaEngineStore.isSelfMute() && SelectedChannelStore.getVoiceChannelId()) {
         toggleSelfMute();
-        showToast(reason, "message", {
-                duration: 3500,
-                position: 0
-            });
+        showToast({
+            text: reason,
+            duration: 3500,
+            position: "top"
+        });
     }
 }
 

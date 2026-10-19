@@ -87,7 +87,7 @@ function useFollowedIds() {
 }
 
 function toast(message: string, type: "success" | "failure" | "message") {
-    if (settings.store.showToasts) showToast(message, type);
+    if (settings.store.showToasts) showToast({ text: message, variant: type });
 }
 
 function throttledToast(message: string, type: "success" | "failure" | "message") {

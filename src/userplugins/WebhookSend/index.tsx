@@ -397,9 +397,9 @@ function EmbedsTab({ embeds, setEmbeds }: {
                 } else if (typeof parsed === "object" && parsed !== null) {
                     setEmbeds([parsed]);
                 }
-                showToast("Embeds imported.", "success");
+                showToast({ text: "Embeds imported.", variant: "success" });
             } catch {
-                showToast("Invalid JSON file.", "failure");
+                showToast({ text: "Invalid JSON file.", variant: "critical" });
             }
         };
         reader.readAsText(file);
@@ -427,7 +427,7 @@ function EmbedsTab({ embeds, setEmbeds }: {
                     onClick={() => {
                         const json = JSON.stringify(embeds, null, 2);
                         navigator.clipboard.writeText(json);
-                        showToast("Copied to clipboard.", "success");
+                        showToast({ text: "Copied to clipboard.", variant: "success" });
                     }}
                 >
                     Export JSON
@@ -599,7 +599,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
     async function onSend() {
         const trimmedUrl = webhookUrl.trim();
         if (!trimmedUrl) {
-            showToast("Webhook URL is required.", "failure");
+            showToast({ text: "Webhook URL is required.", variant: "critical" });
             return;
         }
 
@@ -607,17 +607,17 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             parsedUrl = new URL(trimmedUrl);
         } catch {
-            showToast("Webhook URL is invalid.", "failure");
+            showToast({ text: "Webhook URL is invalid.", variant: "critical" });
             return;
         }
 
         if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-            showToast("Webhook URL must use HTTP or HTTPS.", "failure");
+            showToast({ text: "Webhook URL must use HTTP or HTTPS.", variant: "critical" });
             return;
         }
 
         if (!parsedUrl.pathname.includes("/api/webhooks/")) {
-            showToast("This does not look like a Discord webhook URL.", "failure");
+            showToast({ text: "This does not look like a Discord webhook URL.", variant: "critical" });
             return;
         }
 
@@ -625,7 +625,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             embedsParsed = embeds.filter(e => e.title || e.description || e.fields?.length);
         } catch {
-            showToast("Invalid embed data.", "failure");
+            showToast({ text: "Invalid embed data.", variant: "critical" });
             return;
         }
 
@@ -633,7 +633,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             allowedMentions = parseJson<AllowedMentions>(allowedMentionsJson, "Allowed mentions");
         } catch (e) {
-            showToast(e instanceof Error ? e.message : "Invalid allowed mentions JSON.", "failure");
+            showToast({ text: e instanceof Error ? e.message : "Invalid allowed mentions JSON.", variant: "critical" });
             return;
         }
 
@@ -641,12 +641,12 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
         try {
             rawOverride = parseJson<Record<string, any>>(rawJsonOverride, "Raw JSON override");
         } catch (e) {
-            showToast(e instanceof Error ? e.message : "Invalid raw JSON.", "failure");
+            showToast({ text: e instanceof Error ? e.message : "Invalid raw JSON.", variant: "critical" });
             return;
         }
 
         if (!content.trim() && !embedsParsed?.length) {
-            showToast("Add content or at least one embed.", "failure");
+            showToast({ text: "Add content or at least one embed.", variant: "critical" });
             return;
         }
 
@@ -691,11 +691,11 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
             }
 
             setHistory(await saveHistory(trimmedUrl, username.trim() || undefined));
-            showToast("Webhook sent successfully.", "success");
+            showToast({ text: "Webhook sent successfully.", variant: "success" });
             rootProps.onClose();
         } catch (error) {
             const message = error instanceof Error ? error.message : "Unknown webhook error.";
-            showToast(message, "failure");
+            showToast({ text: message, variant: "critical" });
         } finally {
             setIsSending(false);
         }

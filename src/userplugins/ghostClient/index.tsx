@@ -469,9 +469,9 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
         if (added > 0) {
             await saveAccounts(updated);
             if (!mountedRef.current) return;
-            showToast(`${added} account${added > 1 ? "s" : ""} added${failed > 0 ? `, ${failed} failed` : ""}`, "success");
+            showToast({ text: `${added} account${added > 1 ? "s" : ""} added${failed > 0 ? `, ${failed} failed` : ""}`, variant: "success" });
         } else {
-            showToast(`All tokens invalid (${failed})`, "failure");
+            showToast({ text: `All tokens invalid (${failed})`, variant: "critical" });
         }
         setTokenInput(""); setAdding(false);
     }
@@ -536,7 +536,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
                 <Dropdown icon={<UserIcon />} label="Active account" value={selectedId} options={accountOptions}
                     onChange={v => {
                         if (v !== "all" && v === getMyId()) {
-                            showToast("You cannot use your own account as a ghost!", "failure");
+                            showToast({ text: "You cannot use your own account as a ghost!", variant: "critical" });
                             return;
                         }
                         setSelectedId(v);
@@ -706,7 +706,7 @@ const GhostUserAreaButton: UserAreaButtonFactory = ({ iconForeground, hideToolti
 
         if (targets.length === 0) {
             if (storedSelected !== "all" && storedSelected === myId) {
-                showToast("You cannot connect your own account as a ghost", "failure");
+                showToast({ text: "You cannot connect your own account as a ghost", variant: "critical" });
             }
             openPopover();
             return;
@@ -719,7 +719,7 @@ const GhostUserAreaButton: UserAreaButtonFactory = ({ iconForeground, hideToolti
             await ghostDeactivateAll();
         } else {
             if (!vs?.channelId) {
-                showToast("Join a voice channel first", "failure");
+                showToast({ text: "Join a voice channel first", variant: "critical" });
                 return;
             }
             for (const acc of targets) {

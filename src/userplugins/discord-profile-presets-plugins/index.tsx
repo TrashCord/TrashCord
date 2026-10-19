@@ -239,7 +239,7 @@ function toast(message: string, type = "message") {
         renderInModalToast(activeModal, message, type);
     } else {
         try {
-            showToast(message, type);
+            showToast({ text: message, variant: type });
         } catch {}
     }
 }

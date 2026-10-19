@@ -26,7 +26,7 @@ export const AutocorrectChatBarButton: ChatBarButtonFactory = ({ isMainChat }) =
     const toggle = () => {
         const next = !settings.store.autocorrect;
         settings.store.autocorrect = next;
-        showToast(next ? "Autocorrect on" : "Autocorrect off", "success");
+        showToast({ text: next ? "Autocorrect on" : "Autocorrect off", variant: "success" });
     };
 
     return (

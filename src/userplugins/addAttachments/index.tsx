@@ -107,13 +107,13 @@ const addAttachments = async (channelId: string, messageId: string, files: FileL
         const oversizedCount = files.length - sizedFiles.length;
 
         if (oversizedCount) {
-            showToast(`${oversizedCount} file(s) exceed your upload limit and were skipped`, "failure");
+            showToast({ text: `${oversizedCount} file(s) exceed your upload limit and were skipped`, variant: "critical" });
         }
 
         const uploadableFiles = sizedFiles.slice(0, MAX_ATTACHMENTS - attachments.length);
         if (!uploadableFiles.length) return;
 
-        showToast("Uploading, this can take a while...", "clock");
+        showToast({ text: "Uploading, this can take a while..." });
 
         const fileArray = uploadableFiles.map(file => ({
             filename: file.name,
@@ -147,20 +147,20 @@ const addAttachments = async (channelId: string, messageId: string, files: FileL
             ...newAttachments
         ]);
 
-        showToast("Attachments added successfully!", "success");
+        showToast({ text: "Attachments added successfully!", variant: "success" });
     } catch (error) {
         logger.error("Failed to add attachments.", error);
-        showToast("Failed to add attachments", "failure");
+        showToast({ text: "Failed to add attachments", variant: "critical" });
     }
 };
 
 const removeLastAttachment = async (channelId: string, messageId: string, attachments: any[]) => {
     try {
         await syncAttachments(channelId, messageId, attachments.slice(0, -1).map(a => ({ id: a.id })));
-        showToast("Attachment removed!", "success");
+        showToast({ text: "Attachment removed!", variant: "success" });
     } catch (error) {
         logger.error("Failed to remove attachment.", error);
-        showToast("Failed to remove attachment", "failure");
+        showToast({ text: "Failed to remove attachment", variant: "critical" });
     }
 };
 

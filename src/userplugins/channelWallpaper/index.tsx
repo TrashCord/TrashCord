@@ -295,19 +295,19 @@ async function setWallpaperFromFile(channelId: string) {
     const file = await pickFileRaw();
     if (!file) return;
 
-    showToast("Uploading wallpaper to Imgur for sync...", "message");
+    showToast({ text: "Uploading wallpaper to Imgur for sync..." });
     const imgurUrl = await uploadToImgur(file);
 
     if (imgurUrl) {
         saveWallpaper(channelId, imgurUrl, false);
-        showToast("Wallpaper uploaded and synced!", "success");
+        showToast({ text: "Wallpaper uploaded and synced!", variant: "success" });
     } else {
         // Local fallback if upload fails
         const reader = new FileReader();
         reader.onload = () => {
             const dataUrl = reader.result as string;
             saveWallpaper(channelId, dataUrl, true);
-            showToast("Imgur upload failed. Wallpaper applied locally only.", "failure");
+            showToast({ text: "Imgur upload failed. Wallpaper applied locally only.", variant: "critical" });
         };
         reader.readAsDataURL(file);
     }
@@ -317,13 +317,13 @@ async function setWallpaperFromUrl(channelId: string) {
     const url = await promptUrl();
     if (url) {
         saveWallpaper(channelId, url, false);
-        showToast("Wallpaper applied and synced!", "success");
+        showToast({ text: "Wallpaper applied and synced!", variant: "success" });
     }
 }
 
 function removeWallpaper(channelId: string) {
     saveWallpaper(channelId, "");
-    showToast("Wallpaper deleted", "success");
+    showToast({ text: "Wallpaper deleted", variant: "success" });
 }
 
 // ── Context Menu Patches ───────────────────────────────────────────────────────

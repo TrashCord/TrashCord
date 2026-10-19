@@ -494,7 +494,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
         }
 
         if (settings.store.showWarningToast) {
-            showToast(`🛡️ Message blocked: ${categories.join(", ")}`, "failure");
+            showToast({ text: `🛡️ Message blocked: ${categories.join(", ")}`, variant: "critical" });
         }
 
         if (settings.store.showWarningNotification) {
@@ -521,7 +521,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
 
         if (settings.store.showWarningToast) {
             const actionLabel = action === "censor" ? "censored" : "replaced";
-            showToast(`🛡️ Message ${actionLabel}: ${categories.join(", ")}`, "message");
+            showToast({ text: `🛡️ Message ${actionLabel}: ${categories.join(", ")}` });
         }
 
         if (settings.store.showWarningNotification) {

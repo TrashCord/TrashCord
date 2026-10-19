@@ -96,11 +96,11 @@ async function applyTarget(guildId: string, userId: string, nick: string | null)
         });
 
         if (settings.store.showToast) {
-            showToast("AutoNickname restored a nickname.", "success");
+            showToast({ text: "AutoNickname restored a nickname.", variant: "success" });
         }
     } catch {
         if (settings.store.showToast) {
-            showToast("AutoNickname failed to restore a nickname.", "failure");
+            showToast({ text: "AutoNickname failed to restore a nickname.", variant: "critical" });
         }
     } finally {
         applyingTargets.delete(key);

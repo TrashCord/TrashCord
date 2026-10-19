@@ -116,7 +116,7 @@ function GctrapModal({ initialTab, ...modalProps }: RenderModalProps & { initial
                     onCreate={() => setTab("new")}
                     onTrack={channelId => {
                         trackGroup(channelId);
-                        showToast("Added that group to the dashboard", "success");
+                        showToast({ text: "Added that group to the dashboard", variant: "success" });
                     }}
                 />
             )}

@@ -49,7 +49,7 @@ export function UpdateModal({ remoteInfo, installedVersion, onDismiss, modalProp
             setCopied(true)
             setTimeout(() => setCopied(false), 3000)
             try {
-                showToast("Update command copied. Paste it into PowerShell.", "success")
+                showToast({ text: "Update command copied. Paste it into PowerShell.", variant: "success" })
             } catch {}
         } catch {
             // Clipboard not available — ignore silently.

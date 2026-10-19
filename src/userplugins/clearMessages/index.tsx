@@ -32,7 +32,7 @@ function TrashIcon() {
 }
 
 function toast(message: string, type = "message") {
-    showToast(message, type, { position: 1 });
+    showToast({ text: message, variant: type, position: "bottom" });
 }
 
 // fromMessageId: if set, only delete messages from that message onwards (the

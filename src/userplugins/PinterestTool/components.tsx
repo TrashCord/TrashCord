@@ -298,7 +298,7 @@ async function applyProfileResult(result: PinterestImageResult, target: SearchKi
     } catch (error) {
         logger.error("Failed to apply Pinterest result", error);
         copyWithToast(result.url, t("copied"));
-        showToast(t("applyFailed"), "failure");
+        showToast({ text: t("applyFailed"), variant: "critical" });
         return false;
     }
 }
@@ -309,7 +309,7 @@ async function saveResult(result: PinterestImageResult) {
         saveFile(new File([media.data], media.filename, { type: media.type }));
     } catch (error) {
         logger.error("Failed to save Pinterest result", error);
-        showToast(t("saveFailed"), "failure");
+        showToast({ text: t("saveFailed"), variant: "critical" });
     }
 }
 
@@ -376,7 +376,7 @@ async function writeFavoritesForTarget(
         );
     } catch (error) {
         logger.error(`Could not save Pinterest ${target.toLowerCase()} favorites`, error);
-        showToast(t("favoritesFailed"), "failure");
+        showToast({ text: t("favoritesFailed"), variant: "critical" });
     }
 }
 
@@ -586,7 +586,7 @@ function ThemePicker({
         const EyeDropperCtor = (window as any).EyeDropper;
 
         if (!EyeDropperCtor) {
-            showToast(t("colorFailed"), "failure");
+            showToast({ text: t("colorFailed"), variant: "critical" });
             return;
         }
 
@@ -1556,7 +1556,7 @@ function PinterestBrowser({
             if (generation !== requestGenerationRef.current[mode]) return;
             logger.error("Next page failed", error);
             // Background prefetches fail silently; the user can still press Next.
-            if (advance) showToast(t("searchFailed"), "failure");
+            if (advance) showToast({ text: t("searchFailed"), variant: "critical" });
             setBucketsForMode(mode, current => ({
                 ...current,
                 [kind]: {
@@ -1931,7 +1931,7 @@ function EffectsEditor({
 
         load().catch(error => {
             logger.error("Editor could not open the media", error);
-            showToast(t("editorFailed"), "failure");
+            showToast({ text: t("editorFailed"), variant: "critical" });
             onDone({ kind: "original" });
         });
 
@@ -2015,7 +2015,7 @@ function EffectsEditor({
             setTab("text");
             setTick(value => value + 1);
         } catch {
-            showToast(t("addImageFailed"), "failure");
+            showToast({ text: t("addImageFailed"), variant: "critical" });
         }
     }
 
@@ -2089,9 +2089,9 @@ function EffectsEditor({
                 addTextLayer(text.slice(0, 300));
                 return;
             }
-            showToast(t("clipboardEmpty"), "message");
+            showToast({ text: t("clipboardEmpty") });
         } catch {
-            showToast(t("clipboardHint"), "message");
+            showToast({ text: t("clipboardHint") });
         }
     }
 
@@ -2171,7 +2171,7 @@ function EffectsEditor({
                 onDone({ kind: "edited", file, dataUrl: bytesToDataUrl(bytes, "image/gif") });
             } catch (error) {
                 logger.error("Could not render the edited GIF", error);
-                showToast(error instanceof Error ? error.message : "Could not apply those edits to the GIF.", "failure");
+                showToast({ text: error instanceof Error ? error.message : "Could not apply those edits to the GIF.", variant: "critical" });
                 setBusy(false);
                 setProgress("");
             }
@@ -2197,7 +2197,7 @@ function EffectsEditor({
             onDone({ kind: "edited", file, dataUrl: canvas.toDataURL(mime, 0.93) });
         } catch (error) {
             logger.error("Could not render the edited image", error);
-            showToast(t("editFailed"), "failure");
+            showToast({ text: t("editFailed"), variant: "critical" });
             onDone({ kind: "original" });
         }
     }
@@ -2551,16 +2551,16 @@ export function PinterestProfileModal({ target, onEditFile, onApplied, ...props 
                         }
 
                         if (!file) {
-                            showToast(t("downloadFailed"), "failure");
+                            showToast({ text: t("downloadFailed"), variant: "critical" });
                             return;
                         }
 
                         if (file.size > TARGET_BYTES) {
-                            showToast(t("resize", { size: (file.size / 1048576).toFixed(1) }), "message");
+                            showToast({ text: t("resize", { size: (file.size / 1048576).toFixed(1) }) });
                             try {
                                 file = await fitUnderLimit(file);
                             } catch (error) {
-                                showToast(error instanceof Error ? error.message : t("tooLarge"), "failure");
+                                showToast({ text: error instanceof Error ? error.message : t("tooLarge"), variant: "critical" });
                                 return;
                             }
                         }

@@ -71,9 +71,10 @@ const cb = e => {
         (state.userId === UserStore.getCurrentUser().id &&
             snitchList.some(id => VoiceStateStore.getVoiceStatesForChannel(state.channelId)[id]))
     ) {
-        showToast(`SNITCH ALERT: User ${state.userId} detected`, "failure", {
-            id: "snitch-alert",
-            position: 1
+        showToast({
+            text: `SNITCH ALERT: User ${state.userId} detected`,
+            variant: "critical",
+            position: "bottom"
         });
         audio();
     }
@@ -85,9 +86,10 @@ const onTypingStart = ({ userId, channelId }: { userId: string; channelId: strin
     if (userId === UserStore.getCurrentUser().id) return;
     if (!isSnitch(userId)) return;
 
-    showToast(`SNITCH ALERT: User ${userId} is typing`, "failure", {
-        id: "snitch-typing-alert",
-        position: 1
+    showToast({
+        text: `SNITCH ALERT: User ${userId} is typing`,
+        variant: "critical",
+        position: "bottom"
     });
     audio();
 };

@@ -248,7 +248,7 @@ export function NoteSearchTab() {
                 delete next[userId];
                 return next;
             });
-            showToast("Note removed", "success");
+            showToast({ text: "Note removed", variant: "success" });
         } else {
             await savePluginNote(userId, trimmed);
             await set(userId, trimmed, NotesStore);
@@ -258,7 +258,7 @@ export function NoteSearchTab() {
                 delete next[userId];
                 return next;
             });
-            showToast("Note saved successfully", "success");
+            showToast({ text: "Note saved successfully", variant: "success" });
         }
     };
 
@@ -283,7 +283,7 @@ export function NoteSearchTab() {
             delete next[userId];
             return next;
         });
-        showToast("Note deleted", "success");
+        showToast({ text: "Note deleted", variant: "success" });
     };
 
     const filteredNotesList = useMemo(() => {

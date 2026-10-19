@@ -157,20 +157,20 @@ export default definePlugin({
             try {
                 const clip = await navigator.clipboard.readText();
                 if (!clip) {
-                    showToast("Clipboard is empty", "failure");
+                    showToast({ text: "Clipboard is empty", variant: "critical" });
                     return;
                 }
                 const clipboardProfile: SavedProfile = JSON.parse(clip);
 
                 if (!("nick" in clipboardProfile)) {
-                    showToast("Data is not in correct format", "failure");
+                    showToast({ text: "Data is not in correct format", variant: "critical" });
                     return;
                 }
 
                 Object.assign(savedProfile, JSON.parse(clip));
                 paste();
             } catch (e) {
-                showToast(`Failed to read clipboard data: ${e}`, "failure");
+                showToast({ text: `Failed to read clipboard data: ${e}`, variant: "critical" });
             }
         };
 

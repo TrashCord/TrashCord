@@ -79,19 +79,19 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
     const handleStop = () => {
         badgeSpooferEngine.stopSpoofing();
         setIsRunning(false);
-        showToast("Spoofing stopped.", "message");
+        showToast({ text: "Spoofing stopped." });
     };
 
     const handleRefreshGames = async () => {
         const games = await badgeSpooferEngine.loadGames(true);
         setTotalAvailableGames(games.length);
-        showToast(`Reloaded ${games.length} games from Discord CDN`, "success");
+        showToast({ text: `Reloaded ${games.length} games from Discord CDN`, variant: "success" });
     };
 
     const handleClearStats = () => {
         badgeSpooferEngine.clearHistory();
         setStats(badgeSpooferEngine.getStats());
-        showToast("Claimed stats reset.", "success");
+        showToast({ text: "Claimed stats reset.", variant: "success" });
     };
 
     const percent = progress && progress.total > 0

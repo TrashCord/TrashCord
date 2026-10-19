@@ -62,7 +62,7 @@ function onMessageDelete({ id }: any) {
         ? hit.content.slice(0, 80) + "…"
         : hit.content || "(no text)";
 
-    showToast(`👻 Ghost ping from ${hit.authorName}: "${preview}"`, "failure", { duration: 6000 });
+    showToast({ text: `👻 Ghost ping from ${hit.authorName}: "${preview}"`, variant: "critical", duration: 6000 });
 }
 
 export default definePlugin({

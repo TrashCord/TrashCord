@@ -49,7 +49,7 @@ async function syncPinnedDevice() {
     try {
         const res = await Native.pinDevice(name, settings.store.alsoSetSystemDefault);
         if (res?.error) {
-            showToast(res.error, "failure");
+            showToast({ text: res.error, variant: "critical" });
             console.error("[MicSwitchFix]", res.error);
         } else {
             debugLog(name === null ? "unpinned (using system default)" : `pinned -> ${res.pinned}`);

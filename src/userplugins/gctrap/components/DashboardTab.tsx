@@ -67,11 +67,11 @@ export default function DashboardTab({ onCreate, onTrack }: DashboardTabProps) {
             try {
                 await syncGroup(group);
             } catch (err) {
-                showToast(`Could not sync ${group.label ?? group.id}: ${getErrorMessage(err)}`, "failure");
+                showToast({ text: `Could not sync ${group.label ?? group.id}: ${getErrorMessage(err)}`, variant: "critical" });
             }
         }
         setBusy(false);
-        showToast(`Synced ${pluralize(groups.length, "group")}`, "success");
+        showToast({ text: `Synced ${pluralize(groups.length, "group")}`, variant: "success" });
     }
 
     return (

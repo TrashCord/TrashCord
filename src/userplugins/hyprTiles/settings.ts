@@ -24,7 +24,7 @@ function RulesFileControl({ setValue }: { setValue(value: boolean): void; }) {
 
     async function openRulesFile() {
         if (!Native) {
-            showToast("HyprTiles rules file is only available on desktop.", "failure");
+            showToast({ text: "HyprTiles rules file is only available on desktop.", variant: "critical" });
             return;
         }
 
@@ -32,7 +32,7 @@ function RulesFileControl({ setValue }: { setValue(value: boolean): void; }) {
         try {
             await Native.openRulesFile(defaultRulesTemplate);
         } catch (error: any) {
-            showToast(`Unable to open HyprTiles rules file: ${error?.message || String(error)}`, "failure");
+            showToast({ text: `Unable to open HyprTiles rules file: ${error?.message || String(error)}`, variant: "critical" });
         } finally {
             setOpening(false);
         }

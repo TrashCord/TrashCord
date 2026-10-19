@@ -242,7 +242,7 @@ async function createBotsChannel(guildId: string, newGuildId: string) {
 
     if (bots.length === 0) {
         LOG("No bots found in cache");
-        showToast("No bots found in cache — try scrolling through the member list first", "message");
+        showToast({ text: "No bots found in cache — try scrolling through the member list first" });
         return;
     }
 
@@ -274,10 +274,10 @@ async function createBotsChannel(guildId: string, newGuildId: string) {
             }
         }
 
-        showToast(`Created #bots-list with ${bots.length} bots!`, "success");
+        showToast({ text: `Created #bots-list with ${bots.length} bots!`, variant: "success" });
     } catch (e) {
         ERR("Failed to create bots channel:", e);
-        showToast("Failed to create #bots-list channel", "failure");
+        showToast({ text: "Failed to create #bots-list channel", variant: "critical" });
     }
 }
 
@@ -313,7 +313,7 @@ async function copyGuild(guildId: string, targetGuildId?: string): Promise<void>
         if (!guild) throw new Error("Guild not found");
 
         LOG(`Starting copy of guild: ${guild.name} (${guildId})`);
-        showToast(targetGuildId ? "Starting guild transfer process..." : "Starting guild copy process...", "success");
+        showToast({ text: targetGuildId ? "Starting guild transfer process..." : "Starting guild copy process...", variant: "success" });
 
         // --- Roles ---
         const roles = GuildRoleStore.getSortedRoles(guildId);
@@ -393,7 +393,7 @@ async function copyGuild(guildId: string, targetGuildId?: string): Promise<void>
             if (!targetGuild) throw new Error("Target guild not found");
 
             LOG(`Transferring into guild: ${targetGuild.name} (${newGuildId})`);
-            showToast(`Transferring into ${targetGuild.name}`, "success");
+            showToast({ text: `Transferring into ${targetGuild.name}`, variant: "success" });
             if (settings.store.copyRoles) {
                 await deleteGuildRoles(newGuildId);
                 LOG("Target roles deleted");
@@ -419,7 +419,7 @@ async function copyGuild(guildId: string, targetGuildId?: string): Promise<void>
             });
             newGuildId = newGuild.id;
             LOG(`New guild created: ${newGuild.name} (${newGuildId})`);
-            showToast(`Created new guild: ${newGuild.name}`, "success");
+            showToast({ text: `Created new guild: ${newGuild.name}`, variant: "success" });
             if (!newGuildId) throw new Error("Target guild not found");
 
             // --- Delete default channels ---
@@ -586,12 +586,12 @@ async function copyGuild(guildId: string, targetGuildId?: string): Promise<void>
         }
 
         LOG("Guild copy completed!");
-        showToast(targetGuildId ? "Guild transfer completed successfully!" : "Guild copy completed successfully!", "success");
+        showToast({ text: targetGuildId ? "Guild transfer completed successfully!" : "Guild copy completed successfully!", variant: "success" });
 
     } catch (error) {
         ERR("Error during guild copy:", error);
         const errorMessage = error instanceof Error ? error.message : "An error occurred";
-        showToast(`Error ${targetGuildId ? "transferring" : "copying"} guild: ${errorMessage}`, "failure");
+        showToast({ text: `Error ${targetGuildId ? "transferring" : "copying"} guild: ${errorMessage}`, variant: "critical" });
     }
 }
 

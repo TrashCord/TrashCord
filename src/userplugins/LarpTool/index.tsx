@@ -1333,7 +1333,7 @@ function ConnectionsSection() {
             ? normalizeDomain(newName)
             : newName.trim();
         if (!name) {
-            showToast(connectionNeedsDomain(pickType) ? "Enter a domain" : "Enter a handle", "failure");
+            showToast({ text: connectionNeedsDomain(pickType) ? "Enter a domain" : "Enter a handle", variant: "critical" });
             return;
         }
 
@@ -1521,18 +1521,18 @@ function ConfigSection() {
         a.download = `larp-${name}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast("Config downloaded", "success");
+        showToast({ text: "Config downloaded", variant: "success" });
     };
 
     const doImport = (raw: string) => {
         const data = parseLarpImport(raw);
         if (!data) {
-            showToast("Invalid config JSON", "failure");
+            showToast({ text: "Invalid config JSON", variant: "critical" });
             return;
         }
         applyLarpExportData(data);
         setImportText("");
-        showToast("Config applied", "success");
+        showToast({ text: "Config applied", variant: "success" });
     };
 
     return (

@@ -189,7 +189,7 @@ const settings = definePluginSettings({
         default: "",
         component: () => <Button onClick={() => {
             copyCSS();
-            showToast("Successfully copied theme!", "success");
+            showToast({ text: "Successfully copied theme!", variant: "success" });
         }} >Copy The CSS for your current configuration.</Button>
     }
 });

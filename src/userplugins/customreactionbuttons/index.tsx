@@ -235,7 +235,7 @@ export default definePlugin({
                 url: Constants.Endpoints.REACTION(channelId, messageId, emojiParam, "@me")
             });
         } catch {
-            showToast("Failed to add reaction", "failure", { duration: 3000 });
+            showToast({ text: "Failed to add reaction", variant: "critical", duration: 3000 });
         }
     }
 });

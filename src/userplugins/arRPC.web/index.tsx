@@ -90,10 +90,12 @@ export default definePlugin({
             return;
         }
 
-        showToast("Connected to arRPC", "success", {
-                duration: 1000,
-                position: 1
-            });
+        showToast({
+            text: "Connected to arRPC",
+            variant: "success",
+            duration: 1000,
+            position: "bottom"
+        });
     },
 
     stop() {

@@ -30,11 +30,11 @@ function runCode(code: string) {
     try {
         const output = Function(`return () => {${code}}`)()();
 
-        showToast(`${output}`, "success");
+        showToast({ text: `${output}`, variant: "success" });
     } catch (e) {
         new Logger("Run in Console").error(e);
 
-        showToast(`${e}`, "failure");
+        showToast({ text: `${e}`, variant: "critical" });
     }
 }
 

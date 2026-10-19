@@ -274,7 +274,7 @@ const _plugin: PluginDef & Record<string, any> = {
         removeContextMenuPatch("user-context", contextMenuPatch);
     },
     async stalkUser(id: string) {
-        showToast(`Stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`, "success");
+        showToast({ text: `Stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`, variant: "success" });
         addToWhitelist(id);
         const { body } = await RestAPI.get({
             url: `/users/${id}/profile`,
@@ -287,7 +287,7 @@ const _plugin: PluginDef & Record<string, any> = {
         logger.info(`Cached user ${id} with name ${oldUsers[id].user.globalName || oldUsers[id].user.username} for further usage.`);
     },
     unStalkuser(id: string) {
-        showToast(`Stopped stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`, "success");
+        showToast({ text: `Stopped stalking ${UserStore.getUser(id).globalName || UserStore.getUser(id).username}`, variant: "success" });
         removeFromWhitelist(id);
         delete oldUsers[id];
     }

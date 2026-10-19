@@ -290,12 +290,12 @@ async function handleUploadFileFromDraft(upload: CloudUpload) {
     if (!file) return;
 
     if (!isFileTypeAllowed(file)) {
-        showToast("File type not allowed by current filter", "failure");
+        showToast({ text: "File type not allowed by current filter", variant: "critical" });
         return;
     }
 
     if (!isConfigured()) {
-        showToast("Please configure BigFileUpload settings first", "failure");
+        showToast({ text: "Please configure BigFileUpload settings first", variant: "critical" });
         return;
     }
 

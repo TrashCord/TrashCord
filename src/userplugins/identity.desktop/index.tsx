@@ -36,10 +36,10 @@ async function randomize() {
             bio: `Hello! I am ${person.name.first} ${person.name.last}`
         });
 
-        showToast("Random profile applied!", "success");
+        showToast({ text: "Random profile applied!", variant: "success" });
     } catch (error) {
         console.error("[Identity] Randomize failed:", error);
-        showToast("Randomization failed. Check console.", "failure");
+        showToast({ text: "Randomization failed. Check console.", variant: "critical" });
     }
 }
 
@@ -74,17 +74,17 @@ async function saveBase() {
         };
 
         await DataStore.set("identity-saved-base", JSON.stringify(savedData));
-        showToast("Base profile saved!", "success");
+        showToast({ text: "Base profile saved!", variant: "success" });
     } catch (error) {
         console.error("[Identity] Save failed:", error);
-        showToast("Save failed. Check console.", "failure");
+        showToast({ text: "Save failed. Check console.", variant: "critical" });
     }
 }
 
 async function loadBase() {
     const raw = await DataStore.get("identity-saved-base");
     if (!raw) {
-        showToast("No saved base found. Save one first.", "failure");
+        showToast({ text: "No saved base found. Save one first.", variant: "critical" });
         return;
     }
 
@@ -100,10 +100,10 @@ async function loadBase() {
         FluxDispatcher.dispatch({ type: "USER_SETTINGS_ACCOUNT_SET_PENDING_THEME_COLORS", themeColors: data.themeColors });
         FluxDispatcher.dispatch({ type: "USER_SETTINGS_ACCOUNT_SET_PENDING_BIO", bio: data.bio });
 
-        showToast("Base profile loaded!", "success");
+        showToast({ text: "Base profile loaded!", variant: "success" });
     } catch (error) {
         console.error("[Identity] Load failed:", error);
-        showToast("Load failed. Data may be corrupted.", "failure");
+        showToast({ text: "Load failed. Data may be corrupted.", variant: "critical" });
     }
 }
 

@@ -455,7 +455,7 @@ function onMessage({ message: msg }: { message: Message }): void {
 
     if (contentHasBlacklistedLink(msg.content) || contentHasScamLink(msg.content)) {
         blockIds(msg.channel_id, [msg.id]);
-        showToast("⚠️ Plugin: malicious/scam link removed.", "failure");
+        showToast({ text: "⚠️ Plugin: malicious/scam link removed.", variant: "critical" });
         autoSweepChannel(msg.channel_id, [msg.id]);
         return;
     }
@@ -463,7 +463,7 @@ function onMessage({ message: msg }: { message: Message }): void {
     if (isPurging(msg.channel_id)) {
         if (hasSuspiciousContent(msg)) {
             blockIds(msg.channel_id, [msg.id]);
-            showToast("⚠️ Plugin: purge mode active - message removed.", "failure");
+            showToast({ text: "⚠️ Plugin: purge mode active - message removed.", variant: "critical" });
         }
         return;
     }
@@ -486,10 +486,10 @@ function onMessage({ message: msg }: { message: Message }): void {
                 startPurge(cid);
                 if (swept < 5) { autoSweepChannel(cid, [msg.id]); swept++; }
             }
-            showToast(
-                `⚠️ Plugin: spam detected across ${distinctChannels} channels/DMs at once - your account is very likely hacked. Run a malware scan (Malwarebytes & AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC.`,
-                "failure",
-            );
+            showToast({
+                text: `⚠️ Plugin: spam detected across ${distinctChannels} channels/DMs at once - your account is very likely hacked. Run a malware scan (Malwarebytes & AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC.`,
+                variant: "critical"
+            });
             return;
         }
     }
@@ -514,10 +514,10 @@ function onMessage({ message: msg }: { message: Message }): void {
         if (!toDelete.includes(msg.id)) toDelete.push(msg.id);
         blockIds(msg.channel_id, toDelete);
         startPurge(msg.channel_id);
-        showToast(
-            `⚠️ Plugin: blocked ${toDelete.length} spam message(s) - your account may be hacked. Run a malware scan (Malwarebytes and AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC. This only blocks new spam, not messages sent before detection.`,
-            "failure",
-        );
+        showToast({
+            text: `⚠️ Plugin: blocked ${toDelete.length} spam message(s) - your account may be hacked. Run a malware scan (Malwarebytes and AdwCleaner), change your password now even with 2FA on, and check other accounts on this PC. This only blocks new spam, not messages sent before detection.`,
+            variant: "critical"
+        });
         autoSweepChannel(msg.channel_id, toDelete);
     }
 }
@@ -652,7 +652,7 @@ async function purgeSpamMessages(
         : `✅ Finished - ${deleted} deleted, ${errors} error(s).`;
 
     notifyListeners(finalMsg, deleted, true);
-    showToast(finalMsg, abortPurge ? "message" : "success");
+    showToast({ text: finalMsg, variant: abortPurge ? "default" : "success" });
 }
 
 function Toggle({ checked, onChange, disabled }: {

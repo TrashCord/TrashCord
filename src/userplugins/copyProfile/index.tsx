@@ -94,7 +94,7 @@ async function cloneProfile(user: User) {
         });
     } catch (e) {
         console.error("[CopyProfile]", e);
-        showToast("Failed to clone profile.", "failure", { position: 1 });
+        showToast({ text: "Failed to clone profile.", variant: "critical", position: "bottom" });
     }
 }
 

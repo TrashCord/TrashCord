@@ -19,7 +19,7 @@ let scanTimer: ReturnType<typeof setTimeout> | null = null;
 function cancelRequest(userId: string) {
     try {
         RelationshipActions.removeFriend(userId);
-        showToast("Friend request cancelled ✓", "success");
+        showToast({ text: "Friend request cancelled ✓", variant: "success" });
     } catch (e) {
         console.error("[CancelFriendRequest] Error:", e);
     }

@@ -346,7 +346,7 @@ function notify(body: string, type: string = "info") {
     var toastType = "message";
     if (type === "success") toastType = "success";
     else if (type === "error") toastType = "failure";
-    showToast(body, toastType);
+    showToast({ text: body, variant: toastType });
 }
 
 function HeartIcon() {

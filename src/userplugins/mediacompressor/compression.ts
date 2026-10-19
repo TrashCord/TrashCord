@@ -698,5 +698,5 @@ export function getUploadsForChannel(channelId: string) {
 export function maybeShowBlockedSendToast(message: string) {
     if (Date.now() - lastBlockedSendToastAt < 1500) return;
     lastBlockedSendToastAt = Date.now();
-    showToast(message, "failure");
+    showToast({ text: message, variant: "critical" });
 }

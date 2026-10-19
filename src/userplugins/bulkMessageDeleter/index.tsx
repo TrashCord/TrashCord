@@ -202,9 +202,12 @@ async function runDelete(ids: string[], channelId: string) {
     const wasCancelled = store.cancelled;
     const wasBackground = store.background;
     deactivate();
-    showToast(wasCancelled
+    showToast({
+        text: wasCancelled
             ? `Stopped — deleted ${deleted} before cancel`
-            : `${wasBackground ? "Background: " : ""}Deleted ${deleted} message${deleted !== 1 ? "s" : ""}${failed ? ` · ${failed} failed` : ""}`, wasCancelled ? "failure" : "success");
+            : `${wasBackground ? "Background: " : ""}Deleted ${deleted} message${deleted !== 1 ? "s" : ""}${failed ? ` · ${failed} failed` : ""}`,
+        variant: wasCancelled ? "critical" : "success"
+    });
 }
 
 function PopoverIconUnchecked() {

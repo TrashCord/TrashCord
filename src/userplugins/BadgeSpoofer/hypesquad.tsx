@@ -25,25 +25,24 @@ export function currentHouse(): HouseId {
 export async function applyHouse(houseId: HouseId): Promise<boolean> {
     const name = HOUSES.find(h => h.id === houseId)?.name ?? "None";
     try {
-        showToast(
-            houseId === 0 ? "Leaving HypeSquad…" : `Updating HypeSquad house to ${name}…`,
-            "message"
-        );
+        showToast({
+            text: houseId === 0 ? "Leaving HypeSquad…" : `Updating HypeSquad house to ${name}…`
+        });
 
         if (houseId === 0)
             await RestAPI.del({ url: "/hypesquad/online" });
         else
             await RestAPI.post({ url: "/hypesquad/online", body: { house_id: houseId } });
 
-        showToast(
-            houseId === 0
+        showToast({
+            text: houseId === 0
                 ? "Left HypeSquad. Reload Discord (Ctrl+R) to see your badge removed."
                 : `HypeSquad house updated: ${name}! Reload Discord (Ctrl+R) to see your badge.`,
-            "success"
-        );
+            variant: "success"
+        });
         return true;
     } catch (err: any) {
-        showToast(`Failed to change house: ${err?.message ?? err}`, "failure");
+        showToast({ text: `Failed to change house: ${err?.message ?? err}`, variant: "critical" });
         return false;
     }
 }

@@ -170,18 +170,18 @@ function ConvertModal({ source, modalProps }: { source: ConvertSource; modalProp
         switch (source.type) {
             case "upload":
                 replaceUpload(source.upload, file, source.draftType);
-                showToast(`Converted ${summary}`, "success");
+                showToast({ text: `Converted ${summary}`, variant: "success" });
                 modalProps.onClose();
                 return;
             case "file":
                 queueUpload(file, source.channelId);
-                showToast(`Converted ${summary}`, "success");
+                showToast({ text: `Converted ${summary}`, variant: "success" });
                 modalProps.onClose();
                 return;
             case "attachment":
                 if (settings.store.autoSendConverted) {
                     queueUpload(file, source.channelId);
-                    showToast(`Converted ${summary}. Added to your upload queue`, "success");
+                    showToast({ text: `Converted ${summary}. Added to your upload queue`, variant: "success" });
                     modalProps.onClose();
                 } else {
                     setPhase({ name: "done", file });

@@ -234,7 +234,7 @@ function toast(msg: string, type: "success" | "failure" | "message") {
             : type === "failure"
                 ? "failure"
                 : "message"
-        showToast(msg, toastType)
+        showToast({ text: msg, variant: toastType })
     } catch {
         // Toasts API might not be available in all Vencord versions — fail silently.
         console.info(`[MultiMessageCopy] ${msg}`)

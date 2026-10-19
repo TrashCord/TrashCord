@@ -130,7 +130,7 @@ export default function NewTab({ onTrack }: NewTabProps) {
                 "action",
                 `Created with ${pluralize(targets.length, "target")} and ${pluralize(members.length, "member")}`
             );
-            showToast("Group created and added to the dashboard", "success");
+            showToast({ text: "Group created and added to the dashboard", variant: "success" });
             openChannel(channelId);
         });
     }
@@ -151,7 +151,7 @@ export default function NewTab({ onTrack }: NewTabProps) {
             const members = recipientIds(channel).filter(id => id !== selfId());
             const label = getGroupName(channel);
             if (!tracked.some(item => item.id === channelId)) onTrack(channelId, members, label);
-            showToast("Joined the group", "success");
+            showToast({ text: "Joined the group", variant: "success" });
             openChannel(channelId);
         });
     }

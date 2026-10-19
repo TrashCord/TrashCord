@@ -154,7 +154,7 @@ function EditModal({ user, modalProps }: { user: User; modalProps: ModalProps; }
                             const s = settings.store.users ??= {};
                             s[user.id] = override;
                             modalProps.onClose();
-                            showToast("Saved! Switch chats for changes to apply everywhere", "success", { position: 1 });
+                            showToast({ text: "Saved! Switch chats for changes to apply everywhere", variant: "success", position: "bottom" });
                         }}
                     >
                         Save

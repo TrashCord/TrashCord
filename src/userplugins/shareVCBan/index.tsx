@@ -276,18 +276,20 @@ class ShareBanManager {
     private showError(message: string) {
         if (!settings.store.showStatusMessages) return;
 
-        showToast(`❌ ${message}`, "failure", {
-            id: "share-ban-perm-error",
-            position: 1,
+        showToast({
+            text: `❌ ${message}`,
+            variant: "critical",
+            position: "bottom"
         });
     }
 
     private showSuccess(message: string) {
         if (!settings.store.showStatusMessages) return;
 
-        showToast(`✅ ${message}`, "success", {
-            id: "share-ban-perm-success",
-            position: 1,
+        showToast({
+            text: `✅ ${message}`,
+            variant: "success",
+            position: "bottom"
         });
     }
 
@@ -342,16 +344,17 @@ const UserContext: NavContextMenuPatchCallback = (children, props) => {
                                 ? `❌ Removed voice ban permission from **${user.username}**`
                                 : `✅ Granted voice ban permission to **${user.username}**`;
 
-                            showToast(
-                                statusMessage,
-                                wasAuthorized ? "message" : "success",
-                                { id: "share-ban-perm-status", position: 1 }
-                            );
+                            showToast({
+                                text: statusMessage,
+                                variant: wasAuthorized ? "default" : "success",
+                                position: "bottom"
+                            });
                         }
                     } else {
-                        showToast("❌ Failed to toggle authorization", "failure", {
-                            id: "share-ban-perm-error",
-                            position: 1,
+                        showToast({
+                            text: "❌ Failed to toggle authorization",
+                            variant: "critical",
+                            position: "bottom"
                         });
                     }
                 }}

@@ -156,9 +156,10 @@ function attemptClaim(channelId: string, reason: string, isManual: boolean = fal
     if (!isCustomVoiceChannel(channelId)) {
         console.log(`Skipping claim for channel ${channelId} - not a custom VC`);
         if (isManual) {
-            showToast("Cannot claim default server voice channels", "failure", {
-                id: "not-custom-vc",
-                position: 1
+            showToast({
+                text: "Cannot claim default server voice channels",
+                variant: "critical",
+                position: "bottom"
             });
         }
         return;
@@ -171,9 +172,9 @@ function attemptClaim(channelId: string, reason: string, isManual: boolean = fal
     if (currentOwner === clientUserId) {
         console.log(`Skipping claim - client is already the owner of channel ${channelId}`);
         if (isManual) {
-            showToast("You already own this voice channel!", "message", {
-                id: "already-owner",
-                position: 1
+            showToast({
+                text: "You already own this voice channel!",
+                position: "bottom"
             });
         }
         return;
@@ -193,16 +194,18 @@ function attemptClaim(channelId: string, reason: string, isManual: boolean = fal
 
         currentVcOwners.set(channelId, clientUserId);
 
-        showToast(`Successfully ${isManual ? "claimed" : "auto-claimed"} voice channel!`, "success", {
-            id: isManual ? "manual-claim-success" : "auto-claim-success",
-            position: 1
+        showToast({
+            text: `Successfully ${isManual ? "claimed" : "auto-claimed"} voice channel!`,
+            variant: "success",
+            position: "bottom"
         });
     }).catch(error => {
         if (!pluginActive || generation !== pluginGeneration) return;
         console.error("Failed to claim channel:", error);
-        showToast(`Failed to claim channel: ${error.message}`, "failure", {
-            id: isManual ? "manual-claim-error" : "auto-claim-error",
-            position: 1
+        showToast({
+            text: `Failed to claim channel: ${error.message}`,
+            variant: "critical",
+            position: "bottom"
         });
     });
 }
@@ -284,9 +287,10 @@ function MenuItem(id: string) {
                     updateVcOwnerTracking(currentChannelId);
                     attemptClaim(currentChannelId, "Manual claim requested", true);
                 } else {
-                showToast("You're not in a voice channel", "failure", {
-                    id: "not-in-vc",
-                    position: 1
+                showToast({
+                    text: "You're not in a voice channel",
+                    variant: "critical",
+                    position: "bottom"
                 });
                 }
             }}
@@ -373,9 +377,10 @@ export default definePlugin({
                                 updateVcOwnerTracking(currentChannelId);
                                 attemptClaim(currentChannelId, "Manual claim from toolbar", true);
                             } else {
-                                showToast("You're not in a voice channel", "failure", {
-                                    id: "not-in-vc-toolbar",
-                                    position: 1
+                                showToast({
+                                    text: "You're not in a voice channel",
+                                    variant: "critical",
+                                    position: "bottom"
                                 });
                             }
                         }}

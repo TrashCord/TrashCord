@@ -471,7 +471,7 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
 
     async function start() {
         if (isProcessRunning) {
-            showToast("Process is already running", "failure");
+            showToast({ text: "Process is already running", variant: "critical" });
             return;
         }
 
@@ -480,14 +480,14 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
         settings.store.selectedGuilds = selectedGuilds.join(",");
 
         if (!mode) {
-            showToast("Please select a mode (DM or Server)", "failure");
+            showToast({ text: "Please select a mode (DM or Server)", variant: "critical" });
             return;
         }
 
         const whitelistSet = new Set(wl);
         const myId = UserStore.getCurrentUser()?.id;
         if (!myId) {
-            showToast("Could not determine current user.", "failure");
+            showToast({ text: "Could not determine current user.", variant: "critical" });
             return;
         }
 
@@ -987,9 +987,9 @@ async function openMessageScrapperModal() {
 function stopMessageScrapper() {
     if (isProcessRunning) {
         shouldStopProcess = true;
-        showToast("Stopping Message Scrapper...", "message");
+        showToast({ text: "Stopping Message Scrapper..." });
     } else {
-        showToast("No process running", "failure");
+        showToast({ text: "No process running", variant: "critical" });
     }
 }
 

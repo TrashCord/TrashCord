@@ -70,7 +70,7 @@ async function muteAllServers() {
     const guilds = GuildStoreModule.getGuilds();
     const guildIds = Object.keys(guilds);
 
-    showToast("Muting all and clearing notifications…", "message");
+    showToast({ text: "Muting all and clearing notifications…" });
 
     // Step 1: Mark everything as read (Equicord system)
     markAllAsRead();
@@ -106,7 +106,7 @@ async function muteAllServers() {
         }
     }
 
-    showToast(`Everything is now muted and read!`, "success");
+    showToast({ text: `Everything is now muted and read!`, variant: "success" });
 }
 
 const guildContextPatch = (children: any, { guild }: { guild?: any; }) => {

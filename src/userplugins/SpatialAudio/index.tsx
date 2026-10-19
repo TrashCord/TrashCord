@@ -40,7 +40,7 @@ function openSpatialAudio() {
     const channelId = userId ? VoiceStateStore.getVoiceStateForUser(userId)?.channelId : null;
 
     if (!channelId) {
-        showToast("Join a voice channel first.", "failure");
+        showToast({ text: "Join a voice channel first.", variant: "critical" });
         return;
     }
 

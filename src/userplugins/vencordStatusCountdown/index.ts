@@ -58,7 +58,7 @@ function getStatusString(): string | undefined {
     const today = new Date().getTime();
     const goalDay = new Date(settings.store.date).getTime();
     if (isNaN(goalDay)) {
-        showToast("Invalid target date", "failure");
+        showToast({ text: "Invalid target date", variant: "critical" });
         return;
     }
 

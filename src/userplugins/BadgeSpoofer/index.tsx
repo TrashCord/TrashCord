@@ -84,7 +84,7 @@ export default definePlugin({
                     content: `Starting Badge Spoofer: **${hours}h** play, **${streamHours}h** stream per game. Progress shows in toasts, or use \`/badgespoof-dashboard\`.`
                 });
 
-                showToast(`Badge Spoofer launched (${hours}h play, ${streamHours}h stream)...`, "message");
+                showToast({ text: `Badge Spoofer launched (${hours}h play, ${streamHours}h stream)...` });
 
                 badgeSpooferEngine.startSpoofing({
                     hours,
@@ -95,7 +95,7 @@ export default definePlugin({
                     fingerprint,
                     onProgress: progress => {
                         if (!progress.isRunning) {
-                            showToast(`Badge Spoofer Finished: ${progress.sent} games claimed!`, "success");
+                            showToast({ text: `Badge Spoofer Finished: ${progress.sent} games claimed!`, variant: "success" });
                         }
                     }
                 });

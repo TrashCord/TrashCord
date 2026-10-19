@@ -94,7 +94,7 @@ export default function GroupCard({ group }: GroupCardProps) {
         try {
             await task();
         } catch (err) {
-            showToast(getErrorMessage(err), "failure");
+            showToast({ text: getErrorMessage(err), variant: "critical" });
             log(group, getErrorMessage(err), "error");
         } finally {
             setBusy("");
@@ -156,7 +156,7 @@ export default function GroupCard({ group }: GroupCardProps) {
                     size="xs"
                     variant="primary"
                     disabled={!!busy}
-                    onClick={() => run(async () => showToast(await syncGroup(group), "success"))}
+                    onClick={() => run(async () => showToast({ text: await syncGroup(group), variant: "success" }))}
                 >
                     {busy || "Sync now"}
                 </Button>
@@ -210,7 +210,7 @@ export default function GroupCard({ group }: GroupCardProps) {
                             const { targets, members } = rolesToLists(roles);
                             update({ targets, members });
                             setAdding(false);
-                            showToast(`Saved ${pluralize(targets.length, "target")} and ${pluralize(members.length, "member")}`, "success");
+                            showToast({ text: `Saved ${pluralize(targets.length, "target")} and ${pluralize(members.length, "member")}`, variant: "success" });
                         }}
                     >
                         Save lists

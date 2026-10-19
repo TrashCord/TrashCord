@@ -237,7 +237,7 @@ async function acceptInvite(channelId: string, s: Session): Promise<Session | nu
         sessions.delete(channelId);
         await persistSessions();
         notifyStateChange();
-        showToast("🔐 Handshake failed — invitation was corrupt.", "failure");
+        showToast({ text: "🔐 Handshake failed — invitation was corrupt.", variant: "critical" });
         return null;
     }
     try {
@@ -251,7 +251,7 @@ async function acceptInvite(channelId: string, s: Session): Promise<Session | nu
         return newSession;
     } catch (e) {
         log.error("Failed to build ACK", e);
-        showToast("🔐 Handshake failed.", "failure");
+        showToast({ text: "🔐 Handshake failed.", variant: "critical" });
         return null;
     }
 }
@@ -277,13 +277,13 @@ const onSend: MessageSendListener = async (channelId, msg) => {
     // doesn't accidentally send plaintext.
     if (s.phase === "none") {
         await startHandshake(channelId);
-        showToast("🔐 E2EE handshake sent. Your message wasn't sent — please retype it after the lock turns green.");
+        showToast({ text: "🔐 E2EE handshake sent. Your message wasn't sent — please retype it after the lock turns green." });
         return { cancel: true };
     }
 
     if (s.phase === "init-sent") {
         // Still waiting on the peer's ACK. Refuse to send plaintext.
-        showToast("🔐 E2EE handshake still in progress. Wait for the lock to turn green.");
+        showToast({ text: "🔐 E2EE handshake still in progress. Wait for the lock to turn green." });
         return { cancel: true };
     }
 
@@ -298,11 +298,11 @@ const onSend: MessageSendListener = async (channelId, msg) => {
             const safety = settings.store.showSafetyNumberOnReady
                 ? ` Safety #: ${sess.safetyNum}.`
                 : "";
-            showToast(
-                `🔐 E2EE handshake accepted.${safety} ` +
+            showToast({
+                text: `🔐 E2EE handshake accepted.${safety} ` +
                 "Your message wasn't sent — please retype it after the lock turns green.",
-                "success"
-            );
+                variant: "success"
+            });
         }
         return { cancel: true };
     }
@@ -325,12 +325,12 @@ const onSend: MessageSendListener = async (channelId, msg) => {
         // As the handshake responder we cannot send until the peer's first
         // encrypted message arrives and primes our sending chain (the peer's
         // client sends one automatically on ACK receipt).
-        showToast(
-            String(e).includes("no sending chain")
+        showToast({
+            text: String(e).includes("no sending chain")
                 ? "🔐 Waiting for the peer's first encrypted message — try again in a moment."
                 : "🔐 Encryption failed; aborting send.",
-            "failure"
-        );
+            variant: "critical"
+        });
         return { cancel: true };
     }
 };
@@ -359,10 +359,10 @@ const onEdit: MessageEditListener = (channelId, messageId) => {
 
     if (!enabledChannels.has(channelId) && !wasE2EE) return;
 
-    showToast(
-        "🔐 Edit blocked: edits are not encrypted and would leak plaintext. Send a new message instead.",
-        "failure"
-    );
+    showToast({
+        text: "🔐 Edit blocked: edits are not encrypted and would leak plaintext. Send a new message instead.",
+        variant: "critical"
+    });
     return { cancel: true };
 };
 
@@ -429,10 +429,10 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                     current.phase === "init-sent" ? "outgoing handshake in flight"  :
                     /* init-recvd */                "another invitation already pending";
                 replaceContent(channelId, message, `🔐 [E2EE handshake invitation ignored — ${reason}]`);
-                showToast(
-                    `🔐 Peer sent a handshake invitation, but ${reason}. ` +
+                showToast({
+                    text: `🔐 Peer sent a handshake invitation, but ${reason}. ` +
                     "Toggle the lock off and on to reset if you want to accept it."
-                );
+                });
                 await markProcessed(message.id);
                 return;
             }
@@ -465,17 +465,17 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                     : "🔐 [E2EE handshake invitation — click the lock to accept]"
             );
             if (keyChanged) {
-                showToast(
-                    "⚠️ E2EE: peer wants to start a secure channel, but their identity key has " +
+                showToast({
+                    text: "⚠️ E2EE: peer wants to start a secure channel, but their identity key has " +
                     "CHANGED since you last talked. This could be a new install — or an attacker. " +
                     "Verify the safety number out of band before accepting!",
-                    "failure"
-                );
+                    variant: "critical"
+                });
             } else {
-                showToast(
-                    "🔐 Peer wants to start a secure channel. Click the lock " +
+                showToast({
+                    text: "🔐 Peer wants to start a secure channel. Click the lock " +
                     "to accept (or ignore to decline)."
-                );
+                });
             }
             await markProcessed(message.id);
             return;
@@ -530,17 +530,17 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
             notifyStateChange();
             replaceContent(channelId, message, "🔐 E2EE secure channel established.");
             if (ackKeyChanged) {
-                showToast(
-                    "⚠️ E2EE: secure channel established, but the peer's identity key has " +
+                showToast({
+                    text: "⚠️ E2EE: secure channel established, but the peer's identity key has " +
                     "CHANGED since you last talked. Verify the safety number " +
                     `(${newSession.safetyNum}) out of band before trusting this channel!`,
-                    "failure"
-                );
+                    variant: "critical"
+                });
             } else if (settings.store.showSafetyNumberOnReady) {
-                showToast(
-                    `🔐 Secure channel established. Safety #: ${newSession.safetyNum}`,
-                    "success"
-                );
+                showToast({
+                    text: `🔐 Secure channel established. Safety #: ${newSession.safetyNum}`,
+                    variant: "success"
+                });
             }
             await markProcessed(message.id);
             return;
@@ -643,12 +643,12 @@ function sendRaw(channelId: string, content: string) {
         .then((res: any) => {
             if (res?.ok === false) {
                 log.error("sendRaw: send failed", res);
-                showToast("🔐 Failed to send E2EE message — check your connection.", "failure");
+                showToast({ text: "🔐 Failed to send E2EE message — check your connection.", variant: "critical" });
             }
         })
         .catch((e: any) => {
             log.error("sendRaw: send rejected", e);
-            showToast("🔐 Failed to send E2EE message — see console for details.", "failure");
+            showToast({ text: "🔐 Failed to send E2EE message — see console for details.", variant: "critical" });
         });
 }
 
@@ -747,11 +747,11 @@ async function onLockClicked(channelId: string) {
         await persistSessions();
         notifyStateChange();
         if (had) sendRaw(channelId, PREFIX_RESET);
-        showToast(
-            pending?.phase === "init-recvd"
+        showToast({
+            text: pending?.phase === "init-recvd"
                 ? "🔐 Handshake invitation declined."
                 : "🔐 E2EE disabled for this DM."
-        );
+        });
     } else {
         if (!identity) return;
         enabledChannels.add(channelId);
@@ -765,13 +765,13 @@ async function onLockClicked(channelId: string) {
                 const safety = settings.store.showSafetyNumberOnReady
                     ? ` Safety #: ${sess.safetyNum}.`
                     : "";
-                showToast(`🔐 E2EE handshake accepted.${safety}`, "success");
+                showToast({ text: `🔐 E2EE handshake accepted.${safety}`, variant: "success" });
             }
         } else if (!pending || pending.phase === "none") {
             // Start the handshake immediately instead of waiting for (and
             // eating) the user's first typed message.
             await startHandshake(channelId);
-            showToast("🔐 E2EE handshake sent — the lock turns green when the peer accepts.");
+            showToast({ text: "🔐 E2EE handshake sent — the lock turns green when the peer accepts." });
         }
     }
 }

@@ -49,9 +49,9 @@ export function SelectFolderInput({ settingsKey, successMessage }: Props) {
         try {
             const res = await Native.chooseDir(settingsKey);
             settings.store[settingsKey] = res;
-            return showToast(successMessage, "success");
+            return showToast({ text: successMessage, variant: "success" });
         } catch (err) {
-            return showToast("Failed to update directory", "failure");
+            return showToast({ text: "Failed to update directory", variant: "critical" });
         }
     }
 

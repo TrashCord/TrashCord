@@ -71,7 +71,7 @@ function AfkButton() {
         afkEnabled = !afkEnabled;
         setEnabled(afkEnabled);
         repliedChannels.clear();
-        showToast(afkEnabled ? "AFK Mode ON — auto-replying to DMs" : "AFK Mode OFF", afkEnabled ? "success" : "message");
+        showToast({ text: afkEnabled ? "AFK Mode ON — auto-replying to DMs" : "AFK Mode OFF", variant: afkEnabled ? "success" : "default" });
     }
 
     return (

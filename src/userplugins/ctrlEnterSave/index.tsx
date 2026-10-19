@@ -84,10 +84,12 @@ function KeymapElement(props: IPluginOptionComponentProps) {
 function isMatch(ev: KeyboardEvent) {
     const s: KeyBind = settings.store.keymap;
     if (!s || Object.entries(s).length === 0) {
-        showToast("(CtrlEnterSave) Set your keybind in settings", "failure", {
-                position: 0,
-                duration: 2000
-            });
+        showToast({
+            text: "(CtrlEnterSave) Set your keybind in settings",
+            variant: "critical",
+            position: "top",
+            duration: 2000
+        });
     }
     return ev.altKey === s.alt
         && ev.key === s.key

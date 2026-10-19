@@ -499,7 +499,7 @@ function mute(userId: string, score: number) {
     logger.debug(`muted ${userId} at ${Math.round(toDb(score))} dB stereo`);
 
     if (settings.store.notify) {
-        showToast(`StereoGuard muted ${displayName(userId)} for obnoxious stereo (${Math.round(toDb(score))} dB).`, "message");
+        showToast({ text: `StereoGuard muted ${displayName(userId)} for obnoxious stereo (${Math.round(toDb(score))} dB).` });
     }
 }
 
@@ -517,12 +517,11 @@ function unmute(userId: string, mode: "manual" | "auto" | "silent") {
 
     if (mode === "silent" || !settings.store.notify) return;
 
-    showToast(
-        mode === "auto"
+    showToast({
+        text: mode === "auto"
             ? `StereoGuard auto-unmuted ${displayName(userId)} after ${formatDuration(settings.store.autoUnmute)}.`
-            : `StereoGuard unmuted ${displayName(userId)}.`,
-        "message"
-    );
+            : `StereoGuard unmuted ${displayName(userId)}.`
+    });
 }
 
 function sample(userId: string, meter: Meter, raw: number, now: number, needed: number) {
@@ -755,10 +754,9 @@ function StereoGuardButton({ iconForeground, hideTooltips, nameplate }: UserArea
             onContextMenu={event => {
                 event.preventDefault();
                 settings.store.enabled = !enabled;
-                showToast(
-                    `Stereo Guard ${settings.store.enabled ? "enabled" : "disabled"}.`,
-                    "message"
-                );
+                showToast({
+                    text: `Stereo Guard ${settings.store.enabled ? "enabled" : "disabled"}.`
+                });
             }}
         />
     );

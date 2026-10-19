@@ -110,7 +110,7 @@ function ImageEditorInner({ modalProps, file, defaultLayout, onComplete }: Image
             })
             .catch(err => {
                 logger.error("Failed to load image", err);
-                showToast("Clipify: couldn't load this image.", "failure");
+                showToast({ text: "Clipify: couldn't load this image.", variant: "critical" });
                 modalProps.onClose();
             });
         return () => {
@@ -230,10 +230,10 @@ function ImageEditorInner({ modalProps, file, defaultLayout, onComplete }: Image
                 quality: quality / 100
             });
             onComplete(edited);
-            showToast("Image edited and added to your message!", "success");
+            showToast({ text: "Image edited and added to your message!", variant: "success" });
             modalProps.onClose();
         } catch (err) {
-            showToast(`Edit failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
+            showToast({ text: `Edit failed: ${err instanceof Error ? err.message : String(err)}`, variant: "critical" });
             setExporting(false);
         }
     }, [exporting, img, file, marks, crop, resize, style, intensity, adv, format, quality, onComplete, modalProps]);

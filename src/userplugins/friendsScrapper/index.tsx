@@ -127,11 +127,11 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
         const toRemove = allFriends.filter(id => !whitelistSet.has(id));
 
         if (!toRemove.length) {
-            showToast("Whitelist covers all friends. Nothing to remove.", "message");
+            showToast({ text: "Whitelist covers all friends. Nothing to remove." });
             return;
         }
 
-        showToast(`Removing ${toRemove.length} friends...`, "message");
+        showToast({ text: `Removing ${toRemove.length} friends...` });
         let success = 0, fail = 0;
         for (const id of toRemove) {
             try {
@@ -142,7 +142,7 @@ function WhitelistModal({ modalProps }: { modalProps: ModalProps; }) {
             }
         }
 
-        showToast(`Done. Removed ${success}${fail ? `, failed ${fail}` : ""}.`, fail ? "failure" : "success");
+        showToast({ text: `Done. Removed ${success}${fail ? `, failed ${fail}` : ""}.`, variant: fail ? "critical" : "success" });
         modalProps.onClose();
     }
 

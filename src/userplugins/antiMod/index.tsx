@@ -58,9 +58,10 @@ const cb = async (e: any) => {
     for (const role of roles) {
         for (const permission of avoidPermission) {
             if ((role.permissions & permission) === permission) {
-                showToast(`MOD ALERT  ${state.userId} detected`, "failure", {
-                    id: "Vc-permissions",
-                    position: 1,
+                showToast({
+                    text: `MOD ALERT  ${state.userId} detected`,
+                    variant: "critical",
+                    position: "bottom"
                 });
                 audio();
 

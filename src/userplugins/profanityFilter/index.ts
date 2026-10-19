@@ -57,7 +57,7 @@ function toggleHandler(e: KeyboardEvent) {
     if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === "KeyP") {
         e.preventDefault();
         settings.store.enabled = !settings.store.enabled;
-        showToast(`Profanity filter: ${settings.store.enabled ? "ON" : "OFF"}`, settings.store.enabled ? "success" : "message");
+        showToast({ text: `Profanity filter: ${settings.store.enabled ? "ON" : "OFF"}`, variant: settings.store.enabled ? "success" : "default" });
     }
 }
 
@@ -95,7 +95,7 @@ export default definePlugin({
         }
 
         if (wasFiltered) {
-            showToast("Filtered profanity from message", "message");
+            showToast({ text: "Filtered profanity from message" });
         }
     }
 });

@@ -25,11 +25,11 @@ const settings = definePluginSettings({
 function keybind2(e) {
     if (settings.store.enablenormalkeybinds === false) return;
     if (!(Vencord as any).Plugins.plugins.vcOwnerDetector.settings.store.amivcowner) {
-        showToast(
-            "you're not the vc owner  also u gotta be in a vc to do this",
-            "failure",
-            { id: "cutelittlemessage", position: 1 }
-        );
+        showToast({
+            text: "you're not the vc owner  also u gotta be in a vc to do this",
+            variant: "critical",
+            position: "bottom"
+        });
         return;
     }
     if (e.altKey && e.key.toLowerCase() === "s") {
@@ -40,19 +40,19 @@ function keybind2(e) {
                 const mftokick = trackedmfs[trackedmfs.length - 1] ?? "";
                 if (mftokick && friendststore.getFriendIDs().includes(mftokick)) {
                     trackedmfs.splice(trackedmfs.indexOf(mftokick), 1);
-                    showToast(
-                        "this person is on your friends list (skipping)",
-                        "failure",
-                        { id: "recent-ban-friend", position: 1 }
-                    );
+                    showToast({
+                        text: "this person is on your friends list (skipping)",
+                        variant: "critical",
+                        position: "bottom"
+                    });
                     return;
                 }
                 if (mftokick) {
-                    showToast(
-                        "should be kicking the first person on the list now ",
-                        "failure",
-                        { id: "recent-kick", position: 1 }
-                    );
+                    showToast({
+                        text: "should be kicking the first person on the list now ",
+                        variant: "critical",
+                        position: "bottom"
+                    });
                     RestAPI.post({
                         url: `/channels/${cChannelId}/messages`,
                         body: { content: `!voice-kick ${mftokick}`, nonce: Math.floor(Math.random() * 10000000000000) }
@@ -68,8 +68,10 @@ function keybind2(e) {
 function keybind(e) {
     if (settings.store.enablenormalkeybinds === false) return;
     if (!(Vencord as any).Plugins.plugins.vcOwnerDetector.settings.store.amivcowner) {
-        showToast("you're not the vc owner", "failure", {
-            id: "cutelittlemessage", position: 1
+        showToast({
+            text: "you're not the vc owner",
+            variant: "critical",
+            position: "bottom"
         });
         return;
     }
@@ -81,19 +83,19 @@ function keybind(e) {
                 const mftoban = trackedmfs.pop() ?? "";
                 if (mftoban && friendststore.getFriendIDs().includes(mftoban)) {
                     trackedmfs.splice(trackedmfs.indexOf(mftoban), 1);
-                    showToast(
-                        "this person is on your friends list (skipping) ",
-                        "failure",
-                        { id: "recent-ban-friend", position: 1 }
-                    );
+                    showToast({
+                        text: "this person is on your friends list (skipping) ",
+                        variant: "critical",
+                        position: "bottom"
+                    });
                     return;
                 }
                 if (mftoban) {
-                    showToast(
-                        "should be banning the first person on the list now ",
-                        "failure",
-                        { id: "recent-ban", position: 1 }
-                    );
+                    showToast({
+                        text: "should be banning the first person on the list now ",
+                        variant: "critical",
+                        position: "bottom"
+                    });
                     RestAPI.post({
                         url: `/channels/${cChannelId}/messages`,
                         body: { content: `!voice-ban ${mftoban}`, nonce: Math.floor(Math.random() * 10000000000000) }
@@ -123,8 +125,10 @@ const cb = async e => {
 const good = async e => {
     if (settings.store.enablenormalkeybinds === true) return;
     if (!(Vencord as any).Plugins.plugins.vcOwnerDetector.settings.store.amivcowner) {
-        showToast("you're not the vc owner ", "failure", {
-            id: "cutelittlemessage", position: 1
+        showToast({
+            text: "you're not the vc owner ",
+            variant: "critical",
+            position: "bottom"
         });
         return;
     }
@@ -137,20 +141,20 @@ const good = async e => {
             const mftoban = trackedmfs.pop() ?? "";
             if (mftoban && friendststore.getFriendIDs().includes(mftoban)) {
                 trackedmfs.splice(trackedmfs.indexOf(mftoban), 1);
-                showToast(
-                    "this person is on your friends list (skipping) ",
-                    "failure",
-                    { id: "recent-ban-friend", position: 1 }
-                );
+                showToast({
+                    text: "this person is on your friends list (skipping) ",
+                    variant: "critical",
+                    position: "bottom"
+                });
                 return;
             }
             if (mftoban) {
                 console.log("trying to ban first person on list (streamer mode method)");
-                showToast(
-                    "should be banning the first person on the list now (streamer mode method)",
-                    "failure",
-                    { id: "recent-ban", position: 1 }
-                );
+                showToast({
+                    text: "should be banning the first person on the list now (streamer mode method)",
+                    variant: "critical",
+                    position: "bottom"
+                });
                 RestAPI.post({
                     url: `/channels/${cChannelId}/messages`,
                     body: { content: `!voice-ban ${mftoban}`, nonce: Math.floor(Math.random() * 10000000000000) }

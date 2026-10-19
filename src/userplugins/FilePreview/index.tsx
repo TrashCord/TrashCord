@@ -95,7 +95,7 @@ export default definePlugin({
                     document.body.appendChild(modal);
 
                     if (tooBig) {
-                        showToast("Warning: File is over 10MB. The preview may fail to load.", "FAILURE");
+                        showToast({ text: "Warning: File is over 10MB. The preview may fail to load.", variant: "FAILURE" });
                     }
                 },
             };

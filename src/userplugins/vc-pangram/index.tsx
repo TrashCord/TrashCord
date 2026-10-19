@@ -83,13 +83,13 @@ async function runScore(id: string, text: string, manual: boolean) {
         setScore(id, result);
         if (manual) {
             const emoji = result.label === "AI" ? "\u{1F916} " : result.label === "Human" ? "\u{1F9D1} " : "";
-            showToast(`${emoji}${result.label}${result.pct != null ? ` · ${result.pct}% AI` : ""}`, result.label === "AI" ? "failure" : result.label === "Human" ? "success" : "message");
+            showToast({ text: `${emoji}${result.label}${result.pct != null ? ` · ${result.pct}% AI` : ""}`, variant: result.label === "AI" ? "critical" : result.label === "Human" ? "success" : "default" });
         }
     } catch (e: any) {
         console.error("[Pangram]", e);
         setScore(id, { label: "?", pct: null });
         if (manual)
-            showToast(`Pangram: ${e.message}`, "failure");
+            showToast({ text: `Pangram: ${e.message}`, variant: "critical" });
     } finally {
         inflight.delete(id);
         processQueue();
@@ -151,7 +151,7 @@ const settings = definePluginSettings({
                 scores.clear();
                 dsDel(STORE_KEY);
                 notify();
-                showToast("Cache cleared", "success");
+                showToast({ text: "Cache cleared", variant: "success" });
             }}>
                 Clear Cache ({count} entries)
             </Button>;

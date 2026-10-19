@@ -155,14 +155,19 @@ const settings = definePluginSettings({
 
 interface LocalToastArgs {
     message: string;
-    type: "message" | "success" | "failure";
+    type: "default" | "success" | "critical";
     options?: { duration?: number; position?: number; };
 }
 
 const showToast = (toast: LocalToastArgs) => {
     if (!settings.store.showToasts) return;
     const { message, type, options } = toast;
-    vencordShowToast(message, type, options);
+    vencordShowToast({
+        text: message,
+        variant: type === "failure" ? "critical" : type === "message" ? "default" : type,
+        position: options?.position == null ? undefined : options.position === 0 ? "top" : "bottom",
+        duration: options?.duration
+    });
 };
 
 const sendConfig = () => {

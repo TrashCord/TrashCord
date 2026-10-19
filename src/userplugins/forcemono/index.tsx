@@ -82,11 +82,9 @@ function MonoToggleButton({ iconForeground, hideTooltips, nameplate }: UserAreaR
                 const newValue = !forceMono;
                 settings.store.forceMono = newValue;
 
-                showToast(
-                    newValue ? "Force Mono Enabled" : "Force Mono Disabled",
-                    "message",
-                    { id: "MonoToast" }
-                );
+                showToast({
+                    text: newValue ? "Force Mono Enabled" : "Force Mono Disabled"
+                });
             }}
         />
     );

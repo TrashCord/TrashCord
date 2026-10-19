@@ -38,11 +38,11 @@ const settings = definePluginSettings({
                 <Button onClick={async () => {
                     const favs = await getLocalFavs();
                     if (!favs.length) {
-                        showToast("No local favorites to export.", "failure");
+                        showToast({ text: "No local favorites to export.", variant: "critical" });
                         return;
                     }
                     navigator.clipboard.writeText(JSON.stringify(favs, null, 2));
-                    showToast(`Copied ${favs.length} favorites to clipboard.`, "success");
+                    showToast({ text: `Copied ${favs.length} favorites to clipboard.`, variant: "success" });
                 }}>
                     Export Local Favorites (JSON)
                 </Button>
@@ -57,7 +57,7 @@ const settings = definePluginSettings({
             return (
                 <Button color={Button.Colors.RED} onClick={async () => {
                     await saveLocalFavs([]);
-                    showToast("Local favorites cleared.", "success");
+                    showToast({ text: "Local favorites cleared.", variant: "success" });
                 }}>
                     Clear Local Favorites
                 </Button>

@@ -298,7 +298,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         settings.store.targetMode = "lookup";
         const id = value.trim();
         if (!ID_RE.test(id)) {
-            showToast("Enter a valid Discord user ID.", "failure");
+            showToast({ text: "Enter a valid Discord user ID.", variant: "critical" });
             return;
         }
         setBusy(true);
@@ -307,10 +307,10 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
             setTarget(next);
             setEnabled(true);
             setEnabledLocal(true);
-            showToast(`Spoofing as ${next.user.username}.`, "success");
+            showToast({ text: `Spoofing as ${next.user.username}.`, variant: "success" });
         } catch (e: any) {
             logger.error("apply failed", e);
-            showToast(e?.message || "Failed to load that user.", "failure");
+            showToast({ text: e?.message || "Failed to load that user.", variant: "critical" });
         } finally {
             setBusy(false);
         }
@@ -322,7 +322,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
 
         const premiumType = Number(manualPremiumType);
         if (!Number.isInteger(premiumType) || premiumType < 0 || premiumType > 3) {
-            showToast("Nitro type must be between 0 and 3.", "failure");
+            showToast({ text: "Nitro type must be between 0 and 3.", variant: "critical" });
             return;
         }
 
@@ -364,7 +364,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         setTarget(manual);
         setEnabled(true);
         setEnabledLocal(true);
-        showToast(`Spoofing as ${username}.`, "success");
+        showToast({ text: `Spoofing as ${username}.`, variant: "success" });
     }
 
     function clear() {
@@ -372,11 +372,11 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         setTarget(null);
         setEnabledLocal(false);
         setValue("");
-        showToast("Cleared spoof target.", "message");
+        showToast({ text: "Cleared spoof target." });
     }
 
     function toggle(v: boolean) {
-        if (v && !target) { showToast("Pick a target user first.", "failure"); return; }
+        if (v && !target) { showToast({ text: "Pick a target user first.", variant: "critical" }); return; }
         setEnabled(v);
         setEnabledLocal(v);
     }
@@ -392,10 +392,10 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
                 const dataUrl = await readImageAsDataUrl(file);
                 if (kind === "avatar") setManualAvatarDataUrl(dataUrl);
                 else setManualBannerDataUrl(dataUrl);
-                showToast(`${kind === "avatar" ? "Avatar" : "Banner"} uploaded.`, "success");
+                showToast({ text: `${kind === "avatar" ? "Avatar" : "Banner"} uploaded.`, variant: "success" });
             } catch (e) {
                 logger.error("image upload failed", e);
-                showToast("Failed to read the image.", "failure");
+                showToast({ text: "Failed to read the image.", variant: "critical" });
             }
         };
         input.click();

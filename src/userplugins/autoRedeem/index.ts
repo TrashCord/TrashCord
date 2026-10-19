@@ -137,7 +137,7 @@ function notifyPaused(reason: string) {
     queue.length = 0;
     if (pauseToastShown) return;
     pauseToastShown = true;
-    showToast(`AutoRedeem paused: ${reason}`, "failure");
+    showToast({ text: `AutoRedeem paused: ${reason}`, variant: "critical" });
     logger.warn(`Paused: ${reason}`);
 }
 
@@ -205,7 +205,7 @@ async function handleRedeem(item: QueueItem) {
             addLog({ code, status: "failed", type: "other", error: reason, channelId, messageId });
             logger.info(`Skipping ${code}: ${reason}`);
             if (!fast && settings.store.notifyOnFail && reason !== "already claimed" && reason !== "invalid code" && reason !== "expired") {
-                showToast(`AutoRedeem skipped ${code}: ${reason}`, "message");
+                showToast({ text: `AutoRedeem skipped ${code}: ${reason}` });
             }
             return;
         }
@@ -221,7 +221,7 @@ async function handleRedeem(item: QueueItem) {
         const giftType = classifyGift(body);
         addLog({ code, status: "success", type: giftType, channelId, messageId });
         if (!fast) {
-            showToast(`Redeemed gift: ${code}`, "success");
+            showToast({ text: `Redeemed gift: ${code}`, variant: "success" });
         }
         logger.info(`Redeemed gift code: ${code}`);
         if (!fast && settings.store.notifyOnRedeem) {
@@ -249,7 +249,7 @@ async function handleRedeem(item: QueueItem) {
         const msg: string = e?.body?.message ?? "Unknown error";
         addLog({ code, status: "failed", type: "other", error: msg, channelId, messageId });
         if (!fast) {
-            showToast(`Failed to redeem ${code}: ${msg}`, "failure");
+            showToast({ text: `Failed to redeem ${code}: ${msg}`, variant: "critical" });
         }
         logger.warn(`Failed to redeem ${code}:`, msg);
         if (!fast && settings.store.notifyOnFail) {

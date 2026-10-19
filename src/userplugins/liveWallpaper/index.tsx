@@ -85,7 +85,7 @@ function SettingsComponent() {
                                 setCurrentUrl(dataUrl);
                                 setInputValue("");
                                 applyWallpaper();
-                                showToast("Local wallpaper applied!", "success");
+                                showToast({ text: "Local wallpaper applied!", variant: "success" });
                             }
                         }}
                     >
@@ -103,7 +103,7 @@ function SettingsComponent() {
                                 setCurrentUrl("");
                                 setInputValue("");
                                 applyWallpaper();
-                                showToast("Wallpaper removed", "success");
+                                showToast({ text: "Wallpaper removed", variant: "success" });
                             }}
                         >
                             🗑️ Delete

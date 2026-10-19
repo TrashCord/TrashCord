@@ -95,11 +95,11 @@ function toggleFakeDeafen() {
     const statusMsg = states.deafen ? "disabled" : "enabled";
     const muteStatusMsg = !states.deafen ? " (+ fake mute)" : "";
 
-    showToast(
-        `🔇 Fake deafen is now: ${statusMsg}${muteStatusMsg}`,
-        states.deafen ? "success" : "failure",
-        { id: "fake-deafen", position: 1 }
-    );
+    showToast({
+        text: `🔇 Fake deafen is now: ${statusMsg}${muteStatusMsg}`,
+        variant: states.deafen ? "success" : "critical",
+        position: "bottom"
+    });
 
     // Trigger voice state update
     updaterequired = true;
@@ -117,11 +117,11 @@ function toggleFakeMute() {
     states.mute = !states.mute;
     settings.store.enableFakeMute = states.mute;
 
-    showToast(
-        `🎤 Fake mute is now: ${states.mute ? "disabled" : "enabled"}`,
-        states.mute ? "success" : "failure",
-        { id: "fake-mute", position: 1 }
-    );
+    showToast({
+        text: `🎤 Fake mute is now: ${states.mute ? "disabled" : "enabled"}`,
+        variant: states.mute ? "success" : "critical",
+        position: "bottom"
+    });
 
     // Trigger voice state update
     updaterequired = true;
@@ -195,11 +195,12 @@ export default definePlugin({
         this._boundVoiceChannelChange = this.handleVoiceChannelChange.bind(this);
         SelectedChannelStore.addChangeListener(this._boundVoiceChannelChange);
 
-        showToast(
-            `🎤 Fake Voice Plugin loaded! Use ${settings.store.muteKeybind.toUpperCase()} (mute) and ${settings.store.deafenKeybind.toUpperCase()} (deafen+mute)`,
-            "success",
-            { id: "plugin-loaded", position: 1, duration: 4000 }
-        );
+        showToast({
+            text: `🎤 Fake Voice Plugin loaded! Use ${settings.store.muteKeybind.toUpperCase()} (mute) and ${settings.store.deafenKeybind.toUpperCase()} (deafen+mute)`,
+            variant: "success",
+            position: "bottom",
+            duration: 4000
+        });
     },
 
     stop() {
@@ -212,9 +213,9 @@ export default definePlugin({
         // Clean up tracking
         this.lastVoiceChannelId = null;
 
-        showToast("🎤 Fake Voice Plugin stopped", "message", {
-            id: "plugin-stopped",
-            position: 1
+        showToast({
+            text: "🎤 Fake Voice Plugin stopped",
+            position: "bottom"
         });
     },
 

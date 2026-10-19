@@ -46,7 +46,7 @@ async function startBomb(guildId: string, roleId: string | "all", message: strin
 
     let members = getMembers(guildId);
     if (!members.length) {
-        showToast("No members found in cache, try loading the member list first (scroll through it).", "failure");
+        showToast({ text: "No members found in cache, try loading the member list first (scroll through it).", variant: "critical" });
         return;
     }
 

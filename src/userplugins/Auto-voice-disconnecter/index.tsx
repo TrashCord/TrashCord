@@ -39,7 +39,7 @@ let kickedChannelId: string | null = null;
 const listeners = new Set<() => void>();
 
 function toast(message: string, type: "success" | "failure") {
-    if (settings.store.showToasts) showToast(message, type);
+    if (settings.store.showToasts) showToast({ text: message, variant: type });
 }
 
 function useTargetId() {

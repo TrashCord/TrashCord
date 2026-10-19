@@ -540,7 +540,7 @@ async function fetchAllGuildMembers(guildId: string): Promise<void> {
     const after = (GuildMemberStore.getMemberIds(guildId) as string[]).length;
     const loaded = after - before;
     console.log(`[FakeFriends] ${after} members in cache (${loaded > 0 ? "+" + loaded : "already loaded"})`);
-    showToast(`${after} members available`, "success");
+    showToast({ text: `${after} members available`, variant: "success" });
 }
 
 function getGuildCandidates(guildId: string): string[] {
@@ -560,12 +560,12 @@ function getGuildCandidates(guildId: string): string[] {
 
 // ── Fake Friend Request with number input ─────────────────────────────────
 async function floodGuild(guildId: string) {
-    showToast("Loading members...", "message", { id: "ff-loading" });
+    showToast({ text: "Loading members..." });
     await fetchAllGuildMembers(guildId);
 
     const candidates = getGuildCandidates(guildId);
     if (!candidates.length) {
-        showToast("No candidates available", "failure");
+        showToast({ text: "No candidates available", variant: "critical" });
         return;
     }
 
@@ -588,7 +588,7 @@ async function floodGuild(guildId: string) {
         }
         await new Promise(r => setTimeout(r, 60));
     }
-    showToast(`${sent} fake friend request${sent > 1 ? "s" : ""} sent!`, "success");
+    showToast({ text: `${sent} fake friend request${sent > 1 ? "s" : ""} sent!`, variant: "success" });
 }
 
 // ── Remove fake requests for a server ──────────────────────────────────────
@@ -597,7 +597,7 @@ async function removeFakeFriendsForGuild(guildId: string) {
     const toRemove = [...fakeState.keys()].filter(id => memberIds.has(id));
 
     if (!toRemove.length) {
-        showToast("No fake requests to remove for this server", "message");
+        showToast({ text: "No fake requests to remove for this server" });
         return;
     }
 
@@ -608,14 +608,14 @@ async function removeFakeFriendsForGuild(guildId: string) {
         } catch { }
     }
     await persistState();
-    showToast(`${toRemove.length} fake request${toRemove.length > 1 ? "s" : ""} removed!`, "success");
+    showToast({ text: `${toRemove.length} fake request${toRemove.length > 1 ? "s" : ""} removed!`, variant: "success" });
 }
 
 // ── Fake Message Request ─────────────────────────────────────────────────────
 async function fakeMessageRequestGuild(guildId: string) {
     const candidates = getGuildCandidates(guildId);
     if (!candidates.length) {
-        showToast("No candidates available", "failure");
+        showToast({ text: "No candidates available", variant: "critical" });
         return;
     }
 
@@ -637,7 +637,7 @@ async function fakeMessageRequestGuild(guildId: string) {
         await new Promise(r => setTimeout(r, 60));
     }
 
-    showToast(`${sent} message request${sent > 1 ? "s" : ""} received!`, sent > 0 ? "success" : "failure");
+    showToast({ text: `${sent} message request${sent > 1 ? "s" : ""} received!`, variant: sent > 0 ? "success" : "critical" });
 }
 
 let MessageRequestStore: any = null;

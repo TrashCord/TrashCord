@@ -98,7 +98,7 @@ function getVoiceActions(): LoopbackActions | null {
         if (!actions?.setLoopback || !actions?.toggleSelfDeaf) {
             if (!missingModuleNotified) {
                 missingModuleNotified = true;
-                showToast("Mic test unavailable (missing VoiceActions module)", "failure");
+                showToast({ text: "Mic test unavailable (missing VoiceActions module)", variant: "critical" });
             }
             return null;
         }
@@ -106,7 +106,7 @@ function getVoiceActions(): LoopbackActions | null {
     } catch (err) {
         if (!missingModuleNotified) {
             missingModuleNotified = true;
-            showToast("Mic test unavailable (see console)", "failure");
+            showToast({ text: "Mic test unavailable (see console)", variant: "critical" });
         }
         log.error("Failed to resolve VoiceActions", err);
         return null;
@@ -131,11 +131,11 @@ async function enableLoopback() {
         } else {
             selfDeafenedByPlugin = false;
         }
-        showToast("Mic Test Loopback - Enabled", "success");
+        showToast({ text: "Mic Test Loopback - Enabled", variant: "success" });
         return true;
     } catch (err) {
         log.error("Failed to enable loopback", err);
-        showToast("Failed to start Mic Test Loopback", "failure");
+        showToast({ text: "Failed to start Mic Test Loopback", variant: "critical" });
         return false;
     }
 }
@@ -154,10 +154,10 @@ async function disableLoopback(silent = false) {
             await actions.toggleSelfDeaf();
         }
         selfDeafenedByPlugin = false;
-        if (!silent) showToast("Mic Test Loopback - Disabled", "failure");
+        if (!silent) showToast({ text: "Mic Test Loopback - Disabled", variant: "critical" });
     } catch (err) {
         log.error("Failed to disable loopback", err);
-        if (!silent) showToast("Failed to stop Mic Test Loopback", "failure");
+        if (!silent) showToast({ text: "Failed to stop Mic Test Loopback", variant: "critical" });
     }
 }
 
@@ -243,7 +243,7 @@ function OffTheRadarButton() {
             forceUpdate();
         } catch (err) {
             log.error("OffTheRadar toggle failed", err);
-            showToast("OffTheRadar toggle failed", "failure");
+            showToast({ text: "OffTheRadar toggle failed", variant: "critical" });
         }
     };
     return (

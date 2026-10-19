@@ -602,11 +602,14 @@ function ThemeStoreModal({ onClose }: { onClose(): void }) {
         try {
             const wasNew = await installTheme(theme);
             setInstalled(prev => new Set(prev).add(theme.id));
-            showToast(wasNew
+            showToast({
+                text: wasNew
                     ? `✅ "${theme.name}" installed and activated!`
-                    : `ℹ️ "${theme.name}" is already installed.`, wasNew ? "success" : "message");
+                    : `ℹ️ "${theme.name}" is already installed.`,
+                variant: wasNew ? "success" : "default"
+            });
         } catch (e: any) {
-            showToast(`❌ Failed: ${e?.message ?? "Unknown error"}`, "failure");
+            showToast({ text: `❌ Failed: ${e?.message ?? "Unknown error"}`, variant: "critical" });
         }
     }
 

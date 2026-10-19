@@ -34,10 +34,10 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, props: { us
 function whitelistUser(user: User) {
     if (userWhitelist.includes(user.id)) {
         userWhitelist = userWhitelist.filter(id => id !== user.id);
-        showToast("Removed user from DND whitelist");
+        showToast({ text: "Removed user from DND whitelist" });
     } else {
         userWhitelist.push(user.id);
-        showToast("Added user to DND whitelist");
+        showToast({ text: "Added user to DND whitelist" });
     }
 
     DataStore.set(DATASTORE_KEY, userWhitelist);

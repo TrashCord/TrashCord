@@ -528,7 +528,7 @@ function MyKeyTab() {
             <Forms.FormSection title="Public Key">
                 <TextArea value={getPGPEngine().getPublicKey() || ""} disabled rows={6} style={{ fontFamily: "monospace", fontSize: "11px" }} />
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                    <Button onClick={() => { navigator.clipboard.writeText(getPGPEngine().getPublicKey()!); showToast("Copied!", "success"); }}>Copy</Button>
+                    <Button onClick={() => { navigator.clipboard.writeText(getPGPEngine().getPublicKey()!); showToast({ text: "Copied!", variant: "success" }); }}>Copy</Button>
                     <Button color={Button.Colors.RED} onClick={() => { if (confirm("Delete keys?")) { getPGPEngine().clearKeys(); setKeyInfo(null); } }}>Delete</Button>
                 </div>
             </Forms.FormSection>
@@ -579,17 +579,17 @@ function GenerateTab() {
     const [generating, setGenerating] = useState(false);
 
     const generate = useCallback(async () => {
-        if (!name || !email) { showToast("Name and email required", "failure"); return; }
-        if (pass !== pass2) { showToast("Passphrases don't match", "failure"); return; }
-        if (pass.length < 8) { showToast("Passphrase too short (8+ chars)", "failure"); return; }
+        if (!name || !email) { showToast({ text: "Name and email required", variant: "critical" }); return; }
+        if (pass !== pass2) { showToast({ text: "Passphrases don't match", variant: "critical" }); return; }
+        if (pass.length < 8) { showToast({ text: "Passphrase too short (8+ chars)", variant: "critical" }); return; }
 
         setGenerating(true);
         try {
             await getPGPEngine().generateKeyPair(name, email, pass, type);
-            showToast("Key pair generated!", "success");
+            showToast({ text: "Key pair generated!", variant: "success" });
             setName(""); setEmail(""); setPass(""); setPass2("");
         } catch (e) {
-            showToast(`Error: ${e}`, "failure");
+            showToast({ text: `Error: ${e}`, variant: "critical" });
         } finally {
             setGenerating(false);
         }
@@ -622,20 +622,20 @@ function ImportTab() {
     const [importing, setImporting] = useState(false);
 
     const doImport = useCallback(async () => {
-        if (!key.trim()) { showToast("Paste a key", "failure"); return; }
+        if (!key.trim()) { showToast({ text: "Paste a key", variant: "critical" }); return; }
         setImporting(true);
         try {
             if (mode === "private") {
                 await getPGPEngine().importPrivateKey(key, pass);
-                showToast("Private key imported!", "success");
+                showToast({ text: "Private key imported!", variant: "success" });
             } else {
-                if (!userId.trim()) { showToast("Enter user ID", "failure"); setImporting(false); return; }
+                if (!userId.trim()) { showToast({ text: "Enter user ID", variant: "critical" }); setImporting(false); return; }
                 await getKeyManager().importPublicKeyForUser(userId, key);
-                showToast("Contact key imported!", "success");
+                showToast({ text: "Contact key imported!", variant: "success" });
             }
             setKey(""); setPass(""); setUserId("");
         } catch (e) {
-            showToast(`Error: ${e}`, "failure");
+            showToast({ text: `Error: ${e}`, variant: "critical" });
         } finally {
             setImporting(false);
         }
@@ -686,9 +686,9 @@ function KeyserverTab() {
                     catch { res.push({ key: k, info: null }); }
                 }
                 setResults(res);
-                showToast(`Found ${r.keys.length} key(s)`, "success");
+                showToast({ text: `Found ${r.keys.length} key(s)`, variant: "success" });
             } else {
-                showToast("No keys found", "failure");
+                showToast({ text: "No keys found", variant: "critical" });
             }
         } finally {
             setSearching(false);
@@ -717,10 +717,10 @@ function KeyserverTab() {
                                     if (!importId.trim()) return;
                                     try {
                                         await getKeyManager().importPublicKeyForUser(importId, selected);
-                                        showToast("Imported!", "success");
+                                        showToast({ text: "Imported!", variant: "success" });
                                         setSelected(null); setImportId("");
                                     } catch (e) {
-                                        showToast(`Error: ${e}`, "failure");
+                                        showToast({ text: `Error: ${e}`, variant: "critical" });
                                     }
                                 }}>Import</Button>
                             </div>

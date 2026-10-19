@@ -60,10 +60,10 @@ export const settings = definePluginSettings({
       if (URL.canParse(value)) {
         settings.store.YoutubeMusicApiUrl = value;
       } else {
-        showToast(
-          "Invalid URL format for Custom Api Server URL: " + value,
-          "failure",
-        );
+        showToast({
+            text: "Invalid URL format for Custom Api Server URL: " + value,
+            variant: "critical"
+        });
         settings.store.YoutubeMusicApiUrl =
           settings.def.YoutubeMusicApiUrl.default;
       }

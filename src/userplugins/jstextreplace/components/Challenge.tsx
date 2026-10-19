@@ -56,7 +56,7 @@ export function Challenge() {
                 !reactiveSettings.hasDoneChallenge ? <TextInput placeholder="The answer to the above" style={{ marginTop: "15px" }} onChange={async value => {
                     if (value === solveChallenge([values[1], values[0], {}, values[2]])) {
                         settings.store.hasDoneChallenge = true;
-                        showToast("You can now use the plugin.", "success");
+                        showToast({ text: "You can now use the plugin.", variant: "success" });
                     }
                 }} /> : <Forms.FormText>You can now use the plugin as you have shown some understanding of JS. You are now on your own. <Link onClick={() => { settings.store.hasDoneChallenge = false; setExpanded(false); }}>
                     Disable

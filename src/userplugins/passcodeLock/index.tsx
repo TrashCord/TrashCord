@@ -688,10 +688,10 @@ function openLocker(type: LockType, button: HTMLElement | null, onSuccess?: (new
                         // so omitting this makes a freshly set passcode look like no passcode at all.
                         data.kdf = kdf;
                         saveData();
-                        showToast(t("تم تحديث الرمز!", "Passcode has been updated!"), "success");
+                        showToast({ text: t("تم تحديث الرمز!", "Passcode has been updated!"), variant: "success" });
                     }).catch(e => {
                         console.error("[PasscodeLock] hashCode failed", e);
-                        showToast(t("تعذّر حفظ الرمز، حاول مجدداً.", "Failed to save passcode, please try again."), "failure");
+                        showToast({ text: t("تعذّر حفظ الرمز، حاول مجدداً.", "Failed to save passcode, please try again."), variant: "critical" });
                     });
                 }
                 if (success) onSuccess?.(newCode);
@@ -717,7 +717,7 @@ function lock(button: HTMLElement | null = document.body) {
         console.error("[PasscodeLock] lock() failed to open the overlay", e);
         isLocked = false;
         forceReset("lock() threw while opening the overlay");
-        showToast(t("تعذّر فتح قفل الرمز — راجع الطرفية للتفاصيل.", "PasscodeLock failed to open — check the console for details."), "failure");
+        showToast({ text: t("تعذّر فتح قفل الرمز — راجع الطرفية للتفاصيل.", "PasscodeLock failed to open — check the console for details."), variant: "critical" });
     }
 }
 

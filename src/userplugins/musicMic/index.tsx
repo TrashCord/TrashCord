@@ -147,7 +147,7 @@ function getAudioElement(): HTMLAudioElement {
     audioElement.addEventListener("error", () => {
         isPlaying = false;
         forceButtonUpdate?.();
-        showToast("Music Mic could not play this link. Use a direct audio URL.", "failure");
+        showToast({ text: "Music Mic could not play this link. Use a direct audio URL.", variant: "critical" });
     });
 
     return audioElement;
@@ -212,7 +212,7 @@ async function startPlayback(): Promise<void> {
     const url = settings.store.audioUrl.trim();
 
     if (!url) {
-        showToast("Paste a direct audio link first.", "failure");
+        showToast({ text: "Paste a direct audio link first.", variant: "critical" });
         return;
     }
 
@@ -229,12 +229,12 @@ async function startPlayback(): Promise<void> {
         await mediaElement.play();
         isPlaying = true;
         forceButtonUpdate?.();
-        showToast("Music Mic started. Rejoin the call if Discord already captured your mic.", "success");
+        showToast({ text: "Music Mic started. Rejoin the call if Discord already captured your mic.", variant: "success" });
     } catch (error) {
         console.error("[MusicMic] Failed to play audio", error);
         isPlaying = false;
         forceButtonUpdate?.();
-        showToast("Could not load this audio or YouTube link. Try again shortly.", "failure");
+        showToast({ text: "Could not load this audio or YouTube link. Try again shortly.", variant: "critical" });
     }
 }
 
@@ -242,7 +242,7 @@ function stopPlayback(): void {
     audioElement?.pause();
     isPlaying = false;
     forceButtonUpdate?.();
-    showToast("Music Mic stopped.", "message");
+    showToast({ text: "Music Mic stopped." });
 }
 
 function patchGetUserMedia(): void {
@@ -261,7 +261,7 @@ function patchGetUserMedia(): void {
             return await createMixedStream(stream);
         } catch (error) {
             console.error("[MusicMic] Failed to mix microphone stream", error);
-            showToast("Music Mic failed to mix audio. Using your normal mic.", "failure");
+            showToast({ text: "Music Mic failed to mix audio. Using your normal mic.", variant: "critical" });
             return stream;
         }
     }) as GetUserMedia;

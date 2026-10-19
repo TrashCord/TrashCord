@@ -105,7 +105,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
             if (!isAlreadyInChannel && pinnedChannelId === lastChannelId) {
                 lastMoveTimestamp = now;
                 ChannelActions.selectVoiceChannel(lastChannelId);
-                showToast("You've been reconnected", "success");
+                showToast({ text: "You've been reconnected", variant: "success" });
                 addCooldown();
             }
         }
@@ -117,7 +117,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
     // Ensure you stay in the pinned channel
     if (settings.store.moveToPinned && pinnedChannelId && myVoiceState.channelId !== pinnedChannelId) {
         ChannelActions.selectVoiceChannel(pinnedChannelId);
-        showToast("You were moved back", "failure");
+        showToast({ text: "You were moved back", variant: "critical" });
         return;
     }
 
@@ -126,7 +126,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
             url: `/guilds/${myVoiceState.guildId}/members/${myId}`,
             body: { deaf: false },
         });
-        showToast("Undeafened", "success");
+        showToast({ text: "Undeafened", variant: "success" });
         addCooldown();
     }
 
@@ -135,7 +135,7 @@ function handleVoiceStateUpdate(voiceStates: VoiceState[]) {
             url: `/guilds/${myVoiceState.guildId}/members/${myId}`,
             body: { mute: false },
         });
-        showToast("Unmuted", "success");
+        showToast({ text: "Unmuted", variant: "success" });
         addCooldown();
     }
 
@@ -175,7 +175,7 @@ function addPinChannelContextMenu(children: any, { channel }: { channel: any; })
             label={pinnedChannelId === channel.id ? "Unpin Channel" : "Pin to Channel"}
             action={() => {
                 pinnedChannelId = pinnedChannelId === channel.id ? null : channel.id;
-                showToast(pinnedChannelId ? `Pinned to: ${channel.name}` : "Channel unpinned", "success");
+                showToast({ text: pinnedChannelId ? `Pinned to: ${channel.name}` : "Channel unpinned", variant: "success" });
             }}
         />
     );

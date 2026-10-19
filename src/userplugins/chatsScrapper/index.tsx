@@ -110,11 +110,11 @@ function WhitelistModal({ modalProps }: { modalProps: any; }) {
         const toClose = oneToOne.filter(c => !whitelist.has(c.recipients?.[0]));
 
         if (toClose.length === 0) {
-            showToast("Nothing to close.", "message");
+            showToast({ text: "Nothing to close." });
             return;
         }
 
-        showToast(`Closing ${toClose.length} DMs...`, "message");
+        showToast({ text: `Closing ${toClose.length} DMs...` });
         let ok = 0, fail = 0;
         for (const ch of toClose) {
             try {
@@ -124,7 +124,7 @@ function WhitelistModal({ modalProps }: { modalProps: any; }) {
                 fail++;
             }
         }
-        showToast(`Done. Closed ${ok}${fail ? `, failed ${fail}` : ""}.`, fail ? "failure" : "success");
+        showToast({ text: `Done. Closed ${ok}${fail ? `, failed ${fail}` : ""}.`, variant: fail ? "critical" : "success" });
         modalProps.onClose();
     }
 

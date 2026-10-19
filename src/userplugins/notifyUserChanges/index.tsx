@@ -246,7 +246,7 @@ function notify() {
 }
 
 function toast(message: string, type: "success" | "failure") {
-    if (settings.store.showToasts) showToast(message, type);
+    if (settings.store.showToasts) showToast({ text: message, variant: type });
 }
 
 function useTrackedIds() {

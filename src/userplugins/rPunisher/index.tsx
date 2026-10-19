@@ -77,11 +77,11 @@ async function executeBan(channelId: string, userId: string): Promise<void> {
 
         bannedUsers.add(userId);
 
-        showToast(
-            `Auto-banning user ${userId} for voice channel spam`,
-            "failure",
-            { id: "voice-auto-ban", position: 1 }
-        );
+        showToast({
+            text: `Auto-banning user ${userId} for voice channel spam`,
+            variant: "critical",
+            position: "bottom"
+        });
 
         try {
 

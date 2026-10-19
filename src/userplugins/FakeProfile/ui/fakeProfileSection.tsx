@@ -78,7 +78,7 @@ export function fakeProfileSection({ hideTitle = false, hideDivider = false, noM
                     useUsersProfileStore.getState().fetchDecorations();
                     useUsersProfileStore.getState().fetch(userId, true);
                     useUsersProfileStore.getState().fetchProfileEffects();
-                    showToast("Successfully refetched fakeProfile!", "success");
+                    showToast({ text: "Successfully refetched fakeProfile!", variant: "success" });
                 }}
                 size={Button.Sizes.SMALL}
             >

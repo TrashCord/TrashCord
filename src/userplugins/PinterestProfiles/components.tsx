@@ -97,7 +97,7 @@ async function applyProfileResult(result: PinterestImageResult, target: SearchKi
     } catch (error) {
         logger.error("Failed to apply Pinterest result", error);
         copyWithToast(result.url, "Media URL copied to clipboard.");
-        showToast("Could not apply that media. The URL was copied instead.", "failure");
+        showToast({ text: "Could not apply that media. The URL was copied instead.", variant: "critical" });
     }
 }
 
@@ -107,7 +107,7 @@ async function saveResult(result: PinterestImageResult) {
         saveFile(new File([media.data], media.filename, { type: media.type }));
     } catch (error) {
         logger.error("Failed to save Pinterest result", error);
-        showToast("Could not save that media.", "failure");
+        showToast({ text: "Could not save that media.", variant: "critical" });
     }
 }
 
@@ -480,7 +480,7 @@ function PinterestBrowser({
             }));
         } catch (error) {
             logger.error("Pinterest next page failed", error);
-            showToast(error instanceof Error ? error.message : "Could not load more Pinterest results.", "failure");
+            showToast({ text: error instanceof Error ? error.message : "Could not load more Pinterest results.", variant: "critical" });
             setBuckets(current => ({
                 ...current,
                 [kind]: {

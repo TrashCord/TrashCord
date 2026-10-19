@@ -29,12 +29,12 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         const input = value.trim();
         const id = resolveTargetUserId(input);
         if (!id) {
-            showToast("Enter a valid Discord user ID or cached username.", "failure");
+            showToast({ text: "Enter a valid Discord user ID or cached username.", variant: "critical" });
             return;
         }
         const me = UserStore.getCurrentUser();
         if (me && me.id === id) {
-            showToast("You cannot spoof as yourself!", "failure");
+            showToast({ text: "You cannot spoof as yourself!", variant: "critical" });
             return;
         }
         setBusy(true);
@@ -44,10 +44,10 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
             settings.store.manualMode = false;
             setEnabled(true);
             setEnabledLocal(true);
-            showToast(`Spoofing as ${next.user.username}.`, "success");
+            showToast({ text: `Spoofing as ${next.user.username}.`, variant: "success" });
         } catch (e: any) {
             logger.error("apply failed", e);
-            showToast(e?.message || "Failed to load that user.", "failure");
+            showToast({ text: e?.message || "Failed to load that user.", variant: "critical" });
         } finally {
             setBusy(false);
         }
@@ -59,12 +59,12 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
         setTarget(null);
         setEnabledLocal(false);
         setValue("");
-        showToast("Cleared spoof target.", "message");
+        showToast({ text: "Cleared spoof target." });
     }
 
     function toggle(v: boolean) {
         if (v && !target) {
-            showToast("Pick a target user first.", "failure");
+            showToast({ text: "Pick a target user first.", variant: "critical" });
             return;
         }
         setEnabled(v);
@@ -119,7 +119,7 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
                                 }}
                                 onClick={() => {
                                     navigator.clipboard.writeText(target.id);
-                                    showToast("Copied ID to clipboard", "success");
+                                    showToast({ text: "Copied ID to clipboard", variant: "success" });
                                 }}
                                 title="Click to copy ID"
                             >

@@ -88,7 +88,7 @@ async function doRun(): Promise<void> {
     if (!qc) {
         if (!warnedNoQuestify) {
             warnedNoQuestify = true;
-            showToast("AutoCompleteQuestify: Questify not found or not enabled!", "failure");
+            showToast({ text: "AutoCompleteQuestify: Questify not found or not enabled!", variant: "critical" });
         }
         return;
     }
@@ -122,10 +122,10 @@ async function doRun(): Promise<void> {
 
         anyTriggered = true;
         if (notify) {
-            showToast(
-                `AutoCompleteQuestify → ${q.config?.messages?.questName ?? q.id}`,
-                "success",
-            );
+            showToast({
+                text: `AutoCompleteQuestify → ${q.config?.messages?.questName ?? q.id}`,
+                variant: "success"
+            });
         }
     }
 

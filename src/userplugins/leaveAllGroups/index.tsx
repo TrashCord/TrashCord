@@ -149,7 +149,7 @@ async function leaveAllGroups() {
                 });
             }
 
-            showToast("ℹ️ No groups to leave", "message");
+            showToast({ text: "ℹ️ No groups to leave" });
             return;
         }
 
@@ -173,7 +173,7 @@ async function leaveAllGroups() {
             });
         }
 
-        showToast(`🔄 Leaving ${groups.length} group(s)...`, "message");
+        showToast({ text: `🔄 Leaving ${groups.length} group(s)...` });
 
         // Leave each group
         for (const group of groups) {
@@ -218,9 +218,9 @@ async function leaveAllGroups() {
 
         // Final toast
         if (failureCount > 0) {
-            showToast(`⚠️ ${successCount} groups left, ${failureCount} failures`, "failure");
+            showToast({ text: `⚠️ ${successCount} groups left, ${failureCount} failures`, variant: "critical" });
         } else {
-            showToast(`✅ ${successCount} groups left successfully`, "success");
+            showToast({ text: `✅ ${successCount} groups left successfully`, variant: "success" });
         }
 
     } catch (error) {
@@ -234,7 +234,7 @@ async function leaveAllGroups() {
             });
         }
 
-        showToast("❌ Error while leaving groups", "failure");
+        showToast({ text: "❌ Error while leaving groups", variant: "critical" });
     }
 }
 

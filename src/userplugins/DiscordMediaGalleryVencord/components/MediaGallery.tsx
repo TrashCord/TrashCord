@@ -210,10 +210,10 @@ export function MediaGalleryModal({
                 setAllMessages(prev => mergeMessages(prev, older));
             } else {
                 setHasMore(false);
-                showToast("Reached beginning of channel history", "message");
+                showToast({ text: "Reached beginning of channel history" });
             }
         } catch {
-            showToast("Failed to fetch older messages", "failure");
+            showToast({ text: "Failed to fetch older messages", variant: "critical" });
         } finally {
             setIsLoadingMore(false);
         }

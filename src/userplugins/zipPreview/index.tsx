@@ -93,7 +93,7 @@ function MessageContextMenu(children: Array<any>, props: any) {
 
                         if (!blob || blob.size === 0) {
                             console.error("ZipPreview: fetched empty blob for", url);
-                            showToast("Failed to fetch attachment for preview (empty response). Try Download.");
+                            showToast({ text: "Failed to fetch attachment for preview (empty response). Try Download." });
                             return;
                         }
                         openModal((props: any) => <ZipPreview blob={blob} name={filename} /> as any);

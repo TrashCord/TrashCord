@@ -210,7 +210,7 @@ function DecryptionAccessory({ message }: { message: Message; }) {
             </button>
             {" | "}
             <button
-                onClick={() => { navigator.clipboard.writeText(decrypted); showToast("Copied!", "success"); }}
+                onClick={() => { navigator.clipboard.writeText(decrypted); showToast({ text: "Copied!", variant: "success" }); }}
                 style={{
                     background: "none", border: "none", color: "var(--text-link)",
                     cursor: "pointer", padding: 0, font: "inherit", fontStyle: "italic",
@@ -239,11 +239,11 @@ const messageContextPatch = (children: any, { message }: { message: any; }) => {
                             if (setter) {
                                 setter(found.text);
                             } else {
-                                showToast(`🔓 ${found.text}`, "success");
+                                showToast({ text: `🔓 ${found.text}`, variant: "success" });
                             }
-                            showToast(`Technique detected: ${found.technique}`, "message");
+                            showToast({ text: `Technique detected: ${found.technique}` });
                         } else {
-                            showToast("❌ Unable to decrypt — no technique worked", "failure");
+                            showToast({ text: "❌ Unable to decrypt — no technique worked", variant: "critical" });
                         }
                     }}
                 />
@@ -304,7 +304,7 @@ export default definePlugin({
         const technique = Math.floor(Math.random() * 400);
         const encrypted = encrypt(messageObj.content, technique);
         if (encrypted.length > 2000) {
-            showToast(`❌ Message too long to encrypt (${encrypted.length}/2000)`, "failure");
+            showToast({ text: `❌ Message too long to encrypt (${encrypted.length}/2000)`, variant: "critical" });
             return { cancel: true };
         }
         messageObj.content = encrypted;

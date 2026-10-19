@@ -264,7 +264,7 @@ export async function encrypt(message: string, public_key_recipient: string): Pr
         }
         public_key = await pgp.readKey({ armoredKey: formatKey(settings.store.pgpPublicKey) });
     } catch (e) {
-        showToast("Cannot read your private or public key, try setting them again in the plugin settings", "failure");
+        showToast({ text: "Cannot read your private or public key, try setting them again in the plugin settings", variant: "critical" });
         throw e;
     }
 
@@ -274,7 +274,7 @@ export async function encrypt(message: string, public_key_recipient: string): Pr
     try {
         pubKey_r = await pgp.readKey({ armoredKey: processedKey });
     } catch (e) {
-        showToast("The recipient's public key is not valid!", "failure");
+        showToast({ text: "The recipient's public key is not valid!", variant: "critical" });
         throw e;
     }
 
@@ -288,7 +288,7 @@ export async function encrypt(message: string, public_key_recipient: string): Pr
         return encrypted;
     } catch (e) {
         if (e instanceof Error) {
-            showToast("Error during encryption.\n" + (e as Error).message, "failure");
+            showToast({ text: "Error during encryption.\n" + (e as Error).message, variant: "critical" });
         }
         throw e;
     }
@@ -440,7 +440,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
             const verificationResult = await verifyMessage(message);
             return { data: verificationResult.text, verified: verificationResult.valid };
         } catch (e: any) {
-            showToast("Cannot process signed message: " + e.message, "failure");
+            showToast({ text: "Cannot process signed message: " + e.message, variant: "critical" });
             throw e;
         }
     }
@@ -459,7 +459,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
             private_key = privateKeyObj;
         }
     } catch (e) {
-        showToast("Cannot read personal private key", "failure");
+        showToast({ text: "Cannot read personal private key", variant: "critical" });
         throw e;
     }
 
@@ -485,7 +485,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
                     }
                 }
             } catch (e) {
-                showToast("Cannot find the senders signature", "failure");
+                showToast({ text: "Cannot find the senders signature", variant: "critical" });
                 throw e;
             }
         }
@@ -503,7 +503,7 @@ async function decryptMessage(message: string, authorId: string): Promise<any> {
             verificationKeys: [verificationKey]
         });
     } catch (e) {
-        showToast("Cannot decrypt message: check your private key", "failure");
+        showToast({ text: "Cannot decrypt message: check your private key", variant: "critical" });
         throw e;
     }
 
@@ -548,7 +548,7 @@ async function signMessage(text: string): Promise<string> {
             privateKey = privateKeyObj;
         }
     } catch (e) {
-        showToast("Cannot read your private key", "failure");
+        showToast({ text: "Cannot read your private key", variant: "critical" });
         throw e;
     }
 

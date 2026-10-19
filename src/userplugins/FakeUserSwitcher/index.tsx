@@ -1511,15 +1511,15 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user }) =
             id="fake-user-switcher-clone"
             label="Clone User to Fake User Switcher"
             action={async () => {
-                showToast(`Cloning profile of ${user.username}...`, "message");
+                showToast({ text: `Cloning profile of ${user.username}...` });
                 try {
                     await loadTarget(user.id);
                     setEnabled(true);
                     settings.store.manualMode = false;
-                    showToast(`Spoofing as ${user.username}!`, "success");
+                    showToast({ text: `Spoofing as ${user.username}!`, variant: "success" });
                 } catch (e: any) {
                     logger.error("Context menu clone failed", e);
-                    showToast(e?.message || "Failed to clone user profile.", "failure");
+                    showToast({ text: e?.message || "Failed to clone user profile.", variant: "critical" });
                 }
             }}
         />
@@ -1768,7 +1768,7 @@ async function activateSwitcherIdentity(action: any) {
         if (settings.store.spoofActive) {
             clearTarget();
             emitInternalAccountSwitcherChange();
-            showToast("Restored your real account locally.", "success");
+            showToast({ text: "Restored your real account locally.", variant: "success" });
         }
         return;
     }
@@ -1787,26 +1787,26 @@ async function activateSwitcherIdentity(action: any) {
             settings.store.manualAvatar = saved.manualAvatar ?? saved.avatar ?? "";
             settings.store.manualMode = true;
             setEnabled(true);
-            showToast(`Spoofing as ${saved.name}`, "success");
+            showToast({ text: `Spoofing as ${saved.name}`, variant: "success" });
         } else {
             const cachedTarget = targetsCache.get(saved.id);
             if (cachedTarget) {
                 setTarget(cachedTarget);
                 settings.store.manualMode = false;
                 setEnabled(true);
-                showToast(`Spoofing as ${cachedTarget.user.globalName || cachedTarget.user.username}`, "success");
+                showToast({ text: `Spoofing as ${cachedTarget.user.globalName || cachedTarget.user.username}`, variant: "success" });
                 loadTarget(saved.id, true, true).catch(() => { });
             } else {
                 const next = await loadTarget(saved.id);
                 settings.store.manualMode = false;
                 setEnabled(true);
-                showToast(`Spoofing as ${next.user.globalName || next.user.username}`, "success");
+                showToast({ text: `Spoofing as ${next.user.globalName || next.user.username}`, variant: "success" });
             }
         }
         emitInternalAccountSwitcherChange();
     } catch (e) {
         logger.error("Failed to activate fake account-switcher identity", e);
-        showToast("Failed to activate fake identity.", "failure");
+        showToast({ text: "Failed to activate fake identity.", variant: "critical" });
     }
 }
 
@@ -1818,7 +1818,7 @@ function removeSwitcherIdentity(action: any) {
         const list = getSavedUsers().filter(s => s.id !== id);
         setSavedUsers(list);
         emitInternalAccountSwitcherChange();
-        showToast(`Removed saved identity: ${saved.name}`, "success");
+        showToast({ text: `Removed saved identity: ${saved.name}`, variant: "success" });
         if (settings.store.spoofActive && settings.store.targetId === id) {
             clearTarget();
         }

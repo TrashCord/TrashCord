@@ -505,7 +505,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         setNewProfileName("");
         setIsCreatingProfile(false);
         handleProfileSwitch(profile.id);
-        showToast(`Profile "${profile.name}" created`, "success");
+        showToast({ text: `Profile "${profile.name}" created`, variant: "success" });
     };
 
     const handleDeleteProfile = async (profileId: string) => {
@@ -530,7 +530,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 await saveProfilesToDataStore();
                 setProfileList(getProfileList());
                 if (currentProfileId === profileId) handleProfileSwitch(DEFAULT_PROFILE_ID);
-                showToast("Profile deleted", "success");
+                showToast({ text: "Profile deleted", variant: "success" });
             }
         });
     };
@@ -548,7 +548,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         await saveProfilesToDataStore();
         setProfileList(getProfileList());
         setEditingProfileId(null);
-        showToast("Profile renamed", "success");
+        showToast({ text: "Profile renamed", variant: "success" });
     };
 
     const handleDroppedFiles = async (files: FileList | File[]) => {
@@ -575,7 +575,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
             }
             loadImages();
             if (added > 0) {
-                showToast(`Added: ${added}`, "success");
+                showToast({ text: `Added: ${added}`, variant: "success" });
                 forceUploadPreview();
             }
         } catch {
@@ -637,7 +637,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 }
                 loadImages();
                 if (added > 0) {
-                    showToast(`Added: ${added}`, "success");
+                    showToast({ text: `Added: ${added}`, variant: "success" });
                     forceUploadPreview();
                 }
             } catch {
@@ -659,7 +659,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         loadImages();
         setProfileList(getProfileList());
         if (profile.dataUris.length > 0) { userSelectedIndex = currentSlideIndex; forceUploadPreview(); }
-        showToast("Deleted", "message");
+        showToast({ text: "Deleted" });
     };
 
     const handleClearAll = async () => {
@@ -678,7 +678,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 setImages([]);
                 setPendingIndex(0);
                 setProfileList(getProfileList());
-                showToast("All deleted", "message");
+                showToast({ text: "All deleted" });
             }
         });
     };
@@ -714,7 +714,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         a.download = `customstream-backup-${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast("Backup exported!", "success");
+        showToast({ text: "Backup exported!", variant: "success" });
     };
 
     const handleImport = () => {
@@ -756,7 +756,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                         setProfileList(getProfileList());
                         setPendingIndex(getActiveProfile().currentIndex);
                         loadImages();
-                        showToast("Backup imported!", "success");
+                        showToast({ text: "Backup imported!", variant: "success" });
                     }
                 });
             } catch {
@@ -787,7 +787,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                 setImages([]);
                 setPendingIndex(0);
                 notifyImageChange();
-                showToast("Reset complete", "message");
+                showToast({ text: "Reset complete" });
             }
         });
     };
@@ -802,7 +802,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         savedRef.current = true;
         notifyImageChange();
         forceUploadPreview();
-        showToast("Saved!", "success");
+        showToast({ text: "Saved!", variant: "success" });
         rootProps.onClose();
     };
 
@@ -837,7 +837,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
             setPendingIndex(newPendingIndex);
             currentSlideIndex = newPendingIndex;
             loadImages();
-            showToast(`Moved: #${draggedIndex + 1} → #${toIndex + 1}`, "success");
+            showToast({ text: `Moved: #${draggedIndex + 1} → #${toIndex + 1}`, variant: "success" });
         }
         setDraggedIndex(null);
         setDragOverIndex(null);

@@ -390,7 +390,7 @@ function MessageContextMenu(children: React.ReactNode[], props: ZipMessageContex
                     try {
                         const url = attachment?.proxy_url || attachment?.url || mediaItem?.proxyUrl || mediaItem?.url;
                         if (!url) {
-                            showToast("No URL available for attachment");
+                            showToast({ text: "No URL available for attachment" });
                             return;
                         }
 
@@ -407,18 +407,18 @@ function MessageContextMenu(children: React.ReactNode[], props: ZipMessageContex
                                 : (IS_DISCORD_DESKTOP
                                 ? "ZIP+ native helper missing. Please rebuild Equicord."
                                 : "Unable to fetch attachment: CORS restrictions on web. Desktop app required for zip preview.");
-                            showToast(message);
+                            showToast({ text: message });
                             return;
                         }
 
                         if (blob.size === 0) {
-                            showToast("Failed to fetch attachment for preview (empty response). Try Download.");
+                            showToast({ text: "Failed to fetch attachment for preview (empty response). Try Download." });
                             return;
                         }
 
                         openModal(() => <ZipPreview blob={blob} name={filename} />);
                     } catch {
-                        showToast("Failed to open zip preview");
+                        showToast({ text: "Failed to open zip preview" });
                     }
                 }}
             />

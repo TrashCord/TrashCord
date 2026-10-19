@@ -140,7 +140,7 @@ function UserPluginsTab() {
                                     plugin: Vencord.Plugins.plugins[plugin.name],
                                     disabled: false,
                                     onRestartNeeded() {
-                                        showToast("Restart to apply changes!", "message");
+                                        showToast({ text: "Restart to apply changes!" });
                                     }
                                 });
                                 ReworkedAddonCard.props.footer = <div className={cl("plugin-footer")}>

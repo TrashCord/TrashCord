@@ -164,7 +164,7 @@ async function exportGifs(): Promise<void> {
     const entries = Object.entries(gifs);
 
     if (entries.length === 0) {
-        showToast("No favorite GIFs found to export.", "failure");
+        showToast({ text: "No favorite GIFs found to export.", variant: "critical" });
         return;
     }
 
@@ -190,7 +190,7 @@ async function exportGifs(): Promise<void> {
     a.download = `gif-favorites-${Date.now()}.json`;
     a.click();
 
-    showToast(`Exported ${gifsArray.length} GIFs successfully!`, "success");
+    showToast({ text: `Exported ${gifsArray.length} GIFs successfully!`, variant: "success" });
 }
 
 // ─── Verify ──────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ async function verifyGifs(file: File): Promise<void> {
         const data: ExportFile = JSON.parse(text);
 
         if (!data.gifs || !Array.isArray(data.gifs)) {
-            showToast("Invalid file format.", "failure");
+            showToast({ text: "Invalid file format.", variant: "critical" });
             return;
         }
 
@@ -242,12 +242,12 @@ async function verifyGifs(file: File): Promise<void> {
         console.log(report);
 
         if (missing === 0) {
-            showToast(`All ${found} GIFs verified! No missing GIFs. ✅`, "success");
+            showToast({ text: `All ${found} GIFs verified! No missing GIFs. ✅`, variant: "success" });
         } else {
-            showToast(`Missing ${missing} GIFs. Press Import again to retry. Check console for details.`, "failure");
+            showToast({ text: `Missing ${missing} GIFs. Press Import again to retry. Check console for details.`, variant: "critical" });
         }
     } catch (e) {
-        showToast("Failed to read file.", "failure");
+        showToast({ text: "Failed to read file.", variant: "critical" });
         console.error("[GifTransfer] Verify error:", e);
     }
 }
@@ -257,7 +257,7 @@ async function verifyGifs(file: File): Promise<void> {
 async function importGifs(file: File): Promise<void> {
     const addGif = getAddGifFn();
     if (!addGif) {
-        showToast("Could not find Discord's internal GIF function. Try reloading Discord.", "failure");
+        showToast({ text: "Could not find Discord's internal GIF function. Try reloading Discord.", variant: "critical" });
         return;
     }
 
@@ -265,12 +265,12 @@ async function importGifs(file: File): Promise<void> {
     try {
         data = JSON.parse(await file.text());
     } catch {
-        showToast("Invalid JSON file.", "failure");
+        showToast({ text: "Invalid JSON file.", variant: "critical" });
         return;
     }
 
     if (!data.gifs || !Array.isArray(data.gifs)) {
-        showToast("Invalid file format.", "failure");
+        showToast({ text: "Invalid file format.", variant: "critical" });
         return;
     }
 
@@ -294,11 +294,11 @@ async function importGifs(file: File): Promise<void> {
     const skipped = deduped.length - toImport.length;
 
     if (toImport.length === 0) {
-        showToast("All GIFs are already in your favorites. Nothing to import. ✅", "message");
+        showToast({ text: "All GIFs are already in your favorites. Nothing to import. ✅" });
         return;
     }
 
-    showToast(`Importing ${toImport.length} GIFs... (${skipped} skipped as duplicates)`, "message");
+    showToast({ text: `Importing ${toImport.length} GIFs... (${skipped} skipped as duplicates)` });
     console.log(`[GifTransfer] Starting import: ${toImport.length} GIFs | Skipping: ${skipped} | File dupes removed: ${filedupes}`);
 
     let ok = 0;
@@ -324,7 +324,7 @@ async function importGifs(file: File): Promise<void> {
                 rateLimitHits++;
                 delay = Math.min(delay * 2, 5000); // Double delay, max 5s
                 console.log(`[GifTransfer] Rate limit hit! Increased delay to ${delay}ms`);
-                showToast(`Rate limited. Increased delay to ${delay}ms. Retrying...`, "failure");
+                showToast({ text: `Rate limited. Increased delay to ${delay}ms. Retrying...`, variant: "critical" });
                 // Wait extra to let Discord cool down
                 await sleep(delay * 2);
                 continue; // Retry this GIF with new delay
@@ -339,7 +339,7 @@ async function importGifs(file: File): Promise<void> {
     }
 
     console.log(`[GifTransfer] ✅ Done! Imported: ${ok} | Errors: ${err} | Skipped: ${skipped}`);
-    showToast(`Import complete! ${ok} GIFs added, ${skipped} duplicates skipped, ${err} errors.`, ok > 0 ? "success" : "failure");
+    showToast({ text: `Import complete! ${ok} GIFs added, ${skipped} duplicates skipped, ${err} errors.`, variant: ok > 0 ? "success" : "critical" });
 }
 
 // ─── File Picker Helper ───────────────────────────────────────────────────────

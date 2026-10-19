@@ -170,7 +170,7 @@ let isReacting = false;
 
 async function autoReact(channel: Channel, message: Message) {
     if (isReacting) {
-        showToast("AutoReactor is still busy with the previous message.", "message");
+        showToast({ text: "AutoReactor is still busy with the previous message." });
         return;
     }
 
@@ -180,7 +180,7 @@ async function autoReact(channel: Channel, message: Message) {
         .slice(0, MAX_EMOJIS);
 
     if (emojis.length === 0) {
-        showToast("No valid emojis configured. Set them in AutoReactor settings.", "failure");
+        showToast({ text: "No valid emojis configured. Set them in AutoReactor settings.", variant: "critical" });
         return;
     }
 
@@ -197,7 +197,7 @@ async function autoReact(channel: Channel, message: Message) {
             if (i < emojis.length - 1) await sleep(delay);
         }
 
-        showToast(`Added ${emojis.length} reaction${emojis.length === 1 ? "" : "s"}.`, "success");
+        showToast({ text: `Added ${emojis.length} reaction${emojis.length === 1 ? "" : "s"}.`, variant: "success" });
     } finally {
         isReacting = false;
     }

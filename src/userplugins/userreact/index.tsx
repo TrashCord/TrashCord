@@ -277,7 +277,7 @@ function EmojiPickerModal(props: any) {
         }
 
         saveRules(rules);
-        showToast(`UserReact rule ${selectedEmojis.length === 0 ? "removed" : "saved"} for ${username}`, "success");
+        showToast({ text: `UserReact rule ${selectedEmojis.length === 0 ? "removed" : "saved"} for ${username}`, variant: "success" });
         onClose();
     };
 
@@ -475,7 +475,7 @@ function ChannelEmojiPickerModal(props: any) {
         }
 
         saveChannelRules(rules);
-        showToast(`Channel React ${selectedEmojis.length === 0 ? "removed for" : "saved for"} #${channelName}`, "success");
+        showToast({ text: `Channel React ${selectedEmojis.length === 0 ? "removed for" : "saved for"} #${channelName}`, variant: "success" });
         onClose();
     };
 
@@ -676,7 +676,7 @@ function SettingsPanel() {
                                     newRules.splice(i, 1);
                                     saveRules(newRules);
                                     setRulesText(newRules.map(r => `${r.username} (${r.userId}): ${r.reactions.map(emojiToString).join(" ")}`).join("\n"));
-                                    showToast("Rule removed", "success");
+                                    showToast({ text: "Rule removed", variant: "success" });
                                 }}
                             >
                                 Remove

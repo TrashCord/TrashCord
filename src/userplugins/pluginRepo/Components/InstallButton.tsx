@@ -56,12 +56,12 @@ const InstallButton: React.FC<{ plugin: PluginInfo; }> = ({ plugin }) => {
                 await Native.uninstallPlugin(plugin);
                 setIsInstalled(false);
                 console.log("Uninstallation successful");
-                showToast("Uninstallation Successful");
+                showToast({ text: "Uninstallation Successful" });
                 showRestartPrompt(false);
             } catch (error) {
                 console.error("Error uninstalling plugin", error);
                 setInstallError("Error uninstalling plugin: " + error);
-                showToast("Error uninstalling plugin");
+                showToast({ text: "Error uninstalling plugin" });
             }
             setInstalling(false);
             setHovering(false);
@@ -75,12 +75,12 @@ const InstallButton: React.FC<{ plugin: PluginInfo; }> = ({ plugin }) => {
 
             setIsInstalled(true);
             console.log("Installation Successful");
-            showToast("Installation Successful");
+            showToast({ text: "Installation Successful" });
             showRestartPrompt(true);
         } catch (error) {
             console.error("Error Installing Plugin", error);
             setInstallError("Error Installing plugin: " + error);
-            showToast("Error installing plugin");
+            showToast({ text: "Error installing plugin" });
         } finally {
             setInstalling(false);
         }

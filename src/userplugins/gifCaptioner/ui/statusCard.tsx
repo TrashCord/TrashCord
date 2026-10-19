@@ -19,29 +19,29 @@ function clearFailTimer() {
 function scheduleFailure(ms: number) {
     clearFailTimer();
     failTimer = setTimeout(() => {
-        showToast("GIF processing timed out.", "failure");
+        showToast({ text: "GIF processing timed out.", variant: "critical" });
         clearFailTimer();
     }, ms);
 }
 
 export function showCreating() {
-    showToast("Creating GIF...", "message");
+    showToast({ text: "Creating GIF..." });
     scheduleFailure(FAILURE_TIMEOUT_MS);
 }
 
 export function showUploading() {
-    showToast("Uploading GIF...", "message");
+    showToast({ text: "Uploading GIF..." });
     scheduleFailure(FAILURE_TIMEOUT_MS);
 }
 
 export function showSent() {
     clearFailTimer();
-    showToast("GIF sent.", "success");
+    showToast({ text: "GIF sent.", variant: "success" });
 }
 
 export function showError(message: string) {
     clearFailTimer();
-    showToast(message || "Failed to create GIF.", "failure");
+    showToast({ text: message || "Failed to create GIF.", variant: "critical" });
 }
 
 export function clearStatus() {

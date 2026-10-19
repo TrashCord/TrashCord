@@ -274,9 +274,10 @@ export default definePlugin({
         NativeBadges.forEach(b => Badges.addBadge(b));
     },
     async stop() {
-        showToast("To clear out your client-side badges, reload Discord.", "message", {
-                position: 1, 
-            });
+        showToast({
+            text: "To clear out your client-side badges, reload Discord.",
+            position: "bottom"
+        });
     }
 });
 

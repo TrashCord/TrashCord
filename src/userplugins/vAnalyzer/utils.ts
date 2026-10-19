@@ -11,7 +11,7 @@ export const cl = classNameFactory("vc-analyze-");
 
 export function safeToast(message: string, type: string = "message") {
     try {
-        showToast(message, type);
+        showToast({ text: message, variant: type });
     } catch { }
 }
 

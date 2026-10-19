@@ -97,10 +97,12 @@ interface DmUserContact {
     avatarUrl: string;
 }
 
-function showToast(message: string, type: "message" | "success" | "failure") {
-    showDiscordToast(message, type, {
-            position: 1,
-        });
+function showToast(message: string, type: "default" | "success" | "critical") {
+    showDiscordToast({
+        text: message,
+        variant: type,
+        position: "bottom"
+    });
 }
 
 function makeEmptyPurgeStatus(): PurgeStatusState {
@@ -460,12 +462,12 @@ function SendTrailConfigModal({
         const normalized = manualProtectedDmUserId.trim();
 
         if (!/^\d{5,24}$/.test(normalized)) {
-            showToast("Enter a numeric Discord user ID to save a friend rule.", "failure");
+            showToast("Enter a numeric Discord user ID to save a friend rule.", "critical");
             return;
         }
 
         if (protectedDmUserIds.has(normalized)) {
-            showToast("That DM user ID is already protected.", "failure");
+            showToast("That DM user ID is already protected.", "critical");
             return;
         }
 
@@ -1195,7 +1197,7 @@ function SendTrailTab() {
                 currentLabel: undefined,
             } satisfies PurgeStatusState;
             applyPurgeStatus(nextStatus, startedAt);
-            showToast("Nothing in the current purge target is allowed by your purge config.", "failure");
+            showToast("Nothing in the current purge target is allowed by your purge config.", "critical");
             return;
         }
 
@@ -1281,9 +1283,9 @@ function SendTrailTab() {
         if (phase === "success") {
             showToast(`Purged ${deleted} message${deleted === 1 ? "" : "s"} from Discord.`, "success");
         } else if (phase === "partial") {
-            showToast(`Purged ${deleted} message${deleted === 1 ? "" : "s"}, but ${failed} failed.`, "failure");
+            showToast(`Purged ${deleted} message${deleted === 1 ? "" : "s"}, but ${failed} failed.`, "critical");
         } else {
-            showToast("No selected messages could be purged from Discord.", "failure");
+            showToast("No selected messages could be purged from Discord.", "critical");
         }
     }, [applyPurgeStatus, currentUserId, protectedDmChannels, protectedDmUserIds, purgeConfig.protectAllDms, purgeTarget, updateDeletingId]);
 

@@ -143,7 +143,7 @@ function stopSpam() {
     uid = "";
     removeStyle();
     notify();
-    showToast("⏹ ScreenshareSpammer - Stopped", "success", { duration: 1500 });
+    showToast({ text: "⏹ ScreenshareSpammer - Stopped", variant: "success", duration: 1500 });
 }
 
 async function getSource(): Promise<any> {
@@ -162,7 +162,7 @@ async function startSpam() {
 
     cachedChannelId = SelectedChannelStore.getVoiceChannelId();
     if (!cachedChannelId) {
-        showToast("❌ Not in a voice channel", "failure", { duration: 2000 });
+        showToast({ text: "❌ Not in a voice channel", variant: "critical", duration: 2000 });
         return;
     }
 
@@ -173,11 +173,11 @@ async function startSpam() {
         src = await getSource();
     } catch (e) {
         /* console.error("[ScreenshareSpammer] getSource error:", e); */
-        showToast("❌ Failed to get screen source", "failure", { duration: 2500 });
+        showToast({ text: "❌ Failed to get screen source", variant: "critical", duration: 2500 });
         return;
     }
     if (!src) {
-        showToast("❌ No screen source found", "failure", { duration: 2500 });
+        showToast({ text: "❌ No screen source found", variant: "critical", duration: 2500 });
         return;
     }
 
@@ -195,7 +195,7 @@ async function startSpam() {
     document.addEventListener("keydown", keyListener);
     FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", onVoiceSelect);
     injectStyle();
-    showToast( "📡 Spamming Started - Ctrl+Shift+S to Stop", "message", { id: "ss-spam", duration: 2500 });
+    showToast({ text: "📡 Spamming Started - Ctrl+Shift+S to Stop", duration: 2500 });
     interval = setInterval(tick, settings.store.intervalMs);
     notify();
 }

@@ -425,7 +425,7 @@ function TrackedUsersList() {
                                             color={Button.Colors.RED}
                                             onClick={() => {
                                                 setIds(ids.filter(i => i !== id));
-                                                showToast(`AutoDeco: removed ${user?.username ?? id}`, "failure");
+                                                showToast({ text: `AutoDeco: removed ${user?.username ?? id}`, variant: "critical" });
                                             }}
                                         >Remove</Button>
                                     </div>
@@ -438,7 +438,7 @@ function TrackedUsersList() {
                             color={Button.Colors.RED}
                             onClick={() => {
                                 setIds([]);
-                                showToast("AutoDeco: all users cleared", "failure");
+                                showToast({ text: "AutoDeco: all users cleared", variant: "critical" });
                             }}
                         >Clear All</Button>
                     </div>
@@ -460,10 +460,10 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (children, { user }: {
                 leadingAccessory={{ type: "icon", icon: AutoDecoIcon }}
                 action={() => {
                     setIds(isActive ? ids.filter(id => id !== user.id) : [...ids, user.id]);
-                    showToast(
-                        isActive ? `AutoDeco: removed ${user.username}` : `AutoDeco: now tracking ${user.username}`,
-                        isActive ? "failure" : "success"
-                    );
+                    showToast({
+                        text: isActive ? `AutoDeco: removed ${user.username}` : `AutoDeco: now tracking ${user.username}`,
+                        variant: isActive ? "critical" : "success"
+                    });
                 }}
             />
         </Menu.MenuGroup>
@@ -483,7 +483,7 @@ const RtcChannelContextMenuPatch: NavContextMenuPatchCallback = children => {
                     checked={settings.store.randomVoice}
                     action={() => {
                         settings.store.randomVoice = !settings.store.randomVoice;
-                        showToast(`RandomVoice ${settings.store.randomVoice ? "enabled" : "disabled"}`, settings.store.randomVoice ? "success" : "failure");
+                        showToast({ text: `RandomVoice ${settings.store.randomVoice ? "enabled" : "disabled"}`, variant: settings.store.randomVoice ? "success" : "critical" });
                     }}
                 />
             )}
@@ -495,7 +495,7 @@ const RtcChannelContextMenuPatch: NavContextMenuPatchCallback = children => {
                     action={() => {
                         settings.store.waitForSlot = !settings.store.waitForSlot;
                         if (!settings.store.waitForSlot) cancelWait();
-                        showToast(`WaitForSlot ${settings.store.waitForSlot ? "enabled" : "disabled"}`, settings.store.waitForSlot ? "success" : "failure");
+                        showToast({ text: `WaitForSlot ${settings.store.waitForSlot ? "enabled" : "disabled"}`, variant: settings.store.waitForSlot ? "success" : "critical" });
                     }}
                 />
             )}
@@ -517,7 +517,7 @@ function AutoDecoHeaderButton() {
             icon={AutoDecoIcon}
             onClick={() => {
                 setIds([]);
-                showToast("AutoDeco: all users cleared", "failure");
+                showToast({ text: "AutoDeco: all users cleared", variant: "critical" });
             }}
         />
     );
@@ -569,7 +569,7 @@ export default definePlugin({
                         if (settings.store.waitAutoJoin) {
                             joinVoiceChannel(target);
                             if (settings.store.showToasts)
-                                showToast("WaitForSlot: slot available, rejoining!", "success");
+                                showToast({ text: "WaitForSlot: slot available, rejoining!", variant: "success" });
                         } else {
                             showNotice(`A spot opened in #${targetChannel.name}!`, "Rejoin", () => {
                                 popNotice();
@@ -620,16 +620,16 @@ export default definePlugin({
                     if (randomId) {
                         joinVoiceChannel(randomId);
                         if (settings.store.showToasts)
-                            showToast(`AutoDeco: moved to random channel ("${name}" joined)`, "message");
+                            showToast({ text: `AutoDeco: moved to random channel ("${name}" joined)` });
                     } else {
                         FluxDispatcher.dispatch({ type: "VOICE_CHANNEL_SELECT", channelId: null });
                         if (settings.store.showToasts)
-                            showToast(`AutoDeco: no suitable channel found, disconnected ("${name}" joined)`, "message");
+                            showToast({ text: `AutoDeco: no suitable channel found, disconnected ("${name}" joined)` });
                     }
                 } else {
                     FluxDispatcher.dispatch({ type: "VOICE_CHANNEL_SELECT", channelId: null });
                     if (settings.store.showToasts)
-                        showToast(`AutoDeco: disconnected because "${name}" joined`, "message");
+                        showToast({ text: `AutoDeco: disconnected because "${name}" joined` });
                 }
 
                 if (settings.store.showNotifications)

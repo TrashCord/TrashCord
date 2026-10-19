@@ -110,7 +110,7 @@ function reAddFiles(files: File[], ctx: UploadContext): void {
     if (files.length === 0) return;
     const channel = resolveChannel(ctx.channelId);
     if (!channel) {
-        showToast("Clipify: channel not found to re-add the file.", "failure");
+        showToast({ text: "Clipify: channel not found to re-add the file.", variant: "critical" });
         return;
     }
     files.forEach(f => approvedFiles.add(f));
@@ -118,7 +118,7 @@ function reAddFiles(files: File[], ctx: UploadContext): void {
         UploadHandler.promptToUpload(files, channel, ctx.draftType);
     } catch (err) {
         logger.error("Failed to re-add files to the composer", err);
-        showToast("Clipify: failed to add the file to your message.", "failure");
+        showToast({ text: "Clipify: failed to add the file to your message.", variant: "critical" });
     }
 }
 

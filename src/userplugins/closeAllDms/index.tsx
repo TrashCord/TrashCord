@@ -82,7 +82,7 @@ async function closeAllDMs() {
     });
 
     if (dmsToClose.length === 0) {
-      showToast("ℹ️ No DMs to close", "message");
+      showToast({ text: "ℹ️ No DMs to close" });
       return;
     }
 
@@ -93,13 +93,13 @@ async function closeAllDMs() {
     }
 
     // Success notification
-    showToast(
-      `✅ ${closedCount} DM(s) closed with 50ms rate limit`,
-      "success"
-    );
+    showToast({
+        text: `✅ ${closedCount} DM(s) closed with 50ms rate limit`,
+        variant: "success"
+    });
   } catch (error) {
     console.error("Error closing DMs:", error);
-    showToast("❌ Error closing DMs", "failure");
+    showToast({ text: "❌ Error closing DMs", variant: "critical" });
   }
 }
 

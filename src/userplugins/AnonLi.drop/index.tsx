@@ -101,25 +101,25 @@ const SafeAnonLiSettingsAbout = ErrorBoundary.wrap(AnonLiSettingsAbout, { noop: 
 async function uploadAnonLiDrop() {
     const apiKey = settings.store.apiKey.trim();
     if (!apiKey) {
-        showToast("Set your Anon.li API key in plugin settings first.", "failure");
+        showToast({ text: "Set your Anon.li API key in plugin settings first.", variant: "critical" });
         return;
     }
 
     if (!Native) {
-        showToast("AnonLi native helper is not available. Restart Discord.", "failure");
+        showToast({ text: "AnonLi native helper is not available. Restart Discord.", variant: "critical" });
         return;
     }
 
     const channel = getCurrentChannel();
     if (!channel) {
-        showToast("Open a channel before uploading with Anon.li Drop.", "failure");
+        showToast({ text: "Open a channel before uploading with Anon.li Drop.", variant: "critical" });
         return;
     }
 
     const file = await chooseFile("*/*");
     if (!file) return;
 
-    showToast(`Uploading ${file.name} to Anon.li.`, "message");
+    showToast({ text: `Uploading ${file.name} to Anon.li.` });
 
     const result = await Native.uploadDrop(
         apiKey,
@@ -131,7 +131,7 @@ async function uploadAnonLiDrop() {
     );
 
     if (!result.success) {
-        showToast(result.error, "failure");
+        showToast({ text: result.error, variant: "critical" });
         return;
     }
 

@@ -43,13 +43,13 @@ export const FixGrammarChatBarIcon: ChatBarButtonFactory = ({ isMainChat, channe
                 const { backend, language, apiKey } = settings.store;
 
                 if (backend === "gemini" && !apiKey) {
-                    showToast("Please set your Gemini API key in the FixGrammar plugin settings", "failure");
+                    showToast({ text: "Please set your Gemini API key in the FixGrammar plugin settings", variant: "critical" });
                     return;
                 }
 
                 const text = getChatInputText(channelId);
                 if (!text) {
-                    showToast("Nothing to fix", "message");
+                    showToast({ text: "Nothing to fix" });
                     return;
                 }
 
@@ -61,17 +61,17 @@ export const FixGrammarChatBarIcon: ChatBarButtonFactory = ({ isMainChat, channe
                         : await checkGrammarWithLanguageTool(text, language);
 
                     if (corrected === text) {
-                        showToast("No issues found!", "message");
+                        showToast({ text: "No issues found!" });
                         return;
                     }
 
                     replaceChatInputBox(channelId, corrected);
-                    showToast("Grammar fixed!", "success");
+                    showToast({ text: "Grammar fixed!", variant: "success" });
                 } catch (e) {
-                    showToast(
-                        e instanceof Error ? e.message : "Failed to check grammar",
-                        "failure"
-                    );
+                    showToast({
+                        text: e instanceof Error ? e.message : "Failed to check grammar",
+                        variant: "critical"
+                    });
                 } finally {
                     loadingRef.current = false;
                     setLoading(false);

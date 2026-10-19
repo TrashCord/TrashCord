@@ -295,9 +295,10 @@ let selectedChannelId = "";
 
 function stopExecution() {
     shouldStop = true;
-    showToast("Stopping VC Raper successfully.", "failure", {
-        id: "stop",
-        position: 1
+    showToast({
+        text: "Stopping VC Raper successfully.",
+        variant: "critical",
+        position: "bottom"
     });
     console.log("stopped vc raper");
 }
@@ -712,9 +713,10 @@ function createVCMenuItem(guildId: string, id?: string) {
                 if (typeof id === "string") {
                     selectedChannelId = id;
                 } else {
-                    showToast("Failed - channel not found", "failure", {
-                        id: "channel-fail",
-                        position: 1
+                    showToast({
+                        text: "Failed - channel not found",
+                        variant: "critical",
+                        position: "bottom"
                     });
                     selectedChannelId = "";
                 }

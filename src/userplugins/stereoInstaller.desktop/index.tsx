@@ -173,8 +173,8 @@ function LogPanel({ lines, onClear }: { lines: string[]; onClear: () => void; })
 
     const handleCopy = React.useCallback(() => {
         navigator.clipboard.writeText(linesRef.current.join("\n")).then(
-            () => showToast("Log copied to clipboard.", "success"),
-            () => showToast("Failed to copy log.", "failure"),
+            () => showToast({ text: "Log copied to clipboard.", variant: "success" }),
+            () => showToast({ text: "Failed to copy log.", variant: "critical" }),
         );
     }, []);
 
@@ -328,7 +328,7 @@ function StereoInstallerPanel() {
             if (!result.success) {
                 setHasError(true);
                 setStatusMsg(`Error: ${result.error}`);
-                showToast(result.error, "failure");
+                showToast({ text: result.error, variant: "critical" });
                 return null;
             }
             return result.data;
@@ -399,7 +399,7 @@ function StereoInstallerPanel() {
         setInfo(result);
         setHasError(false);
         setStatusMsg("Patch scheduled - Discord will close briefly, apply the patch, then reopen.");
-        showToast("Patch scheduled. Discord will restart shortly.", "success");
+        showToast({ text: "Patch scheduled. Discord will restart shortly.", variant: "success" });
     }, [runNative, root, installerMethod]);
 
     const handleRevert = React.useCallback(async () => {
@@ -409,7 +409,7 @@ function StereoInstallerPanel() {
         setInfo(result);
         setHasError(false);
         setStatusMsg("Revert scheduled - Discord will close briefly, restore the backup, then reopen.");
-        showToast("Revert scheduled. Discord will restart shortly.", "success");
+        showToast({ text: "Revert scheduled. Discord will restart shortly.", variant: "success" });
     }, [runNative, root]);
 
     const handleMethod2IndexPatch = React.useCallback(async () => {
@@ -419,12 +419,12 @@ function StereoInstallerPanel() {
         setInfo(result);
         setHasError(false);
         setStatusMsg("index.js replacement scheduled - Discord will close briefly then reopen.");
-        showToast("index.js replacement scheduled. Discord will restart shortly.", "success");
+        showToast({ text: "index.js replacement scheduled. Discord will restart shortly.", variant: "success" });
     }, [runNative, root]);
 
     const requireRoot = React.useCallback((fn: () => void): void => {
         if (!hasRoot) {
-            showToast("Select a Discord install folder first - use Auto-detect or Browse.", "failure");
+            showToast({ text: "Select a Discord install folder first - use Auto-detect or Browse.", variant: "critical" });
             return;
         }
         fn();
@@ -432,7 +432,7 @@ function StereoInstallerPanel() {
 
     const selectInstallerMethod = React.useCallback((value: InstallerMethod) => {
         if (value === "method2" && voicePlaygroundUnavail) {
-            showToast("Voice Playground Method is only available on Windows.", "failure");
+            showToast({ text: "Voice Playground Method is only available on Windows.", variant: "critical" });
             setStatusMsg("Voice Playground Method is only available on Windows.");
             return;
         }

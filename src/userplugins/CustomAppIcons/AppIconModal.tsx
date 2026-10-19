@@ -41,7 +41,7 @@ function AppIconModal(props: ModalProps) {
         appIcons.push(icon);
         AppIconData.UZ.push(icon);
         AppIconData.QA[icon.id] = icon;
-        showToast("Added custom app icon!", "success");
+        showToast({ text: "Added custom app icon!", variant: "success" });
         props.onClose();
         const oldIcon = AppIconStore.getCurrentDesktopIcon();
 

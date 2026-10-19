@@ -365,9 +365,11 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
             } catch (err) {
                 if (signalRef.current.cancelled) throw err;
                 // Network blocked / core failed to load → degrade gracefully.
-                showToast(hasEffects
+                showToast({
+                    text: hasEffects
                     ? "FFmpeg unavailable — effects skipped, using MediaRecorder."
-                    : "FFmpeg unavailable — falling back to MediaRecorder.", "message");
+                    : "FFmpeg unavailable — falling back to MediaRecorder."
+                });
                 setProgress(0);
             }
         }
@@ -385,7 +387,7 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
         setPlaying(false);
 
         if (selectionLength < MIN_SELECTION) {
-            showToast("Selection is too short to trim.", "failure");
+            showToast({ text: "Selection is too short to trim.", variant: "critical" });
             return;
         }
 
@@ -396,11 +398,11 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
         try {
             const trimmed = await runExport();
             onComplete(trimmed);
-            showToast("Video trimmed and added to your message!", "success");
+            showToast({ text: "Video trimmed and added to your message!", variant: "success" });
             modalProps.onClose();
         } catch (err) {
             if (!signalRef.current.cancelled) {
-                showToast(`Trim failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
+                showToast({ text: `Trim failed: ${err instanceof Error ? err.message : String(err)}`, variant: "critical" });
             }
             setExporting(false);
         }

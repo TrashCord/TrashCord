@@ -307,7 +307,7 @@ let recordingHandler: ((e: KeyboardEvent) => void) | null = null;
 function recordKeybind() {
     if (recordingActive) return;
     recordingActive = true;
-    showToast("Press a key combo for the keybind (Esc to cancel)", "clock");
+    showToast({ text: "Press a key combo for the keybind (Esc to cancel)" });
 
     recordingHandler = (e: KeyboardEvent) => {
         e.preventDefault();
@@ -317,7 +317,7 @@ function recordKeybind() {
             window.removeEventListener("keydown", recordingHandler!, true);
             recordingHandler = null;
             recordingActive = false;
-            showToast("Keybind recording cancelled", "clock");
+            showToast({ text: "Keybind recording cancelled" });
             return;
         }
 
@@ -329,7 +329,7 @@ function recordKeybind() {
         recordingActive = false;
         settings.store.keybind = acc;
         if (settings.store.keybindEnabled) tryRegisterKeybind(acc);
-        showToast(`Keybind set to ${acc}`, "success");
+        showToast({ text: `Keybind set to ${acc}`, variant: "success" });
     };
 
     window.addEventListener("keydown", recordingHandler, true);

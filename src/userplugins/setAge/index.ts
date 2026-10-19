@@ -21,7 +21,7 @@ const settings = definePluginSettings({
         default: false,
         onChange(newValue: boolean) {
             apply();
-            showToast(`Age group set to ${newValue ? "teen" : "adult"}`, "success");
+            showToast({ text: `Age group set to ${newValue ? "teen" : "adult"}`, variant: "success" });
         }
     },
     allowNsfwChannels: {

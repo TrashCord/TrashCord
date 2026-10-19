@@ -3403,12 +3403,12 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                             const ok = await activityStore.importAll(text)
                             if (ok) {
                                 onRefresh?.()
-                                showToast(`Imported activity log`, "success")
+                                showToast({ text: `Imported activity log`, variant: "success" })
                             } else {
-                                showToast("Failed to import — invalid JSON file", "failure")
+                                showToast({ text: "Failed to import — invalid JSON file", variant: "critical" })
                             }
                         } catch (err: any) {
-                            showToast(`Import failed: ${err?.message || "could not read file"}`, "failure")
+                            showToast({ text: `Import failed: ${err?.message || "could not read file"}`, variant: "critical" })
                         }
                     }
                     input.click()
@@ -3464,7 +3464,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                     const userLogs = activityStore.getLogs(userId)
                     const scoped = exportCat === "all" ? userLogs : userLogs.filter(l => matchesCategory(l, exportCat))
                     if (scoped.length === 0) {
-                        showToast(exportCat === "all" ? "No activity to export" : `No ${exportCat} logs to export`, "failure")
+                        showToast({ text: exportCat === "all" ? "No activity to export" : `No ${exportCat} logs to export`, variant: "critical" })
                         return
                     }
                     const data = JSON.stringify({ [userId]: scoped }, null, 2)
@@ -3476,7 +3476,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                     a.download = `userradar_${userId}${suffix}_${new Date().toISOString().slice(0,10)}.json`
                     a.click()
                     URL.revokeObjectURL(url)
-                    showToast(`Exported ${scoped.length} ${exportCat === "all" ? "events" : exportCat + " events"}`, "success")
+                    showToast({ text: `Exported ${scoped.length} ${exportCat === "all" ? "events" : exportCat + " events"}`, variant: "success" })
                 }}
                 style={{
                     padding: "8px 16px",
@@ -3503,7 +3503,7 @@ function ActivityLogFooter({ userId, onRefresh }: { userId: string; onRefresh?: 
                 className="ur-tab-btn ur-chip"
                 onClick={async () => {
                     if (count === 0) {
-                        showToast("No activity to clear", "failure")
+                        showToast({ text: "No activity to clear", variant: "critical" })
                         return
                     }
                     if (confirm("Clear all history for this user? This cannot be undone.")) {
@@ -3628,11 +3628,11 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
             || OV_GROUPS.profile.find(r => r.key === key)?.label
             || key
         if (val === true) {
-            showToast(`${dn}: ${featLabel} enabled`, "success")
+            showToast({ text: `${dn}: ${featLabel} enabled`, variant: "success" })
         } else if (val === false) {
-            showToast(`${dn}: ${featLabel} disabled`, "message")
+            showToast({ text: `${dn}: ${featLabel} disabled` })
         } else if (val === null) {
-            showToast(`${dn}: ${featLabel} reset to global`, "success")
+            showToast({ text: `${dn}: ${featLabel} reset to global`, variant: "success" })
         }
     }
 
@@ -3658,7 +3658,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
         const label = getWatchedUser(settings, user.id)?.nick
         const u = UserStore.getUser(user.id)
         const name = displayName(u) || user.id
-        showToast(`${label ? `${label} (${name})` : name}: all overrides reset`, "success")
+        showToast({ text: `${label ? `${label} (${name})` : name}: all overrides reset`, variant: "success" })
     }
 
     const enableAll = () => {
@@ -3675,7 +3675,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
         const label = getWatchedUser(settings, user.id)?.nick
         const u = UserStore.getUser(user.id)
         const name = displayName(u) || user.id
-        showToast(`${label ? `${label} (${name})` : name}: all ${OV_TAB_LABELS[ovTab]} enabled`, "success")
+        showToast({ text: `${label ? `${label} (${name})` : name}: all ${OV_TAB_LABELS[ovTab]} enabled`, variant: "success" })
     }
 
     const disableAll = () => {
@@ -3692,7 +3692,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
         const label = getWatchedUser(settings, user.id)?.nick
         const u = UserStore.getUser(user.id)
         const name = displayName(u) || user.id
-        showToast(`${label ? `${label} (${name})` : name}: all ${OV_TAB_LABELS[ovTab]} disabled`, "message")
+        showToast({ text: `${label ? `${label} (${name})` : name}: all ${OV_TAB_LABELS[ovTab]} disabled` })
     }
 
     const applyPreset = (preset: "stalker" | "lite" | "silent") => {
@@ -3700,7 +3700,7 @@ function WatchedRow({ user, refresh, expandedId, setExpandedId, onRemove, isPinn
         const u = UserStore.getUser(user.id)
         const name = displayName(u) || user.id
         const dn = label ? `${label} (${name})` : name
-        showToast(`${dn}: ${preset} preset applied`, "success")
+        showToast({ text: `${dn}: ${preset} preset applied`, variant: "success" })
         const list = getWatchlist(settings)
         const idx = list.findIndex(u => u.id === user.id)
         if (idx === -1) return
@@ -4499,11 +4499,14 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                                             added++
                                         }
                                         refresh()
-                                        showToast(skipped > 0
+                                        showToast({
+                                            text: skipped > 0
                                                 ? `Imported ${added} users, skipped ${skipped} invalid entries`
-                                                : `Imported ${added} users to watchlist`, "success")
+                                                : `Imported ${added} users to watchlist`,
+                                            variant: "success"
+                                        })
                                     } catch (err: any) {
-                                        showToast(`Import failed: ${err.message || "Invalid file"}`, "failure")
+                                        showToast({ text: `Import failed: ${err.message || "Invalid file"}`, variant: "critical" })
                                     }
                                 }
                                 input.click()
@@ -4531,7 +4534,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                             onClick={() => {
                                 const list = getWatchlist(settings)
                                 if (list.length === 0) {
-                                    showToast("Watchlist is empty", "failure")
+                                    showToast({ text: "Watchlist is empty", variant: "critical" })
                                     return
                                 }
                                 const data = JSON.stringify(list, null, 2)
@@ -4542,7 +4545,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                                 a.download = `userradar_watchlist_${new Date().toISOString().slice(0,10)}.json`
                                 a.click()
                                 URL.revokeObjectURL(url)
-                                showToast(`Exported ${list.length} users`, "success")
+                                showToast({ text: `Exported ${list.length} users`, variant: "success" })
                             }}
                             style={{
                                 padding: "8px 16px",
@@ -4567,7 +4570,7 @@ function WatchlistModal({ modalProps }: { modalProps: any }) {
                             onClick={() => {
                                 if (confirm("Clear all activity logs for ALL watched users? This cannot be undone.")) {
                                     activityStore.clearAll().then(() => {
-                                        showToast("All activity logs cleared", "success")
+                                        showToast({ text: "All activity logs cleared", variant: "success" })
                                     })
                                 }
                             }}
@@ -4623,8 +4626,8 @@ const userCtxPatch: NavContextMenuPatchCallback = (children, { user }) => {
                 label={isW ? "Unwatch User" : "Watch User"}
                 icon={isW ? CtxEyeOffIcon : CtxEyeIcon}
                 action={() => {
-                    if (isW) { removeUser(settings, user.id); purgeUserCaches(user.id); showToast(`removed ${displayName(user)} from watchlist`, "message") }
-                    else { addUser(settings, user.id); fetchNewUserBaseline(user.id); showToast(`added ${displayName(user)} to watchlist`, "success") }
+                    if (isW) { removeUser(settings, user.id); purgeUserCaches(user.id); showToast({ text: `removed ${displayName(user)} from watchlist` }) }
+                    else { addUser(settings, user.id); fetchNewUserBaseline(user.id); showToast({ text: `added ${displayName(user)} to watchlist`, variant: "success" }) }
                 }}
 
             />
@@ -4650,8 +4653,8 @@ const msgCtxPatch: NavContextMenuPatchCallback = (children, { message }) => {
                 label={isW ? "remove author from watchlist" : "add author to watchlist"}
                 icon={isW ? CtxEyeOffIcon : CtxEyeIcon}
                 action={() => {
-                    if (isW) { removeUser(settings, message.author.id); purgeUserCaches(message.author.id); showToast(`removed ${displayName(message.author)} from watchlist`, "message") }
-                    else { addUser(settings, message.author.id); fetchNewUserBaseline(message.author.id); showToast(`added ${displayName(message.author)} to watchlist`, "success") }
+                    if (isW) { removeUser(settings, message.author.id); purgeUserCaches(message.author.id); showToast({ text: `removed ${displayName(message.author)} from watchlist` }) }
+                    else { addUser(settings, message.author.id); fetchNewUserBaseline(message.author.id); showToast({ text: `added ${displayName(message.author)} to watchlist`, variant: "success" }) }
                 }}
 
             />

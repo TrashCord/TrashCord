@@ -372,7 +372,7 @@ export default definePlugin({
             useUsersProfileStore.getState().fetchDecorations();
             useUsersProfileStore.getState().fetchProfileEffects();
             useUsersProfileStore.getState().fetchBadges();
-            showToast("Successfully refetched fakeProfile!", "success");
+            showToast({ text: "Successfully refetched fakeProfile!", variant: "success" });
         }
     },
     addCopy3y3Button: ErrorBoundary.wrap(function ({ primary, accent }: { primary: number; accent: number; }) {

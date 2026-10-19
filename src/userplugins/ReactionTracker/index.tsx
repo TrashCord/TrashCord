@@ -143,7 +143,7 @@ const settings = definePluginSettings({
                 variant="dangerPrimary"
                 onClick={async () => {
                     await DataStore.set(DATA_KEY, emptyCounts());
-                    showToast("Cleared. Reopen settings to see the change.", "success");
+                    showToast({ text: "Cleared. Reopen settings to see the change.", variant: "success" });
                 }}
             >
                 Clear all data

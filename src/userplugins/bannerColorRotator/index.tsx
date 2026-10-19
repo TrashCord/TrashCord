@@ -91,9 +91,9 @@ const settings = definePluginSettings({
 
 const saveData = (): Promise<void> => DataStore.set(SK, { favorites, usedFavs, wasRunning: rotatorTimer !== null, currentColor } as StoreData);
 
-function toast(msg: string, type: "message" | "success" | "failure" = "success") {
+function toast(msg: string, type: "default" | "success" | "critical" = "success") {
     if (!settings.store.showToast) return;
-    showToast(msg, type);
+    showToast({ text: msg, variant: type });
 }
 
 function fmtSec(s: number): string {

@@ -303,8 +303,8 @@ function TestWebhookButton() {
             disabled={disabled}
             onClick={() => {
                 void sendTestWebhook(webhookUrl)
-                    .then(() => showToast("Test webhook sent successfully.", "success"))
-                    .catch((e: unknown) => showToast(e instanceof Error ? e.message : "Failed to send test webhook.", "failure"));
+                    .then(() => showToast({ text: "Test webhook sent successfully.", variant: "success" }))
+                    .catch((e: unknown) => showToast({ text: e instanceof Error ? e.message : "Failed to send test webhook.", variant: "critical" }));
             }}
         >
             Send Test Webhook
@@ -477,7 +477,7 @@ function notifySuccess(request: ClaimRequest, giftType: string | null, task?: Vo
     const location = buildLocationLabel(request);
     log(`Redeemed ${request.code} (${successes}/${attempts})`);
     if (settings.store.notifySuccess) {
-        showToast(`🎉 Nitro ${successes}/${attempts} | ${buildSummary(request.code.slice(0, 16), giftType, location)}`, "success");
+        showToast({ text: `🎉 Nitro ${successes}/${attempts} | ${buildSummary(request.code.slice(0, 16), giftType, location)}`, variant: "success" });
     }
     if (settings.store.notifyNative) {
         showNotification({ title: "NitroSniper - Claimed!", body: buildSummary(`Code: ${request.code.slice(0, 16)}`, giftType, location) });
@@ -492,7 +492,7 @@ function notifySuccess(request: ClaimRequest, giftType: string | null, task?: Vo
 function notifyFailure(request: ClaimRequest, reason: string, giftType: string | null = null, task?: VoidSolverTaskResult) {
     log(`Failed ${request.code}: ${reason}`);
     if (settings.store.notifyFail) {
-        showToast(`Failed | ${buildSummary(request.code.slice(0, 16), giftType, reason)}`, "failure");
+        showToast({ text: `Failed | ${buildSummary(request.code.slice(0, 16), giftType, reason)}`, variant: "critical" });
     }
     void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType, task).catch(e => err("failure webhook failed", e));
 }
@@ -554,7 +554,7 @@ async function redeemCode(request: ClaimRequest, isRetry = false, giftTypePromis
     } catch (e: any) {
         if (isCaptchaError(e?.body)) {
             warn(`captcha detected for ${request.code}`);
-            showToast("NitroSniper: captcha - solving automatically...", "failure");
+            showToast({ text: "NitroSniper: captcha - solving automatically...", variant: "critical" });
             GiftActions?.redeemGiftCode?.({
                 code: request.code,
                 onRedeemed: async () => notifySuccess(request, resolvedGiftType ?? await pendingGiftType, voidSolverTask),
@@ -565,7 +565,7 @@ async function redeemCode(request: ClaimRequest, isRetry = false, giftTypePromis
         if (e?.status === 429) {
             const retryAfter = ((e?.body?.retry_after ?? 5) * 1000) + 250;
             warn(`rate limited, retrying ${request.code} in ${retryAfter}ms`);
-            showToast(`NitroSniper: rate limited, retrying in ${Math.ceil(retryAfter / 1000)}s...`, "failure");
+            showToast({ text: `NitroSniper: rate limited, retrying in ${Math.ceil(retryAfter / 1000)}s...`, variant: "critical" });
             await sleep(retryAfter);
             await redeemCode(request, true, pendingGiftType);
             return;

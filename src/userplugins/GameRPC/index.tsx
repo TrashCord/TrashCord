@@ -94,7 +94,7 @@ function reportApiFailure(error: unknown) {
     return message;
 
   lastApiFailure = { message, time: now };
-  showToast(message, "failure");
+  showToast({ text: message, variant: "critical" });
   return message;
 }
 

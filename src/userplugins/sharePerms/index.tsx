@@ -240,7 +240,7 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
         setUsers(updated);
         saveSharedUsers(updated);
         setNewUserIds([]);
-        showToast("Access granted and users notified", "success");
+        showToast({ text: "Access granted and users notified", variant: "success" });
     };
 
     const removeUser = async (index: number) => {

@@ -110,9 +110,10 @@ export function activateFakeSession(acc: FakeAccount) {
 
     const fakeUser = buildUserObject(acc);
     if (!fakeUser) {
-        showToast("Failed to build user object, try again.", "failure", {
-            id: "fakeaccount-notready",
-            position: 1
+        showToast({
+            text: "Failed to build user object, try again.",
+            variant: "critical",
+            position: "bottom"
         });
         return;
     }
@@ -163,9 +164,10 @@ export function activateFakeSession(acc: FakeAccount) {
     _originals.getRelationshipType = RelationshipStore.getRelationshipType.bind(RelationshipStore);
     RelationshipStore.getRelationshipType = () => 0;
 
-    showToast(`Switched to ${acc.username}`, "success", {
-        id: "fakeaccount-switch",
-        position: 1
+    showToast({
+        text: `Switched to ${acc.username}`,
+        variant: "success",
+        position: "bottom"
     });
 }
 
@@ -194,9 +196,10 @@ export function deactivateFakeSession() {
     _fakeSessionActive = false;
     _fakeSessionUser = null;
 
-    showToast("Switched back to real account", "success", {
-        id: "fakeaccount-restore",
-        position: 1
+    showToast({
+        text: "Switched back to real account",
+        variant: "success",
+        position: "bottom"
     });
 }
 
@@ -217,9 +220,10 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
     const fetchAndAdd = async () => {
         if (!userId.trim()) return;
         if (accounts.some(a => a.id === userId.trim())) {
-            showToast("Already added!", "failure", {
-                id: "fa-dupe",
-                position: 1
+            showToast({
+                text: "Already added!",
+                variant: "critical",
+                position: "bottom"
             });
             return;
         }
@@ -235,14 +239,16 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                 globalName: u.global_name ?? u.username,
             }]);
             setUserId("");
-            showToast(`Added ${u.username}!`, "success", {
-                id: "fa-add",
-                position: 1
+            showToast({
+                text: `Added ${u.username}!`,
+                variant: "success",
+                position: "bottom"
             });
         } catch {
-            showToast("Failed to fetch user. Check the ID.", "failure", {
-                id: "fa-fail",
-                position: 1
+            showToast({
+                text: "Failed to fetch user. Check the ID.",
+                variant: "critical",
+                position: "bottom"
             });
         }
         setLoading(false);

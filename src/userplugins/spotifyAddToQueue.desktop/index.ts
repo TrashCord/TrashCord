@@ -14,7 +14,7 @@ const SpotifyAPI = findByPropsLazy("vcSpotifyMarker");
 
 function queueSong(id: string) {
     const { socket } = SpotifySocket.getActiveSocketAndDevice();
-    if (!socket) return showToast("Make sure that Spotify is running before queuing a song", "failure");
+    if (!socket) return showToast({ text: "Make sure that Spotify is running before queuing a song", variant: "critical" });
 
     try {
         SpotifyAPI.post(socket.accountId, socket.accessToken, {
@@ -23,11 +23,11 @@ function queueSong(id: string) {
                 uri: `spotify:track:${id}`
             }
         });
-        showToast("Song queued", "success");
+        showToast({ text: "Song queued", variant: "success" });
     }
     catch (e) {
         console.error(e);
-        showToast("An error occurred, check console", "failure");
+        showToast({ text: "An error occurred, check console", variant: "critical" });
     }
 }
 

@@ -37,7 +37,7 @@ export function SetPasswordModal({ modalProps, channelId }: { modalProps: any; c
         setError("");
         await setHash(channelId, await hashPassword(pwd));
         lock(channelId);
-        showToast("🔒 Channel locked", "success");
+        showToast({ text: "🔒 Channel locked", variant: "success" });
         modalProps.onClose();
         refreshAll();
     };
@@ -68,7 +68,7 @@ export function UnlockModal({ modalProps, channelId }: { modalProps: any; channe
         if (!stored) { setError("No password set."); setBusy(false); return; }
         if ((await hashPassword(pwd)) === stored) {
             unlock(channelId);
-            showToast("🔓 Unlocked", "success");
+            showToast({ text: "🔓 Unlocked", variant: "success" });
             modalProps.onClose();
             refreshAll();
         } else {
@@ -103,7 +103,7 @@ export function ChangePasswordModal({ modalProps, channelId }: { modalProps: any
         const stored = await getHash(channelId);
         if (!stored || (await hashPassword(oldPwd)) !== stored) { setError("Current password is incorrect."); return; }
         await setHash(channelId, await hashPassword(newPwd));
-        showToast("🔑 Password changed", "success");
+        showToast({ text: "🔑 Password changed", variant: "success" });
         modalProps.onClose();
         refreshAll();
     };
@@ -136,7 +136,7 @@ export function RemoveLockModal({ modalProps, channelId }: { modalProps: any; ch
         if ((await hashPassword(pwd)) === stored) {
             await setHash(channelId, null);
             unlock(channelId);
-            showToast("🔓 Password removed and channel unlocked", "success");
+            showToast({ text: "🔓 Password removed and channel unlocked", variant: "success" });
             modalProps.onClose();
             refreshAll();
         } else {
@@ -179,7 +179,7 @@ export const actRelock = () => {
     const id = SelectedChannelStore.getChannelId();
     if (!id) return;
     lock(id);
-    showToast("🔒 Locked", "info");
+    showToast({ text: "🔒 Locked", variant: "info" });
     refreshAll();
 };
 

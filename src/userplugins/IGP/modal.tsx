@@ -26,7 +26,7 @@ function Modal(props: ModalProps) {
     try {
         recipientId = ChannelStore.getChannel(SelectedChannelStore.getChannelId()).recipients[0];
     } catch (e) {
-        showToast("Cannot find the recipient id of the message", "failure");
+        showToast({ text: "Cannot find the recipient id of the message", variant: "critical" });
         throw e;
     }
     const [pKey, setPKey] = React.useState("");

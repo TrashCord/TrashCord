@@ -135,12 +135,12 @@ export async function reloadHyprTilesRules(showResult = true) {
     if (result.ok) resyncWorkspaceLayoutsToSettings(true);
 
     if (showResult) {
-        showToast(
-            result.ok
+        showToast({
+            text: result.ok
                 ? "HyprTiles rules reloaded."
                 : `HyprTiles rules reload failed: ${result.error}`,
-            result.ok ? "success" : "failure"
-        );
+            variant: result.ok ? "success" : "critical"
+        });
     }
 
     return result;
@@ -447,7 +447,7 @@ export function createNewTabGroup() {
     if (!running) return false;
     const groupName = moveFocusedTileIntoNewGroup();
     if (!groupName) return false;
-    showToast(`Created tab group ${groupName}.`, "success");
+    showToast({ text: `Created tab group ${groupName}.`, variant: "success" });
     return true;
 }
 

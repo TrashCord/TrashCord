@@ -139,7 +139,7 @@ async function clip(channelId?: string) {
     try {
         const res = await Native.getClip(settings.store.bufferSeconds, settings.store.includeMic);
         if (!res.frames) {
-            showToast("VcRewind: nothing buffered yet. Join a voice channel and wait a few seconds.", "failure");
+            showToast({ text: "VcRewind: nothing buffered yet. Join a voice channel and wait a few seconds.", variant: "critical" });
             return;
         }
 
@@ -175,7 +175,7 @@ async function clip(channelId?: string) {
                 onClick: () => Native.showInFolder(path)
             });
         } else {
-            showToast(`Clip saved (${fmtDuration(duration)})`, "success");
+            showToast({ text: `Clip saved (${fmtDuration(duration)})`, variant: "success" });
         }
 
         if (settings.store.uploadToChat) {
@@ -184,7 +184,7 @@ async function clip(channelId?: string) {
         }
     } catch (e) {
         console.error("[VcRewind] failed to save clip", e);
-        showToast("VcRewind: failed to save clip, see console", "failure");
+        showToast({ text: "VcRewind: failed to save clip, see console", variant: "critical" });
     } finally {
         busy = false;
     }

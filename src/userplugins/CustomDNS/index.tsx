@@ -275,7 +275,7 @@ const log = {
 
 function showPluginToast(message: string, type = "message") {
     if (settings.store.showNotifications) {
-        showToast(`[CustomDNS] ${message}`, type);
+        showToast({ text: `[CustomDNS] ${message}`, variant: type });
     }
 }
 

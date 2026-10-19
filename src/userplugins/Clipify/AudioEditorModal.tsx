@@ -228,7 +228,7 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
                 return await trimAudioWithFFmpeg(file, start, end, { mode, bitrateK: bitrate, gain: gain / 100, signal: signalRef.current, onProgress: setProgress });
             } catch (err) {
                 if (signalRef.current.cancelled) throw err;
-                showToast("FFmpeg unavailable — exporting offline as WAV.", "message");
+                showToast({ text: "FFmpeg unavailable — exporting offline as WAV." });
             }
         }
         return trimAudioWebAudio(file, start, end, gain / 100);
@@ -241,7 +241,7 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
         setPlaying(false);
 
         if (selectionLength < MIN_SELECTION) {
-            showToast("Selection is too short to trim.", "failure");
+            showToast({ text: "Selection is too short to trim.", variant: "critical" });
             return;
         }
 
@@ -251,11 +251,11 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
         try {
             const trimmed = await runExport();
             onComplete(trimmed);
-            showToast("Audio trimmed and added to your message!", "success");
+            showToast({ text: "Audio trimmed and added to your message!", variant: "success" });
             modalProps.onClose();
         } catch (err) {
             if (!signalRef.current.cancelled) {
-                showToast(`Trim failed: ${err instanceof Error ? err.message : String(err)}`, "failure");
+                showToast({ text: `Trim failed: ${err instanceof Error ? err.message : String(err)}`, variant: "critical" });
             }
             setExporting(false);
         }

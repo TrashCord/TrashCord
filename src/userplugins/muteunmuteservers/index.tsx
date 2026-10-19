@@ -33,7 +33,7 @@ async function setAllGuildsMuted(muted: boolean) {
     const guildIds = Object.keys(guilds);
     const label = muted ? "Muting" : "Unmuting";
 
-    showToast(`${label} all servers…`, "message");
+    showToast({ text: `${label} all servers…` });
 
     let count = 0;
     for (const id of guildIds) {
@@ -58,7 +58,7 @@ async function setAllGuildsMuted(muted: boolean) {
         }
     }
 
-    showToast(`${label} done! ${count}/${guildIds.length} servers updated.`, "success");
+    showToast({ text: `${label} done! ${count}/${guildIds.length} servers updated.`, variant: "success" });
 }
 
 const guildContextPatch = (children: any, { guild }: { guild?: any }) => {

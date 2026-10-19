@@ -169,7 +169,7 @@ function MfImageUpload({ label, value, onChange }: { label: string; value: strin
     function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
-        readImageAsDataUrl(file).then(onChange).catch(() => showToast("Failed to read the image.", "failure"));
+        readImageAsDataUrl(file).then(onChange).catch(() => showToast({ text: "Failed to read the image.", variant: "critical" }));
     }
     return (
         <div className="fus-mf-field">
@@ -400,12 +400,12 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
             settings.store.manualExpanded = true;
             setCustomRpcExpanded(true);
             settings.store.customRpcExpanded = true;
-            showToast(`Loaded preset details for ${s.name}`, "success");
+            showToast({ text: `Loaded preset details for ${s.name}`, variant: "success" });
             forceUpdate();
         } else {
             setInputId(s.id);
             doPreview();
-            showToast(`Loaded ID ${s.id} for editing`, "success");
+            showToast({ text: `Loaded ID ${s.id} for editing`, variant: "success" });
         }
     }
 
@@ -489,12 +489,12 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
         if (!input) return;
         const id = resolveTargetUserId(input);
         if (!id) {
-            showToast("Could not resolve username to a cached User ID. Please enter their ID.", "failure");
+            showToast({ text: "Could not resolve username to a cached User ID. Please enter their ID.", variant: "critical" });
             return;
         }
         const me = UserStore.getCurrentUser();
         if (me && me.id === id) {
-            showToast("You cannot spoof as yourself! Use 'Apply cosmetics to my account' instead.", "failure");
+            showToast({ text: "You cannot spoof as yourself! Use 'Apply cosmetics to my account' instead.", variant: "critical" });
             return;
         }
         setLoading(true);
@@ -513,11 +513,11 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                     setPreviewProfile(prof);
                 }
             } else {
-                showToast("User not found.", "failure");
+                showToast({ text: "User not found.", variant: "critical" });
             }
         } catch {
             if (!mountedRef.current) return;
-            showToast("Failed to fetch user.", "failure");
+            showToast({ text: "Failed to fetch user.", variant: "critical" });
         }
         if (!mountedRef.current) return;
         setLoading(false);
@@ -531,7 +531,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
         if (!id.startsWith("manual_")) {
             const resolved = resolveTargetUserId(input);
             if (!resolved) {
-                showToast("Could not resolve username to a cached User ID. Please enter their ID.", "failure");
+                showToast({ text: "Could not resolve username to a cached User ID. Please enter their ID.", variant: "critical" });
                 return;
             }
             id = resolved;
@@ -539,7 +539,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
 
         const me = UserStore.getCurrentUser();
         if (me && me.id === id) {
-            showToast("You cannot spoof as yourself! Use 'Apply cosmetics to my account' instead.", "failure");
+            showToast({ text: "You cannot spoof as yourself! Use 'Apply cosmetics to my account' instead.", variant: "critical" });
             return;
         }
         if (id.startsWith("manual_")) {
@@ -548,7 +548,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                 doEditSaved(savedItem);
                 settings.store.manualMode = true;
                 setEnabled(true);
-                showToast(`Activated manual mode as ${savedItem.name}`, "success");
+                showToast({ text: `Activated manual mode as ${savedItem.name}`, variant: "success" });
                 forceUpdate();
             }
             return;
@@ -561,10 +561,10 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
             setEnabled(true);
             settings.store.manualMode = false;
             setPreviewUser(next.user);
-            showToast(`Spoofing as ${next.user.globalName || next.user.username}`, "success");
+            showToast({ text: `Spoofing as ${next.user.globalName || next.user.username}`, variant: "success" });
         } catch (e: any) {
             if (!mountedRef.current) return;
-            showToast(e?.message || "Failed to load that user.", "failure");
+            showToast({ text: e?.message || "Failed to load that user.", variant: "critical" });
         }
         if (!mountedRef.current) return;
         setLoading(false);
@@ -574,7 +574,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
         clearTarget();
         setPreviewUser(null);
         setPreviewProfile(null);
-        showToast("Fake identity disabled.", "success");
+        showToast({ text: "Fake identity disabled.", variant: "success" });
     }
 
     // Upload a local image and store it as a data URL in the given manual
@@ -594,9 +594,9 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                     notify();
                     forceUpdate();
                     const label = target === "manualAvatar" ? "Avatar" : "Banner";
-                    showToast(`${label} uploaded.`, "success");
+                    showToast({ text: `${label} uploaded.`, variant: "success" });
                 })
-                .catch(() => showToast("Failed to read the image.", "failure"));
+                .catch(() => showToast({ text: "Failed to read the image.", variant: "critical" }));
         };
         input.click();
     }
@@ -805,7 +805,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                             <div
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(displayUser.id);
-                                                    showToast("Copied ID to clipboard", "success");
+                                                    showToast({ text: "Copied ID to clipboard", variant: "success" });
                                                 }}
                                                 style={{
                                                     display: "block",
@@ -862,7 +862,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                     avatar: displayUser.avatar || null
                                                 });
                                                 setSavedUsers(list); setSaved(list);
-                                                showToast("Saved profile!", "success");
+                                                showToast({ text: "Saved profile!", variant: "success" });
                                             }}>Save</Button>
                                         )}
                                     </div>
@@ -886,7 +886,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                     className="fus-io-btn"
                                     onClick={() => {
                                         if (saved.length === 0) {
-                                            showToast("No presets to export.", "failure");
+                                            showToast({ text: "No presets to export.", variant: "critical" });
                                             return;
                                         }
                                         const blob = new Blob([JSON.stringify(saved, null, 2)], { type: "application/json" });
@@ -894,7 +894,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                         a.href = URL.createObjectURL(blob);
                                         a.download = `fake-user-presets-${Date.now()}.json`;
                                         a.click();
-                                        showToast("Exported presets successfully!", "success");
+                                        showToast({ text: "Exported presets successfully!", variant: "success" });
                                     }}
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -924,12 +924,12 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                     }
                                                     setSavedUsers(list);
                                                     setSaved(list);
-                                                    showToast(`Imported ${parsed.length} presets successfully!`, "success");
+                                                    showToast({ text: `Imported ${parsed.length} presets successfully!`, variant: "success" });
                                                 } else {
-                                                    showToast("Invalid format. Must be a JSON array.", "failure");
+                                                    showToast({ text: "Invalid format. Must be a JSON array.", variant: "critical" });
                                                 }
                                             } catch {
-                                                showToast("Failed to parse JSON file.", "failure");
+                                                showToast({ text: "Failed to parse JSON file.", variant: "critical" });
                                             }
                                         };
                                         input.click();
@@ -1024,7 +1024,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                     <div
                                                         onClick={compact ? () => {
                                                             navigator.clipboard.writeText(s.id);
-                                                            showToast("Copied ID to clipboard", "success");
+                                                            showToast({ text: "Copied ID to clipboard", variant: "success" });
                                                         } : undefined}
                                                         title={compact ? `ID: ${s.id}\n(Click to copy)` : undefined}
                                                         style={{
@@ -1073,7 +1073,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                     <div
                                                         onClick={!compact ? () => {
                                                             navigator.clipboard.writeText(s.id);
-                                                            showToast("Copied ID to clipboard", "success");
+                                                            showToast({ text: "Copied ID to clipboard", variant: "success" });
                                                         } : undefined}
                                                         style={{
                                                             display: "block",
@@ -1454,12 +1454,12 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                 manualOldName: settings.store.manualOldName
                                             });
                                             setSavedUsers(list); setSaved(list);
-                                            showToast("Saved custom profile preset!", "success");
+                                            showToast({ text: "Saved custom profile preset!", variant: "success" });
                                         }}>Save Identity</Button>
                                         {active && settings.store.manualMode ? (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.RED} onClick={() => { settings.store.manualMode = false; setEnabled(false); showToast("Manual spoof disabled.", "success"); forceUpdate(); }}>Deactivate</Button>
+                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.RED} onClick={() => { settings.store.manualMode = false; setEnabled(false); showToast({ text: "Manual spoof disabled.", variant: "success" }); forceUpdate(); }}>Deactivate</Button>
                                         ) : (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.GREEN} onClick={() => { settings.store.manualMode = true; setEnabled(true); showToast("Manual spoof activated.", "success"); forceUpdate(); }}>Activate Spoof</Button>
+                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.GREEN} onClick={() => { settings.store.manualMode = true; setEnabled(true); showToast({ text: "Manual spoof activated.", variant: "success" }); forceUpdate(); }}>Activate Spoof</Button>
                                         )}
                                 </div>
                             </div>
@@ -1581,7 +1581,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                             <span className="fus-mf-nameplate-label">None</span>
                                         </div>
                                         {nameplates.map((n, i) => (
-                                            <div key={n.asset || n.src || i} className={`fus-mf-nameplate-item ${n.asset && settings.store.manualNameplateAsset === n.asset ? "fus-mf-nameplate-item--selected" : ""} ${!n.asset ? "fus-mf-nameplate-item--disabled" : ""}`} title={n.asset ? n.name : `${n.name} (preview only — not spoofable)`} onClick={() => { if (!n.asset) { showToast("That nameplate has no spoofable asset ID.", "failure"); return; } const nv = settings.store.manualNameplateAsset === n.asset ? "" : n.asset; settings.store.manualNameplateAsset = nv; settings.store.manualNameplateSkuId = nv; notify(); forceUpdate(); }}>
+                                            <div key={n.asset || n.src || i} className={`fus-mf-nameplate-item ${n.asset && settings.store.manualNameplateAsset === n.asset ? "fus-mf-nameplate-item--selected" : ""} ${!n.asset ? "fus-mf-nameplate-item--disabled" : ""}`} title={n.asset ? n.name : `${n.name} (preview only — not spoofable)`} onClick={() => { if (!n.asset) { showToast({ text: "That nameplate has no spoofable asset ID.", variant: "critical" }); return; } const nv = settings.store.manualNameplateAsset === n.asset ? "" : n.asset; settings.store.manualNameplateAsset = nv; settings.store.manualNameplateSkuId = nv; notify(); forceUpdate(); }}>
                                             <div className="fus-mf-nameplate-preview"><img src={n.src} alt={n.name} className="fus-mf-nameplate-img" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} /></div>
                                                 <span className="fus-mf-nameplate-label">{n.name}</span>
                                             </div>
@@ -2023,7 +2023,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                     settings.store.fakeConnectionsList = JSON.stringify(currentList);
                                                     setConnName("");
                                                     notify();
-                                                    showToast(`Added fake ${connType} connection!`, "success");
+                                                    showToast({ text: `Added fake ${connType} connection!`, variant: "success" });
                                                 }}
                                             >
                                                 Add Connection

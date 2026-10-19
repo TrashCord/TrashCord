@@ -409,16 +409,17 @@ function MimicMenuItem(userId: string, username: string, channelId: string) {
                             ? `ℹ️ Stopped mimicking **${username}**`
                             : `✅ Started mimicking **${username}** with content filtering`;
 
-                        showToast(
-                            statusMessage,
-                            wasActive ? "message" : "success",
-                            { id: "mimic-troll-status", position: 1 }
-                        );
+                        showToast({
+                            text: statusMessage,
+                            variant: wasActive ? "default" : "success",
+                            position: "bottom"
+                        });
                     }
                 } else {
-                    showToast("❌ Failed to toggle mimic status", "failure", {
-                        id: "mimic-troll-error",
-                        position: 1
+                    showToast({
+                        text: "❌ Failed to toggle mimic status",
+                        variant: "critical",
+                        position: "bottom"
                     });
                 }
             }}

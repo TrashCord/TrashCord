@@ -730,10 +730,10 @@ export function SettingsComponent() {
     const validateShareXConfig = () => {
         try {
             parseShareXConfig(store.sharexConfig || "");
-            showToast("ShareX config is valid", "success");
+            showToast({ text: "ShareX config is valid", variant: "success" });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Invalid ShareX config";
-            showToast(message, "failure");
+            showToast({ text: message, variant: "critical" });
         }
     };
 
@@ -752,10 +752,10 @@ export function SettingsComponent() {
                 const parsed = parseShareXConfig(content);
                 store.sharexConfig = JSON.stringify(parsed, null, 2);
                 update();
-                showToast("Imported ShareX config", "success");
+                showToast({ text: "Imported ShareX config", variant: "success" });
             } catch (error) {
                 const message = error instanceof Error ? error.message : "Failed to import ShareX config";
-                showToast(message, "failure");
+                showToast({ text: message, variant: "critical" });
             }
         };
         reader.readAsText(file);

@@ -96,8 +96,8 @@ function getDeviceOptions(devices: AudioDevice[], defaultLabel: string) {
     return options;
 }
 
-function showToast(message: string, type: "message" | "success" | "failure") {
-    showDiscordToast(message, type);
+function showToast(message: string, type: "default" | "success" | "critical") {
+    showDiscordToast({ text: message, variant: type });
 }
 
 function formatSize(size: number) {
@@ -111,7 +111,7 @@ async function addAudioFile() {
     if (!file) return;
 
     if (!file.type.startsWith("audio/") && !/\.(?:mp3|wav|ogg|flac|m4a|aac|opus|webm)$/i.test(file.name)) {
-        showToast("The selected file does not appear to be audio.", "failure");
+        showToast("The selected file does not appear to be audio.", "critical");
         return;
     }
 
@@ -128,7 +128,7 @@ async function startSound(sound: SoundPadSound) {
         );
     } catch (error) {
         logger.error("Could not route the selected audio file.", error);
-        showToast("Could not play audio through the selected device.", "failure");
+        showToast("Could not play audio through the selected device.", "critical");
     }
 }
 
@@ -139,7 +139,7 @@ async function toggleMicrophone(enabled: boolean) {
     }
 
     if (settings.store.outputDeviceId === "default") {
-        showToast("Select a virtual audio cable as the output first.", "failure");
+        showToast("Select a virtual audio cable as the output first.", "critical");
         return;
     }
 
@@ -152,7 +152,7 @@ async function toggleMicrophone(enabled: boolean) {
         showToast("Physical microphone added to the mix.", "success");
     } catch (error) {
         logger.error("Could not route the physical microphone.", error);
-        showToast("Could not connect the physical microphone.", "failure");
+        showToast("Could not connect the physical microphone.", "critical");
     }
 }
 

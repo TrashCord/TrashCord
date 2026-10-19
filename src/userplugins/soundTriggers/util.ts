@@ -70,9 +70,9 @@ export const getUniqueTriggers = (triggers: SoundTrigger[]) => {
 };
 
 export const failToast = (message: string) => {
-    showToast(message, "failure");
+    showToast({ text: message, variant: "critical" });
 };
 
 export const successToast = (message: string) => {
-    showToast(message, "success");
+    showToast({ text: message, variant: "success" });
 };

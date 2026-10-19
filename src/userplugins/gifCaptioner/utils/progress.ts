@@ -20,7 +20,7 @@ export default class ProgressDisplay {
     }
 
     private show(message: string) {
-        showToast(message, "message", { id: this.toastId });
+        showToast({ text: message });
     }
 
     private formatLoading() {
@@ -31,10 +31,6 @@ export default class ProgressDisplay {
         if (this.timer) return;
         this.dots = 0;
         this.show(this.formatLoading());
-        this.timer = setInterval(() => {
-            this.dots = (this.dots + 1) % 4;
-            this.show(this.formatLoading());
-        }, 500);
     }
 
     private stopDots() {

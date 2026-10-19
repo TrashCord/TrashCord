@@ -100,7 +100,7 @@ function getVoiceUserIds(channelId: string): string[] {
 }
 
 function toast(message: string, type: "success" | "failure" = "success") {
-    showToast(message, type === "success" ? "success" : "failure");
+    showToast({ text: message, variant: type === "success" ? "success" : "critical" });
 }
 
 // ─── Plugin ───────────────────────────────────────────────────────────────────

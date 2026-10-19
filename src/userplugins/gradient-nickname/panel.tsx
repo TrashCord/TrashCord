@@ -1129,11 +1129,12 @@ function CopyBioTagButton({ cfg }: { cfg: any }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
             if (overLimit) {
-                showToast(
-                    `Tag is ${tag.length} chars but Discord's bio limit is ${BIO_LIMIT}. It won't fit — remove some stops or disable glow.`,
-                    "failure",
-                    { duration: 5000, position: 1 }
-                );
+                showToast({
+                    text: `Tag is ${tag.length} chars but Discord's bio limit is ${BIO_LIMIT}. It won't fit — remove some stops or disable glow.`,
+                    variant: "critical",
+                    duration: 5000,
+                    position: "bottom"
+                });
             }
         } catch (e) {
             console.error("[GradientNickname] clipboard write failed", e);

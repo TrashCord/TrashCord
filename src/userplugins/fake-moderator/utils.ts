@@ -59,7 +59,7 @@ export function notifyAction(record: FakeActionRecord) {
     const text = describeAction(record);
 
     if (settings.store.showToast) {
-        showToast(`${meta.emoji} ${text}`, "success", { position: 1 });
+        showToast({ text: `${meta.emoji} ${text}`, variant: "success", position: "bottom" });
     }
 
     if (settings.store.showNotification) {
@@ -77,7 +77,7 @@ export function notifyAction(record: FakeActionRecord) {
 export function notifyVoiceOff(type: "mute" | "deafen", targetName: string) {
     if (!settings.store.showToast) return;
     const meta = ACTIONS[type];
-    showToast(`${meta.emoji} ${targetName} is no longer ${meta.verb}`, "message", { position: 1 });
+    showToast({ text: `${meta.emoji} ${targetName} is no longer ${meta.verb}`, position: "bottom" });
 }
 
 /** Trigger a browser download of the history as a timestamped JSON file. */

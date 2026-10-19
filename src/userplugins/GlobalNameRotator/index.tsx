@@ -124,11 +124,11 @@ async function applyName(name: string | null): Promise<boolean> {
         history = [entry, ...history].slice(0, Math.max(10, settings.store.maxHistory));
         await saveData();
         if (settings.store.toastOnChange) {
-            showToast(name ? `Display name → ${name}` : "Display name cleared", "success");
+            showToast({ text: name ? `Display name → ${name}` : "Display name cleared", variant: "success" });
         }
         return true;
     } catch {
-        showToast("Failed to update display name", "failure");
+        showToast({ text: "Failed to update display name", variant: "critical" });
         return false;
     }
 }
@@ -142,7 +142,7 @@ function tick() {
 function startRotator() {
     if (rotatorTimer !== null) return;
     if (!names.length) {
-        showToast("Add at least one name first", "failure");
+        showToast({ text: "Add at least one name first", variant: "critical" });
         return;
     }
     tick();
@@ -303,7 +303,7 @@ function ControlTab({ forceUpdate }: { forceUpdate: () => void }) {
         if (!isRunning()) return;
         stopRotator();
         startRotator();
-        showToast("Skipped to next name", "message");
+        showToast({ text: "Skipped to next name" });
         refresh();
     };
 
@@ -408,7 +408,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
     const exportData = () => {
         const blob = JSON.stringify({ names: names.map(n => n.value), seqIndex }, null, 2);
         navigator.clipboard.writeText(blob).then(() =>
-            showToast("Copied to clipboard!", "success")
+            showToast({ text: "Copied to clipboard!", variant: "success" })
         );
     };
 
@@ -424,9 +424,9 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
             saveData();
             setImportText("");
             forceUpdate();
-            showToast(`Imported ${fresh.length} new name(s)`, "success");
+            showToast({ text: `Imported ${fresh.length} new name(s)`, variant: "success" });
         } catch {
-            showToast("Invalid JSON", "failure");
+            showToast({ text: "Invalid JSON", variant: "critical" });
         }
     };
 
@@ -438,7 +438,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
         lastVal = null;
         saveData();
         forceUpdate();
-        showToast("Data cleared", "success");
+        showToast({ text: "Data cleared", variant: "success" });
     };
 
     return (

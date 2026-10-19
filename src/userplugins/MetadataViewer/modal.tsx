@@ -58,7 +58,7 @@ const CopyButton = ({ text }: CopyButtonProps) => {
     const handleCopy = () => {
         copyToClipboard(text);
         setCopied(true);
-        showToast("Copied to clipboard!", "success");
+        showToast({ text: "Copied to clipboard!", variant: "success" });
         setTimeout(() => setCopied(false), 2000);
     };
 
@@ -172,7 +172,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
 
     const copyImageToClipboard = async () => {
         try {
-            showToast("Copying image...", "message");
+            showToast({ text: "Copying image..." });
             const response = await fetch(url);
             const blob = await response.blob();
 
@@ -198,17 +198,17 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                     "image/png": pngBlob
                 })
             ]);
-            showToast("Image copied to clipboard!", "success");
+            showToast({ text: "Image copied to clipboard!", variant: "success" });
         } catch (err) {
             logger.error("Failed to copy image to clipboard", err);
-            showToast("Failed to copy image: " + String(err), "failure");
+            showToast({ text: "Failed to copy image: " + String(err), variant: "critical" });
         }
     };
 
     const downloadImage = async () => {
         let blobUrl: string | null = null;
         try {
-            showToast("Downloading image...", "message");
+            showToast({ text: "Downloading image..." });
             const response = await fetch(url);
             const blob = await response.blob();
             blobUrl = URL.createObjectURL(blob);
@@ -219,10 +219,10 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            showToast("Image download started!", "success");
+            showToast({ text: "Image download started!", variant: "success" });
         } catch (err) {
             logger.error("Failed to download image", err);
-            showToast("Failed to download: " + String(err), "failure");
+            showToast({ text: "Failed to download: " + String(err), variant: "critical" });
         } finally {
             if (blobUrl) URL.revokeObjectURL(blobUrl);
         }
@@ -770,7 +770,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                             <div style={{ marginTop: "6px", display: "flex", justifyContent: "flex-end" }}>
                                 <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={() => {
                                     navigator.clipboard.writeText(sdParams.prompt);
-                                    showToast("Copied prompt!", "success");
+                                    showToast({ text: "Copied prompt!", variant: "success" });
                                 }}>Copy Prompt</Button>
                             </div>
                         </div>
@@ -781,7 +781,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                                 <div style={{ marginTop: "6px", display: "flex", justifyContent: "flex-end" }}>
                                     <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={() => {
                                         navigator.clipboard.writeText(sdParams.negativePrompt!);
-                                        showToast("Copied negative prompt!", "success");
+                                        showToast({ text: "Copied negative prompt!", variant: "success" });
                                     }}>Copy Negative Prompt</Button>
                                 </div>
                             </div>
@@ -809,7 +809,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                             {sdParams.seed && (
                                 <div className="vc-mds-sd-badge" style={{ cursor: "pointer" }} onClick={() => {
                                     navigator.clipboard.writeText(sdParams.seed!);
-                                    showToast("Copied seed!", "success");
+                                    showToast({ text: "Copied seed!", variant: "success" });
                                 }} title="Click to copy Seed">
                                     <span className="vc-mds-sd-badge-label">Seed</span>
                                     <span className="vc-mds-sd-badge-value">{sdParams.seed}</span>
@@ -906,7 +906,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
                             <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={() => {
                                 navigator.clipboard.writeText(jsonText);
-                                showToast("Copied raw JSON!", "success");
+                                showToast({ text: "Copied raw JSON!", variant: "success" });
                             }}>Copy Raw JSON</Button>
                         </div>
                         <pre className="vc-mds-raw-pre">{jsonText}</pre>

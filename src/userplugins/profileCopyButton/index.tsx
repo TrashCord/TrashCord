@@ -376,7 +376,7 @@ async function tryAutoJoinGuild(guildId: string): Promise<void> {
     }
 
     if (!inviteCode) {
-        showToast("Server is private — can't auto-join.", "message");
+        showToast({ text: "Server is private — can't auto-join." });
         return;
     }
 
@@ -387,13 +387,13 @@ async function tryAutoJoinGuild(guildId: string): Promise<void> {
         // Set the guild as primary clan (shows the tag on profile)
         try {
             await RestAPI.patch({ url: "/users/@me", body: { primary_guild: guildId } });
-            showToast(`Joined ${guildName} and set clan tag!`, "success");
+            showToast({ text: `Joined ${guildName} and set clan tag!`, variant: "success" });
         } catch {
-            showToast(`Joined ${guildName}! (Could not set clan tag automatically)`, "success");
+            showToast({ text: `Joined ${guildName}! (Could not set clan tag automatically)`, variant: "success" });
         }
     } catch (err) {
         logger.error("Failed to join guild", guildId, err);
-        showToast("Could not join the server (may be private).", "message");
+        showToast({ text: "Could not join the server (may be private)." });
     }
 }
 
@@ -415,7 +415,7 @@ async function copyServerProfile(
 ): Promise<void> {
     const targetUser = UserStore.getUser(targetId);
     if (!targetUser) {
-        showToast("Could not load that user.", "failure");
+        showToast({ text: "Could not load that user.", variant: "critical" });
         return;
     }
 
@@ -487,10 +487,10 @@ async function copyServerProfile(
     await tryAutoJoinGuild(guildId);
 
     if (dispatched === 0) {
-        showToast("Nothing to copy from that server profile.", "message");
+        showToast({ text: "Nothing to copy from that server profile." });
         return;
     }
-    showToast(`Copied server profile from ${targetUser.username}. Click Save to apply.`, "success");
+    showToast({ text: `Copied server profile from ${targetUser.username}. Click Save to apply.`, variant: "success" });
 }
 
 async function copyGameWidgets(targetId: string, rawProfile: RawProfileResponse | null): Promise<boolean> {
@@ -545,7 +545,7 @@ export async function copyProfileFromId(targetId: string, guildId?: string) {
 
     const targetUser = UserStore.getUser(targetId);
     if (!targetUser) {
-        showToast("Could not load that user.", "failure");
+        showToast({ text: "Could not load that user.", variant: "critical" });
         return;
     }
 
@@ -692,22 +692,22 @@ export async function copyProfileFromId(targetId: string, guildId?: string) {
     }
 
     if (dispatched === 0 && !widgetsCopied) {
-        showToast("Nothing to copy from that profile.", "message");
+        showToast({ text: "Nothing to copy from that profile." });
         return;
     }
 
     const widgetSuffix = widgetsCopied ? " Game widgets applied." : "";
     if (dispatched > 0) {
-        showToast(`Copied profile from ${targetUser.username}. Click Save to apply.${widgetSuffix}`, "success");
+        showToast({ text: `Copied profile from ${targetUser.username}. Click Save to apply.${widgetSuffix}`, variant: "success" });
     } else {
-        showToast(`Copied game widgets from ${targetUser.username}.`, "success");
+        showToast({ text: `Copied game widgets from ${targetUser.username}.`, variant: "success" });
     }
 }
 
 async function copyProfileFromInput(input: string) {
     const targetId = resolveTargetUserId(input);
     if (!targetId) {
-        showToast(`No cached user matches "${input}". Try a user ID.`, "failure");
+        showToast({ text: `No cached user matches "${input}". Try a user ID.`, variant: "critical" });
         return;
     }
     await copyProfileFromId(targetId);
@@ -738,11 +738,11 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
                 id="copy-profile"
                 label="Copy Profile"
                 action={async () => {
-                    showToast(`Copying profile from ${user.username}...`, "message");
+                    showToast({ text: `Copying profile from ${user.username}...` });
                     try { await copyProfileFromId(user.id); }
                     catch (err) {
                         logger.error("Context menu copy failed", err);
-                        showToast("Failed to copy profile.", "failure");
+                        showToast({ text: "Failed to copy profile.", variant: "critical" });
                     }
                 }}
             />
@@ -758,11 +758,11 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
                 id="copy-profile-global"
                 label="Copy Global Profile"
                 action={async () => {
-                    showToast(`Copying global profile from ${user.username}...`, "message");
+                    showToast({ text: `Copying global profile from ${user.username}...` });
                     try { await copyProfileFromId(user.id); }
                     catch (err) {
                         logger.error("Context menu global copy failed", err);
-                        showToast("Failed to copy profile.", "failure");
+                        showToast({ text: "Failed to copy profile.", variant: "critical" });
                     }
                 }}
             />
@@ -770,18 +770,18 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
                 id="copy-profile-server"
                 label="Copy Server Profile"
                 action={async () => {
-                    showToast(`Fetching server profile from ${user.username}...`, "message");
+                    showToast({ text: `Fetching server profile from ${user.username}...` });
                     try {
                         const raw = await getRaw();
                         if (!raw || !hasServerProfile(raw)) {
-                            showToast(`${user.username} has no server profile here. Copying global profile instead.`, "message");
+                            showToast({ text: `${user.username} has no server profile here. Copying global profile instead.` });
                             await copyProfileFromId(user.id, guildId);
                             return;
                         }
                         await copyServerProfile(user.id, raw, guildId);
                     } catch (err) {
                         logger.error("Context menu server copy failed", err);
-                        showToast("Failed to copy server profile.", "failure");
+                        showToast({ text: "Failed to copy server profile.", variant: "critical" });
                     }
                 }}
             />
@@ -803,7 +803,7 @@ function PromptModal({ modalProps }: { modalProps: ModalProps; }) {
             modalProps.onClose();
         } catch (err) {
             logger.error("Profile copy failed", err);
-            showToast("Failed to copy profile.", "failure");
+            showToast({ text: "Failed to copy profile.", variant: "critical" });
             setBusy(false);
         }
     }

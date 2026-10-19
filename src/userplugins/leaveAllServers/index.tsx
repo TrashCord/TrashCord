@@ -107,7 +107,7 @@ function LeaveAllServersModal({ rootProps }: { rootProps: any; }) {
 
         setStatus("done");
         setProgress(`${count} server${count > 1 ? "s" : ""} left successfully`);
-        showToast(`${count} servers left successfully!`, "success");
+        showToast({ text: `${count} servers left successfully!`, variant: "success" });
     };
 
     function getGuildIcon(g: GuildEntry) {

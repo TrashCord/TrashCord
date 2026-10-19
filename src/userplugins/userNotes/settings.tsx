@@ -60,17 +60,17 @@ export default definePluginSettings({
                     }
                 }).then(async r => {
                     if (!r.ok) {
-                        showToast("Unable to retrieve regular notes from Discord", "failure");
+                        showToast({ text: "Unable to retrieve regular notes from Discord", variant: "critical" });
                         return;
                     }
                     r.json().then(resularUsersNotes => {
                         transferUserNotes(resularUsersNotes);
-                        showToast("Successfully transferred notes from Discord", "success");
+                        showToast({ text: "Successfully transferred notes from Discord", variant: "success" });
                     }).catch(() => {
-                        showToast("Unable to retrieve regular notes from Discord", "failure");
+                        showToast({ text: "Unable to retrieve regular notes from Discord", variant: "critical" });
                     });
                 }).catch(() => {
-                    showToast("Unable to retrieve regular notes from Discord", "failure");
+                    showToast({ text: "Unable to retrieve regular notes from Discord", variant: "critical" });
                 });
             }}>
                 Transfer existing regular notes from Discord
@@ -90,7 +90,7 @@ export default definePluginSettings({
                     cancelText: "Cancel",
                     onConfirm: () => {
                         clearUserNotes();
-                        showToast("Successfully cleared", "success");
+                        showToast({ text: "Successfully cleared", variant: "success" });
                     },
                 })}
             >

@@ -232,7 +232,7 @@ const settings = definePluginSettings({
 
 function toast(message: string, type: number) {
     if (settings.store.showToasts)
-        showToast(message, type);
+        showToast({ text: message, variant: type });
 }
 
 function cancelRejoin() {

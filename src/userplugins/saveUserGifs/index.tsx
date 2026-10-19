@@ -269,11 +269,11 @@ async function searchMessages(
 
 async function scanUserGifs(userId: string, username: string, guildId: string | null): Promise<void> {
     if (isScanning) {
-        showToast("Already scanning! Use the stop button.", "failure");
+        showToast({ text: "Already scanning! Use the stop button.", variant: "critical" });
         return;
     }
     if (!guildId) {
-        showToast("This plugin only works in servers, not DMs.", "failure");
+        showToast({ text: "This plugin only works in servers, not DMs.", variant: "critical" });
         return;
     }
 
@@ -288,7 +288,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
 
     const channelFilter = mode === "channel" ? (getCurrentChannelId() ?? null) : null;
 
-    showToast(`Scanning GIFs from ${username}...`, "message");
+    showToast({ text: `Scanning GIFs from ${username}...` });
     console.log(`[SaveUserGifs] Starting scan for ${username} (${userId})`);
 
     const useHeartGifs = settings.store.useHeartGifs ?? false;
@@ -333,7 +333,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
 
     // Batch-write HeartGifs after scan (single read+write instead of per-GIF)
     if (heartGifsPending.length > 0) {
-        showToast("Saving HeartGifs...", "message");
+        showToast({ text: "Saving HeartGifs..." });
         await addToHeartGifsBatch(heartGifsPending);
     }
 
@@ -341,7 +341,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
     stopRequested = false;
 
     if (allGifs.length === 0) {
-        showToast(`No GIFs found from ${username}.`, "failure");
+        showToast({ text: `No GIFs found from ${username}.`, variant: "critical" });
         return;
     }
 
@@ -353,7 +353,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
         a.click();
     }
 
-    showToast(`✅ Found ${allGifs.length} GIFs from ${username}`, "success");
+    showToast({ text: `✅ Found ${allGifs.length} GIFs from ${username}`, variant: "success" });
     await sleep(1500);
 
     if (useHeartGifs && (saveMode === "favorites" || saveMode === "both")) {
@@ -368,7 +368,7 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
             }
         }
         console.log(`[SaveUserGifs] Done! Found: ${allGifs.length} | Saved to HeartGifs: ${hgSaved} | Already had: ${hgAlreadyHad}`);
-        showToast(`💾 HeartGifs: Saved ${hgSaved} | Already had: ${hgAlreadyHad}`, "success");
+        showToast({ text: `💾 HeartGifs: Saved ${hgSaved} | Already had: ${hgAlreadyHad}`, variant: "success" });
     } else {
         const alreadyHad = allGifs.filter(g => favUrls.has(g.url)).length;
 
@@ -384,9 +384,9 @@ async function scanUserGifs(userId: string, username: string, guildId: string | 
         }
 
         if (failedToSave.length > 0) {
-            showToast(`⚠️ Saved: ${reallySaved.length} | Failed: ${failedToSave.length} | Already had: ${alreadyHad}`, "failure");
+            showToast({ text: `⚠️ Saved: ${reallySaved.length} | Failed: ${failedToSave.length} | Already had: ${alreadyHad}`, variant: "critical" });
         } else {
-            showToast(`✅ Saved: ${reallySaved.length} | Already had: ${alreadyHad}`, "success");
+            showToast({ text: `✅ Saved: ${reallySaved.length} | Already had: ${alreadyHad}`, variant: "success" });
         }
     }
 }
@@ -411,14 +411,14 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
                 label="⏹ Stop saving GIFs"
                 action={() => {
                     stopRequested = true;
-                    showToast("Stopping...", "message");
+                    showToast({ text: "Stopping..." });
                 }}
             />,
             <Menu.MenuItem
                 key="save-user-gifs-status"
                 id="save-user-gifs-status"
                 label={`📊 ${currentGifsFound} GIFs found so far`}
-                action={() => showToast(`${currentGifsFound} GIFs found so far`, "message")}
+                action={() => showToast({ text: `${currentGifsFound} GIFs found so far` })}
             />
         ] : [])
     );

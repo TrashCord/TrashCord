@@ -316,8 +316,8 @@ function GuildPickerModal({ fixedGuildId, modalProps }: { fixedGuildId?: string;
     function compare() {
         const idA = useManual ? manualIdA.trim() : guildA;
         const idB = useManual ? manualIdB.trim() : guildB;
-        if (!idA || !idB) { showToast("Please select or enter both servers.", "failure"); return; }
-        if (idA === idB) { showToast("Please pick two different servers.", "failure"); return; }
+        if (!idA || !idB) { showToast({ text: "Please select or enter both servers.", variant: "critical" }); return; }
+        if (idA === idB) { showToast({ text: "Please pick two different servers.", variant: "critical" }); return; }
         openModal(p => <MutualMembersModal guildAId={idA} guildBId={idB} modalProps={p} />);
     }
 

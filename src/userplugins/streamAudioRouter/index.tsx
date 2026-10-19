@@ -62,7 +62,7 @@ function useT() {
 }
 
 function notifySuccess(message: string) {
-    showToast(message, "success");
+    showToast({ text: message, variant: "success" });
 }
 
 function errorMessage(err: unknown): string {
@@ -70,7 +70,7 @@ function errorMessage(err: unknown): string {
 }
 
 function notifyError(err: unknown) {
-    showToast(errorMessage(err), "failure");
+    showToast({ text: errorMessage(err), variant: "critical" });
 }
 
 function LinuxPanel() {

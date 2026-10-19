@@ -173,13 +173,13 @@ async function handleDownload(name: string, content: string, type: string, messa
     // Save the manifest file (JSON/CSV/HTML) inside the subfolder
     const res = await Native.saveFile(subfolderPath, name, content);
     if (res.ok) {
-      showToast(`Saved ${name} to ${subfolderPath}`, "success");
+      showToast({ text: `Saved ${name} to ${subfolderPath}`, variant: "success" });
 
       // Handle Media Downloading
       if (shouldDownloadMedia && messages) {
         const attachments = messages.flatMap(m => m.attachments.map(a => ({ ...a, messageId: m.id })));
         if (attachments.length > 0) {
-          showToast(`Downloading ${attachments.length} attachments...`, "message");
+          showToast({ text: `Downloading ${attachments.length} attachments...` });
           const mediaFolder = "attachments";
 
           for (let i = 0; i < attachments.length; i++) {
@@ -194,13 +194,13 @@ async function handleDownload(name: string, content: string, type: string, messa
             } catch (err) {
               logger.error(`Failed to download attachment ${a.filename}:`, err);
             }
-            if ((i + 1) % 10 === 0) showToast(`Downloaded ${i + 1}/${attachments.length} items...`, "message");
+            if ((i + 1) % 10 === 0) showToast({ text: `Downloaded ${i + 1}/${attachments.length} items...` });
           }
-          showToast("Media download complete!", "success");
+          showToast({ text: "Media download complete!", variant: "success" });
         }
       }
     } else {
-      showToast(`Failed to save: ${res.error}`, "failure");
+      showToast({ text: `Failed to save: ${res.error}`, variant: "critical" });
       downloadFile(name, content, type);
     }
   } else {
@@ -349,9 +349,9 @@ export default definePlugin({
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
-            showToast("Starting export...", "message");
+            showToast({ text: "Starting export..." });
             const messages = await fetchAllMessages(channelId, (count) => {
-              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, "message");
+              if (count % 500 === 0) showToast({ text: `Fetched ${count} messages...` });
             });
             const data = {
               metadata: {
@@ -391,9 +391,9 @@ export default definePlugin({
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
-            showToast("Starting export...", "message");
+            showToast({ text: "Starting export..." });
             const messages = await fetchAllMessages(channelId, (count) => {
-              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, "message");
+              if (count % 500 === 0) showToast({ text: `Fetched ${count} messages...` });
             });
             const csv = exportToCSV(messages);
             await handleDownload(`${formatFileName(channel)}.csv`, csv, "text/csv", messages);
@@ -421,9 +421,9 @@ export default definePlugin({
         cancelText: "Cancel",
         onConfirm: async () => {
           try {
-            showToast("Starting export...", "message");
+            showToast({ text: "Starting export..." });
             const messages = await fetchAllMessages(channelId, (count) => {
-              if (count % 500 === 0) showToast(`Fetched ${count} messages...`, "message");
+              if (count % 500 === 0) showToast({ text: `Fetched ${count} messages...` });
             });
             const html = exportToHTML(channel, messages);
             await handleDownload(`${formatFileName(channel)}.html`, html, "text/html", messages);

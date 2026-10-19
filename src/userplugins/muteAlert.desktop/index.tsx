@@ -126,17 +126,17 @@ async function pickAudio(): Promise<string | undefined> {
         }]));
     } catch (e) {
         new Logger("MuteAlert").error("An error occurred while picking the audio file:", e);
-        showToast("An error occurred while picking the audio file, check the console for more information.", "failure");
+        showToast({ text: "An error occurred while picking the audio file, check the console for more information.", variant: "critical" });
         return;
     }
     if (!hex) {
-        showToast("User cancelled selection.", "failure");
+        showToast({ text: "User cancelled selection.", variant: "critical" });
         return;
     }
 
     const mime = checkFileMime(hex);
     if (mime === "unknown") {
-        showToast("The selected file is not a valid audio file.", "failure");
+        showToast({ text: "The selected file is not a valid audio file.", variant: "critical" });
         return;
     }
 

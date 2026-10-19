@@ -52,11 +52,11 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
     function start() {
         const { apiKey, baseUrl, model } = getProviderConfig();
         if (!apiKey) {
-            showToast("FastSpell: set your speech-to-text API key in the plugin settings first (free key at console.groq.com)", "failure");
+            showToast({ text: "FastSpell: set your speech-to-text API key in the plugin settings first (free key at console.groq.com)", variant: "critical" });
             return;
         }
         if (!baseUrl || !model) {
-            showToast("FastSpell: custom provider needs both a base url and a model in the plugin settings", "failure");
+            showToast({ text: "FastSpell: custom provider needs both a base url and a model in the plugin settings", variant: "critical" });
             return;
         }
 
@@ -64,7 +64,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
         try {
             discordVoice = DiscordNative.nativeModules.requireModule("discord_voice");
         } catch {
-            showToast("FastSpell: voice recording is only available on the Discord desktop app", "failure");
+            showToast({ text: "FastSpell: voice recording is only available on the Discord desktop app", variant: "critical" });
             return;
         }
 
@@ -76,7 +76,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
             },
             (success: boolean) => {
                 if (success) setRecording(true);
-                else showToast("FastSpell: failed to start recording (check your microphone)", "failure");
+                else showToast({ text: "FastSpell: failed to start recording (check your microphone)", variant: "critical" });
             }
         );
     }
@@ -86,7 +86,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
         discordVoice.stopLocalAudioRecording(async (filePath: string) => {
             setRecording(false);
             if (!filePath) {
-                showToast("FastSpell: recording failed", "failure");
+                showToast({ text: "FastSpell: recording failed", variant: "critical" });
                 return;
             }
 
@@ -102,11 +102,11 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
                 });
 
                 if (!res.ok) {
-                    showToast("FastSpell: " + (res.error ?? "transcription failed"), "failure");
+                    showToast({ text: "FastSpell: " + (res.error ?? "transcription failed"), variant: "critical" });
                     return;
                 }
                 if (!res.text) {
-                    showToast("FastSpell: didn't catch that — no speech detected", "message");
+                    showToast({ text: "FastSpell: didn't catch that — no speech detected" });
                     return;
                 }
 
@@ -114,11 +114,11 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
                 const targetLanguage = settings.store.sttTranslateTo.trim();
                 if (targetLanguage) {
                     if (!translateModel) {
-                        showToast("FastSpell: set a translation model in the plugin settings to use speech translation with a custom provider", "failure");
+                        showToast({ text: "FastSpell: set a translation model in the plugin settings to use speech translation with a custom provider", variant: "critical" });
                     } else {
                         const translated = await Native.translateText({ apiKey, baseUrl, model: translateModel, text, targetLanguage });
                         if (translated.ok && translated.text) text = translated.text;
-                        else showToast("FastSpell: translation failed, inserting what you said instead — " + (translated.error ?? "unknown error"), "failure");
+                        else showToast({ text: "FastSpell: translation failed, inserting what you said instead — " + (translated.error ?? "unknown error"), variant: "critical" });
                     }
                 }
 

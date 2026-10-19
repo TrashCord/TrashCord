@@ -73,7 +73,7 @@ function isStaff(guildId: string, userId: string) {
 function turnCameraOff(message: string) {
     if (!MediaEngineStore.isVideoEnabled()) return;
     FluxDispatcher.dispatch({ type: "MEDIA_ENGINE_SET_VIDEO_ENABLED", enabled: false });
-    if (settings.store.notify) showToast(message, "message");
+    if (settings.store.notify) showToast({ text: message });
 }
 
 function checkChannel() {

@@ -28,7 +28,7 @@ const settings = definePluginSettings({
 
 function handler(c, msg) {
     if (!settings.store.alias || !settings.store.lSeenUserID) {
-        showToast("User hasn't been last seen", "failure");
+        showToast({ text: "User hasn't been last seen", variant: "critical" });
         return {
             cancel: true
         };
@@ -57,7 +57,7 @@ export default definePlugin({
             name: "profile",
             description: "Open the profile of your friend who keeps changing accounts",
             execute() {
-                if (!settings.store.lSeenUserID) return showToast("User hasn't been last seen", "failure");
+                if (!settings.store.lSeenUserID) return showToast({ text: "User hasn't been last seen", variant: "critical" });
                 openUserProfile(settings.store.lSeenUserID);
             }
         }

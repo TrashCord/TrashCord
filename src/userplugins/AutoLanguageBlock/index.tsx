@@ -257,13 +257,13 @@ const handleMessage = (payload: any) => {
 
             const displayName = message.author.globalName ?? message.author.username;
 
-            showToast(`🚫 Blocked: ${displayName} (detected language: ${bannedLanguage.toUpperCase()})`, "failure");
+            showToast({ text: `🚫 Blocked: ${displayName} (detected language: ${bannedLanguage.toUpperCase()})`, variant: "critical" });
         } catch (err) {
             console.error("[AutoLanguageBlock] Failed to block user:", err);
-            showToast("❌ An error occurred while trying to block the user", "failure");
+            showToast({ text: "❌ An error occurred while trying to block the user", variant: "critical" });
         }
     } else {
-        showToast("❌ RelationshipActions API not available", "failure");
+        showToast({ text: "❌ RelationshipActions API not available", variant: "critical" });
     }
 };
 

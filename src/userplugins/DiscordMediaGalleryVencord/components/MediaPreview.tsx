@@ -70,16 +70,16 @@ export function MediaPreview({
             });
             onClosePreview();
         } catch {
-            showToast("Unable to jump to message", "failure");
+            showToast({ text: "Unable to jump to message", variant: "critical" });
         }
     };
 
     const handleCopyUrl = async () => {
         try {
             await copyToClipboard(item.url);
-            showToast("Media URL copied to clipboard!", "success");
+            showToast({ text: "Media URL copied to clipboard!", variant: "success" });
         } catch {
-            showToast("Failed to copy URL", "failure");
+            showToast({ text: "Failed to copy URL", variant: "critical" });
         }
     };
 

@@ -34,7 +34,7 @@ async function resetNick(guildId: string, forcedNick: string, currentUserId: str
             });
 
             if (settings.store.showToast) {
-                showToast(`AntiNickname: nickname "${forcedNick}" removed`, "success");
+                showToast({ text: `AntiNickname: nickname "${forcedNick}" removed`, variant: "success" });
             }
             return; // success, no need for fallback
         } catch (e1: any) {
@@ -48,12 +48,12 @@ async function resetNick(guildId: string, forcedNick: string, currentUserId: str
         });
 
         if (settings.store.showToast) {
-            showToast(`AntiNickname: nickname "${forcedNick}" removed`, "success");
+            showToast({ text: `AntiNickname: nickname "${forcedNick}" removed`, variant: "success" });
         }
     } catch (err: any) {
         console.warn(`[AntiNickname] Failed to reset nickname on ${guildId}:`, err);
         if (settings.store.showToast) {
-            showToast(`AntiNickname: failed to reset nickname (${err?.status ?? "?"})`, "failure");
+            showToast({ text: `AntiNickname: failed to reset nickname (${err?.status ?? "?"})`, variant: "critical" });
         }
     } finally {
         // Release the lock after 2s to allow a future reset if re-nicknamed

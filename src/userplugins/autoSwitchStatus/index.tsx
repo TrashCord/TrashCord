@@ -111,7 +111,5 @@ function updateStatus(toStatus) {
 function showToastCustom(message: string, status: string) {
     console.log("Showing toast:", message, "with status:", status);
     if (!settings.store.showToast) return;
-    showToast(message, "success", { position: 1, component: <Toast message={message} status={status} size={16} /> });
+    showToast({ text: message, variant: "success", position: "bottom" });
 }
-
-

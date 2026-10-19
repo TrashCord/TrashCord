@@ -203,10 +203,10 @@ const userContextPatch: NavContextMenuPatchCallback = (children, props: { user: 
             action={() => {
                 if (tracked) {
                     removeTracked(userId);
-                    showToast(`Stopped translating ${props.user.username}`, "message");
+                    showToast({ text: `Stopped translating ${props.user.username}` });
                 } else {
                     addTracked(userId);
-                    showToast(`Now auto-translating ${props.user.username} to ${targetName}`, "success");
+                    showToast({ text: `Now auto-translating ${props.user.username} to ${targetName}`, variant: "success" });
                 }
             }}
         />
@@ -228,7 +228,7 @@ const messageContextPatch: NavContextMenuPatchCallback = (children, props: { mes
                 action={() => {
                     const original = originalMessages.get(props.message.id);
                     if (original) {
-                        showToast(`Original: ${original}`, "message");
+                        showToast({ text: `Original: ${original}` });
                     }
                 }}
             />

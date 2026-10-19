@@ -66,9 +66,9 @@ function sfShuffle(len: number): number[] {
     return a;
 }
 
-function toast(msg: string, type: "message" | "success" | "failure" = "success") {
+function toast(msg: string, type: "default" | "success" | "critical" = "success") {
     if (!settings.store.showToast) return;
-    showToast(msg, type);
+    showToast({ text: msg, variant: type });
 }
 
 function getExt(data: string): string {
@@ -423,11 +423,11 @@ function startNitroWatcher() {
         if (!hasNitro() && !gifExcl) {
             setExcluded([...excl, "gif"]);
             if (rotatorTimer) { clearTimeout(rotatorTimer); rotatorTimer = null; schedule(); }
-            showToast("No Nitro detected - GIFs excluded from rotation", "failure");
+            showToast({ text: "No Nitro detected - GIFs excluded from rotation", variant: "critical" });
         } else if (hasNitro() && gifExcl && settings.store.nitroCheck) {
             setExcluded(excl.filter(e => e !== "gif"));
             if (rotatorTimer) { clearTimeout(rotatorTimer); rotatorTimer = null; schedule(); }
-            showToast("Nitro detected - GIFs re-included in rotation", "success");
+            showToast({ text: "Nitro detected - GIFs re-included in rotation", variant: "success" });
         }
     };
     check();

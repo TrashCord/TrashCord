@@ -48,7 +48,7 @@ let lastFire = 0;
 let recorder: ((e: KeyboardEvent) => void) | null = null;
 
 function notify(message: string, type: string) {
-    if (settings.store.toasts) showToast(message, type);
+    if (settings.store.toasts) showToast({ text: message, variant: type });
 }
 
 function fail(message: string) {

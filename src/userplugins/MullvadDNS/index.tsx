@@ -262,7 +262,7 @@ const log = {
 
 function showPluginToast(message: string, type = "message") {
     if (settings.store.showNotifications) {
-        showToast(`[MullvadDNS] ${message}`, type);
+        showToast({ text: `[MullvadDNS] ${message}`, variant: type });
     }
 }
 

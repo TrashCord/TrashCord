@@ -93,7 +93,7 @@ async function applyMute(muted: boolean): Promise<void> {
     const update = getUpdateGuildNotificationSettings();
     if (!update) {
         setRunning(false);
-        showToast("Could not find the internal update function.", "failure");
+        showToast({ text: "Could not find the internal update function.", variant: "critical" });
         return;
     }
 
@@ -105,11 +105,11 @@ async function applyMute(muted: boolean): Promise<void> {
     try {
         await update("@me", { channel_overrides: channelOverrides });
         setRunning(false);
-        showToast(`${muted ? "Muted" : "Unmuted"} ${ids.length} ${targetLabel()}.`, "success");
+        showToast({ text: `${muted ? "Muted" : "Unmuted"} ${ids.length} ${targetLabel()}.`, variant: "success" });
     } catch (e) {
         setRunning(false);
         const errMsg = e instanceof Error ? e.message : String(e);
-        showToast(`Failed to apply (${errMsg}).`, "failure");
+        showToast({ text: `Failed to apply (${errMsg}).`, variant: "critical" });
     }
 }
 

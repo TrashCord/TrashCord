@@ -43,9 +43,11 @@ const settings = definePluginSettings({
 
 function checkvcownerlol(guildId: string, channelId?: string) {
     if (!guildId || !channelId) {
-        showToast("No guild or channel found!", "failure", {
+        showToast({
+            text: "No guild or channel found!",
+            variant: "critical",
             duration: 2000,
-            position: 1
+            position: "bottom"
         });
         return;
     }
@@ -54,18 +56,20 @@ function checkvcownerlol(guildId: string, channelId?: string) {
     const guildSetting = guildDetectionSettings.find(g => g.name === guildId);
 
     if (!guildSetting) {
-        showToast("This guild is not configured for VC owner detection!", "message", {
+        showToast({
+            text: "This guild is not configured for VC owner detection!",
             duration: 2000,
-            position: 1
+            position: "bottom"
         });
         return;
     }
 
     const channel = ChannelStore.getChannel(channelId);
     if (!channel?.permissionOverwrites) {
-        showToast("No permission overwrites found in this channel!", "message", {
+        showToast({
+            text: "No permission overwrites found in this channel!",
             duration: 2000,
-            position: 1
+            position: "bottom"
         });
         return;
     }
@@ -111,9 +115,11 @@ function checkvcownerlol(guildId: string, channelId?: string) {
                         settings.store.amivcowner = true;
                     }
 
-                    showToast(`Current VC Owner: ${ownerName}`, "success", {
+                    showToast({
+                        text: `Current VC Owner: ${ownerName}`,
+                        variant: "success",
                         duration: 2000,
-                        position: 1
+                        position: "bottom"
                     });
                 }
             }
@@ -123,9 +129,10 @@ function checkvcownerlol(guildId: string, channelId?: string) {
     });
 
     if (!ownerFound) {
-        showToast("No VC owner found with the configured permissions!", "message", {
+        showToast({
+            text: "No VC owner found with the configured permissions!",
             duration: 2000,
-            position: 1
+            position: "bottom"
         });
     }
 }

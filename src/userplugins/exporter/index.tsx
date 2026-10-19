@@ -147,7 +147,7 @@ async function exportChannel(channelId: string) {
     currentExportAbort?.abort();
     const controller = new AbortController();
     currentExportAbort = controller;
-    showToast("Exporting...", "message");
+    showToast({ text: "Exporting..." });
     const messages = await fetchAllMessages(channelId, controller.signal);
     if (controller.signal.aborted) return;
     const html = renderHtml(channelId, messages as any);
@@ -156,8 +156,8 @@ async function exportChannel(channelId: string) {
     if ((window as any).IS_DISCORD_DESKTOP) {
         const data = new TextEncoder().encode(html);
         const saved = await (window as any).DiscordNative.fileManager.saveWithDialog(data, filename, "text/html");
-        if (saved) showToast("Export saved.", "success");
-        else showToast("Export canceled.", "failure");
+        if (saved) showToast({ text: "Export saved.", variant: "success" });
+        else showToast({ text: "Export canceled.", variant: "critical" });
     } else {
         const blob = new Blob([html], { type: "text/html" });
         const url = URL.createObjectURL(blob);
@@ -166,7 +166,7 @@ async function exportChannel(channelId: string) {
         a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
-        showToast("Export downloaded.", "success");
+        showToast({ text: "Export downloaded.", variant: "success" });
     }
     if (currentExportAbort === controller) currentExportAbort = null;
 }
@@ -174,7 +174,7 @@ async function exportChannel(channelId: string) {
 function exportCurrentChannel() {
     const channelId = SelectedChannelStore.getChannelId();
     if (!channelId) {
-        showToast("No channel selected.", "failure");
+        showToast({ text: "No channel selected.", variant: "critical" });
         return;
     }
 
