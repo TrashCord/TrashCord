@@ -6,52 +6,47 @@
 
 import definePlugin from "@utils/types";
 import { Toasts } from "@webpack/common";
+import { Patch } from "@webpack/patcher";
 
-let origShow: any = null;
-
-const compat = (a: any, b?: any, c?: any) => {
-    if (typeof a === "string") {
-        return {
-            text: a,
-            variant: b === "success" ? "success" : (b === "failure" || b === "critical") ? "critical" : "default",
-            ...(c || {}),
-        };
-    }
-    if (a && typeof a === "object" && "message" in a) {
-        return {
-            text: a.message,
-            variant: a.type === "success" ? "success" : (a.type === "failure" || a.type === "critical") ? "critical" : "default",
-            ...(a.options || {}),
-        };
-    }
-    return a;
-};
+let unpatch: (() => void) | null = null;
 
 export default definePlugin({
     name: "ToastBackwardCompat",
     description: "Fixes toasts for older plugins",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
+    tags: ["Utility", "Developers"],
     enabledByDefault: true,
     required: true,
     hidden: true,
 
     start() {
         try {
-            if (Toasts && Toasts.show && !origShow) {
-                origShow = Toasts.show;
-                Toasts.show = function (a: any, b?: any, c?: any) {
-                    return origShow.call(this, compat(a, b, c));
-                };
-            }
-        } catch {}
+            unpatch = Patch.instead("ToastBackwardCompat", Toasts, "show", (_self, args, orig) => {
+                const data = args[0];
+
+                if (typeof data === "string") {
+                    args[0] = {
+                        text: data,
+                        variant: args[1] === "success" ? "success" : (args[1] === "failure" || args[1] === "critical") ? "critical" : "default"
+                    };
+                } else if (data && typeof data === "object") {
+                    if (data.message && !data.text) data.text = data.message;
+                    if (data.type && !data.variant) {
+                        data.variant = data.type === "success" ? "success" : (data.type === "failure" || data.type === "critical") ? "critical" : "default";
+                    }
+                }
+
+                return orig(...args);
+            });
+        } catch { }
     },
 
     stop() {
         try {
-            if (Toasts && origShow) {
-                Toasts.show = origShow;
-                origShow = null;
+            if (unpatch) {
+                unpatch();
+                unpatch = null;
             }
-        } catch {}
+        } catch { }
     }
 });
