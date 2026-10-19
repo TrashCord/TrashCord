@@ -1,35 +1,23 @@
-import type { ComponentType } from "react";
+import { Toasts, ToastType, ToastOptions, ToastData } from "./toasts";
 
-export type ToastType = "message" | "success" | "failure" | "custom" | "clip" | "link" | "forward" | "bookmark" | "clock";
-
-export type ToastVariant = "default" | "success" | "critical";
-export type ToastPosition = "top" | "bottom";
-
-export interface ToastOptions {
-    position?: ToastPosition;
-    duration?: number;
-}
-
-export interface ToastData {
-    text: string;
-    variant: ToastVariant;
-    position?: ToastPosition;
-    duration?: number;
+export function showToast(
+    arg1: string | ToastData,
+    arg2?: ToastType,
+    arg3?: ToastOptions
+) {
     
-    icon?: ComponentType;
-    iconColor?: any;
-}
-
-/* export type showToast = (data: ToastData) => void; */
-
-export interface ShowToastFn {
-    (data: ToastData): void;
-    (message: string, type?: ToastType, options?: ToastOptions): void;
-}
-
-export const showToast: ShowToastFn;
-
-export interface Toasts {
-    show: ShowToastFn;
-    pop: (context?: string) => void;
+    if (typeof arg1 === "string") {
+        
+        let variant: "default" | "success" | "critical" = "default";
+        if (arg2 === "success") variant = "success";
+        else if (arg2 === "failure") variant = "critical";
+        
+        return Toasts.show({
+            text: arg1,
+            variant: variant,
+            ...(arg3 || {}),
+        } as ToastData);
+    }
+    
+    return Toasts.show(arg1);
 }
