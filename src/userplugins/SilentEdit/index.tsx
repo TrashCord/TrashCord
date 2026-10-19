@@ -7,12 +7,19 @@
 import { addMessagePopoverButton as addButton, removeMessagePopoverButton as removeButton } from "@api/MessagePopover";
 import { definePluginSettings } from "@api/Settings";
 import { EquicordDevs } from "@utils/constants";
+import { Logger } from "@utils/Logger";
+import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
 import { ChannelStore, Constants, MessageStore, RestAPI, UserStore } from "@webpack/common";
 
 const MessageActions = findByPropsLazy("deleteMessage", "startEditMessage");
+
+const logger = new Logger("SilentEdit");
+const SUPPRESS_NOTIFICATIONS_FLAG = 1 << 12;
+
+let pendingSilentEditId: string | null = null;
 
 const settings = definePluginSettings({
     deleteOriginalMessage: {
@@ -42,21 +49,19 @@ const settings = definePluginSettings({
     }
 });
 
-export const SilentEditIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill={settings.store.accentColor || "#ed4245"}>
+export const SilentEditIcon = ({ className, width = 18, height = 18 }: { className?: string; width?: number | string; height?: number | string; }) => (
+    <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill={settings.store.accentColor || "#ed4245"}>
         <path d="M19.2929 9.8299L19.9409 9.18278C21.353 7.77064 21.353 5.47197 19.9409 4.05892C18.5287 2.64678 16.2292 2.64678 14.817 4.05892L14.1699 4.70694L19.2929 9.8299ZM12.8962 5.97688L5.18469 13.6906L10.3085 18.813L18.0201 11.0992L12.8962 5.97688ZM4.11851 20.9704L8.75906 19.8112L4.18692 15.239L3.02678 19.8796C2.95028 20.1856 3.04028 20.5105 3.26349 20.7337C3.48669 20.9569 3.8116 21.046 4.11851 20.9704Z" />
     </svg>
 );
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 function sendMessage(content: string, nonce: string, channelId: string, suppressNotifications: boolean, messageReference?: any) {
     const body: any = {
         content,
-        flags: suppressNotifications ? 4096 : 0,
+        flags: suppressNotifications ? SUPPRESS_NOTIFICATIONS_FLAG : 0,
         mobile_network_type: "unknown",
         nonce,
-        tts: false,
+        tts: false
     };
 
     if (messageReference) {
@@ -83,57 +88,45 @@ async function silentEditMessage(channelId: string, messageId: string, content: 
     let sentReplacement = false;
 
     try {
-        await sendMessage(
-            content,
-            messageId,
-            channelId,
-            settings.store.suppressNotifications,
-            messageReference
-        );
+        await sendMessage(content, messageId, channelId, settings.store.suppressNotifications, messageReference);
         sentReplacement = true;
 
-        await sleep(settings.store.deleteDelay);
-
         if (settings.store.deleteOriginalMessage) {
+            await sleep(settings.store.deleteDelay);
             await deleteMessage(channelId, messageId);
         }
-
-        return true;
     } catch (error) {
-        console.error("[SilentEdit] Error:", error);
-        return sentReplacement;
+        logger.error("Silent edit failed.", error);
     }
+
+    return sentReplacement;
 }
 
 export function startSilentEdit(message: Message) {
     MessageActions.startEditMessage(message.channel_id, message.id, message.content);
-
-    const originalEditMessage = MessageActions.editMessage;
-
-    MessageActions.editMessage = async function(channelId: string, messageId: string, content: { content: string; }) {
-        MessageActions.editMessage = originalEditMessage;
-
-        if (messageId !== message.id) {
-            return originalEditMessage.apply(this, arguments);
-        }
-
-        await silentEditMessage(channelId, messageId, content.content, message.messageReference);
-    };
+    pendingSilentEditId = message.id;
 }
 
 export default definePlugin({
     name: "SilentEdit",
     description: "\"Silently\" edit a message without showing the edit tag and bypass Vencord's message logger.",
-    authors: [EquicordDevs.Aurick],
+    authors: [EquicordDevs.Aurick, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Chat", "Privacy"],
     enabledByDefault: true,
     dependencies: ["MessagePopoverAPI"],
     settings,
+
     async onBeforeMessageEdit(channelId, messageId, messageObj) {
-        if (!settings.store.interceptAllEdits || messageObj.content.length === 0) return;
+        const isPending = pendingSilentEditId === messageId;
+        if (pendingSilentEditId && !isPending) pendingSilentEditId = null;
+
+        if (!isPending && !settings.store.interceptAllEdits) return;
+        if (!messageObj?.content) return;
 
         const msg = MessageStore.getMessage(channelId, messageId);
         if (!msg || msg.author.id !== UserStore.getCurrentUser().id) return;
+
+        if (isPending) pendingSilentEditId = null;
 
         if (await silentEditMessage(channelId, messageId, messageObj.content, msg.messageReference)) {
             return { cancel: true };
@@ -155,6 +148,7 @@ export default definePlugin({
     },
 
     stop() {
+        pendingSilentEditId = null;
         removeButton("SilentEdit");
     }
 });

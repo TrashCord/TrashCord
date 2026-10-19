@@ -23,10 +23,10 @@ interface SilentDeleteMessage extends Message {
 
 const logger = new Logger("SilentDelete");
 const DEFAULT_REPLACEMENT_TEXT = "** **";
-const DEFAULT_DELETE_DELAY = 200;
+const DEFAULT_ACCENT_COLOR = "#ed4245";
 const DELETE_ORIGINAL_DELAY = 100;
-const DEFAULT_PURGE_INTERVAL = 500;
 const MAX_PURGE_COUNT = 100;
+const MAX_FETCH_PAGES = 10;
 const FETCH_BATCH_SIZE = 100;
 const SUPPRESS_NOTIFICATIONS_FLAG = 1 << 12;
 
@@ -39,7 +39,7 @@ const settings = definePluginSettings({
     deleteDelay: {
         type: OptionType.NUMBER,
         description: "Delay in milliseconds before deleting the replacement message (recommended: 100-500).",
-        default: DEFAULT_DELETE_DELAY
+        default: 200
     },
     suppressNotifications: {
         type: OptionType.BOOLEAN,
@@ -54,37 +54,30 @@ const settings = definePluginSettings({
     purgeInterval: {
         type: OptionType.NUMBER,
         description: "Delay in milliseconds between each message deletion during /silentpurge (recommended: 500-1000 to avoid rate limits).",
-        default: DEFAULT_PURGE_INTERVAL
+        default: 500
     },
     accentColor: {
         type: OptionType.STRING,
         description: "Accent color for the Silent Delete icon (hex code).",
-        default: "#ed4245"
+        default: DEFAULT_ACCENT_COLOR
     }
 });
 
-const getAccentColor = () => settings.store.accentColor || "#ed4245";
-
-const SilentDeleteIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill={getAccentColor()}>
+const SilentDeleteIcon = ({ className, width = 18, height = 18 }: { className?: string; width?: number | string; height?: number | string; }) => (
+    <svg className={className} width={width} height={height} viewBox="0 0 24 24" fill={settings.store.accentColor || DEFAULT_ACCENT_COLOR}>
         <path d="M15 3.999V2H9V3.999H3V5.999H21V3.999H15Z" />
         <path d="M5 6.99902V18.999C5 20.101 5.897 20.999 7 20.999H17C18.103 20.999 19 20.101 19 18.999V6.99902H5ZM11 17H9V11H11V17ZM15 17H13V11H15V17Z" />
     </svg>
 );
 
-async function silentDeleteMessage(channelId: string, messageId: string, deleteOriginal = true): Promise<boolean> {
+async function silentDeleteMessage(channelId: string, messageId: string, allowDeleteOriginal = true): Promise<boolean> {
     try {
-        const {
-            replacementText = DEFAULT_REPLACEMENT_TEXT,
-            deleteDelay = DEFAULT_DELETE_DELAY,
-            suppressNotifications = true,
-            deleteOriginal: shouldDelete = true
-        } = settings.store;
+        const { replacementText, deleteDelay, suppressNotifications, deleteOriginal } = settings.store;
 
         const response = await RestAPI.post({
             url: Constants.Endpoints.MESSAGES(channelId),
             body: {
-                content: replacementText,
+                content: replacementText || DEFAULT_REPLACEMENT_TEXT,
                 flags: suppressNotifications ? SUPPRESS_NOTIFICATIONS_FLAG : 0,
                 mobile_network_type: "unknown",
                 nonce: messageId,
@@ -95,7 +88,7 @@ async function silentDeleteMessage(channelId: string, messageId: string, deleteO
         await sleep(deleteDelay);
         await RestAPI.del({ url: Constants.Endpoints.MESSAGE(channelId, response.body.id) });
 
-        if (deleteOriginal && shouldDelete) {
+        if (allowDeleteOriginal && deleteOriginal) {
             await sleep(DELETE_ORIGINAL_DELAY);
             await RestAPI.del({ url: Constants.Endpoints.MESSAGE(channelId, messageId) });
         }
@@ -104,6 +97,51 @@ async function silentDeleteMessage(channelId: string, messageId: string, deleteO
     } catch (error) {
         logger.error("Failed to silently delete message.", error);
         return false;
+    }
+}
+
+async function purgeMessages(channelId: string, count: number) {
+    try {
+        const currentUserId = UserStore.getCurrentUser().id;
+        const userMessages: SilentDeleteMessage[] = [];
+        let lastMessageId: string | undefined;
+
+        for (let page = 0; page < MAX_FETCH_PAGES && userMessages.length < count; page++) {
+            const response = await RestAPI.get({
+                url: Constants.Endpoints.MESSAGES(channelId),
+                query: { limit: FETCH_BATCH_SIZE, ...(lastMessageId && { before: lastMessageId }) }
+            });
+
+            const messages = Array.isArray(response.body) ? response.body as SilentDeleteMessage[] : [];
+            if (!messages.length) break;
+
+            for (const msg of messages) {
+                if (msg.author.id !== currentUserId) continue;
+                userMessages.push(msg);
+                if (userMessages.length >= count) break;
+            }
+
+            lastMessageId = messages[messages.length - 1].id;
+            if (messages.length < FETCH_BATCH_SIZE) break;
+            await sleep(DELETE_ORIGINAL_DELAY);
+        }
+
+        if (!userMessages.length) {
+            sendBotMessage(channelId, { content: "No messages found to delete." });
+            return;
+        }
+
+        const purgeInterval = settings.store.purgeInterval;
+        let successCount = 0;
+
+        for (let i = 0; i < userMessages.length; i++) {
+            if (await silentDeleteMessage(channelId, userMessages[i].id)) successCount++;
+            if (i < userMessages.length - 1) await sleep(purgeInterval);
+        }
+
+        sendBotMessage(channelId, { content: `Successfully silently deleted ${successCount} message(s).` });
+    } catch (error) {
+        logger.error("Failed during silent purge.", error);
     }
 }
 
@@ -122,7 +160,7 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
                 label="Silent Delete"
                 color="danger"
                 action={() => silentDeleteMessage(message.channel_id, message.id)}
-                icon={SilentDeleteIcon}
+                leadingAccessory={{ type: "icon", icon: SilentDeleteIcon }}
             />,
             <Menu.MenuItem
                 id="silent-edit"
@@ -130,7 +168,7 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
                 label="Silent Edit"
                 color="danger"
                 action={() => startSilentEdit(message)}
-                icon={SilentEditIcon}
+                leadingAccessory={{ type: "icon", icon: SilentEditIcon }}
             />
         );
         return;
@@ -144,7 +182,7 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
             label="Silent Delete History"
             color="danger"
             action={() => silentDeleteMessage(message.channel_id, message.id, false)}
-            icon={SilentDeleteIcon}
+            leadingAccessory={{ type: "icon", icon: SilentDeleteIcon }}
         />
     );
 };
@@ -155,7 +193,8 @@ export default definePlugin({
     authors: [
         EquicordDevs.Aurick,
         EquicordDevs.appleflyer,
-        EquicordDevs.irritably
+        { name: "irritably", id: 928787166916640838n },
+        { name: "zfrancesck1", id: 456195985404592149n }
     ],
     tags: ["Chat", "Privacy"],
     enabledByDefault: true,
@@ -178,60 +217,17 @@ export default definePlugin({
                 required: true
             }],
             execute: (opts, ctx) => {
-                const count = Math.min(Number(opts.find(o => o.name === "count")?.value), MAX_PURGE_COUNT);
+                const count = Math.min(Math.floor(Number(opts.find(o => o.name === "count")?.value)), MAX_PURGE_COUNT);
                 if (!count || count < 1) return;
 
-                const channelId = ctx.channel.id;
-                const currentUserId = UserStore.getCurrentUser().id;
-
-                (async () => {
-                    try {
-                        const userMessages: SilentDeleteMessage[] = [];
-                        let lastMessageId: string | undefined;
-
-                        while (userMessages.length < count) {
-                            const response = await RestAPI.get({
-                                url: Constants.Endpoints.MESSAGES(channelId),
-                                query: { limit: FETCH_BATCH_SIZE, ...(lastMessageId && { before: lastMessageId }) }
-                            });
-
-                            const messages = Array.isArray(response.body) ? response.body as SilentDeleteMessage[] : [];
-                            if (!messages.length) break;
-
-                            for (const msg of messages) {
-                                if (msg.author.id === currentUserId) {
-                                    userMessages.push(msg);
-                                    if (userMessages.length >= count) break;
-                                }
-                            }
-
-                            lastMessageId = messages[messages.length - 1].id;
-                            if (messages.length < FETCH_BATCH_SIZE) break;
-                            await sleep(DELETE_ORIGINAL_DELAY);
-                        }
-
-                        if (!userMessages.length) return;
-
-                        const purgeInterval = settings.store.purgeInterval ?? DEFAULT_PURGE_INTERVAL;
-                        let successCount = 0;
-
-                        for (let i = 0; i < userMessages.length; i++) {
-                            if (await silentDeleteMessage(channelId, userMessages[i].id)) successCount++;
-                            if (i < userMessages.length - 1) await sleep(purgeInterval);
-                        }
-
-                        sendBotMessage(channelId, { content: `Successfully silently deleted ${successCount} message(s).` });
-                    } catch (error) {
-                        logger.error("Failed during silent purge.", error);
-                    }
-                })();
+                void purgeMessages(ctx.channel.id, count);
             }
         }
     ],
 
     start() {
         addButton("SilentDelete", msg => {
-            if (msg.author.id !== UserStore.getCurrentUser().id || msg.deleted) return null;
+            if (msg.author.id !== UserStore.getCurrentUser().id || (msg as SilentDeleteMessage).deleted) return null;
 
             return {
                 label: "Silent Delete",

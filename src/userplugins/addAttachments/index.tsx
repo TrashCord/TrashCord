@@ -18,7 +18,9 @@
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { updateMessage } from "@api/MessageUpdater";
+import { DeleteIcon } from "@components/Icons";
 import { Devs } from "@utils/constants";
+import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
 import type { Message } from "@vencord/discord-types";
 import { MessageFlags } from "@vencord/discord-types/enums";
@@ -29,7 +31,9 @@ const uniqueIdProp = findLazy(m => typeof m.uniqueId === "function");
 const { getUserMaxFileSize } = findByPropsLazy("getUserMaxFileSize");
 const MessageActions = findByPropsLazy("patchMessageAttachments");
 
+const logger = new Logger("AddAttachments");
 const MODIFIABLE_TYPES = new Set([0, 19]);
+const MAX_ATTACHMENTS = 10;
 
 const CirclePlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -53,11 +57,9 @@ const openFilePicker = (onPicked: (files: FileList) => void) => {
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
-    input.accept = "*/*";
 
-    input.onchange = (e: Event) => {
-        const target = e.target as HTMLInputElement;
-        if (target.files?.length) onPicked(target.files);
+    input.onchange = () => {
+        if (input.files?.length) onPicked(input.files);
     };
 
     input.click();
@@ -65,11 +67,8 @@ const openFilePicker = (onPicked: (files: FileList) => void) => {
 
 const waitForRawAttachments = (channelId: string, messageId: string, timeoutMs = 8000): Promise<any[] | null> =>
     new Promise(resolve => {
-        let settled = false;
-
         const finish = (value: any[] | null) => {
-            if (settled) return;
-            settled = true;
+            clearTimeout(timer);
             FluxDispatcher.unsubscribe("MESSAGE_UPDATE", listener);
             resolve(value);
         };
@@ -83,80 +82,86 @@ const waitForRawAttachments = (channelId: string, messageId: string, timeoutMs =
             finish(atts);
         };
 
+        const timer = setTimeout(() => finish(null), timeoutMs);
         FluxDispatcher.subscribe("MESSAGE_UPDATE", listener);
-        setTimeout(() => finish(null), timeoutMs);
     });
 
-const addAttachments = async (channelId: string, messageId: string, files: FileList, attachments: any[]) => {
-    const maxFileSize = getUserMaxFileSize(UserStore.getCurrentUser());
-    const uploadableFiles = Array.from(files).filter(file => file.size <= maxFileSize);
-    const oversizedCount = files.length - uploadableFiles.length;
-
-    if (oversizedCount) {
-        showToast(`${oversizedCount} file(s) exceed your upload limit and were skipped`, "failure");
-    }
-
-    if (!uploadableFiles.length) return;
-
-    showToast("Uploading, this can take a while...", "clock");
-
-    const fileArray = uploadableFiles.map(file => ({
-        filename: file.name,
-        file_size: file.size,
-        id: uniqueIdProp.uniqueId(),
-        is_clip: false
-    }));
-
-    const attachmentsReq = (await RestAPI.post({
-        url: Constants.Endpoints.MESSAGE_CREATE_ATTACHMENT_UPLOAD(channelId),
-        body: { files: fileArray }
-    })).body.attachments as { id: string, upload_url: string, upload_filename: string; }[];
-
-    const uploadPromises = attachmentsReq.map((uploadedFile, index) =>
-        fetch(uploadedFile.upload_url, {
-            method: "PUT",
-            body: uploadableFiles[index]
-        }).then(() => ({
-            id: uploadedFile.id,
-            uploaded_filename: uploadedFile.upload_filename,
-            filename: uploadableFiles[index].name
-        }))
-    );
-
-    const newAttachments = await Promise.all(uploadPromises);
-
+const syncAttachments = async (channelId: string, messageId: string, attachments: any[]) => {
     const rawAttachmentsPromise = waitForRawAttachments(channelId, messageId);
 
-    await MessageActions.patchMessageAttachments(channelId, messageId, [
-        ...attachments.map(a => ({ id: a.id })),
-        ...newAttachments
-    ]);
+    await MessageActions.patchMessageAttachments(channelId, messageId, attachments);
 
     const rawAttachments = await rawAttachmentsPromise;
-    if (rawAttachments) {
-        const cached = MessageStore.getMessage(channelId, messageId);
-        if (cached && cached.attachments.length !== rawAttachments.length) {
-            updateMessage(channelId, messageId, { attachments: rawAttachments });
-        }
-    }
+    if (!rawAttachments) return;
 
-    showToast("Attachments added successfully!", "success");
+    const cached = MessageStore.getMessage(channelId, messageId);
+    if (cached && cached.attachments.length !== rawAttachments.length) {
+        updateMessage(channelId, messageId, { attachments: rawAttachments });
+    }
+};
+
+const addAttachments = async (channelId: string, messageId: string, files: FileList, attachments: any[]) => {
+    try {
+        const maxFileSize = getUserMaxFileSize(UserStore.getCurrentUser());
+        const sizedFiles = Array.from(files).filter(file => file.size <= maxFileSize);
+        const oversizedCount = files.length - sizedFiles.length;
+
+        if (oversizedCount) {
+            showToast(`${oversizedCount} file(s) exceed your upload limit and were skipped`, "failure");
+        }
+
+        const uploadableFiles = sizedFiles.slice(0, MAX_ATTACHMENTS - attachments.length);
+        if (!uploadableFiles.length) return;
+
+        showToast("Uploading, this can take a while...", "clock");
+
+        const fileArray = uploadableFiles.map(file => ({
+            filename: file.name,
+            file_size: file.size,
+            id: uniqueIdProp.uniqueId(),
+            is_clip: false
+        }));
+
+        const attachmentsReq = (await RestAPI.post({
+            url: Constants.Endpoints.MESSAGE_CREATE_ATTACHMENT_UPLOAD(channelId),
+            body: { files: fileArray }
+        })).body.attachments as { id: string, upload_url: string, upload_filename: string; }[];
+
+        const newAttachments = await Promise.all(attachmentsReq.map(async (uploadedFile, index) => {
+            const res = await fetch(uploadedFile.upload_url, {
+                method: "PUT",
+                body: uploadableFiles[index]
+            });
+
+            if (!res.ok) throw new Error(`Upload failed with status ${res.status}`);
+
+            return {
+                id: uploadedFile.id,
+                uploaded_filename: uploadedFile.upload_filename,
+                filename: uploadableFiles[index].name
+            };
+        }));
+
+        await syncAttachments(channelId, messageId, [
+            ...attachments.map(a => ({ id: a.id })),
+            ...newAttachments
+        ]);
+
+        showToast("Attachments added successfully!", "success");
+    } catch (error) {
+        logger.error("Failed to add attachments.", error);
+        showToast("Failed to add attachments", "failure");
+    }
 };
 
 const removeLastAttachment = async (channelId: string, messageId: string, attachments: any[]) => {
-    const rawAttachmentsPromise = waitForRawAttachments(channelId, messageId);
-
-    await MessageActions.patchMessageAttachments(channelId, messageId, attachments.slice(0, -1).map(a => ({ id: a.id })));
-
-    const rawAttachments = await rawAttachmentsPromise;
-    if (rawAttachments) {
-        const cached = MessageStore.getMessage(channelId, messageId);
-        if (cached && cached.attachments.length !== rawAttachments.length) {
-            updateMessage(channelId, messageId, { attachments: rawAttachments });
-        }
+    try {
+        await syncAttachments(channelId, messageId, attachments.slice(0, -1).map(a => ({ id: a.id })));
+        showToast("Attachment removed!", "success");
+    } catch (error) {
+        logger.error("Failed to remove attachment.", error);
+        showToast("Failed to remove attachment", "failure");
     }
-
-    showToast("Attachment removed!", "success");
 };
 
 const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { message }: { message?: Message; }) => {
@@ -164,13 +169,13 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
 
     const group = findGroupChildrenByChildId("pin", children) ?? children;
 
-    if (message.attachments.length < 10) {
+    if (message.attachments.length < MAX_ATTACHMENTS) {
         group.push(
             <Menu.MenuItem
                 id="add-attachments"
                 key="add-attachments"
                 label="Add Attachments"
-                icon={CirclePlusIcon}
+                leadingAccessory={{ type: "icon", icon: CirclePlusIcon }}
                 action={() => openFilePicker(files => addAttachments(message.channel_id, message.id, files, message.attachments))}
             />
         );
@@ -183,6 +188,7 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
                 key="remove-last-attachment"
                 label="Remove Last Attachment"
                 color="danger"
+                leadingAccessory={{ type: "icon", icon: DeleteIcon }}
                 action={() => removeLastAttachment(message.channel_id, message.id, message.attachments)}
             />
         );
@@ -190,7 +196,7 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
 };
 
 function buildPopoverDescriptor(msg: Message) {
-    if (msg.attachments.length === 10 || !canModify(msg)) return null;
+    if (msg.attachments.length >= MAX_ATTACHMENTS || !canModify(msg)) return null;
 
     return {
         icon: CirclePlusIcon,
