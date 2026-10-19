@@ -5,17 +5,23 @@
  */
 
 import definePlugin from "@utils/types";
-import { findByProps } from "@webpack";
+import { Toasts } from "@webpack/common";
 
-let originalShowToast: any = null;
-let originalToastsShow: any = null;
+let origShow: any = null;
 
 const compat = (a: any, b?: any, c?: any) => {
     if (typeof a === "string") {
         return {
             text: a,
             variant: b === "success" ? "success" : (b === "failure" || b === "critical") ? "critical" : "default",
-            ...c,
+            ...(c || {}),
+        };
+    }
+    if (a && typeof a === "object" && "message" in a) {
+        return {
+            text: a.message,
+            variant: a.type === "success" ? "success" : (a.type === "failure" || a.type === "critical") ? "critical" : "default",
+            ...(a.options || {}),
         };
     }
     return a;
@@ -23,29 +29,18 @@ const compat = (a: any, b?: any, c?: any) => {
 
 export default definePlugin({
     name: "ToastBackwardCompat",
-    description: "Backward compatibility for showToast",
+    description: "Fixes toasts for older plugins",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
-    tags: ["Utility", "Developers"],
     enabledByDefault: true,
     required: true,
     hidden: true,
 
     start() {
         try {
-            const m = findByProps("showToast", "Toasts");
-            if (!m) return;
-
-            if (m.Toasts && !originalToastsShow) {
-                originalToastsShow = m.Toasts.show;
-                m.Toasts.show = function (a: any, b?: any, c?: any) {
-                    return originalToastsShow.call(this, compat(a, b, c));
-                };
-            }
-
-            if (m.showToast && !originalShowToast) {
-                originalShowToast = m.showToast;
-                m.showToast = function (a: any, b?: any, c?: any) {
-                    return originalShowToast.call(this, compat(a, b, c));
+            if (Toasts && Toasts.show && !origShow) {
+                origShow = Toasts.show;
+                Toasts.show = function (a: any, b?: any, c?: any) {
+                    return origShow.call(this, compat(a, b, c));
                 };
             }
         } catch {}
@@ -53,17 +48,9 @@ export default definePlugin({
 
     stop() {
         try {
-            const m = findByProps("showToast", "Toasts");
-            if (!m) return;
-
-            if (originalToastsShow) {
-                m.Toasts.show = originalToastsShow;
-                originalToastsShow = null;
-            }
-
-            if (originalShowToast) {
-                m.showToast = originalShowToast;
-                originalShowToast = null;
+            if (Toasts && origShow) {
+                Toasts.show = origShow;
+                origShow = null;
             }
         } catch {}
     }
