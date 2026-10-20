@@ -11,7 +11,7 @@ import { settings } from "./settings";
 const STORE_KEY_CUSTOM_WHITELIST = "vAnalyzer_customWhitelist";
 const STORE_KEY_CUSTOM_BLOCKLIST = "vAnalyzer_customBlocklist";
 const STORE_KEY_FMHY_CACHE = "vAnalyzer_fmhyBlocklist";
-const FMHY_FILTERLIST_URL = "https://raw.githubusercontent.com/fmhy/FMHYFilterlist/main/filterlist.txt";
+const FMHY_FILTERLIST_URL = "https://cdn.jsdelivr.net/gh/fmhy/FMHYFilterlist@main/filterlist.txt";
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_FILTERLIST_BYTES = 2 * 1024 * 1024;
 
