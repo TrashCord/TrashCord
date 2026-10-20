@@ -344,18 +344,18 @@ export function resolveBadge(badge: string, custom: string): string | null {
     }
     if (badge && badge !== "") {
         const presets: Record<string, string> = {
-            sword: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sword.svg",
-            leaf: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/leaf.svg",
-            flame: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/flame.svg",
-            heart: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/heart.svg",
-            compass: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/compass.svg",
-            trophy: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/trophy.svg",
-            shield: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield.svg",
-            crown: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/crown.svg",
-            star: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/star.svg",
-            moon: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/moon.svg",
-            zap: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/zap.svg",
-            skull: "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/skull.svg"
+            sword: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/sword.svg",
+            leaf: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/leaf.svg",
+            flame: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/flame.svg",
+            heart: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/heart.svg",
+            compass: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/compass.svg",
+            trophy: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/trophy.svg",
+            shield: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/shield.svg",
+            crown: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/crown.svg",
+            star: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/star.svg",
+            moon: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/moon.svg",
+            zap: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/zap.svg",
+            skull: "https://cdn.jsdelivr.net/gh/lucide-icons/lucide@main/icons/skull.svg"
         };
         return presets[badge] || null;
     }

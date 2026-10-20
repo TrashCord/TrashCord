@@ -235,9 +235,9 @@ const RPC_PRESETS: Record<string, {
         activityType: 0,
         activityState: "Exploring Caves",
         activityDetails: "Singleplayer",
-        activityLargeImage: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/png/minecraft.png",
+        activityLargeImage: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/png/minecraft.png",
         activityLargeText: "Minecraft",
-        activitySmallImage: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/png/minecraft.png",
+        activitySmallImage: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/png/minecraft.png",
         activitySmallText: "Survival Mode"
     },
     vscode: {
@@ -245,9 +245,9 @@ const RPC_PRESETS: Record<string, {
         activityType: 0,
         activityState: "Editing index.tsx",
         activityDetails: "Workspace: testcord-plugins",
-        activityLargeImage: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/png/vscode.png",
+        activityLargeImage: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/png/vscode.png",
         activityLargeText: "Visual Studio Code",
-        activitySmallImage: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/png/vscode.png",
+        activitySmallImage: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/png/vscode.png",
         activitySmallText: "Line 42:15"
     },
     spotify: {
@@ -255,7 +255,7 @@ const RPC_PRESETS: Record<string, {
         activityType: 2,
         activityState: "Rick Astley",
         activityDetails: "Never Gonna Give You Up",
-        activityLargeImage: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/png/spotify.png",
+        activityLargeImage: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/png/spotify.png",
         activityLargeText: "Rick Astley - Never Gonna Give You Up",
     },
     youtube: {
@@ -263,7 +263,7 @@ const RPC_PRESETS: Record<string, {
         activityType: 3,
         activityState: "Watching tech videos",
         activityDetails: "0:42 / 10:00",
-        activityLargeImage: "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/png/youtube.png",
+        activityLargeImage: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main/png/youtube.png",
         activityLargeText: "YouTube",
     }
 };

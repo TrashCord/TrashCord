@@ -27,7 +27,7 @@ const SelectedChannelStore = findStoreLazy("SelectedChannelStore");
 const startStream = findByCodeLazy('type:"STREAM_START"');
 const getDesktopSources = findByCodeLazy("desktop sources");
 
-const WAIT_SOUND_URL = "https://raw.githubusercontent.com/Equicord/Equibored/main/sounds/waitForSlot/notification.mp3";
+const WAIT_SOUND_URL = "https://cdn.jsdelivr.net/gh/Equicord/Equibored@main/sounds/waitForSlot/notification.mp3";
 
 const OP_OPTIONS = [
     { label: "Off",       value: "off", default: true  },

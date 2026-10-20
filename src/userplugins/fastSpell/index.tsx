@@ -222,7 +222,7 @@ async function loadDictionary() {
 
         if (!text) {
             if (IS_WEB) {
-                const res = await fetch("https://raw.githubusercontent.com/wolfgarbe/SymSpell/master/SymSpell/frequency_dictionary_en_82_765.txt");
+                const res = await fetch("https://cdn.jsdelivr.net/gh/wolfgarbe/SymSpell@master/SymSpell/frequency_dictionary_en_82_765.txt");
                 if (res.ok) text = await res.text();
             } else {
                 const Native = VencordNative.pluginHelpers.FastSpell as PluginNative<typeof import("./native")>;

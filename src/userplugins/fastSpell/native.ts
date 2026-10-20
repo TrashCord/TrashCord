@@ -10,7 +10,6 @@ import { readFile, rm } from "fs/promises";
 import { basename, normalize } from "path";
 
 const DICT_URLS = [
-    "https://raw.githubusercontent.com/wolfgarbe/SymSpell/master/SymSpell/frequency_dictionary_en_82_765.txt",
     "https://cdn.jsdelivr.net/gh/wolfgarbe/SymSpell@master/SymSpell/frequency_dictionary_en_82_765.txt"
 ];
 
