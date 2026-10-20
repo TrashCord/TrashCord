@@ -225,14 +225,14 @@ const regionDisplayNames = new Intl.DisplayNames(["en"], { type: "region" });
 const DISCORD_ID_QUESTS_API_URL = new URL("https://api.discordquest.com/api/quests");
 const DISCORDQUEST_REGIONS_URL = new URL("https://api.discordquest.com/api/regions");
 const QUEST_RESTRICTIONS_URL = new URL("https://gist.githubusercontent.com/xGustavvo/3d08b7369eb34b50834815fd43176cae/raw");
-const QUEST_LIST_URL = new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/quests.json");
+const QUEST_LIST_URL = new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/quests.json");
 const USER_QUEST_LIST_URLS: Record<string, URL> = {
-    BR: new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/user-quests-br.json"),
-    CA: new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/user-quests-ca.json"),
-    DE: new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/user-quests-de.json"),
-    FR: new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/user-quests-fr.json"),
-    UK: new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/user-quests-uk.json"),
-    US: new URL("https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/user-quests-us.json"),
+    BR: new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/user-quests-br.json"),
+    CA: new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/user-quests-ca.json"),
+    DE: new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/user-quests-de.json"),
+    FR: new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/user-quests-fr.json"),
+    UK: new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/user-quests-uk.json"),
+    US: new URL("https://cdn.jsdelivr.net/gh/xGustavvo/discord-api-tracker@main/user-quests-us.json"),
 };
 const PROXY_DISCOVERY_REGIONS = Object.keys(USER_QUEST_LIST_URLS).sort();
 const REGION_CODES_BY_NAME = new Map(

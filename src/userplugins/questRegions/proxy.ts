@@ -240,7 +240,7 @@ export async function fetchProxyRadarForCountry(country: string): Promise<ProxyE
  * https://github.com/ClearProxy/checked-proxy-list
  */
 export async function fetchClearProxyForCountry(country: string): Promise<ProxyEntry[]> {
-    const url = `https://raw.githubusercontent.com/ClearProxy/checked-proxy-list/main/http/raw/country/${country}.txt`;
+    const url = `https://cdn.jsdelivr.net/gh/ClearProxy/checked-proxy-list@main/http/raw/country/${country}.txt`;
     console.debug(`[QuestRegions/Proxy] ClearProxy → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
@@ -258,7 +258,7 @@ export async function fetchClearProxyForCountry(country: string): Promise<ProxyE
  * https://github.com/iplocate/free-proxy-list
  */
 export async function fetchIPLocateForCountry(country: string): Promise<ProxyEntry[]> {
-    const url = `https://raw.githubusercontent.com/iplocate/free-proxy-list/main/countries/${country}/proxies.txt`;
+    const url = `https://cdn.jsdelivr.net/gh/iplocate/free-proxy-list@main/countries/${country}/proxies.txt`;
     console.debug(`[QuestRegions/Proxy] IPLocate → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
@@ -302,7 +302,7 @@ async function fetchMonosansAllCached(): Promise<ProxyEntry[]> {
     const now = Date.now();
     if (monosansCache && now - monosansCache.at < MONOSANS_CACHE_TTL_MS) return monosansCache.proxies;
 
-    const url = "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies.json";
+    const url = "https://cdn.jsdelivr.net/gh/monosans/proxy-list@main/proxies.json";
     console.debug(`[QuestRegions/Proxy] monosans ALL → ${url}`);
     try {
         const json = await fetchJsonFromUrl<Array<{
@@ -347,7 +347,7 @@ async function fetchJetKaiAllCached(): Promise<ProxyEntry[]> {
     const now = Date.now();
     if (jetKaiCache && now - jetKaiCache.at < MONOSANS_CACHE_TTL_MS) return jetKaiCache.proxies;
 
-    const url = "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/json/proxies.json";
+    const url = "https://cdn.jsdelivr.net/gh/jetkai/proxy-list@main/online-proxies/json/proxies.json";
     console.debug(`[QuestRegions/Proxy] JetKai ALL → ${url}`);
     try {
         const json = await fetchJsonFromUrl<{ http?: string[]; https?: string[]; }>(url);
@@ -413,7 +413,7 @@ async function fetchWorldpoolAllCached(): Promise<ProxyEntry[]> {
     const now = Date.now();
     if (worldpoolCache && now - worldpoolCache.at < MONOSANS_CACHE_TTL_MS) return worldpoolCache.proxies;
 
-    const url = "https://raw.githubusercontent.com/CelestialBrain/worldpool/main/data/proxies.json";
+    const url = "https://cdn.jsdelivr.net/gh/CelestialBrain/worldpool@main/data/proxies.json";
     console.debug(`[QuestRegions/Proxy] Worldpool ALL → ${url}`);
     try {
         const json = await fetchJsonFromUrl<Array<{
@@ -459,7 +459,7 @@ async function fetchProxyGeneratorAllCached(): Promise<ProxyEntry[]> {
     const now = Date.now();
     if (proxyGeneratorCache && now - proxyGeneratorCache.at < MONOSANS_CACHE_TTL_MS) return proxyGeneratorCache.proxies;
 
-    const url = "https://raw.githubusercontent.com/proxygenerator1/ProxyGenerator/main/ALL/all.json";
+    const url = "https://cdn.jsdelivr.net/gh/proxygenerator1/ProxyGenerator@main/ALL/all.json";
     console.debug(`[QuestRegions/Proxy] ProxyGenerator ALL → ${url}`);
     try {
         const json = await fetchJsonFromUrl<Array<{
@@ -557,7 +557,7 @@ export async function fetchProxyRadarAll(): Promise<ProxyEntry[]> {
 }
 
 export async function fetchClearProxyAll(): Promise<ProxyEntry[]> {
-    const url = "https://raw.githubusercontent.com/ClearProxy/checked-proxy-list/main/http/raw/all.txt";
+    const url = "https://cdn.jsdelivr.net/gh/ClearProxy/checked-proxy-list@main/http/raw/all.txt";
     console.debug(`[QuestRegions/Proxy] ClearProxy ALL → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
@@ -571,7 +571,7 @@ export async function fetchClearProxyAll(): Promise<ProxyEntry[]> {
 }
 
 export async function fetchIPLocateAll(): Promise<ProxyEntry[]> {
-    const url = "https://raw.githubusercontent.com/iplocate/free-proxy-list/main/all-proxies.txt";
+    const url = "https://cdn.jsdelivr.net/gh/iplocate/free-proxy-list@main/all-proxies.txt";
     console.debug(`[QuestRegions/Proxy] IPLocate ALL → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
@@ -586,8 +586,8 @@ export async function fetchIPLocateAll(): Promise<ProxyEntry[]> {
 
 export async function fetchTheSpeedXAll(): Promise<ProxyEntry[]> {
     const urls = [
-        "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-        "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/https.txt",
+        "https://cdn.jsdelivr.net/gh/TheSpeedX/PROXY-List@master/http.txt",
+        "https://cdn.jsdelivr.net/gh/TheSpeedX/PROXY-List@master/https.txt",
     ];
     const lists = await Promise.all(urls.map(async url => {
         console.debug(`[QuestRegions/Proxy] TheSpeedX → ${url}`);
@@ -604,7 +604,7 @@ export async function fetchTheSpeedXAll(): Promise<ProxyEntry[]> {
 }
 
 export async function fetchProxyListWorldAll(): Promise<ProxyEntry[]> {
-    const url = "https://raw.githubusercontent.com/themiralay/Proxy-List-World/master/data.txt";
+    const url = "https://cdn.jsdelivr.net/gh/themiralay/Proxy-List-World@master/data.txt";
     console.debug(`[QuestRegions/Proxy] Proxy-List-World → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
@@ -637,7 +637,7 @@ export async function fetchDatabayAll(): Promise<ProxyEntry[]> {
 }
 
 export async function fetchStormsiaAll(): Promise<ProxyEntry[]> {
-    const url = "https://raw.githubusercontent.com/stormsia/proxy-list/main/working_proxies.txt";
+    const url = "https://cdn.jsdelivr.net/gh/stormsia/proxy-list@main/working_proxies.txt";
     console.debug(`[QuestRegions/Proxy] stormsia → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
@@ -651,7 +651,7 @@ export async function fetchStormsiaAll(): Promise<ProxyEntry[]> {
 }
 
 export async function fetchClarketmAll(): Promise<ProxyEntry[]> {
-    const url = "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt";
+    const url = "https://cdn.jsdelivr.net/gh/clarketm/proxy-list@master/proxy-list-raw.txt";
     console.debug(`[QuestRegions/Proxy] clarketm → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);

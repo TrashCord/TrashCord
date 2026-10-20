@@ -54,7 +54,7 @@ const sendTestNotification = (): boolean => {
                 message: {
                     title: "**Test** Notification",
                     body: "**bold** *italic* __underline__ ~~strike~~ `code` ||spoiler||\n# Heading 1\n## Heading 2\n### Heading 3\n- Bullet one\n- Bullet two\n1. First\n2. Second",
-                    icon: "https://raw.githubusercontent.com/Equicord/Equicord/refs/heads/main/browser/icon.png",
+                    icon: "https://cdn.jsdelivr.net/gh/Equicord/Equicord@main/browser/icon.png",
                     guildId: "0",
                     channelId: "0",
                     messageId: "0",
@@ -543,7 +543,7 @@ const connect = () => {
                     message: {
                         title: "Connected ✅",
                         body: `${detectClient().name} is now connected to Orbolay`,
-                        icon: "https://raw.githubusercontent.com/Equicord/Equicord/refs/heads/main/browser/icon.png",
+                        icon: "https://cdn.jsdelivr.net/gh/Equicord/Equicord@main/browser/icon.png",
                         guildId: "0",
                         channelId: "0",
                         messageId: "0",

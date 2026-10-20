@@ -12,7 +12,7 @@ const Native = VencordNative.pluginHelpers.PluginRepo as PluginNative<typeof imp
 export const VERSION = "1.2";
 
 async function getVersion() {
-    const repoVersion = await (await fetch("https://raw.githubusercontent.com/ScattrdBlade/PluginsRepo/main/versionCheck.tsx", { cache: "no-cache" })).text();
+    const repoVersion = await (await fetch("https://cdn.jsdelivr.net/gh/ScattrdBlade/PluginsRepo@main/versionCheck.tsx", { cache: "no-cache" })).text();
     const repoVersionMatch = repoVersion.match(/export const VERSION = "(.+)";/);
     if (!repoVersionMatch) return;
     const [_, version] = repoVersionMatch;
