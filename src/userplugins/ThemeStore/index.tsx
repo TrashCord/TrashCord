@@ -31,7 +31,7 @@ interface EquiTheme {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const THEMES_API_URL = "https://raw.githubusercontent.com/Equicord/EquiThemesAPI/main/themes.json";
+const THEMES_API_URL = "https://cdn.jsdelivr.net/gh/Equicord/EquiThemesAPI@main/themes.json";
 
 // ─── Native fetch ─────────────────────────────────────────────────────────────
 

@@ -57,7 +57,7 @@ function resetState() {
     stopBlocker();
 }
 
-const AssetsURL = "https://raw.githubusercontent.com/Discord-Velocity/PluginAssets/main/StreamCrasher";
+const AssetsURL = "https://cdn.jsdelivr.net/gh/Discord-Velocity/PluginAssets@main/StreamCrasher";
 const p = platform();
 const bsodUrl = p === "darwin" ? `${AssetsURL}/crashedMac.png`
     : p === "linux" ? `${AssetsURL}/crashedLinux.png`
