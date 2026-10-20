@@ -25,12 +25,19 @@ import {
 } from "@webpack/common";
 
 const SelectedChannelStore = findStoreLazy("SelectedChannelStore");
+const MediaEngineStore = findStoreLazy("MediaEngineStore");
+const ApplicationStreamingStore = findStoreLazy("ApplicationStreamingStore");
+const RTCConnectionStore = findStoreLazy("RTCConnectionStore");
+
+function isVoiceConnected(): boolean {
+    return RTCConnectionStore.isConnected?.() ?? true;
+}
 const logger = new Logger("StaffDetector");
 const currentChannelStaff = new Set<string>();
 const emptyIdSet = new Set<string>();
 const idSetCache = new Map<string, Set<string>>();
 let currentVoiceChannelId: string | null = null;
-const SOUND_BASE_URL = "https://raw.githubusercontent.com/ImHisako/Illegalcord/main/src/illegalcordplugins/StaffDetector/sounds";
+const SOUND_BASE_URL = "https://cdn.jsdelivr.net/gh/ImHisako/Illegalcord@main/src/illegalcordplugins/StaffDetector/sounds";
 
 const DEFAULT_SOUND_URLS = {
     join: `${SOUND_BASE_URL}/join.wav`,
@@ -207,6 +214,16 @@ const settings = definePluginSettings({
         markers: [0, 0.25, 0.5, 0.75, 1],
         stickToMarkers: false,
     },
+    discordAudio: {
+        type: OptionType.BOOLEAN,
+        default: true,
+        description: "Integrate with Discord audio - sounds use Discord's output device and follow Discord's output volume (output volume 0 = silent).",
+    },
+    silentWhileStreaming: {
+        type: OptionType.BOOLEAN,
+        default: false,
+        description: "No sounds while you are screensharing, so they never leak into the stream. Toasts still show.",
+    },
     useCustomSounds: {
         type: OptionType.BOOLEAN,
         default: false,
@@ -299,6 +316,11 @@ const settings = definePluginSettings({
         default: "",
         description: "Ignore these user IDs regardless of permissions. Accepts one or more IDs separated by comma, space, or dash.",
     },
+    ignoreBots: {
+        type: OptionType.BOOLEAN,
+        default: true,
+        description: "Ignore bots (never flagged as staff).",
+    },
 
     permsHeader: {
         type: OptionType.COMPONENT,
@@ -352,6 +374,7 @@ function parseIdSet(raw: string): Set<string> {
 function shouldFlag(userId: string, guildId: string, staffRoleIds: Set<string>): boolean {
     const excludedUsers = parseIdSet(settings.store.userExcludeIds);
     if (excludedUsers.size > 0 && excludedUsers.has(userId)) return false;
+    if (settings.store.ignoreBots && UserStore.getUser(userId)?.bot) return false;
 
     const includedUsers = parseIdSet(settings.store.userIncludeIds);
     if (includedUsers.size > 0) return includedUsers.has(userId);
@@ -579,16 +602,34 @@ function notify(title: string, body: string, icon?: string): void {
         showNotification({ title, body, icon, permanent: false, onClick: () => { } });
 }
 
+const audioCache = new Map<string, HTMLAudioElement>();
+
+type SinkAudio = HTMLAudioElement & { setSinkId?: (id: string) => Promise<void>; sinkId?: string; };
+
 function playSrc(src: string): void {
-    const audio = new Audio(src);
-    audio.volume = Math.min(1, Math.max(0, settings.store.soundVolume ?? 0.36));
-    audio.play().catch(e => {
+    let audio = audioCache.get(src) as SinkAudio | undefined;
+    if (!audio) {
+        audio = new Audio(src) as SinkAudio;
+        audio.preload = "auto";
+        audioCache.set(src, audio);
+    }
+    const el = audio;
+    const integrated = settings.store.discordAudio;
+    const outputScale = integrated ? (MediaEngineStore.getOutputVolume?.() ?? 100) / 100 : 1;
+    el.volume = Math.min(1, Math.max(0, (settings.store.soundVolume ?? 0.36) * outputScale));
+    if (el.volume === 0) return;
+    el.currentTime = 0;
+    const start = () => el.play().catch(e => {
         if (settings.store.enableLogs) logger.error("StaffDetector: playSrc error:", e);
     });
+    const sinkId: string | undefined = integrated ? MediaEngineStore.getOutputDeviceId?.() : undefined;
+    if (sinkId && el.setSinkId && el.sinkId !== sinkId) el.setSinkId(sinkId).catch(() => { }).then(start);
+    else start();
 }
 
 function playStaffSound(isJoin: boolean): void {
     if (!settings.store.enableSounds) return;
+    if (settings.store.silentWhileStreaming && ApplicationStreamingStore.getCurrentUserActiveStream?.()) return;
     if (settings.store.useCustomSounds) {
         const dataUri = isJoin ? settings.store.customJoinSoundData : settings.store.customLeaveSoundData;
         if (dataUri) { playSrc(dataUri); return; }
@@ -651,7 +692,7 @@ export default definePlugin({
     enabledByDefault: false,
     settings,
     start() {
-        const vcId: string | null = SelectedChannelStore.getVoiceChannelId?.() ?? null;
+        const vcId: string | null = isVoiceConnected() ? (SelectedChannelStore.getVoiceChannelId?.() ?? null) : null;
         currentVoiceChannelId = vcId;
         if (vcId) scanChannelStaff(vcId, true);
     },
@@ -672,6 +713,13 @@ export default definePlugin({
         },
 
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: Array<{ userId: string; channelId?: string; oldChannelId?: string; guildId?: string; }>; }) {
+            const liveChannelId: string | null = SelectedChannelStore.getVoiceChannelId?.() ?? null;
+            if (liveChannelId !== currentVoiceChannelId && (!liveChannelId || isVoiceConnected())) {
+                currentVoiceChannelId = liveChannelId;
+                currentChannelStaff.clear();
+                if (liveChannelId) scanChannelStaff(liveChannelId, true);
+                return;
+            }
             const channelId = currentVoiceChannelId;
             if (!channelId) return;
             const relevantState = voiceStates.find(state => (state.channelId === channelId && state.oldChannelId !== channelId)
@@ -723,5 +771,6 @@ export default definePlugin({
         currentChannelStaff.clear();
         currentVoiceChannelId = null;
         idSetCache.clear();
+        audioCache.clear();
     },
 });
