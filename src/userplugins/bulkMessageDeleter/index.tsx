@@ -15,7 +15,7 @@ const settings = definePluginSettings({
     deleteDelay: {
         type: OptionType.SLIDER,
         description: "Base delay between deletions (ms) - auto-retries on rate limits",
-        default: 350,
+        default: 429,
         markers: [0, 1, 50, 100, 200, 350, 429, 500, 750, 1000],
     },
     showProgressBar: {

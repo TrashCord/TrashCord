@@ -6,6 +6,7 @@ import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
 import { FluxDispatcher, Menu, Popout, Select, SelectedChannelStore, showToast, useEffect, UserStore, useRef, useState, useStateFromStores, VoiceStateStore } from "@webpack/common";
+import { bindKeybind, IDS, recordAccelerator, unbindKeybind } from "./keybind";
 
 const Native = VencordNative.pluginHelpers.CamCrasher as PluginNative<typeof import("./native")>;
 const MediaEngineStore = findStoreLazy("MediaEngineStore");
@@ -70,9 +71,27 @@ function backupName() {
     return (settings.store.manualCamera || settings.store.safeCameraName || "").trim();
 }
 
+const relay = { register: (a: string) => Native.registerKeybind(a), unregister: () => Native.unregisterKeybind() };
+
 async function registerKeybind(accelerator: string) {
-    const ok = await Native.registerKeybind(accelerator || "F7");
-    if (!ok) notify("Keybind unavailable, pick another one", "failure");
+    if (!(await bindKeybind(IDS.cam, accelerator, () => CamCrasherPlugin.onKeybind(), relay)))
+        notify("Keybind unavailable, pick another one", "failure");
+}
+
+const suspendKeybind = () => unbindKeybind(IDS.cam, relay);
+const resumeKeybind = () => { if (keybindActive) void registerKeybind(settings.store.keybind); };
+
+async function recordKeybind() {
+    await suspendKeybind();
+    notify("Press a key combo (Esc to cancel)", "clock");
+    const acc = await recordAccelerator();
+    if (acc && acc !== settings.store.keybind) {
+        settings.store.keybind = acc;
+        notify(`Keybind set to ${acc}`, "success");
+    } else {
+        if (!acc) notify("Keybind recording cancelled", "clock");
+        resumeKeybind();
+    }
 }
 
 function keybindWanted() {
@@ -85,7 +104,7 @@ function syncKeybind() {
     if (want === keybindActive) return;
     keybindActive = want;
     if (want) void registerKeybind(settings.store.keybind);
-    else void Native.unregisterKeybind();
+    else void unbindKeybind(IDS.cam, relay);
 }
 
 function onStoreChange() {
@@ -390,7 +409,7 @@ export const settings = definePluginSettings({
     },
     keybind: {
         type: OptionType.STRING,
-        description: "Keybind accelerator, e.g. F7 or Control+F3. You can also record it from the camera context menu",
+        description: "Global keybind accelerator. Use 'Set Keybind' in the right-click menu to record it by pressing keys, or type one manually (e.g. Control+F3). Default only, empty = off. Windows official client: native, key passes through. CustomDiscordClient/macOS/Linux: TCP, key is captured (avoid in-game keys).",
         default: "F7",
         onChange: val => { if (keybindActive) void registerKeybind(val); }
     },
@@ -444,78 +463,6 @@ const SettingsIcon = () => (
         <path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.49.37 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.22 0 .43-.17.48-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z" />
     </svg>
 );
-
-const CODE_TO_ELECTRON: Record<string, string> = {
-    Space: "Space", Enter: "Return", Escape: "Escape",
-    Tab: "Tab", Backspace: "Backspace", Delete: "Delete",
-    Insert: "Insert", Home: "Home", End: "End",
-    PageUp: "PageUp", PageDown: "PageDown",
-    ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
-    PrintScreen: "PrintScreen",
-    Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]",
-    Backslash: "\\", Semicolon: ";", Quote: "'",
-    Comma: ",", Period: "."
-};
-
-const MODIFIER_CODES = new Set(["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]);
-
-function codeToElectronKey(code: string): string | null {
-    if (code.startsWith("Key")) return code.slice(3);
-    if (code.startsWith("Digit")) return code.slice(5);
-    if (/^F\d{1,2}$/.test(code)) return code;
-    if (code.startsWith("Numpad")) {
-        const sub = code.slice(6);
-        if (/^\d$/.test(sub)) return `num${sub}`;
-        const nm: Record<string, string> = { Add: "numadd", Subtract: "numsub", Multiply: "nummult", Divide: "numdiv", Decimal: "numdec", Enter: "Return" };
-        return nm[sub] ?? null;
-    }
-    return CODE_TO_ELECTRON[code] ?? null;
-}
-
-function buildAccelerator(e: KeyboardEvent): string | null {
-    if (MODIFIER_CODES.has(e.code)) return null;
-    const key = codeToElectronKey(e.code);
-    if (!key) return null;
-    const parts: string[] = [];
-    if (e.ctrlKey) parts.push("Control");
-    if (e.shiftKey) parts.push("Shift");
-    if (e.altKey) parts.push("Alt");
-    if (e.metaKey) parts.push("Super");
-    parts.push(key);
-    return parts.join("+");
-}
-
-let recordingHandler: ((e: KeyboardEvent) => void) | null = null;
-
-function stopRecording() {
-    if (recordingHandler) window.removeEventListener("keydown", recordingHandler, true);
-    recordingHandler = null;
-}
-
-function recordKeybind() {
-    if (recordingHandler) return;
-    notify("Press a key combo (Esc to cancel)", "clock");
-
-    recordingHandler = (e: KeyboardEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        if (e.code === "Escape") {
-            stopRecording();
-            notify("Keybind recording cancelled", "clock");
-            return;
-        }
-
-        const acc = buildAccelerator(e);
-        if (!acc) return;
-
-        stopRecording();
-        settings.store.keybind = acc;
-        notify(`Keybind set to ${acc}`, "success");
-    };
-
-    window.addEventListener("keydown", recordingHandler, true);
-}
 
 function buildItems(prefix: string) {
     const { isEnabled, panicAction } = settings.store;
@@ -668,12 +615,11 @@ const CamCrasherPlugin = definePlugin({
 
     stop() {
         stopWatch();
-        stopRecording();
         hidden = false;
         holdBroadcast(false);
         if (previousDevice !== null) restoreCamera(true);
         keybindActive = false;
-        void Native.unregisterKeybind();
+        void unbindKeybind(IDS.cam, relay);
         if (buttonAdded) {
             buttonAdded = false;
             Vencord.Api.UserArea.removeUserAreaButton(BUTTON_ID);

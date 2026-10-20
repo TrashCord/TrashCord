@@ -7,14 +7,23 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { findComponentByCodeLazy, findStoreLazy } from "@webpack";
 import { ApplicationStreamingStore, Menu, Popout, showToast, useMemo, useRef, UserStore, useStateFromStores, VoiceActions } from "@webpack/common";
+import { bindKeybind, IDS, recordAccelerator, unbindKeybind } from "./keybind";
 
 const Native = VencordNative.pluginHelpers.StreamCrasher as PluginNative<typeof import("./native")>;
 const ApplicationStreamingSettingsStore = findStoreLazy("ApplicationStreamingSettingsStore");
 
-async function tryRegisterKeybind(accelerator: string) {
-    const acc = accelerator || "F6";
-    return await Native.registerGlobalKeybind(acc);
+const relay = { register: (a: string) => Native.registerGlobalKeybind(a), unregister: () => Native.unregisterGlobalKeybind() };
+
+function onStreamKeybind() {
+    if (isStreamingNow && settings.store.keybindEnabled) settings.store.isEnabled = !settings.store.isEnabled;
 }
+
+function tryRegisterKeybind(accelerator: string) {
+    return bindKeybind(IDS.stream, accelerator, onStreamKeybind, relay);
+}
+
+const suspendKeybind = () => unbindKeybind(IDS.stream, relay);
+const resumeKeybind = () => { if (settings.store.keybindEnabled) void tryRegisterKeybind(settings.store.keybind); };
 
 export const crashModeLabels: Record<string, { value: string; subText?: string; }> = {
     freeze:   { value: "Freeze",       subText: "Freezes the stream" },
@@ -38,16 +47,16 @@ export const settings = definePluginSettings({
         description: "Toggle the crasher with a global keybind (works even when Discord is not focused)",
         default: true,
         onChange: val => {
-            if (val) tryRegisterKeybind(settings.store.keybind);
-            else Native.unregisterGlobalKeybind();
+            if (val) void tryRegisterKeybind(settings.store.keybind);
+            else void unbindKeybind(IDS.stream, relay);
             syncKeybindLoop();
         }
     },
     keybind: {
         type: OptionType.STRING,
-        description: "Global keybind accelerator. Use 'Set Keybind' in the right-click options menu to record it by pressing keys, or type one manually (e.g. F6, Control+F3)",
+        description: "Global keybind accelerator. Use 'Set Keybind' in the right-click menu to record it by pressing keys, or type one manually (e.g. Control+F3). Default only, empty = off. Windows official client: native, key passes through. CustomDiscordClient/macOS/Linux: TCP, key is captured (avoid in-game keys).",
         default: "F6",
-        onChange: val => { if (settings.store.keybindEnabled) tryRegisterKeybind(val); }
+        onChange: val => { if (settings.store.keybindEnabled) void tryRegisterKeybind(val); }
     },
     crashMode: {
         type: OptionType.SELECT,
@@ -261,78 +270,21 @@ const SettingsIcon = () => (
     </svg>
 );
 
-const CODE_TO_ELECTRON: Record<string, string> = {
-    Space: "Space", Enter: "Return", Escape: "Escape",
-    Tab: "Tab", Backspace: "Backspace", Delete: "Delete",
-    Insert: "Insert", Home: "Home", End: "End",
-    PageUp: "PageUp", PageDown: "PageDown",
-    ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
-    PrintScreen: "PrintScreen",
-    Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]",
-    Backslash: "\\", Semicolon: ";", Quote: "'",
-    Comma: ",", Period: "."
-};
-
-const MODIFIER_CODES = new Set(["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]);
-
-function codeToElectronKey(code: string): string | null {
-    if (code.startsWith("Key")) return code.slice(3);
-    if (code.startsWith("Digit")) return code.slice(5);
-    if (/^F\d{1,2}$/.test(code)) return code;
-    if (code.startsWith("Numpad")) {
-        const sub = code.slice(6);
-        if (/^\d$/.test(sub)) return `num${sub}`;
-        const nm: Record<string, string> = { Add: "numadd", Subtract: "numsub", Multiply: "nummult", Divide: "numdiv", Decimal: "numdec", Enter: "Return" };
-        return nm[sub] ?? null;
-    }
-    return CODE_TO_ELECTRON[code] ?? null;
-}
-
-function buildAccelerator(e: KeyboardEvent): string | null {
-    if (MODIFIER_CODES.has(e.code)) return null;
-    const key = codeToElectronKey(e.code);
-    if (!key) return null;
-    const parts: string[] = [];
-    if (e.ctrlKey) parts.push("Control");
-    if (e.shiftKey) parts.push("Shift");
-    if (e.altKey) parts.push("Alt");
-    if (e.metaKey) parts.push("Super");
-    parts.push(key);
-    return parts.join("+");
-}
-
-let recordingActive = false;
-let recordingHandler: ((e: KeyboardEvent) => void) | null = null;
-
-function recordKeybind() {
-    if (recordingActive) return;
-    recordingActive = true;
+async function recordKeybind() {
+    await suspendKeybind();
     showToast({ text: "Press a key combo for the keybind (Esc to cancel)" });
-
-    recordingHandler = (e: KeyboardEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        if (e.code === "Escape") {
-            window.removeEventListener("keydown", recordingHandler!, true);
-            recordingHandler = null;
-            recordingActive = false;
-            showToast({ text: "Keybind recording cancelled" });
-            return;
+    const acc = await recordAccelerator();
+    if (acc) {
+        if (acc !== settings.store.keybind) {
+            settings.store.keybind = acc;
+            showToast({ text: `Keybind set to ${acc}`, variant: "success" });
+        } else {
+            resumeKeybind();
         }
-
-        const acc = buildAccelerator(e);
-        if (!acc) return;
-
-        window.removeEventListener("keydown", recordingHandler!, true);
-        recordingHandler = null;
-        recordingActive = false;
-        settings.store.keybind = acc;
-        if (settings.store.keybindEnabled) tryRegisterKeybind(acc);
-        showToast({ text: `Keybind set to ${acc}`, variant: "success" });
-    };
-
-    window.addEventListener("keydown", recordingHandler, true);
+    } else {
+        showToast({ text: "Keybind recording cancelled" });
+        resumeKeybind();
+    }
 }
 
 function buildCrashModeSubmenu(idPrefix: string, crashMode: string) {
@@ -585,7 +537,7 @@ const StreamCrasherPlugin = definePlugin({
         isEnabledCache = false;
 
         isStreamingNow = ApplicationStreamingStore.getCurrentUserActiveStream() != null;
-        if (settings.store.keybindEnabled) tryRegisterKeybind(settings.store.keybind);
+        if (settings.store.keybindEnabled) void tryRegisterKeybind(settings.store.keybind);
         syncKeybindLoop();
         window.addEventListener("unhandledrejection", swallowEngineRejection);
 
@@ -598,14 +550,9 @@ const StreamCrasherPlugin = definePlugin({
     },
 
     stop() {
-        if (recordingActive && recordingHandler) {
-            window.removeEventListener("keydown", recordingHandler, true);
-            recordingHandler = null;
-            recordingActive = false;
-        }
         window.removeEventListener("unhandledrejection", swallowEngineRejection);
         if (buttonTimer !== null) { clearTimeout(buttonTimer); buttonTimer = null; }
-        Native.unregisterGlobalKeybind();
+        void unbindKeybind(IDS.stream, relay);
         stopKeybindLoop();
         Vencord.Api.UserArea.removeUserAreaButton("stream-crasher-account-button");
     },

@@ -9,6 +9,7 @@ import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { findByCodeLazy } from "@webpack";
 import { ApplicationStreamingSettingsStore, ApplicationStreamingStore, ChannelStore, ContextMenuApi, Menu, PermissionsBits, PermissionStore, SearchableSelect, SelectedChannelStore, showToast, useEffect, useState, useStateFromStores, UserStore, VoiceActions } from "@webpack/common";
+import { bindKeybind, IDS, recordAccelerator, unbindKeybind } from "./keybind";
 
 const Native = VencordNative.pluginHelpers.FastScreenshare as PluginNative<typeof import("./native")>;
 const startStream = findByCodeLazy('type:"STREAM_START"');
@@ -22,30 +23,16 @@ type IconProps = { className?: string; width?: number | string; height?: number 
 const MONITOR = "M3 4h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6.5l.8 2H17a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h1.7l.8-2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 6v10h18V6H3z";
 const DANGER = "var(--status-danger, #f23f43)";
 
-const CODE_TO_ELECTRON: Record<string, string> = {
-    Space: "Space", Enter: "Return", Escape: "Escape",
-    Tab: "Tab", Backspace: "Backspace", Delete: "Delete",
-    Insert: "Insert", Home: "Home", End: "End",
-    PageUp: "PageUp", PageDown: "PageDown",
-    ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
-    PrintScreen: "PrintScreen",
-    Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]",
-    Backslash: "\\", Semicolon: ";", Quote: "'",
-    Comma: ",", Period: "."
-};
-
-const MODIFIER_CODES = new Set(["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]);
-
 const ui = {
     row: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
     label: { flex: 1, fontWeight: 600, color: "var(--text-strong, var(--header-primary))" },
     key: { padding: "2px 8px", borderRadius: 4, color: "var(--text-default, var(--text-normal))", background: "var(--background-base-lower, var(--background-secondary))" },
-    button: { padding: "4px 14px", border: 0, borderRadius: 6, cursor: "pointer", fontWeight: 500, color: "#fff", background: "var(--brand-500, #5865f2)" }
+    button: { padding: "4px 14px", border: 0, borderRadius: 6, cursor: "pointer", fontWeight: 500, color: "#fff", background: "var(--brand-500, #5865f2)" },
+    sub: { marginTop: 4, fontSize: 12, color: "var(--text-subtle, var(--text-muted))" }
 };
 
 let onBackup = false;
 let lastFire = 0;
-let recorder: ((e: KeyboardEvent) => void) | null = null;
 
 function notify(message: string, type: string) {
     if (settings.store.toasts) showToast({ text: message, variant: type });
@@ -217,8 +204,17 @@ function pickBackup(src: Source) {
     settings.store.backupSource = src;
 }
 
+const ids = { main: IDS.fssMain, backup: IDS.fssBackup } as const;
+const relay = (slot: Slot) => ({ register: (a: string) => Native.register(slot, a), unregister: () => Native.register(slot, "") });
+
 async function bind(slot: Slot, accelerator: string) {
-    if (!(await Native.register(slot, accelerator))) fail("Keybind unavailable, pick another one");
+    if (!(await bindKeybind(ids[slot], accelerator, () => plugin.onKeybind(slot), relay(slot))))
+        fail("Keybind unavailable, pick another one");
+}
+
+function unbindAll() {
+    void unbindKeybind(IDS.fssMain, relay("main"));
+    void unbindKeybind(IDS.fssBackup, relay("backup"));
 }
 
 function syncKeys() {
@@ -231,63 +227,15 @@ function scheduleSync() {
     queueMicrotask(syncKeys);
 }
 
-function codeToElectronKey(code: string): string | null {
-    if (code.startsWith("Key")) return code.slice(3);
-    if (code.startsWith("Digit")) return code.slice(5);
-    if (/^F\d{1,2}$/.test(code)) return code;
-    if (code.startsWith("Numpad")) {
-        const sub = code.slice(6);
-        if (/^\d$/.test(sub)) return `num${sub}`;
-        const nm: Record<string, string> = { Add: "numadd", Subtract: "numsub", Multiply: "nummult", Divide: "numdiv", Decimal: "numdec", Enter: "Return" };
-        return nm[sub] ?? null;
-    }
-    return CODE_TO_ELECTRON[code] ?? null;
-}
-
-function buildAccelerator(e: KeyboardEvent): string | null {
-    if (MODIFIER_CODES.has(e.code)) return null;
-    const key = codeToElectronKey(e.code);
-    if (!key) return null;
-    const parts: string[] = [];
-    if (e.ctrlKey) parts.push("Control");
-    if (e.shiftKey) parts.push("Shift");
-    if (e.altKey) parts.push("Alt");
-    if (e.metaKey) parts.push("Super");
-    parts.push(key);
-    return parts.join("+");
-}
-
-function stopRecording() {
-    if (recorder) window.removeEventListener("keydown", recorder, true);
-    recorder = null;
-}
-
-function recordKeybind(slot: Slot) {
-    if (recorder) return;
-    void Native.unregisterAll();
+async function recordKeybind(slot: Slot) {
+    unbindAll();
     notify("Press a key combo (Esc to cancel)", "clock");
-
-    recorder = (e: KeyboardEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        if (e.code === "Escape") {
-            stopRecording();
-            syncKeys();
-            return;
-        }
-
-        const acc = buildAccelerator(e);
-        if (!acc) return;
-
-        stopRecording();
-        if (slot === "main") settings.store.keybind = acc;
-        else settings.store.backupKeybind = acc;
-        syncKeys();
-        notify(`Keybind set to ${acc}`, "success");
-    };
-
-    window.addEventListener("keydown", recorder, true);
+    const acc = await recordAccelerator();
+    if (!acc) { syncKeys(); return; }
+    if (slot === "main") settings.store.keybind = acc;
+    else settings.store.backupKeybind = acc;
+    syncKeys();
+    notify(`Keybind set to ${acc}`, "success");
 }
 
 function IconIdle({ className, width = 24, height = 24, color }: IconProps) {
@@ -413,10 +361,15 @@ function SourcePicker({ slot }: { slot: Slot; }) {
 function KeybindRow({ slot }: { slot: Slot; }) {
     const { keybind, backupKeybind } = settings.use(["keybind", "backupKeybind"]);
     return (
-        <div style={ui.row}>
-            <div style={ui.label}>{slot === "main" ? "Keybind" : "Backup keybind"}</div>
-            <code style={ui.key}>{slot === "main" ? keybind : backupKeybind}</code>
-            <button type="button" style={ui.button} onClick={() => recordKeybind(slot)}>Record</button>
+        <div>
+            <div style={ui.row}>
+                <div style={ui.label}>{slot === "main" ? "Keybind" : "Backup keybind"}</div>
+                <code style={ui.key}>{slot === "main" ? keybind : backupKeybind}</code>
+                <button type="button" style={ui.button} onClick={() => recordKeybind(slot)}>Record</button>
+            </div>
+            <div style={ui.sub}>
+                Global keybind accelerator. Use 'Set Keybind' in the right-click menu to record it by pressing keys, or type one manually (e.g. Control+F3). Default only, empty = off. Windows official client: native, key passes through. CustomDiscordClient/macOS/Linux: TCP, key is captured (avoid in-game keys).
+            </div>
         </div>
     );
 }
@@ -468,7 +421,7 @@ export const settings = definePluginSettings({
     },
     keybind: {
         type: OptionType.STRING,
-        description: "Keybind accelerator",
+        description: "Use 'Set Keybind' in the right-click menu, or type it (e.g. Control+F3). Empty = off. Windows official client: native, key passes through. CustomDiscordClient/macOS/Linux: TCP, key is captured (avoid in-game keys).",
         default: "F9",
         hidden: true
     },
@@ -549,9 +502,8 @@ const plugin = definePlugin({
     },
 
     stop() {
-        stopRecording();
         onBackup = false;
-        void Native.unregisterAll();
+        unbindAll();
     },
 
     onKeybind(slot: Slot) {
