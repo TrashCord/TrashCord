@@ -39,7 +39,7 @@ const soundBuffers: Record<string, AudioBuffer> = {};
 
 // todo implement other pitch sounds but theoretically plugging this in from said repo should work, right?
 const BASE_URL_HIGH =
-    "https://raw.githubusercontent.com/ryawaa/vencord-animalese/main/sounds/high";
+    "https://cdn.jsdelivr.net/gh/ryawaa/vencord-animalese@main/sounds/high";
 
 async function initSoundBuffers() {
     if (!audioContext) audioContext = new AudioContext();
