@@ -124,7 +124,7 @@ async function refreshOwnProfile() {
 const UserFlags = Constants.UserFlags as Record<string, number>;
 
 // badge icons from mezotv repo
-const BADGE_ASSETS_BASE = "https://raw.githubusercontent.com/mezotv/discord-badges/main/assets";
+const BADGE_ASSETS_BASE = "https://cdn.jsdelivr.net/gh/mezotv/discord-badges@main/assets";
 
 const NITRO_TIERS = ["bronze", "silver", "gold", "platinum", "diamond", "emerald", "ruby", "opal"] as const;
 

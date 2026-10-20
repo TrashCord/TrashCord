@@ -47,7 +47,7 @@ type NativeResult<T> =
 // ---------------------------------------------------------------------------
 
 const VERSION_JSON_URL =
-    "https://raw.githubusercontent.com/tsx-awtns/MultiMessageCopy/main/version.json"
+    "https://cdn.jsdelivr.net/gh/tsx-awtns/MultiMessageCopy@main/version.json"
 
 /** Fetch a URL using Node's built-in https module, with a timeout. */
 function httpsGet(url: string, timeoutMs = 8000): Promise<string> {

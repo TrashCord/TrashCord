@@ -58,12 +58,12 @@ export const PLUGIN_VERSION = "5.4.4"
 export const REPO_URL = "https://github.com/tsx-awtns/MultiMessageCopy"
 
 export const UPDATE_COMMAND =
-    'iwr -UseB https://raw.githubusercontent.com/tsx-awtns/MultiMessageCopy/main/update.ps1' +
+    'iwr -UseB https://cdn.jsdelivr.net/gh/tsx-awtns/MultiMessageCopy@main/update.ps1' +
     ' -OutFile "$env:TEMP\\mmc-update.ps1"; powershell -ExecutionPolicy Bypass' +
     ' -File "$env:TEMP\\mmc-update.ps1"'
 
 const VERSION_URL =
-    "https://raw.githubusercontent.com/tsx-awtns/MultiMessageCopy/main/version.json"
+    "https://cdn.jsdelivr.net/gh/tsx-awtns/MultiMessageCopy@main/version.json"
 
 const DISMISSED_UPDATE_KEY = "MultiMessageCopy:dismissedUpdateVersion"
 

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import * as DataStore from "@api/DataStore";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
@@ -83,6 +84,11 @@ const audioNameKeys = {
     customLeaveSoundData: "customLeaveSoundDataName",
 } satisfies Record<AudioDataKey, AudioNameKey>;
 
+const soundDbKeys = {
+    customJoinSoundData: "StaffDetector_joinSound",
+    customLeaveSoundData: "StaffDetector_leaveSound",
+} satisfies Record<AudioDataKey, string>;
+
 const C = {
     notif: "#ef5350",
     sounds: "#42a5f5",
@@ -129,8 +135,11 @@ function AudioUploadButton({ label, dataKey }: { label: string; dataKey: AudioDa
         if (!file) return;
 
         try {
-            settings.store[dataKey] = await readFileAsDataUri(file);
+            const dataUri = await readFileAsDataUri(file);
+            await DataStore.set(soundDbKeys[dataKey], dataUri);
+            settings.store[dataKey] = "idb";
             settings.store[nameKey] = file.name;
+            setCustomSoundSrc(dataKey, dataUri);
             setFilename(file.name);
         } catch (error) {
             showToast({ text: "Could not load that audio file.", variant: "critical" });
@@ -139,6 +148,8 @@ function AudioUploadButton({ label, dataKey }: { label: string; dataKey: AudioDa
     }
 
     function handleClear() {
+        void DataStore.del(soundDbKeys[dataKey]);
+        setCustomSoundSrc(dataKey, undefined);
         settings.store[dataKey] = "";
         settings.store[nameKey] = "";
         setFilename("");
@@ -245,7 +256,7 @@ const settings = definePluginSettings({
     customJoinSound: {
         type: OptionType.STRING,
         default: "",
-        description: "JOIN fallback URL (https://...) — used only if no file is uploaded above. Empty = built-in custom MP3.",
+        description: "JOIN fallback URL (https://...) - used only if no file is uploaded above. Empty = built-in custom MP3.",
     },
     customJoinUpload: {
         type: OptionType.COMPONENT,
@@ -268,7 +279,7 @@ const settings = definePluginSettings({
     customLeaveSound: {
         type: OptionType.STRING,
         default: "",
-        description: "LEAVE fallback URL (https://...) — used only if no file is uploaded above. Empty = built-in custom MP3.",
+        description: "LEAVE fallback URL (https://...) - used only if no file is uploaded above. Empty = built-in custom MP3.",
     },
     customLeaveUpload: {
         type: OptionType.COMPONENT,
@@ -309,7 +320,7 @@ const settings = definePluginSettings({
     userIncludeIds: {
         type: OptionType.STRING,
         default: "",
-        description: "Track ONLY these user IDs (empty = all with matching perms). Overrides server filter and permission check — flagged even without staff permissions. Useful to track undercover staff alts. Accepts one or more IDs separated by comma, space, or dash.",
+        description: "Track ONLY these user IDs (empty = all with matching perms). Overrides server filter and permission check - flagged even without staff permissions. Useful to track undercover staff alts. Accepts one or more IDs separated by comma, space, or dash.",
     },
     userExcludeIds: {
         type: OptionType.STRING,
@@ -603,17 +614,76 @@ function notify(title: string, body: string, icon?: string): void {
 }
 
 const audioCache = new Map<string, HTMLAudioElement>();
+const customSoundSrcs = new Map<AudioDataKey, string>();
 
 type SinkAudio = HTMLAudioElement & { setSinkId?: (id: string) => Promise<void>; sinkId?: string; };
 
-function playSrc(src: string): void {
+function getAudio(src: string): SinkAudio {
     let audio = audioCache.get(src) as SinkAudio | undefined;
     if (!audio) {
-        audio = new Audio(src) as SinkAudio;
-        audio.preload = "auto";
-        audioCache.set(src, audio);
+        const created = new Audio() as SinkAudio;
+        created.preload = "auto";
+        created.addEventListener("error", () => {
+            if (audioCache.get(src) === created) audioCache.delete(src);
+        }, { once: true });
+        created.src = src;
+        audioCache.set(src, created);
+        audio = created;
     }
-    const el = audio;
+    return audio;
+}
+
+function setCustomSoundSrc(dataKey: AudioDataKey, src: string | undefined): void {
+    const previous = customSoundSrcs.get(dataKey);
+    if (previous) audioCache.delete(previous);
+    if (!src) {
+        customSoundSrcs.delete(dataKey);
+        return;
+    }
+    customSoundSrcs.set(dataKey, src);
+    getAudio(src);
+}
+
+async function loadCustomSound(dataKey: AudioDataKey): Promise<void> {
+    const marker = settings.store[dataKey];
+    if (!marker) return;
+    try {
+        let src: string | undefined = marker;
+        if (marker.startsWith("data:")) {
+            await DataStore.set(soundDbKeys[dataKey], marker);
+            settings.store[dataKey] = "idb";
+        } else {
+            src = await DataStore.get<string>(soundDbKeys[dataKey]);
+        }
+        if (src) {
+            setCustomSoundSrc(dataKey, src);
+        } else {
+            settings.store[dataKey] = "";
+            settings.store[audioNameKeys[dataKey]] = "";
+        }
+    } catch (error) {
+        if (settings.store.enableLogs) logger.error("StaffDetector: custom sound load failed:", error);
+    }
+}
+
+function resolveSoundSrc(isJoin: boolean): string {
+    if (!settings.store.useCustomSounds) return isJoin ? DEFAULT_SOUND_URLS.join : DEFAULT_SOUND_URLS.leave;
+    const dataKey: AudioDataKey = isJoin ? "customJoinSoundData" : "customLeaveSoundData";
+    const local = settings.store[dataKey] ? customSoundSrcs.get(dataKey) : undefined;
+    if (local) return local;
+    const url = (isJoin ? settings.store.customJoinSound : settings.store.customLeaveSound)?.trim();
+    if (url) return url;
+    return isJoin ? CUSTOM_DEFAULT_URLS.join : CUSTOM_DEFAULT_URLS.leave;
+}
+
+function preloadSounds(): void {
+    if (!settings.store.enableSounds) return;
+    getAudio(resolveSoundSrc(true));
+    getAudio(resolveSoundSrc(false));
+}
+
+function playSrc(src: string): void {
+    const el = getAudio(src);
     const integrated = settings.store.discordAudio;
     const outputScale = integrated ? (MediaEngineStore.getOutputVolume?.() ?? 100) / 100 : 1;
     el.volume = Math.min(1, Math.max(0, (settings.store.soundVolume ?? 0.36) * outputScale));
@@ -630,15 +700,7 @@ function playSrc(src: string): void {
 function playStaffSound(isJoin: boolean): void {
     if (!settings.store.enableSounds) return;
     if (settings.store.silentWhileStreaming && ApplicationStreamingStore.getCurrentUserActiveStream?.()) return;
-    if (settings.store.useCustomSounds) {
-        const dataUri = isJoin ? settings.store.customJoinSoundData : settings.store.customLeaveSoundData;
-        if (dataUri) { playSrc(dataUri); return; }
-        const url = (isJoin ? settings.store.customJoinSound : settings.store.customLeaveSound)?.trim();
-        if (url) { playSrc(url); return; }
-        playSrc(isJoin ? CUSTOM_DEFAULT_URLS.join : CUSTOM_DEFAULT_URLS.leave);
-        return;
-    }
-    playSrc(isJoin ? DEFAULT_SOUND_URLS.join : DEFAULT_SOUND_URLS.leave);
+    playSrc(resolveSoundSrc(isJoin));
 }
 
 function scanChannelStaff(channelId: string, isInit: boolean): void {
@@ -692,6 +754,7 @@ export default definePlugin({
     enabledByDefault: false,
     settings,
     start() {
+        void Promise.all([loadCustomSound("customJoinSoundData"), loadCustomSound("customLeaveSoundData")]).then(preloadSounds);
         const vcId: string | null = isVoiceConnected() ? (SelectedChannelStore.getVoiceChannelId?.() ?? null) : null;
         currentVoiceChannelId = vcId;
         if (vcId) scanChannelStaff(vcId, true);
@@ -705,6 +768,7 @@ export default definePlugin({
             if (!channelId) return;
             const channel = ChannelStore.getChannel(channelId);
             if (!channel?.guild_id) return;
+            preloadSounds();
             if (settings.store.enableLogs) {
                 logger.debug(`StaffDetector: joined VC ${channelId}`);
                 logVoiceChannelDetails(channelId);
@@ -772,5 +836,6 @@ export default definePlugin({
         currentVoiceChannelId = null;
         idSetCache.clear();
         audioCache.clear();
+        customSoundSrcs.clear();
     },
 });

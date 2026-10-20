@@ -96,7 +96,7 @@ export default definePlugin({
 
         try {
             const response = await fetch(
-                "https://raw.githubusercontent.com/wont-stream/dictionary/6b9d2f06a1d89103fb7249f41de4db6811e3d374/index.min.json",
+                "https://cdn.jsdelivr.net/gh/wont-stream/dictionary@6b9d2f06a1d89103fb7249f41de4db6811e3d374/index.min.json",
                 { signal: abortController.signal }
             );
             const dictionary = await response.json();
