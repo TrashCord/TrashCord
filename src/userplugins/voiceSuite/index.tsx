@@ -124,7 +124,7 @@ const PERMS: [string, string][] = [
 
 const STAFF_PERMS = PERMS.map(p => p[0]);
 const BACKUP_KEYS: BoolKey[] = ["enabled", "showHeaderButton", "showUserAreaButton", "showToasts", "enableLogs", "autoMute", "resetFakesOnLeave", "pauseWhenInvisible", "showActivity", "stopFirst", "keepFakes", "cameraHook", "cameraFallback", "autoReleaseCrash", "panicShare", "panicMute", "panicDeafen", "panicLeave", "collaborate", "keybindsEnabled"];
-const BACKUP_STR = ["crashMode", "safeCamera", "panicCamera", "language"] as const;
+const BACKUP_STR = ["safeCamera", "panicCamera", "language"] as const;
 
 const settings = definePluginSettings({
     enabled: { type: OptionType.BOOLEAN, description: "Master switch for all automation rules.", default: true },
@@ -136,12 +136,11 @@ const settings = definePluginSettings({
     resetFakesOnLeave: { type: OptionType.BOOLEAN, description: "Clear all fake states when you leave voice.", default: false },
     pauseWhenInvisible: { type: OptionType.BOOLEAN, description: "Pause all rules while your status is Invisible.", default: false },
     showActivity: { type: OptionType.BOOLEAN, description: "Show the Activity tab and record recent rule runs.", default: false },
-    cameraHook: { type: OptionType.BOOLEAN, description: "Hook camera streams so Camera crash modes work (applies the next time the camera starts).", default: false, onChange: (v: boolean) => { if (pluginActive) { if (v) installCapture(); else uninstallCapture(); } } },
+    cameraHook: { type: OptionType.BOOLEAN, description: "Hook camera streams so Hide camera works (applies the next time the camera starts).", default: false, onChange: (v: boolean) => { if (pluginActive) { if (v) installCapture(); else uninstallCapture(); } } },
     cameraFallback: { type: OptionType.BOOLEAN, description: "When the camera cannot be hooked, switch to the safe camera instead.", default: true },
-    autoReleaseCrash: { type: OptionType.BOOLEAN, description: "Release the camera crash when the camera is toggled or you change voice channel.", default: true },
-    crashMode: { type: OptionType.STRING, description: "Camera crash mode: freeze, flashing, white, colors, static or black.", default: "freeze" },
+    autoReleaseCrash: { type: OptionType.BOOLEAN, description: "Show the camera again when the camera is toggled or you change voice channel.", default: true },
     safeCamera: { type: OptionType.STRING, description: "Name (or part of it) of the safe camera.", default: "" },
-    panicCamera: { type: OptionType.STRING, description: "Panic profile camera action: none, off or crash.", default: "off" },
+    panicCamera: { type: OptionType.STRING, description: "Panic profile camera action: none, off or hide.", default: "off" },
     panicShare: { type: OptionType.BOOLEAN, description: "Panic profile: stop the screenshare.", default: true },
     panicMute: { type: OptionType.BOOLEAN, description: "Panic profile: mute the microphone.", default: true },
     panicDeafen: { type: OptionType.BOOLEAN, description: "Panic profile: deafen the headset.", default: false },
@@ -781,22 +780,14 @@ declare const MediaStreamTrackProcessor: any;
 declare const MediaStreamTrackGenerator: any;
 
 const VideoDeviceActions = findByPropsLazy("setVideoDevice");
-const CRASH_MODES: [string, string][] = [["freeze", "Freeze"], ["flashing", "Flash"], ["white", "White"], ["colors", "Colors"], ["static", "Static"], ["black", "Black"]];
-const CRASH_COLORS = ["#f00", "#ff8000", "#ff0", "#0f0", "#0ff", "#00f"];
 
 let crashed = false;
-let crashDrawKey = "";
 let previousDevice: string | null = null;
 let fallbackUsed = false;
 let lastSwitchAt = 0;
 let camGuardUntil = 0;
 let originalGetUserMedia: any = null;
 let capRestorers: (() => void)[] = [];
-let crashCanvas: OffscreenCanvas | null = null;
-let crashCtx: OffscreenCanvasRenderingContext2D | null = null;
-let noiseCanvas: OffscreenCanvas | null = null;
-let noiseCtx: OffscreenCanvasRenderingContext2D | null = null;
-let noiseImage: ImageData | null = null;
 const wrappedTracks = new WeakSet<object>();
 const sentTracks = new Set<object>();
 
@@ -844,46 +835,6 @@ function setCamera(on: boolean) {
     } catch { }
 }
 
-function ensureCanvas() {
-    if (crashCanvas) return;
-    crashCanvas = new OffscreenCanvas(640, 360);
-    crashCtx = crashCanvas.getContext("2d", { alpha: false });
-    noiseCanvas = new OffscreenCanvas(128, 72);
-    noiseCtx = noiseCanvas.getContext("2d", { alpha: false });
-    noiseImage = noiseCtx!.createImageData(128, 72);
-}
-
-function renderContent(w: number, h: number): string {
-    ensureCanvas();
-    const cv = crashCanvas!;
-    const cx = crashCtx!;
-    const mode = settings.store.crashMode;
-    const ch = w > 0 && h > 0 ? Math.max(2, Math.round((640 * h / w) / 2) * 2) : 360;
-    const t = Date.now();
-    const phase = mode === "flashing" ? Math.floor(t / 120) % 2 : mode === "colors" ? Math.floor(t / 200) % 6 : mode === "static" ? Math.floor(t / 130) : 0;
-    const key = `${mode}:${phase}:${ch}`;
-    if (key === crashDrawKey) return key;
-    crashDrawKey = key;
-    if (cv.height !== ch) cv.height = ch;
-    const W = cv.width;
-    const H = cv.height;
-    if (mode === "static") {
-        const d = noiseImage!.data;
-        for (let i = 0; i < d.length; i += 4) {
-            const v = Math.random() * 255 | 0;
-            d[i] = d[i + 1] = d[i + 2] = v;
-            d[i + 3] = 255;
-        }
-        noiseCtx!.putImageData(noiseImage!, 0, 0);
-        cx.imageSmoothingEnabled = false;
-        cx.drawImage(noiseCanvas!, 0, 0, W, H);
-        return key;
-    }
-    cx.fillStyle = mode === "white" ? "#fff" : mode === "flashing" ? (phase ? "#fff" : "#000") : mode === "colors" ? CRASH_COLORS[phase] : "#000";
-    cx.fillRect(0, 0, W, H);
-    return key;
-}
-
 function wrapStream(stream: MediaStream): MediaStream {
     const [track] = stream.getVideoTracks();
     if (!track || (track.getSettings() as any).displaySurface) return stream;
@@ -892,50 +843,28 @@ function wrapStream(stream: MediaStream): MediaStream {
     wrappedTracks.add(generator);
 
     let last: VideoFrame | null = null;
-    let cached: VideoFrame | null = null;
-    let cachedKey = "";
 
     processor.readable
         .pipeThrough(new TransformStream<VideoFrame, VideoFrame>({
             transform(frame, controller) {
-                const mode = settings.store.crashMode;
                 if (!crashed) {
-                    if (cached) { cached.close(); cached = null; cachedKey = ""; }
-                    if (mode === "freeze") {
-                        last?.close();
-                        last = frame.clone();
-                    } else if (last) {
-                        last.close();
-                        last = null;
-                    }
+                    last?.close();
+                    last = frame.clone();
                     controller.enqueue(frame);
                     return;
                 }
                 const ts = frame.timestamp;
-                if (mode === "freeze") {
-                    if (!last) {
-                        last = frame.clone();
-                        controller.enqueue(frame);
-                        return;
-                    }
-                    frame.close();
-                    controller.enqueue(new VideoFrame(last, { timestamp: ts }));
+                if (!last) {
+                    last = frame.clone();
+                    controller.enqueue(frame);
                     return;
                 }
-                const key = renderContent(frame.displayWidth, frame.displayHeight);
                 frame.close();
-                if (!cached || key !== cachedKey) {
-                    cached?.close();
-                    cached = new VideoFrame(crashCanvas!, { timestamp: ts });
-                    cachedKey = key;
-                }
-                controller.enqueue(new VideoFrame(cached, { timestamp: ts }));
+                controller.enqueue(new VideoFrame(last, { timestamp: ts }));
             },
             flush() {
                 last?.close();
-                cached?.close();
                 last = null;
-                cached = null;
             }
         }))
         .pipeTo(generator.writable)
@@ -1037,20 +966,13 @@ function toggleSafeCamera() {
 
 function crashCamera(on: boolean) {
     crashed = on;
-    crashDrawKey = "";
     if (on) {
         if (SelectedChannelStore.getVoiceChannelId() && realState().cam) {
-            if (sentTracks.size > 0) notify(tx("Camera crashed"), "success");
+            if (sentTracks.size > 0) notify(tx("Camera hidden"), "success");
             else if (settings.store.cameraFallback && previousDevice === null && switchCamera()) fallbackUsed = true;
-            else if (!settings.store.cameraHook) fail(tx("Turn on Camera hooking in Settings to crash the camera"));
+            else if (!settings.store.cameraHook) fail(tx("Turn on Camera hooking in Settings to hide the camera"));
         }
     } else if (fallbackUsed && previousDevice !== null) restoreCamera();
-    emit();
-}
-
-function setCrashMode(m: string) {
-    settings.store.crashMode = m;
-    crashDrawKey = "";
     emit();
 }
 
@@ -1070,7 +992,7 @@ function panicSummary() {
     const st = settings.store;
     const p: string[] = [];
     if (st.panicCamera === "off") p.push(tx("camera off"));
-    else if (st.panicCamera === "crash") p.push(tx("crash camera"));
+    else if (st.panicCamera === "hide") p.push(tx("hide camera"));
     if (st.panicShare) p.push(tx("stop screenshare"));
     if (st.panicMute) p.push(tx("mute mic"));
     if (st.panicDeafen) p.push(tx("deafen"));
@@ -1080,7 +1002,7 @@ function panicSummary() {
 
 function panic() {
     const st = settings.store;
-    if (st.panicCamera === "crash") crashCamera(true);
+    if (st.panicCamera === "hide") crashCamera(true);
     else if (st.panicCamera === "off") setCamera(false);
     if (st.panicShare) stopAnyStream();
     if (st.panicMute) setRealMute(true);
@@ -1344,7 +1266,7 @@ function actionList(r: Rule) {
     if (a.mute) p.push(tx(a.mute === 1 ? "mute me" : "unmute me"));
     if (a.deafen) p.push(tx(a.deafen === 1 ? "deafen me" : "undeafen me"));
     if (a.camera) p.push(tx(a.camera === 1 ? "turn my camera on" : "turn my camera off"));
-    if (a.crash) p.push(tx(a.crash === 1 ? "crash my camera" : "release the camera crash"));
+    if (a.crash) p.push(tx(a.crash === 1 ? "hide my camera" : "show my camera again"));
     if (a.safeCam) p.push(tx(a.safeCam === 1 ? "switch to my safe camera" : "restore my camera"));
     if (a.panic) p.push(tx("run my Panic profile"));
     if (a.stream) p.push(tx(a.stream === 1 ? "start my screenshare" : "stop my screenshare"));
@@ -1403,9 +1325,9 @@ function pairNotes(a: Actions) {
     pair("Headset", "deafened", a.fakeDeafen, a.deafen);
     pair("Camera", "with the camera on", a.fakeCamera, a.camera);
     if (a.deafen === 1 && a.mute === 2) w.push(tx("Deafen with unmute: Discord keeps you muted while you are deafened."));
-    if (a.crash === 1 && a.camera === 2) w.push(tx("Camera crash with camera off: there is no video to crash."));
-    if (a.crash === 1 && a.safeCam === 1) w.push(tx("Camera crash and safe camera swap together: pick one of them."));
-    if (a.crash === 1 && !settings.store.cameraHook && !settings.store.cameraFallback) w.push(tx("Camera crash needs Camera hooking or the safe camera fallback (Settings, Camera shield)."));
+    if (a.crash === 1 && a.camera === 2) w.push(tx("Hide camera with camera off: there is no video to hide."));
+    if (a.crash === 1 && a.safeCam === 1) w.push(tx("Hide camera and safe camera swap together: pick one of them."));
+    if (a.crash === 1 && !settings.store.cameraHook && !settings.store.cameraFallback) w.push(tx("Hide camera needs Camera hooking or the safe camera fallback (Settings, Camera shield)."));
     if (a.safeCam === 1 && !settings.store.safeCamera) w.push(tx("No safe camera chosen in Settings: it will look for a camera named virtual."));
     if (a.fakeStream === 1 && a.stream === 1) w.push(tx("Stream: fake stream On and real screenshare Start together. Only one stream can run, the real one is skipped."));
     const first = settings.store.stopFirst;
@@ -2003,7 +1925,7 @@ function RuleEditor({ rule, onBack }: { rule: Rule; onBack: () => void; }) {
                     <TriCell label={tx("Real screenshare ({name})", { name: srcName })} value={a.stream} disabled={lock || noVoice || noStream} on="Start" off="Stop" onChange={v => setA("stream", v)} />
                 </Grid2>
                 <Grid2>
-                    <TriCell label={tx("Camera crash (Settings, Camera shield)")} value={a.crash} disabled={lock || noVoice} on="Crash" off="Release" onChange={v => setA("crash", v)} />
+                    <TriCell label={tx("Hide camera (Settings, Camera shield)")} value={a.crash} disabled={lock || noVoice} on="Hide" off="Show" onChange={v => setA("crash", v)} />
                     <TriCell label={tx("Safe camera swap")} value={a.safeCam} disabled={lock || noVoice} on="Switch" off="Restore" onChange={v => setA("safeCam", v)} />
                 </Grid2>
                 <Grid2>
@@ -2169,7 +2091,7 @@ function QuickBar() {
             </div>
             <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                 <Tag>{tx("SHIELD")}</Tag>
-                <Chip label={tx("Crash camera")} color={K.pink} active={crashed} title={tx("Shows a frozen or fake picture instead of your camera (Settings, Camera shield)")} onClick={() => crashCamera(!crashed)} />
+                <Chip label={tx("Hide camera")} color={K.pink} active={crashed} title={tx("Shows a frozen frame instead of your camera (Settings, Camera shield)")} onClick={() => crashCamera(!crashed)} />
                 <Chip label={tx("Safe camera")} color={K.pink} active={previousDevice !== null} title={tx("Swaps to your safe camera, click again to restore")} onClick={toggleSafeCamera} />
                 <Chip label={tx("Panic")} color={K.red} title={`Runs: ${panicSummary()}`} onClick={panic} />
             </div>
@@ -2259,37 +2181,29 @@ function SettingsTab() {
                     ))}
                 </Sec>
             ))}
-            <Sec title={tx("Language")} color={K.accent} hint={tx("Applies instantly. Missing texts fall back to English.")}>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                    {LANGS.map(([id, name]) => <Chip key={id} label={name} active={settings.store.language === id} onClick={() => { settings.store.language = id; emit(); }} />)}
-                </div>
-            </Sec>
             <Sec title={tx("Screenshare source")} color={K.cyan} hint={tx("Used when a rule or button starts a screenshare.")}>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
                     <Dropdown width={330} value={srcChoice?.id ?? ""} options={srcOpts} onChange={pickSource} />
                     <Chip label={tx("Refresh list")} onClick={() => { void loadSources(); }} />
                 </div>
             </Sec>
-            <Sec title={tx("Camera shield")} color={K.pink} hint={tx("From CamCrasher: crash or swap your camera.")}>
-                <Row label={tx("Camera hooking (advanced)")} hint={tx("Needed for Crash modes. Applies the next time your camera starts. Off means zero overhead.")}>
+            <Sec title={tx("Camera shield")} color={K.pink} hint={tx("Hide your camera: shows a frozen frame instead of live video.")}>
+                <Row label={tx("Camera hooking (advanced)")} hint={tx("Needed to hide the camera. Applies the next time your camera starts. Off means zero overhead.")}>
                     <Toggle value={!!settings.store.cameraHook} onChange={v => { settings.store.cameraHook = v; emit(); }} />
                 </Row>
-                <Cell label={tx("Crash mode")}>
-                    {CRASH_MODES.map(([id, label]) => <Chip key={id} label={tx(label)} color={K.pink} active={settings.store.crashMode === id} onClick={() => setCrashMode(id)} />)}
-                </Cell>
                 <Cell label={tx("Safe camera")}>
                     <Dropdown width={320} value={settings.store.safeCamera} options={[opt("", tx("Automatic (a camera named virtual)")), ...devs.map(d => opt(String(d.name), String(d.name)))]} onChange={v => { settings.store.safeCamera = v; emit(); }} />
                 </Cell>
-                <Row label={tx("Safe camera fallback")} hint={tx("If the camera cannot be hooked, Crash swaps to the safe camera.")}>
+                <Row label={tx("Safe camera fallback")} hint={tx("If the camera cannot be hooked, Hide swaps to the safe camera.")}>
                     <Toggle value={!!settings.store.cameraFallback} onChange={v => { settings.store.cameraFallback = v; emit(); }} />
                 </Row>
-                <Row label={tx("Release crash when the camera changes")} hint={tx("Turning the camera on or off, or changing channel, ends the crash.")}>
+                <Row label={tx("Release crash when the camera changes")} hint={tx("Turning the camera on or off, or changing channel, ends the hide.")}>
                     <Toggle value={!!settings.store.autoReleaseCrash} onChange={v => { settings.store.autoReleaseCrash = v; emit(); }} />
                 </Row>
             </Sec>
             <Sec title={tx("Panic profile")} color={K.red} hint={tx("What the Panic chip, toolbox entry and the rule action do.")}>
                 <Cell label={tx("Camera")}>
-                    {([["none", "Leave it"], ["off", "Turn off"], ["crash", "Crash it"]] as [string, string][]).map(([id, label]) => <Chip key={id} label={tx(label)} color={K.red} active={settings.store.panicCamera === id} onClick={() => { settings.store.panicCamera = id; emit(); }} />)}
+                    {([["none", "Leave it"], ["off", "Turn off"], ["hide", "Hide it"]] as [string, string][]).map(([id, label]) => <Chip key={id} label={tx(label)} color={K.red} active={settings.store.panicCamera === id} onClick={() => { settings.store.panicCamera = id; emit(); }} />)}
                 </Cell>
                 <Row label={tx("Stop the screenshare")}><Toggle value={!!settings.store.panicShare} onChange={v => { settings.store.panicShare = v; emit(); }} /></Row>
                 <Row label={tx("Mute the microphone")}><Toggle value={!!settings.store.panicMute} onChange={v => { settings.store.panicMute = v; emit(); }} /></Row>
@@ -2326,8 +2240,7 @@ const HELP: [string, string][] = [
     ["Pause", "Pause stops all rules for the minutes you choose, then resumes by itself. Pause while Invisible is optional and off by default."],
     ["IDs", "Paste one or many IDs, then Enter. Click an ID to edit it. Names are resolved automatically."],
     ["Order of actions", "A rule runs every Off, Stop, Unmute, Undeafen, Camera off, Release and Panic first, then every On, Start, Mute, Deafen, Crash, Camera on and Join. Example: real screenshare Stop plus fake stream On stops the real one, then starts the fake one. Swap the order from the rule or from Settings."],
-    ["Fake vs real", "Real states always win: a fake Off never hides a real mute, deafen or camera. A fake On shows even when the real state is off. Combos are allowed and the rule editor explains the result."],
-    ["Camera shield", "From CamCrasher. Crash shows a frozen or fake picture instead of your camera, Safe camera swaps to another camera. Camera hooking is off by default and only needed for Crash modes."],
+    ["Camera shield", "Hide camera shows a frozen frame instead of your camera, Safe camera swaps to another camera. Camera hooking is off by default and only needed to hide the camera."],
     ["Panic profile", "Panic runs the actions you chose in Settings in one click. Use it from the Shield row, the toolbox, or as a rule action, for example when staff joins."],
     ["Toasts", "Show toast on a rule always shows when that rule runs. The global Toasts setting only controls toasts for buttons and toolbox actions. Errors always show."],
     ["Other fake plugins", "Voice Suite adds no buttons to Discord menus and works together with FakeVoiceState and similar plugins. The FAKE chips show the combined state of all of them, and turning one off in Voice Suite turns it off for the others too. Their own menu buttons keep working."],
@@ -2377,7 +2290,7 @@ const KB_ACTIONS: [KbAction, string, boolean][] = [
     ["deafen", "Real deafen", true],
     ["camera", "Real camera", true],
     ["share", "Real screenshare", true],
-    ["crash", "Camera crash", true],
+    ["crash", "Hide camera", true],
     ["safeCam", "Safe camera", true],
     ["panic", "Panic profile", false],
     ["leave", "Leave voice", false],
@@ -2743,7 +2656,7 @@ function SuiteModal({ modalProps }: { modalProps: ModalProps; }) {
 
 export default definePlugin({
     name: "Voice Suite",
-    description: "Voice automation suite with built-in fake voice state. Build rules for several servers and channels that react when you join or leave voice, when your screenshare starts or stops, or when anyone, the owner, friends, roles, permissions or chosen users join or leave your call. Actions: fake or real mute, deafen, camera and screenshare, disconnect, or join a channel already fake. Delays, cooldowns, undo timers, hours, custom pause, presets and file backup included.",
+    description: "Voice automation suite with built-in fake voice state. Build rules for several servers and channels that react when you join or leave voice, when your screenshare starts or stops, or when anyone, the owner, friends, roles, permissions or chosen users join or leave your call. Actions: fake or real mute, deafen, camera and screenshare, hide camera, disconnect, or join a channel already fake. Delays, cooldowns, undo timers, hours, custom pause, presets and file backup included.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Privacy", "Utility"],
     enabledByDefault: false,
@@ -2825,6 +2738,10 @@ export default definePlugin({
         const sid = rawSrc?.id ?? rawSrc?.desktopSettings?.sourceId;
         srcChoice = sid ? { id: String(sid), name: String(rawSrc?.name ?? rawSrc?.desktopSettings?.sourceName ?? sid) } : null;
         if (!pluginActive) return;
+        // Migration: rimuove vecchia impostazione crashMode se presente
+        if ((settings.store as any).crashMode) delete (settings.store as any).crashMode;
+        // Migration: panicCamera "crash" -> "hide"
+        if ((settings.store as any).panicCamera === "crash") settings.store.panicCamera = "hide";
         rebuild();
         patchSeen = false;
         hookWarn = false;
