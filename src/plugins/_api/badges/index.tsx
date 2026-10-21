@@ -36,7 +36,7 @@ import { EquicordDonorModal, EquicordTranslatorModal, IllegalcordDonorModal, Nig
 
 const CONTRIBUTOR_BADGE = "https://cdn.discordapp.com/emojis/1092089799109775453.png?size=64";
 const EQUICORD_CONTRIBUTOR_BADGE = "https://equicord.org/assets/favicon.png";
-const USERPLUGIN_CONTRIBUTOR_BADGE = "https://github.com/ImHisako/ImHisako/blob/main/Images/Illegalcord.png?raw=true";
+const USERPLUGIN_CONTRIBUTOR_BADGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashGangPage_icon.png";
 
 const ContributorBadge: ProfileBadge = {
     id: "vencord_contributor_badge",
@@ -105,8 +105,8 @@ async function loadBadges(url: string, noCache = false) {
 async function loadAllBadges(noCache = false) {
     const vencordBadges = await loadBadges("https://badges.vencord.dev/badges.json", noCache);
     const equicordBadges = await loadBadges("https://badge.equicord.org/badges.json", noCache);
-    const TrashCordBadges = await loadBadges("https://raw.githubusercontent.com/TrashCord/main/refs/heads/main/host/files/badges.json", noCache);
-    const illegalcordBadges = await loadBadges("https://raw.githubusercontent.com/ImHisako/ImHisako/refs/heads/main/Images/badges.json", noCache);
+    const TrashCordBadges = await loadBadges("https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/files/badges.json", noCache);
+    const illegalcordBadges = await loadBadges("https://cdn.jsdelivr.net/gh/ImHisako/ImHisako@main/Images/badges.json", noCache);
     const nightcordBadges = IS_WEB
         ? await loadBadges("https://api.nightcord.st/badges", noCache).catch(() => ({}))
         : await (VencordNative.pluginHelpers.BadgeAPI as PluginNative<typeof import("./native")>).fetchNightcordBadges();
