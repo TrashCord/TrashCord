@@ -928,7 +928,7 @@ async function applyClan(id: string, retries = 4, signal?: AbortSignal): Promise
             });
             if (signal?.aborted) return;
             if (res.ok) { if (settings.store.enableLogs) console.log(`[RS/Clan] -> ${id} attempt=${attempt + 1}`); return; }
-            if (res.status === 300) {
+            if (res.status === 429) {
                 const json = await res.json().catch(() => ({}));
                 if (signal?.aborted) return;
                 const ra = Math.max((json?.retry_after ?? 3), 1);
@@ -1018,7 +1018,7 @@ async function applyGuildPronoun(guildId: string, pronouns: string): Promise<voi
             return;
         } catch (e: any) {
             const st = e?.status ?? e?.response?.status ?? 0;
-            if (st === 300) {
+            if (st === 429) {
                 const ra = Math.max(parseFloat(e?.body?.retry_after ?? e?.retry_after ?? "5") || 5, 1);
                 if (settings.store.enableLogs) console.warn(`[RS/GuildPronouns] 429 [${guildId}] retry ${ra}s`);
                 await rsSleep(ra * 1000 + 300);
