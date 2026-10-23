@@ -152,7 +152,7 @@ const settings = definePluginSettings({
     instantSlideshow: {
         type: OptionType.BOOLEAN,
         description: "Instant slideshow: switch slides at the interval below",
-        default: true
+        default: false
     },
     instantSlideshowInterval: {
         type: OptionType.NUMBER,
@@ -1720,6 +1720,7 @@ function advanceSlide() {
 
 async function forceUploadPreview() {
     if (cachedDataUris.length === 0 || !settings.store.replaceEnabled) return;
+    if (!isStreamActive) return;
     const image = cachedDataUris[currentSlideIndex] ?? cachedDataUris[0];
 
     try {
@@ -1749,7 +1750,7 @@ async function forceUploadPreview() {
                 : `call%3A${channelId}%3A${userId}`;
         }
 
-        const res = await fetch(`https://discord.com/api/v9/streams/${streamKeyEncoded}/preview`, {
+        const res = await fetch(`https://discord.com/api/v10/streams/${streamKeyEncoded}/preview`, {
             method: "POST",
             headers: {
                 "Authorization": token,
@@ -1907,7 +1908,7 @@ export default definePlugin({
                         else advanceSlide();
                     }
                     if (settings.store.instantSlideshow || settings.store.bypassPreviewToggle) {
-                        forceUploadPreview();
+                        if (isStreamActive) forceUploadPreview();
                     }
                 }
                 scheduleTimer();
