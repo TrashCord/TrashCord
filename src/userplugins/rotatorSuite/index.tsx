@@ -909,8 +909,17 @@ function getActiveClanIds(): string[] {
     const refreshMs = Math.max(10000, (parseFloat(settings.store.clanAutoDetectRefreshSeconds) || 180) * 1000);
     const now = Date.now();
     if (!cachedClanGuilds.length || now - lastClanFetch >= refreshMs) {
-        cachedClanGuilds = getDiscordGuilds().map(g => g.id); lastClanFetch = now;
-        if (settings.store.enableLogs) console.log(`[RS/Clan] Auto-detect: ${cachedClanGuilds.length} guilds`);
+        const store = getGuildStore()?.getGuilds?.() ?? {};
+        cachedClanGuilds = Object.values(store)
+            .filter((g: any) => {
+                const feat = g?.features;
+                if (Array.isArray(feat)) return feat.includes("CLAN");
+                if (feat && typeof feat.has === "function") return feat.has("CLAN");
+                return !!g?.clan;
+            })
+            .map((g: any) => g.id);
+        lastClanFetch = now;
+        if (settings.store.enableLogs) console.log(`[RS/Clan] Auto-detect: ${cachedClanGuilds.length} clan-eligible guilds`);
     }
     return cachedClanGuilds;
 }
@@ -935,6 +944,14 @@ async function applyClan(id: string, retries = 4, signal?: AbortSignal): Promise
                 await rsSleep(ra * 1000 + 300);
                 if (signal?.aborted || !pluginActive) return;
                 continue;
+            }
+            if (res.status === 403) {
+                if (settings.store.enableLogs) console.warn(`[RS/Clan] 403 for ${id} - guild has no clan tag / not eligible, skipping`);
+                return;
+            }
+            if (res.status === 404) {
+                if (settings.store.enableLogs) console.warn(`[RS/Clan] 404 for ${id} - guild not found / left, skipping`);
+                return;
             }
             if (settings.store.enableLogs) console.error(`[RS/Clan] HTTP ${res.status} attempt=${attempt + 1}`);
             if (attempt < retries - 1) {
