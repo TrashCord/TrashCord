@@ -3,10 +3,8 @@ import definePlugin from "@utils/types";
 import { Forms, Button, React } from "@webpack/common";
 
 const SCAM_LIST_URL = "https://cdn.jsdelivr.net/gh/Discord-AntiScam/scam-links@main/list.txt";
-const UPDATE_INTERVAL = 43_200_000;
 
 let scamDomains: Set<string> = new Set();
-let intervalId: ReturnType<typeof setInterval> | null = null;
 
 async function fetchScamList(): Promise<void> {
     try {
@@ -19,15 +17,6 @@ async function fetchScamList(): Promise<void> {
                 .filter(Boolean)
         );
     } catch {}
-}
-
-function isScamUrl(href: string): boolean {
-    try {
-        const host = new URL(href).hostname.toLowerCase().replace(/^www\./, "");
-        return scamDomains.has(host);
-    } catch {
-        return false;
-    }
 }
 
 function ScamWarningModal({ url, onConfirm, onCancel, modalProps }: {
@@ -80,11 +69,15 @@ function ScamWarningModal({ url, onConfirm, onCancel, modalProps }: {
 }
 
 function handleLinkClick(e: MouseEvent): void {
-    const anchor = (e.target as Element).closest("a");
+    if (scamDomains.size === 0) return;
+
+    const anchor = (e.target as Element).closest?.("a[href]") as HTMLAnchorElement | null;
     if (!anchor) return;
 
-    const href = (anchor as HTMLAnchorElement).href;
-    if (!href || !isScamUrl(href)) return;
+    const host = anchor.hostname.toLowerCase();
+    if (!scamDomains.has(host.startsWith("www.") ? host.slice(4) : host)) return;
+
+    const href = anchor.href;
 
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -104,26 +97,21 @@ function handleLinkClick(e: MouseEvent): void {
 
 export default definePlugin({
     name: "AntiScamLinks",
-    description: "Warns you before opening scam or phishing links detected in Discord messages.",
+    description: "Warns you before opening scam links. List from https://github.com/Discord-AntiScam/scam-links, loaded at startup (restart to retry).",
     authors: [
         { name: "irritably", id: 928787166916640838n },
         { name: "zfrancesck1", id: 456195985404592149n },
     ],
     tags: ["Privacy", "Chat", "Security", "Adblock"],
-    enabledByDefault: false,
+    enabledByDefault: true,
 
-    async start() {
-        await fetchScamList();
-        intervalId = setInterval(fetchScamList, UPDATE_INTERVAL);
+    start() {
+        void fetchScamList();
         document.addEventListener("click", handleLinkClick, true);
     },
 
     stop() {
-        if (intervalId !== null) {
-            clearInterval(intervalId);
-            intervalId = null;
-        }
         document.removeEventListener("click", handleLinkClick, true);
-        scamDomains.clear();
+        scamDomains = new Set();
     }
 });
