@@ -134,8 +134,8 @@ function playToggleSound(enabled: boolean) {
                 osc.type = "triangle";
                 osc.frequency.setValueAtTime(500, t);
                 osc.frequency.exponentialRampToValueAtTime(220, t + 0.15);
-                gain.gain.setValueAtTime(0.020, t);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
+                gain.gain.setValueAtTime(0.055, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
                 osc.start(t); osc.stop(t + 0.18);
                 osc.onended = () => ctx.close();
             }
@@ -153,6 +153,7 @@ let currentUpdate: Promise<void> | null = null;
 let pendingState: boolean | null = null;
 let crashUpdateInProgress = false;
 let savedQuality: { preset: number; resolution: number; frameRate: number; } | null = null;
+let savedSound: boolean | null = null;
 
 function setLastSourceId(sourceId: string | null, qualityOptions?: any): boolean {
     if (settings.store.isEnabled) return false;
@@ -213,15 +214,16 @@ async function doUpdateStream(isEnabled: boolean) {
                 resolution: s.resolution ?? 720,
                 frameRate: (s.fps && s.fps > 0) ? s.fps : 60
             };
+            savedSound = s.soundshareEnabled ?? false;
         }
 
         const sourceId = await getSourceId(isEnabled);
         if (!sourceId) { crashUpdateInProgress = false; return; }
 
         const type = sourceId.includes(":") ? sourceId.split(":")[0] : "screen";
-        const sound = isEnabled ? false : (ApplicationStreamingSettingsStore?.getState?.()?.soundshareEnabled ?? false);
+        const sound = isEnabled ? false : (savedSound ?? ApplicationStreamingSettingsStore?.getState?.()?.soundshareEnabled ?? false);
         const qualityOptions = isEnabled ? { preset: 2, resolution: 480, frameRate: 30 } : (savedQuality ?? resolveRestoreQuality());
-        if (!isEnabled) savedQuality = null;
+        if (!isEnabled) { savedQuality = null; savedSound = null; }
 
         VoiceActions.setGoLiveSource({
             desktopSettings: { sourceId, type, sound },
@@ -589,7 +591,7 @@ const StreamCrasherPlugin = definePlugin({
             const ds = data.settings?.desktopSettings;
             if (isEnabledCache && !crashUpdateInProgress && ds?.sound) {
                 const next = { ...data.settings, desktopSettings: { ...ds, type: ds.type ?? (ds.sourceId?.includes(":") ? ds.sourceId.split(":")[0] : "screen"), sound: false } };
-                queueMicrotask(() => VoiceActions.setGoLiveSource(next));
+                queueMicrotask(() => { if (isEnabledCache) VoiceActions.setGoLiveSource(next); });
             }
             const sourceId = data.settings?.desktopSettings?.sourceId;
             const qualityOptions = data.settings?.qualityOptions;

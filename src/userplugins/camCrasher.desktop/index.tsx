@@ -166,13 +166,13 @@ function playToggleSound(on: boolean) {
             } else {
                 const osc = ctx.createOscillator();
                 osc.type = "sine";
-                osc.frequency.setValueAtTime(210, t);
-                osc.frequency.exponentialRampToValueAtTime(70, t + 0.13);
-                gain.gain.setValueAtTime(0.08, t);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                osc.frequency.setValueAtTime(420, t);
+                osc.frequency.exponentialRampToValueAtTime(150, t + 0.14);
+                gain.gain.setValueAtTime(0.15, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.19);
                 osc.connect(gain);
                 osc.start(t);
-                osc.stop(t + 0.16);
+                osc.stop(t + 0.20);
                 osc.onended = () => ctx.close();
             }
         };
