@@ -422,7 +422,7 @@ export const settings = definePluginSettings({
     keybind: {
         type: OptionType.STRING,
         description: "Use 'Set Keybind' in the right-click menu, or type it (e.g. Control+F3). Empty = off. Windows official client: native, key passes through. CustomDiscordClient/macOS/Linux: TCP, key is captured (avoid in-game keys).",
-        default: "F9",
+        default: "Shift+F9",
         hidden: true
     },
     keybindStops: {
@@ -453,7 +453,7 @@ export const settings = definePluginSettings({
     backupKeybind: {
         type: OptionType.STRING,
         description: "Backup keybind accelerator",
-        default: "Shift+F9",
+        default: "Control+Shift+F9",
         hidden: true
     },
     backupSound: {
