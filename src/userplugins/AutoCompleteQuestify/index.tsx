@@ -146,7 +146,7 @@ async function run(): Promise<void> {
     do {
         pending = false;
         running = true;
-        try { await doRun(); } catch (e) { console.error("[AutoCompleteQuestify]", e); }
+        try { await doRun(); } catch { }
         running = false;
     } while (pending);
 }
