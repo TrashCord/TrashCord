@@ -819,10 +819,44 @@ async function resolveStatusEntry(entry: StatusEntry): Promise<StatusEntry> {
 const CustomStatusSetting = getUserSettingLazy<{ text: string; emojiId: string; emojiName: string; expiresAtMs: string; createdAtMs: string }>("status", "customStatus");
 const PresenceSetting = getUserSettingLazy<string>("status", "status");
 
-async function applyStatus(entry: StatusEntry, retries = 3): Promise<void> {
-    const clearMs = entry.clearAfter ?? 0;
-    const expiresAtIso = clearMs > 0 ? new Date(Date.now() + clearMs).toISOString() : null;
+let statusBlockedUntil = 0;
+let statusApplyChain: Promise<void> = Promise.resolve();
 
+function applyStatus(entry: StatusEntry, retries = 3): Promise<void> {
+    const run = statusApplyChain.then(() => applyStatusExec(entry, retries));
+    statusApplyChain = run.catch(() => {});
+    return run;
+}
+
+function statusBlock(e: any, fallbackSec: number) {
+    const ra = Math.max(parseFloat(e?.body?.retry_after ?? e?.retry_after ?? String(fallbackSec)) || fallbackSec, 1);
+    statusBlockedUntil = Date.now() + ra * 1000 + 500;
+    if (settings.store.enableLogs) console.warn(`[RS/Status] 429 cooldown ${ra}s`);
+}
+
+async function applyStatusExec(entry: StatusEntry, retries: number): Promise<void> {
+    if (!pluginActive || Date.now() < statusBlockedUntil) return;
+    const clearMs = entry.clearAfter ?? 0;
+    const expiresAtMs = clearMs > 0 ? String(Date.now() + clearMs) : "0";
+    const expiresAtIso = clearMs > 0 ? new Date(Date.now() + clearMs).toISOString() : null;
+    if (CustomStatusSetting) {
+        try {
+            await CustomStatusSetting.updateSetting({
+                text: entry.text || "",
+                emojiName: entry.emojiName ?? "",
+                emojiId: entry.emojiId ?? "0",
+                createdAtMs: Date.now().toString(),
+                expiresAtMs,
+            });
+            if (entry.status && entry.status !== "auto" && PresenceSetting) await PresenceSetting.updateSetting(entry.status);
+            if (settings.store.enableLogs) console.log(`[RS/Status] -> "${entry.text}" [${entry.status ?? "auto"}]`);
+            return;
+        } catch (e: any) {
+            const st = e?.status ?? e?.response?.status ?? 0;
+            if (st === 429) { statusBlock(e, 30); return; }
+            if (settings.store.enableLogs) console.warn("[RS/Status] UserSetting fallback RestAPI:", e);
+        }
+    }
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
             const body: any = {
@@ -834,20 +868,12 @@ async function applyStatus(entry: StatusEntry, retries = 3): Promise<void> {
                 },
             };
             if (entry.status && entry.status !== "auto") body.status = entry.status;
-
             await RestAPI.patch({ url: "/users/@me/settings", body });
-
             if (settings.store.enableLogs) console.log(`[RS/Status] -> "${entry.text}" [${entry.status ?? "auto"}]`);
             return;
         } catch (e: any) {
             const st = e?.status ?? e?.response?.status ?? 0;
-            if (st === 429) {
-                const ra = Math.max(parseFloat(e?.body?.retry_after ?? e?.retry_after ?? "3") || 3, 1);
-                if (settings.store.enableLogs) console.warn(`[RS/Status] 429 retry ${ra}s`);
-                await rsSleep(ra * 1000 + 200);
-                if (!pluginActive) return;
-                continue;
-            }
+            if (st === 429) { statusBlock(e, 60); return; }
             if (settings.store.enableLogs) console.error(`[RS/Status] attempt=${attempt + 1} err:`, e);
             if (attempt < retries - 1) {
                 await rsSleep(1500);
@@ -5776,6 +5802,7 @@ export default definePlugin({
 
     stop() {
         pluginActive = false;
+        statusBlockedUntil = 0;
         lastGlobalNickApply = 0;
         cachedToken = null; cachedGuildStore = null; cachedVoiceStateStore = null; cachedChannelStore = null;
         isManualStop = false; wasInvisible = false;
