@@ -357,7 +357,7 @@ export default definePlugin({
             iconSrc: badge.badge,
             description: badge.tooltip,
             name: badge.tooltip,
-            infoLabel: "Illegalcord Donor",
+            infoLabel: "Illegalcord",
             rarity: BadgeRarity.MYTHIC,
             position: BadgePosition.START,
             props: {
@@ -381,7 +381,7 @@ export default definePlugin({
             iconSrc: badge.badge,
             description: badge.tooltip,
             name: badge.tooltip,
-            infoLabel: "TrashCord Donor",
+            infoLabel: "TrashCord",
             rarity: BadgeRarity.MYTHIC,
             position: BadgePosition.START,
             props: {
