@@ -24,27 +24,29 @@ import {
     UserStore,
 } from "@webpack/common";
 
-const ChannelActionsRaw: { selectVoiceChannel: (channelId: string) => void } =
+const ChannelActionsRaw: { selectVoiceChannel: (...args: any[]) => any; } =
     findByPropsLazy("selectVoiceChannel", "disconnect");
 
-const VoiceActions = findByPropsLazy("toggleSelfMute");
+let originalSelectVoiceChannel: ((...args: any[]) => any) | null = null;
+let originalPatch: ((...args: any[]) => Promise<any>) | null = null;
 
-let originalSelectVoiceChannel: ((channelId: string) => void) | null = null;
-let originalPatch: ((options: any) => Promise<any>) | null = null;
-let calledByPlugin = false;
+// AntiMove helpers: distinguish user clicks from forced moves
+let lastUserSelectAt = 0;
+let ignoreMoveTo: string | null = null;
 
 const NICK_ENDPOINT_RE1 = /^\/users\/@me\/guilds\/\w+\/profile$/;
 const NICK_ENDPOINT_RE2 = /^\/guilds\/\w+\/members\/@me$/;
 const NICK_GUILD_RE = /\/guilds\/(\w+)/;
 
-function patchedSelectVoiceChannel(channelId: string) {
-    calledByPlugin = false;
-    originalSelectVoiceChannel!(channelId);
+// Called only when the USER (or Discord itself) selects a voice channel.
+function patchedSelectVoiceChannel(...args: any[]) {
+    lastUserSelectAt = Date.now();
+    return (originalSelectVoiceChannel as any)(...args);
 }
 
+// Called by the plugin: bypasses the wrapper so it is not seen as a manual action.
 function internalSelectVoiceChannel(channelId: string) {
-    calledByPlugin = true;
-    ChannelActionsRaw.selectVoiceChannel(channelId);
+    (originalSelectVoiceChannel ?? ChannelActionsRaw.selectVoiceChannel)(channelId);
 }
 
 interface VoiceState {
@@ -68,28 +70,32 @@ let manualDisconnect = false;
 let retryCount = 0;
 let rejoinTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRejoining = false;
+let voiceFixInFlight = false;
 
-let _antiNickChangerEnabled  = false;
-let _antiMove                = false;
-let _antiDisconnect          = false;
-let _antiMuteServer          = false;
-let _antiDeafenServer        = false;
-let _ignoreManualDisconnect  = true;
+let _antiNickChangerEnabled = false;
+let _antiMove = false;
+let _antiDisconnect = false;
+let _antiMuteServer = false;
+let _antiDeafenServer = false;
+let _ignoreManualDisconnect = true;
 
 function syncSettingsCache() {
     const s = settings.store;
     _antiNickChangerEnabled = s.antiNickChanger;
-    _antiMove               = s.antiMove;
-    _antiDisconnect         = s.antiDisconnect;
-    _antiMuteServer         = s.antiMuteServer;
-    _antiDeafenServer       = s.antiDeafenServer;
+    _antiMove = s.antiMove;
+    _antiDisconnect = s.antiDisconnect;
+    _antiMuteServer = s.antiMuteServer;
+    _antiDeafenServer = s.antiDeafenServer;
     _ignoreManualDisconnect = s.ignoreManualDisconnect;
 }
 
 const savedNicks = new Map<string, string | null>();
-const selfChangingNickGuilds = new Set<string>();
-const resettingNickGuilds = new Set<string>();
-const nickDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+// Nick changes made by YOU: guildId -> the nick you set (expires, so no timers needed)
+const selfChangingNicks = new Map<string, { nick: string | null; until: number; }>();
+const resettingNickGuilds = new Set<string>();   // restore request in flight
+const pendingNickGuilds = new Set<string>();     // changed again while a restore was in flight
+const restoreWindow = new Map<string, { start: number; count: number; }>(); // loop guard
+let preferProfileEndpoint = true;
 
 let _nickChangerSubscribed = false;
 
@@ -99,31 +105,25 @@ function onGuildMemberUpdate({ guildId, user, nick }: {
     nick: string | null;
 }) {
     if (!myUserId || user.id !== myUserId) return;
+    const current = nick || null;
 
-    if (selfChangingNickGuilds.has(guildId)) {
-        savedNicks.set(guildId, nick);
-        selfChangingNickGuilds.delete(guildId);
+    // Your own change: accept it only if it matches what you actually set
+    const own = selfChangingNicks.get(guildId);
+    if (own && own.until > Date.now() && own.nick === current) {
+        selfChangingNicks.delete(guildId);
+        savedNicks.set(guildId, current);
         return;
     }
 
     if (!savedNicks.has(guildId)) {
-        savedNicks.set(guildId, nick);
+        savedNicks.set(guildId, current);
         return;
     }
 
-    const savedNick = savedNicks.get(guildId) ?? null;
-    if (nick === savedNick) return;
+    if (current === savedNicks.get(guildId)) return;
 
-    const existingTimer = nickDebounceTimers.get(guildId);
-    if (existingTimer !== undefined) clearTimeout(existingTimer);
-
-    const timer = setTimeout(() => {
-        nickDebounceTimers.delete(guildId);
-        if (!resettingNickGuilds.has(guildId))
-            restoreNick(guildId, nick ?? "");
-    }, 2000);
-
-    nickDebounceTimers.set(guildId, timer);
+    // Someone else changed it: restore right away
+    restoreNick(guildId, current ?? "");
 }
 
 function populateSavedNicks() {
@@ -132,7 +132,7 @@ function populateSavedNicks() {
     const uid = myUserId;
     for (const guildId of Object.keys(GuildStore.getGuilds())) {
         const member = GuildMemberStore.getMember(guildId, uid);
-        if (member != null) savedNicks.set(guildId, member.nick ?? null);
+        if (member != null) savedNicks.set(guildId, member.nick || null);
     }
 }
 
@@ -148,8 +148,7 @@ function unsubscribeNickChanger() {
     FluxDispatcher.unsubscribe("GUILD_MEMBER_UPDATE", onGuildMemberUpdate);
     _nickChangerSubscribed = false;
     savedNicks.clear();
-    nickDebounceTimers.forEach(t => clearTimeout(t));
-    nickDebounceTimers.clear();
+    pendingNickGuilds.clear();
 }
 
 function SectionSeparator(title: string) {
@@ -193,7 +192,7 @@ const settings = definePluginSettings({
     },
     antiMove: {
         type: OptionType.BOOLEAN,
-        description: "Prevent others from moving you to a different voice channel.",
+        description: "Prevent others from moving you to a different voice channel. Your own manual moves are allowed.",
         default: false,
     },
     antiNickChangerHeader: {
@@ -230,9 +229,17 @@ const settings = definePluginSettings({
     },
 });
 
-function toast(message: string, type: number) {
-    if (settings.store.showToasts)
-        showToast({ text: message, variant: type });
+const TOAST_COOLDOWN_MS = 3000;
+const toastCooldowns = new Map<string, number>();
+
+// Same key can't show again within the cooldown, so event bursts never spam the screen.
+function toast(message: string, type: string, key: string = message) {
+    if (!settings.store.showToasts) return;
+    const now = Date.now();
+    if (now - (toastCooldowns.get(key) ?? 0) < TOAST_COOLDOWN_MS) return;
+    if (toastCooldowns.size > 50) toastCooldowns.clear();
+    toastCooldowns.set(key, now);
+    showToast({ text: message, variant: type } as any);
 }
 
 function cancelRejoin() {
@@ -251,7 +258,7 @@ function tryRejoin(channelId: string) {
     retryCount++;
     isRejoining = true;
     const label = max > 0 ? ` (attempt ${retryCount}/${max})` : "";
-    toast(`AntiDisconnect: Rejoining...${label}`, "message");
+    toast(`AntiDisconnect: Rejoining...${label}`, "message", "rejoin");
     internalSelectVoiceChannel(channelId);
 }
 
@@ -270,30 +277,62 @@ function scheduleRejoin(channelId: string) {
     }, delay);
 }
 
-async function restoreNick(guildId: string, forcedNick: string) {
-    if (resettingNickGuilds.has(guildId)) return;
-    resettingNickGuilds.add(guildId);
+// Uses the ORIGINAL patch so our own restore is never mistaken for a manual change.
+// Remembers which endpoint works, so only the first call can ever need a fallback.
+async function patchOwnNick(guildId: string, nick: string | null) {
+    const rest = originalPatch ?? RestAPI.patch.bind(RestAPI);
+    const viaProfile = () => rest({ url: `/users/@me/guilds/${guildId}/profile`, body: { nick } });
+    const viaMember = () => rest({ url: `/guilds/${guildId}/members/@me`, body: { nick: nick ?? "" } });
+    const [first, second] = preferProfileEndpoint ? [viaProfile, viaMember] : [viaMember, viaProfile];
+    try {
+        await first();
+    } catch {
+        await second();
+        preferProfileEndpoint = !preferProfileEndpoint;
+    }
+}
 
+function recheckNick(guildId: string) {
+    if (!myUserId || !_nickChangerSubscribed) return;
+    const current = GuildMemberStore.getMember(guildId, myUserId)?.nick || null;
+    const saved = savedNicks.get(guildId);
+    if (saved !== undefined && current !== saved) restoreNick(guildId, current ?? "");
+}
+
+async function restoreNick(guildId: string, forcedNick: string) {
+    // Changed again while restoring: remember it and re-check as soon as the request ends
+    if (resettingNickGuilds.has(guildId)) {
+        pendingNickGuilds.add(guildId);
+        return;
+    }
+
+    // Loop guard: never more than 8 restores per 10s per server
+    const now = Date.now();
+    const rec = restoreWindow.get(guildId);
+    if (!rec || now - rec.start > 10000) {
+        restoreWindow.set(guildId, { start: now, count: 1 });
+    } else if (++rec.count > 8) {
+        toast("AntiNickChanger: too many changes in a row, pausing for a moment.", "failure", "nick-loop");
+        return;
+    }
+
+    resettingNickGuilds.add(guildId);
     const target = savedNicks.get(guildId) ?? null;
 
     try {
-        try {
-            await RestAPI.patch({
-                url: `/users/@me/guilds/${guildId}/profile`,
-                body: { nick: target },
-            });
-            toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, "success");
-            return;
-        } catch {}
-
-        await RestAPI.patch({
-            url: `/guilds/${guildId}/members/@me`,
-            body: { nick: target ?? "" },
-        });
-        toast(`AntiNickChanger: "${forcedNick}" → "${target ?? ""}" restored.`, "success");
+        await patchOwnNick(guildId, target);
+        toast(
+            target
+                ? `AntiNickChanger: nickname restored to "${target}"`
+                : "AntiNickChanger: nickname reset to default",
+            "success",
+            `nick-ok:${guildId}`
+        );
     } catch {
+        toast("AntiNickChanger: couldn't restore your nickname.", "failure", `nick-fail:${guildId}`);
     } finally {
-        setTimeout(() => resettingNickGuilds.delete(guildId), 5000);
+        resettingNickGuilds.delete(guildId);
+        if (pendingNickGuilds.delete(guildId)) recheckNick(guildId);
     }
 }
 
@@ -312,10 +351,10 @@ function toggleSetting(key: "antiDisconnect" | "antiMove" | "antiMuteServer" | "
         else unsubscribeNickChanger();
     }
     const labels: Record<typeof key, string> = {
-        antiDisconnect:   "AntiDisconnect",
-        antiMove:         "AntiMove",
-        antiNickChanger:  "AntiNickChanger",
-        antiMuteServer:   "AntiMuteServer (Perms)",
+        antiDisconnect: "AntiDisconnect",
+        antiMove: "AntiMove",
+        antiNickChanger: "AntiNickChanger",
+        antiMuteServer: "AntiMuteServer (Perms)",
         antiDeafenServer: "AntiDeafenServer (Perms)",
     };
     const on = settings.store[key] as boolean;
@@ -362,8 +401,11 @@ const RtcChannelContext: NavContextMenuPatchCallback = children => {
 function resetState() {
     cancelRejoin();
     manualDisconnect = false;
-    calledByPlugin = false;
+    ignoreMoveTo = null;
+    lastUserSelectAt = 0;
     isRejoining = false;
+    voiceFixInFlight = false;
+    toastCooldowns.clear();
 }
 
 export default definePlugin({
@@ -385,25 +427,30 @@ export default definePlugin({
             resetState();
         },
 
-        VOICE_CHANNEL_SELECT({ channelId }: { channelId: string | null }) {
+        VOICE_CHANNEL_SELECT({ channelId }: { channelId: string | null; }) {
             manualDisconnect = channelId === null;
         },
 
-        VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[] }) {
+        VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             if (!myUserId) return;
 
             for (const state of voiceStates) {
                 if (state.userId !== myUserId) continue;
-                const { channelId, oldChannelId, guildId, mute, selfMute, deaf, selfDeaf } = state;
+                const { channelId, oldChannelId, guildId, mute, deaf } = state;
 
-                const isMove  = !!channelId && !!oldChannelId && channelId !== oldChannelId;
-                const isJoin  = !!channelId && !oldChannelId;
-                const isLeave = !channelId  && !!oldChannelId;
+                const isMove = !!channelId && !!oldChannelId && channelId !== oldChannelId;
+                const isJoin = !!channelId && !oldChannelId;
+                const isLeave = !channelId && !!oldChannelId;
 
                 if (isMove) {
-                    if (_antiMove && !isRejoining) {
+                    const isOwnMoveBack = channelId === ignoreMoveTo;
+                    const isManual = Date.now() - lastUserSelectAt < 3000;
+                    if (isOwnMoveBack) ignoreMoveTo = null;
+
+                    if (_antiMove && !isRejoining && !isOwnMoveBack && !isManual) {
                         toast("AntiMove: Moved back to your channel.", "message");
                         const target = oldChannelId!;
+                        ignoreMoveTo = target;
                         Promise.resolve().then(() => internalSelectVoiceChannel(target));
                         continue;
                     }
@@ -431,30 +478,34 @@ export default definePlugin({
 
                 if (!channelId || !guildId) continue;
 
-                const needsMuteCheck   = _antiMuteServer   && mute  && !selfMute;
-                const needsDeafenCheck = _antiDeafenServer && deaf  && !selfDeaf;
+                // `mute`/`deaf` = server-side state; selfMute/selfDeaf are independent (selfDeaf forces selfMute)
+                const needsMuteCheck = _antiMuteServer && mute;
+                const needsDeafenCheck = _antiDeafenServer && deaf;
                 if (!needsMuteCheck && !needsDeafenCheck) continue;
 
                 const channel = ChannelStore.getChannel(channelId);
                 if (!channel) continue;
 
-                if (needsMuteCheck && PermissionStore.can(PermissionsBits.MUTE_MEMBERS, channel)) {
-                    const uid = myUserId;
-                    setTimeout(() => {
-                        patchMember(uid, guildId, { mute: false })
-                            .then(() => toast("AntiMute: Server mute removed.", "success"))
-                            .catch(() => { try { VoiceActions.toggleSelfMute(); } catch {} });
-                    }, 100);
-                }
+                const body: { mute?: boolean; deaf?: boolean; } = {};
+                if (needsMuteCheck && PermissionStore.can(PermissionsBits.MUTE_MEMBERS, channel)) body.mute = false;
+                if (needsDeafenCheck && PermissionStore.can(PermissionsBits.DEAFEN_MEMBERS, channel)) body.deaf = false;
+                if (!("mute" in body) && !("deaf" in body)) continue;
 
-                if (needsDeafenCheck && PermissionStore.can(PermissionsBits.DEAFEN_MEMBERS, channel)) {
-                    const uid = myUserId;
-                    setTimeout(() => {
-                        patchMember(uid, guildId, { deaf: false })
-                            .then(() => toast("AntiDeafen: Server deafen removed.", "success"))
-                            .catch(() => { try { VoiceActions.toggleSelfDeaf(); } catch {} });
-                    }, 100);
-                }
+                if (voiceFixInFlight) continue;
+                voiceFixInFlight = true;
+
+                const uid = myUserId;
+                const hasMute = "mute" in body;
+                const hasDeaf = "deaf" in body;
+                const title = hasMute && hasDeaf ? "AntiMute & AntiDeafen" : hasMute ? "AntiMute" : "AntiDeafen";
+                const okMsg = hasMute && hasDeaf ? "you're unmuted and undeafened" : hasMute ? "you've been unmuted" : "you've been undeafened";
+                const failMsg = hasMute && hasDeaf ? "couldn't unmute and undeafen you" : hasMute ? "couldn't unmute you" : "couldn't undeafen you";
+                setTimeout(() => {
+                    patchMember(uid, guildId, body)
+                        .then(() => toast(`${title}: ${okMsg}`, "success", "voice-fix"))
+                        .catch(() => toast(`${title}: ${failMsg}, check your permissions`, "failure", "voice-fix-fail"))
+                        .finally(() => { voiceFixInFlight = false; });
+                }, 100);
             }
         },
     },
@@ -468,21 +519,21 @@ export default definePlugin({
         ChannelActionsRaw.selectVoiceChannel = patchedSelectVoiceChannel;
 
         originalPatch = RestAPI.patch.bind(RestAPI);
-        RestAPI.patch = (options: any) => {
-            const body = options?.body;
-            if (body != null && "nick" in body) {
-                const url: string = options.url ?? "";
-                if (NICK_ENDPOINT_RE1.test(url) || NICK_ENDPOINT_RE2.test(url)) {
-                    const match = url.match(NICK_GUILD_RE);
-                    if (match) {
-                        const guildId = match[1];
-                        selfChangingNickGuilds.add(guildId);
-                        savedNicks.set(guildId, body.nick ?? null);
-                        setTimeout(() => selfChangingNickGuilds.delete(guildId), 3000);
+        RestAPI.patch = (...args: any[]) => {
+            try {
+                const options = args[0];
+                const url = options?.url;
+                if (typeof url === "string" && (NICK_ENDPOINT_RE1.test(url) || NICK_ENDPOINT_RE2.test(url))) {
+                    const body = options.body;
+                    if (body && typeof body === "object" && "nick" in body) {
+                        const match = url.match(NICK_GUILD_RE);
+                        if (match) {
+                            selfChangingNicks.set(match[1], { nick: body.nick || null, until: Date.now() + 10000 });
+                        }
                     }
                 }
-            }
-            return originalPatch!(options);
+            } catch { }
+            return (originalPatch as any)(...args);
         };
     },
 
@@ -498,7 +549,9 @@ export default definePlugin({
         }
         resetState();
         resettingNickGuilds.clear();
-        selfChangingNickGuilds.clear();
+        pendingNickGuilds.clear();
+        selfChangingNicks.clear();
+        restoreWindow.clear();
         savedNicks.clear();
         myUserId = null;
     },
