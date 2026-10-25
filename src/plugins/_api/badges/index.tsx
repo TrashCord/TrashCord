@@ -31,7 +31,7 @@ import { ContextMenuApi, Menu, showToast, UserStore } from "@webpack/common";
 
 import Plugins, { PluginMeta } from "~plugins";
 
-import { EquicordDonorModal, EquicordTranslatorModal, VencordDonorModal } from "./modals";
+import { EquicordDonorModal, EquicordTranslatorModal, IllegalcordDonorModal, NightcordBadgeModal, TrashCordDonorModal, VencordDonorModal } from "./modals";
 
 const ContributorBadge: ProfileBadge = {
     id: "vencord_contributor_badge",
@@ -91,6 +91,14 @@ const UserPluginContributorBadge: ProfileBadge = {
 let DonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 let EquicordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 let DirectoryBadges = {} as Record<string, DirectoryBadge>;
+let IllegalcordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+let TrashCordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+let NightcordBadges = {} as Record<string, Array<{
+    icon: string;
+    placeholder: string;
+    uuid: string;
+    visible: boolean;
+}>>;
 
 async function loadBadges(url: string, noCache = false) {
     const init = {} as RequestInit;
@@ -102,9 +110,15 @@ async function loadBadges(url: string, noCache = false) {
 async function loadAllBadges(noCache = false) {
     const vencordBadges = await loadBadges("https://badges.vencord.dev/badges.json", noCache);
     const equicordBadges = await loadBadges("https://badge.equicord.org/badges.json", noCache);
+    const TrashCordBadges = await loadBadges("https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/files/badges.json", noCache);
+    const illegalcordBadges = await loadBadges("https://cdn.jsdelivr.net/gh/ImHisako/ImHisako@main/Images/badges.json", noCache);
+    const nightcordBadges = await loadBadges("https://api.nightcord.st/badges", noCache).catch(() => ({}));
 
     DonorBadges = vencordBadges;
     EquicordDonorBadges = equicordBadges;
+    TrashCordDonorBadges = TrashCordBadges;
+    IllegalcordDonorBadges = illegalcordBadges;
+    NightcordBadges = nightcordBadges;
 }
 
 let intervalId: any;
@@ -336,4 +350,67 @@ export default definePlugin({
             },
         } satisfies ProfileBadge));
     }
+
+    getIllegalcordDonorBadges(userId: string) {
+        return IllegalcordDonorBadges[userId]?.map((badge, idx) => ({
+            id: `illegalcord_donor_badge_${idx}`,
+            iconSrc: badge.badge,
+            description: badge.tooltip,
+            position: BadgePosition.START,
+            props: {
+                style: {
+                    borderRadius: "50%",
+                    transform: "scale(0.9)"
+                }
+            },
+            onContextMenu(event, badge) {
+                ContextMenuApi.openContextMenu(event, () => <BadgeContextMenu badge={badge} />);
+            },
+            onClick(_event: React.MouseEvent, badge: ProfileBadge & BadgeUserArgs) {
+                return IllegalcordDonorModal(badge);
+            },
+        } satisfies ProfileBadge));
+    },
+
+    getNightcordBadges(userId: string) {
+        return NightcordBadges[userId]?.filter(badge => badge.visible).map((badge, idx) => ({
+            id: `nightcord_badge_${idx}`,
+            iconSrc: badge.icon,
+            description: badge.placeholder,
+            position: BadgePosition.START,
+            props: {
+                style: {
+                    borderRadius: "50%",
+                    transform: "scale(0.9)"
+                }
+            },
+            onContextMenu(event, badge) {
+                ContextMenuApi.openContextMenu(event, () => <BadgeContextMenu badge={badge} />);
+            },
+            onClick(_event: React.MouseEvent, badge: ProfileBadge & BadgeUserArgs) {
+                return NightcordBadgeModal(badge);
+            },
+        } satisfies ProfileBadge));
+    },
+
+    getTrashCordDonorBadges(userId: string) {
+        return TrashCordDonorBadges[userId]?.map((badge, idx) => ({
+            id: `trashcord_donor_badge_${idx}`,
+            iconSrc: badge.badge,
+            description: badge.tooltip,
+            position: BadgePosition.START,
+            props: {
+                style: {
+                    borderRadius: "50%",
+                    transform: "scale(0.9)"
+                }
+            },
+            onContextMenu(event, badge) {
+                ContextMenuApi.openContextMenu(event, () => <BadgeContextMenu badge={badge} />);
+            },
+            onClick(_event: React.MouseEvent, badge: ProfileBadge & BadgeUserArgs) {
+                return TrashCordDonorModal(badge);
+            },
+        } satisfies ProfileBadge));
+    },
 });
