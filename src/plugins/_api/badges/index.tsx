@@ -356,6 +356,9 @@ export default definePlugin({
             id: `illegalcord_donor_badge_${idx}`,
             iconSrc: badge.badge,
             description: badge.tooltip,
+            name: badge.tooltip,
+            infoLabel: "Illegalcord Donor",
+            rarity: BadgeRarity.MYTHIC,
             position: BadgePosition.START,
             props: {
                 style: {
@@ -372,32 +375,14 @@ export default definePlugin({
         } satisfies ProfileBadge));
     },
 
-    getNightcordBadges(userId: string) {
-        return NightcordBadges[userId]?.filter(badge => badge.visible).map((badge, idx) => ({
-            id: `nightcord_badge_${idx}`,
-            iconSrc: badge.icon,
-            description: badge.placeholder,
-            position: BadgePosition.START,
-            props: {
-                style: {
-                    borderRadius: "50%",
-                    transform: "scale(0.9)"
-                }
-            },
-            onContextMenu(event, badge) {
-                ContextMenuApi.openContextMenu(event, () => <BadgeContextMenu badge={badge} />);
-            },
-            onClick(_event: React.MouseEvent, badge: ProfileBadge & BadgeUserArgs) {
-                return NightcordBadgeModal(badge);
-            },
-        } satisfies ProfileBadge));
-    },
-
     getTrashCordDonorBadges(userId: string) {
         return TrashCordDonorBadges[userId]?.map((badge, idx) => ({
             id: `trashcord_donor_badge_${idx}`,
             iconSrc: badge.badge,
             description: badge.tooltip,
+            name: badge.tooltip,
+            infoLabel: "TrashCord Donor",
+            rarity: BadgeRarity.MYTHIC,
             position: BadgePosition.START,
             props: {
                 style: {
@@ -410,6 +395,30 @@ export default definePlugin({
             },
             onClick(_event: React.MouseEvent, badge: ProfileBadge & BadgeUserArgs) {
                 return TrashCordDonorModal(badge);
+            },
+        } satisfies ProfileBadge));
+    },
+
+    getNightcordBadges(userId: string) {
+        return NightcordBadges[userId]?.filter(badge => badge.visible).map((badge, idx) => ({
+            id: `nightcord_badge_${idx}`,
+            iconSrc: badge.icon,
+            description: badge.placeholder,
+            name: badge.placeholder,
+            infoLabel: "Nightcord",
+            rarity: BadgeRarity.MYTHIC,
+            position: BadgePosition.START,
+            props: {
+                style: {
+                    borderRadius: "50%",
+                    transform: "scale(0.9)"
+                }
+            },
+            onContextMenu(event, badge) {
+                ContextMenuApi.openContextMenu(event, () => <BadgeContextMenu badge={badge} />);
+            },
+            onClick(_event: React.MouseEvent, badge: ProfileBadge & BadgeUserArgs) {
+                return NightcordBadgeModal(badge);
             },
         } satisfies ProfileBadge));
     },
