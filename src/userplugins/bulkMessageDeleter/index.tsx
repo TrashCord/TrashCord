@@ -1,11 +1,10 @@
-import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { addMessagePopoverButton, removeMessagePopoverButton } from "@api/MessagePopover";
 import { ApplicationCommandInputType, sendBotMessage } from "@api/Commands";
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { definePluginSettings } from "@api/Settings";
 import { classNameFactory } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, Constants, FluxDispatcher, Menu, MessageStore, PermissionsBits, PermissionStore, React, RestAPI, showToast, UserStore, useEffect, useReducer, useState } from "@webpack/common";
+import { ChannelStore, Constants, FluxDispatcher, MessageStore, PermissionsBits, PermissionStore, React, RestAPI, showToast, UserStore, useEffect, useReducer, useState } from "@webpack/common";
 
 import managedStyle from "./style.css?managed";
 
@@ -406,39 +405,6 @@ const ChatBarRender: ChatBarButtonFactory = ({ isAnyChat, channel }) => {
     );
 };
 
-const textareaCtxPatch: NavContextMenuPatchCallback = (children, props) => {
-    const channelId = props?.channel?.id;
-    if (!channelId || busy()) return;
-    children.push(
-        <Menu.MenuSeparator />,
-        <Menu.MenuItem
-            id="vc-bmd-textarea-activate"
-            label="📋 Bulk Delete Messages"
-            action={() => activate(channelId)}
-        />
-    );
-};
-
-const messageCtxPatch: NavContextMenuPatchCallback = (children, props) => {
-    const msg = props?.message;
-    if (!msg || busy() || !canSelect(msg)) return;
-    const checked = store.active && store.selected.has(msg.id);
-    const item = (
-        <Menu.MenuItem
-            id="vc-bmd-message-select"
-            label={checked ? "Deselect from bulk delete" : "Select for bulk delete"}
-            icon={BulkDeleteIcon}
-            action={() => {
-                if (!store.active) activate(msg.channel_id);
-                toggle(msg.id, false, msg.channel_id);
-            }}
-        />
-    );
-    const group = findGroupChildrenByChildId("message-delete", children) ?? children;
-    const idx = group.findIndex((c: any) => c?.props?.id === "message-delete");
-    group.splice(idx === -1 ? group.length : idx, 0, item);
-};
-
 function onChannelSelect({ channelId }: { channelId: string; }) {
     if (!store.active || !store.channelId || store.channelId === channelId) return;
     if (store.deleting) {
@@ -454,11 +420,11 @@ function onChannelSelect({ channelId }: { channelId: string; }) {
 
 export default definePlugin({
     name: "BulkMessageDeleter",
-    description: "Select and mass-delete your own messages, or other users' messages with Manage Messages permission. Click-to-select, hover button, keyword filter, slash command, and context menus.",
+    description: "Select and mass-delete your own messages, or other users' messages with Manage Messages permission. Click-to-select, hover button, keyword filter, and slash command.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: true,
-    dependencies: ["CommandsAPI", "MessagePopoverAPI", "ContextMenuAPI"],
+    dependencies: ["CommandsAPI", "MessagePopoverAPI"],
     settings,
     managedStyle,
 
@@ -491,16 +457,12 @@ export default definePlugin({
             };
         });
 
-        addContextMenuPatch("textarea-context", textareaCtxPatch);
-        addContextMenuPatch("message", messageCtxPatch);
         FluxDispatcher.subscribe("CHANNEL_SELECT", onChannelSelect);
         document.addEventListener("click", onDocumentClick, true);
     },
 
     stop() {
         removeMessagePopoverButton("vc-bmd-select");
-        removeContextMenuPatch("textarea-context", textareaCtxPatch);
-        removeContextMenuPatch("message", messageCtxPatch);
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", onChannelSelect);
         document.removeEventListener("click", onDocumentClick, true);
         deactivate();
