@@ -349,7 +349,7 @@ export default definePlugin({
                 return badge.tooltip === "Equicord Translator" ? EquicordTranslatorModal() : EquicordDonorModal();
             },
         } satisfies ProfileBadge));
-    }
+    },
 
     getIllegalcordDonorBadges(userId: string) {
         return IllegalcordDonorBadges[userId]?.map((badge, idx) => ({
