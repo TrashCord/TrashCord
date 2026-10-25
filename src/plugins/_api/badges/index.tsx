@@ -18,8 +18,8 @@
 
 import "./fixDiscordBadgePadding.css";
 
-import definePlugin, { PluginNative } from "@utils/types";
 import { _getBadges, BadgePosition, BadgeUserArgs, ProfileBadge } from "@api/Badges";
+import { _getBadges, BadgePosition, BadgeRarity, BadgeUserArgs, DirectoryBadge, ProfileBadge } from "@api/Badges";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { CopyIcon, LinkIcon } from "@components/Icons";
 import { openContributorModal } from "@components/settings/tabs";
@@ -27,7 +27,6 @@ import { Devs } from "@utils/constants";
 import { copyWithToast } from "@utils/discord";
 import { Logger } from "@utils/Logger";
 import { shouldShowContributorBadge, shouldShowEquicordContributorBadge } from "@utils/misc";
-import definePlugin from "@utils/types";
 import { ContextMenuApi, Menu, showToast, UserStore } from "@webpack/common";
 
 import Plugins, { PluginMeta } from "~plugins";
@@ -103,6 +102,7 @@ let NightcordBadges = {} as Record<string, Array<{
     visible: boolean;
 }>>;
 let TrashCordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+let DirectoryBadges = {} as Record<string, DirectoryBadge>;
 
 async function loadBadges(url: string, noCache = false) {
     const init = {} as RequestInit;
