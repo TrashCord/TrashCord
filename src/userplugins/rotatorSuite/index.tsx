@@ -381,6 +381,7 @@ let wxTimer: ReturnType<typeof setTimeout> | null = null;
 let cachedToken: any = null; let cachedGuildStore: any = null;
 let cachedClanGuilds: string[] = []; let lastClanFetch = 0;
 const domTagCache = new Map<string, string>();
+const clanRejected = new Set<string>();
 const nickTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const guildPronounsTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let statusTimer: ReturnType<typeof setTimeout> | null = null;
@@ -820,38 +821,29 @@ const PresenceSetting = getUserSettingLazy<string>("status", "status");
 
 async function applyStatus(entry: StatusEntry, retries = 3): Promise<void> {
     const clearMs = entry.clearAfter ?? 0;
-    const expiresAtMs = clearMs > 0 ? String(Date.now() + clearMs) : "0";
     const expiresAtIso = clearMs > 0 ? new Date(Date.now() + clearMs).toISOString() : null;
-    if (CustomStatusSetting) {
-        try {
-            await CustomStatusSetting.updateSetting({
-                text: entry.text || "",
-                emojiName: entry.emojiName ?? "",
-                emojiId: entry.emojiId ?? "0",
-                createdAtMs: Date.now().toString(),
-                expiresAtMs,
-            });
-            if (entry.status && entry.status !== "auto" && PresenceSetting) await PresenceSetting.updateSetting(entry.status);
-            if (settings.store.enableLogs) console.log(`[RS/Status] -> "${entry.text}" [${entry.status ?? "auto"}]`);
-            return;
-        } catch (e: any) {
-            const st = e?.status ?? e?.response?.status ?? 0;
-            if (st === 429) return;
-            if (settings.store.enableLogs) console.warn("[RS/Status] UserSetting fallback RestAPI:", e);
-        }
-    }
+
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
-            await RestAPI.patch({
-                url: "/users/@me/settings",
-                body: { custom_status: { text: entry.text || null, emoji_name: entry.emojiName, emoji_id: entry.emojiId, expires_at: expiresAtIso } }
-            });
-            if (settings.store.enableLogs) console.log(`[RS/Status] -> "${entry.text}" attempt=${attempt + 1}`);
+            const body: any = {
+                custom_status: {
+                    text: entry.text || null,
+                    emoji_name: entry.emojiName ?? null,
+                    emoji_id: entry.emojiId ?? null,
+                    expires_at: expiresAtIso,
+                },
+            };
+            if (entry.status && entry.status !== "auto") body.status = entry.status;
+
+            await RestAPI.patch({ url: "/users/@me/settings", body });
+
+            if (settings.store.enableLogs) console.log(`[RS/Status] -> "${entry.text}" [${entry.status ?? "auto"}]`);
             return;
         } catch (e: any) {
             const st = e?.status ?? e?.response?.status ?? 0;
             if (st === 429) {
                 const ra = Math.max(parseFloat(e?.body?.retry_after ?? e?.retry_after ?? "3") || 3, 1);
+                if (settings.store.enableLogs) console.warn(`[RS/Status] 429 retry ${ra}s`);
                 await rsSleep(ra * 1000 + 200);
                 if (!pluginActive) return;
                 continue;
@@ -937,6 +929,11 @@ async function applyClan(id: string, retries = 4, signal?: AbortSignal): Promise
             });
             if (signal?.aborted) return;
             if (res.ok) { if (settings.store.enableLogs) console.log(`[RS/Clan] -> ${id} attempt=${attempt + 1}`); return; }
+            if (res.status === 403 || res.status === 404) {
+                clanRejected.add(id);
+                if (settings.store.enableLogs) console.warn(`[RS/Clan] ${res.status} for ${id} - guild has no clan tag / not eligible, skipping`);
+                return;
+            }
             if (res.status === 429) {
                 const json = await res.json().catch(() => ({}));
                 if (signal?.aborted) return;
@@ -944,14 +941,6 @@ async function applyClan(id: string, retries = 4, signal?: AbortSignal): Promise
                 await rsSleep(ra * 1000 + 300);
                 if (signal?.aborted || !pluginActive) return;
                 continue;
-            }
-            if (res.status === 403) {
-                if (settings.store.enableLogs) console.warn(`[RS/Clan] 403 for ${id} - guild has no clan tag / not eligible, skipping`);
-                return;
-            }
-            if (res.status === 404) {
-                if (settings.store.enableLogs) console.warn(`[RS/Clan] 404 for ${id} - guild not found / left, skipping`);
-                return;
             }
             if (settings.store.enableLogs) console.error(`[RS/Clan] HTTP ${res.status} attempt=${attempt + 1}`);
             if (attempt < retries - 1) {
@@ -971,7 +960,7 @@ async function applyClan(id: string, retries = 4, signal?: AbortSignal): Promise
 
 function tickClan() {
     if (!settings.store.clanEnabled || !pluginActive || isManualStop || wasInvisible) return;
-    const list = getActiveClanIds(); if (!list.length) return;
+    const list = getActiveClanIds().filter(id => !clanRejected.has(id)); if (!list.length) return;
     const { val: id, next, lastPicked } = pickItem(list, clanSeqIdx, settings.store.clanRandomize, clanLastVal);
     clanSeqIdx = next; clanLastVal = lastPicked;
     if (id) {
@@ -2720,15 +2709,17 @@ function ClanTab({ forceUpdate }: { forceUpdate: () => void }) {
     function add() {
         const v = input.trim();
         if (!v || !/^\d{17,20}$/.test(v) || clanIds.includes(v)) return;
+        clanRejected.delete(v);
         const g = allDiscordGuilds.find(x => x.id === v);
         if (g) clanServerNames[v] = { name: g.name, tag: g.tag };
         clanIds = [...clanIds, v]; saveData(); setInput(""); forceUpdate();
     }
-    function remove(id: string) { clanIds = clanIds.filter(c => c !== id); clanSeqIdx = 0; clanLastVal = null; saveData(); forceUpdate(); }
+    function remove(id: string) { clanRejected.delete(id); clanIds = clanIds.filter(c => c !== id); clanSeqIdx = 0; clanLastVal = null; saveData(); forceUpdate(); }
     function saveEdit(i: number) {
         const v = editVal.trim(); if (!v || !/^\d{17,20}$/.test(v)) { setEditIdx(null); return; }
         const oldId = clanIds[i];
-        if (oldId !== v) delete clanServerNames[oldId];
+        if (oldId !== v) { delete clanServerNames[oldId]; clanRejected.delete(oldId); }
+        clanRejected.delete(v);
         const g = allDiscordGuilds.find(x => x.id === v);
         if (g) clanServerNames[v] = { name: g.name, tag: g.tag };
         const n = [...clanIds]; n[i] = v; clanIds = n; saveData(); setEditIdx(null); forceUpdate();
@@ -2897,9 +2888,9 @@ function ClanTab({ forceUpdate }: { forceUpdate: () => void }) {
                                             }
                                             <span style={{ fontSize: 9, color: "#5a7a9a", fontFamily: "monospace", flexShrink: 0, userSelect: "all" as const, cursor: "text", padding: "1px 4px", borderRadius: 3, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.06)" }} title="Click to select ID">{g.id}</span>
                                             {inList
-                                                ? <button onClick={() => { clanIds = clanIds.filter(c => c !== g.id); clanSeqIdx = 0; clanLastVal = null; saveData(); forceUpdate(); }}
+                                                ? <button onClick={() => { clanIds = clanIds.filter(c => c !== g.id); clanRejected.delete(g.id); clanSeqIdx = 0; clanLastVal = null; saveData(); forceUpdate(); }}
                                                     style={{ padding: "2px 8px", borderRadius: 5, border: `1px solid ${INACT}44`, background: `${INACT}18`, color: INACT, cursor: "pointer", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>✕</button>
-                                                : <button onClick={() => { clanIds = [...clanIds, g.id]; saveData(); forceUpdate(); }}
+                                                : <button onClick={() => { clanRejected.delete(g.id); clanIds = [...clanIds, g.id]; saveData(); forceUpdate(); }}
                                                     style={{ padding: "2px 8px", borderRadius: 5, border: `1px solid ${C.clan}44`, background: `${C.clan}18`, color: C.clan, cursor: "pointer", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>+</button>
                                             }
                                         </div>
@@ -5026,6 +5017,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
                 else if (typeof p.statuses === "string") statusEntries = parseLegacyStatuses(p.statuses);
                 if (Array.isArray(p.statusPresets)) statusPresets = p.statusPresets;
                 if (Array.isArray(p.clanIds)) clanIds = p.clanIds;
+                clanRejected.clear();
                 statusSeqIdx = 0; clanSeqIdx = 0; bioSeqIdx = 0; prSeqIdx = 0;
                 statusLastVal = null; clanLastVal = null; bioLastVal = null; prLastVal = null;
                 if (Array.isArray(p.globalNickEntries)) globalNickEntries = p.globalNickEntries;
@@ -5063,6 +5055,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
         stopAllRotators();
         globalNicks = []; guilds = []; bioEntries = [];
         pronounsList = ""; statusEntries = []; statusPresets = []; clanIds = [];
+        clanRejected.clear();
         statusSeqIdx = 0; clanSeqIdx = 0; bioSeqIdx = 0; prSeqIdx = 0;
         statusLastVal = null; clanLastVal = null; bioLastVal = null; prLastVal = null;
         globalNickEntries = []; globalNickSeqIdx = 0; globalNickLastVal = null;
@@ -5787,6 +5780,7 @@ export default definePlugin({
         cachedToken = null; cachedGuildStore = null; cachedVoiceStateStore = null; cachedChannelStore = null;
         isManualStop = false; wasInvisible = false;
         domTagCache.clear();
+        clanRejected.clear();
         if (globalStopTimer) { clearTimeout(globalStopTimer); globalStopTimer = null; }
         globalStopEndTime = null; cachedPresenceStore = null;
         stopInvisibleWatcher();
