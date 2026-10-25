@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { FluxDispatcher, QuestStore, RestAPI, showToast } from "@webpack/common";
@@ -101,7 +107,8 @@ async function doRun(): Promise<void> {
         (qc.getActiveAutoCompletes?.() ?? []).map(e => e.questId)
     );
 
-    const eligible = (Array.from((QuestStore.quests as Map<string, Quest>).values()))
+    const quests = QuestStore.quests as Map<string, Quest>;
+    const eligible = Array.from(quests.values())
         .filter(q => !ex.has(q.id) && !activeIds.has(q.id) && qc.canAutoCompleteQuest(q));
 
     if (eligible.length === 0) return;
@@ -112,12 +119,14 @@ async function doRun(): Promise<void> {
     let anyTriggered = false;
 
     for (const q of eligible) {
+        let cur = q;
         if (!q.userStatus?.enrolledAt) {
             if (!doEnroll) continue;
             if (!await enroll(q.id)) continue;
+            cur = quests.get(q.id) ?? q;
         }
 
-        const ok = qc.processQuestForAutoComplete(q, { force, source: "auto" });
+        const ok = qc.processQuestForAutoComplete(cur, { force, source: "manual" });
         if (!ok) continue;
 
         anyTriggered = true;
@@ -137,7 +146,7 @@ async function run(): Promise<void> {
     do {
         pending = false;
         running = true;
-        try { await doRun(); } catch { }
+        try { await doRun(); } catch (e) { console.error("[AutoCompleteQuestify]", e); }
         running = false;
     } while (pending);
 }
