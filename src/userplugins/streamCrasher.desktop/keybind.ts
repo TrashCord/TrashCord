@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 export const IDS = { stream: 0x5C01, cam: 0x5C02, fssMain: 0x5C03, fssBackup: 0x5C04 } as const;
 
 type Relay = { register: (accelerator: string) => Promise<boolean> | boolean; unregister: () => unknown; };

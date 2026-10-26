@@ -1,15 +1,7 @@
 /*
- * Vencord plugin entry point.
- *
- * Wires the crypto + session layer into Discord:
- *   • A lock button on each DM toggles E2EE on/off.
- *   • Outgoing messages are intercepted by addMessagePreSendListener and
- *     replaced with their encrypted form when a session is ready.
- *   • Incoming messages are intercepted by FluxDispatcher (MESSAGE_CREATE
- *     and friends). Encrypted ones are decrypted; the plaintext is stored
- *     in a per-message cache so reloads don't show ciphertext, and the
- *     message in the Discord store is mutated in place so it renders as
- *     plaintext.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import definePlugin, { OptionType, IconComponent } from "@utils/types";

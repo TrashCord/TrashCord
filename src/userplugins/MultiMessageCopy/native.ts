@@ -1,22 +1,7 @@
-/**
- * native.ts — MultiMessageCopy
- *
- * Runs in the Electron main process (Node.js). Vencord automatically registers
- * every exported function here as an IPC handler and exposes it on the renderer
- * side via:
- *
- *   VencordNative.pluginHelpers.MultiMessageCopy.<methodName>(args...)
- *
- * Use `PluginNative<typeof import("./native")>` in the renderer for full type
- * safety.
- *
- * Rules for this file:
- *   - Every export must be an async function whose FIRST parameter is
- *     `event: Electron.IpcMainInvokeEvent`. Vencord strips that parameter on
- *     the renderer side.
- *   - No imports from `@webpack` or browser-only modules — this is Node.js.
- *   - Keep it minimal: only functionality that genuinely requires Node.js goes
- *     here. Network I/O for the update check is the only current use-case.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { IpcMainInvokeEvent } from "electron"

@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { dispatchStopWatching, dispatchWatchStream, type SubscribeResult } from "../patches/streamSubscription";
 import { getAllTappedStreams, getTappedStream } from "../patches/webAudioTap";
 import { logger, parseStreamKey } from "../utils";

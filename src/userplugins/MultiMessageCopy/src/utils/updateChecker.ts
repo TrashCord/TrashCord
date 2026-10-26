@@ -1,16 +1,7 @@
-/**
- * updateChecker.ts
- *
- * Safe, non-blocking update detection for MultiMessageCopy.
- * Pure logic -- no JSX. All UI lives in src/components/UpdateModal.tsx.
- *
- * Behaviour:
- *   - Compares remote version.json against the compiled PLUGIN_VERSION constant.
- *   - On automatic check: shows modal if update found; silent on failure / up-to-date.
- *   - On manual check: always gives visible feedback (modal or toast).
- *   - Renderer fetch first; native fallback if available.
- *   - Manual checks always bypass cache via ?t= query param.
- *   - Dismissed versions are remembered per-version in localStorage.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { openModal } from "@utils/modal"

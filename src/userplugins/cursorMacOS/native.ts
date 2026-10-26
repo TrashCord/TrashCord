@@ -1,7 +1,7 @@
 /*
- * Nightcord – CursorMacOS native module
- * Modifies Windows system cursors via registry + SystemParametersInfo
- * Runs in Electron main process (full Node.js)
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import * as fs from "fs";

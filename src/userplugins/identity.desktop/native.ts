@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 export async function RequestRandomUser(): Promise<string> {
     const response = await fetch("https://randomuser.me/api");
     const data = await response.json();

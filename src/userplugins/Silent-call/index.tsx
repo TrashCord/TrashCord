@@ -1,25 +1,7 @@
 /*
- * Vencord, a Discord client mod
- * SilentGroupCall - start DM/group calls without ringing the other members.
- *
- * When you start a call, Discord's client sends a separate
- * `POST /channels/{id}/call/ring` request to notify the other members. This
- * plugin wraps Discord's HTTP client and skips that one request when the call is
- * in scope. You stay connected and the call is still joinable; nobody gets buzzed.
- *
- * Only the call button's *automatic* ring is silenced: a ring is dropped only if
- * it comes shortly after you join that channel's call (VOICE_CHANNEL_SELECT) and
- * isn't aimed at specific users. Right-click "Ring to Call" and in-call ring
- * buttons later on go through untouched.
- *
- * Right-clicking the "Start Voice Call" button in a group DM opens a picker: the
- * call starts, and its automatic ring is rewritten to target only the members you
- * ticked (or dropped if you ticked nobody). Still no extra request is ever sent.
- *
- * Why the HTTP layer and not the `ring()` action itself: webpack module exports
- * are getter-only (assigning to them throws), and regex patches against minified
- * code break on every Discord update. The REST endpoint path is part of Discord's
- * public API and far more stable, and `RestAPI` is a plain, writable object.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { findGroupChildrenByChildId } from "@api/ContextMenu";

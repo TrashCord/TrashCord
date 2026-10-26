@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { React, useState, useEffect, SelectedChannelStore } from "@webpack/common";
 import { getCurrentId, isLocked } from "./storage";
 import { actUnlock, actChange, actRemove } from "./modals";

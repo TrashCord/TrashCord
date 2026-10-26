@@ -1,6 +1,6 @@
 /*
- * Vencord, a Discord client mod
- * Fixed by zFrxncesck1
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 

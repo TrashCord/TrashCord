@@ -1,19 +1,7 @@
 /*
- * StreamAudioRouter for Vencord
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * Linux backend. Uses `pactl` (PulseAudio / PipeWire-Pulse, both share the same
- * CLI) to move the app you DON'T want heard (e.g. a game) out of the default
- * audio pipeline and into a dedicated sink, while looping it back to your real
- * speakers so you still hear it locally. Everything else - including the app
- * you DO want Discord to hear - stays on the system default output.
- *
- * This never touches the microphone/input device. Discord's own "Share Audio"
- * / "Stream With Audio" toggle (shown when you start a screen share) captures
- * whatever plays through the system default output - once the noisy app is
- * excluded, that's just the app you want. Your voice keeps going out on its
- * own separate channel, completely unaffected, so it can never get drowned
- * out by the routed audio.
  */
 
 import { execFile } from "child_process";

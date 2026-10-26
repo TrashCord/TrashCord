@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { CloudUpload as TCloudUpload } from "@vencord/discord-types";
 import { DraftType } from "@vencord/discord-types/enums";
 import { findLazy } from "@webpack";

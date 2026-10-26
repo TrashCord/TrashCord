@@ -1,30 +1,7 @@
-/**
- * htmlExport/markdown.ts
- *
- * Safe Discord-flavoured Markdown renderer for the HTML export.
- *
- * SECURITY CONTRACT
- * -----------------
- * This module NEVER calls innerHTML with untrusted content.
- * All raw user text passes through escapeHtml before being
- * placed into the output string. Tokens produced by the
- * extract* helpers contain only control-chars (\x02…\x03) and
- * ASCII hex digits — they cannot be mistaken for HTML.
- *
- * RENDERING ORDER (must not change)
- * ----------------------------------
- *  1. extractCodeBlocks   — protect ``` … ``` from ALL further passes
- *  2. extractInlineCode   — protect `…` from ALL further passes
- *  3. extractCustomEmojis — protect <:name:id> tokens
- *  4. escapeHtml          — escape ALL remaining raw text
- *  5. renderBlockquotes   — > … / >>> … (before other inline marks)
- *  6. renderHeadings      — # / ## / ### (line-level, before inline)
- *  7. renderLists         — - / * / 1. items (block-level)
- *  8. renderInlineFormatting — bold, italic, underline, strike, spoiler
- *  9. resolveMentions     — <@id>, <#id>, <@&id>
- * 10. renderLinks         — http/https links (plain-text segments only)
- * 11. restoreTokens       — replace \x02TOKEN_n\x03 → safe HTML
- * 12. newlines → <br>     — final step so block-elements aren't broken
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { escapeAttribute, escapeHtml } from "./safety"

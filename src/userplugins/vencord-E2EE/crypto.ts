@@ -1,18 +1,7 @@
 /*
- * crypto.ts — X25519 / HKDF / AES-GCM primitives + Double Ratchet
- *
- * Implements the core of Signal's Double Ratchet algorithm
- * (https://signal.org/docs/specifications/doubleratchet/) on top of the Web
- * Crypto API. Curve25519 / X25519 ECDH is used for DH, HKDF-SHA256 for KDFs,
- * and AES-256-GCM for AEAD. No external dependencies.
- *
- * Notes / deviations from the spec:
- *  - We deliberately keep the implementation small. Skipped-message-key
- *    handling exists but caps at MAX_SKIP per chain to bound memory.
- *  - Header is NOT encrypted (we don't implement the optional "Header
- *    Encryption" variant). This leaks message numbers to anyone reading the
- *    Discord channel, which is fine in our threat model — Discord already
- *    has timestamps.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 // ------------------------------ Encoding utils ------------------------------

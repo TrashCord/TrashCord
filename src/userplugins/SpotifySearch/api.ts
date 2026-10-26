@@ -1,7 +1,7 @@
 /*
- * Vencord SpotifySearch plugin
- * Copyright (c) 2026 raizefastohand
- * Licensed under GPL-3.0-or-later
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { settings } from "./settings";

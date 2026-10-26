@@ -1,29 +1,7 @@
 /*
- * StreamAudioRouter for Vencord
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * Windows backend. Windows has no built-in tool or public API that lets a
- * script silently reassign one running app's audio output device - the
- * "App volume and device preferences" panel is backed by an undocumented
- * mechanism Microsoft never published. So this backend automates it the
- * same way Microsoft's own Settings app effectively does under the hood,
- * by driving SoundVolumeCommandLine (svcl.exe) - a small, long-standing,
- * free (though closed-source) utility from NirSoft built specifically for
- * this - downloaded on first use directly from nirsoft.net, the same way
- * Vencord's own installer downloads its CLI tool on demand.
- *
- * Same strategy as the Linux backend: move the app you DON'T want heard
- * (e.g. the game) off the system default output onto a different real
- * output device, leave everything you DO want heard (e.g. the browser) on
- * the default, then use Discord's own "Share Audio" screen-share toggle -
- * it captures the default device. The microphone is never touched.
- *
- * Honest limitation: unlike Linux, Windows has no free built-in virtual
- * audio device, so this only works if you actually have a second real
- * playback device (e.g. speakers + a headset) - moving an app to a device
- * you can't hear would silently mute it for you, which is worse than
- * doing nothing. If only one device is found, excludeAppAudio() throws a
- * clear error instead of guessing.
  */
 
 import { exec as execCb, execFile } from "child_process";

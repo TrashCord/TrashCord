@@ -5,6 +5,7 @@
  */
 
 import { DataStore } from "@api/index";
+import { HeaderBarButton } from "@api/HeaderBar";
 import { UserAreaButton } from "@api/UserArea";
 import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
@@ -256,15 +257,16 @@ async function bcrApplyColor(hex: string): Promise<void> {
     await p;
 }
 async function bcrRotateNext(): Promise<void> { if (!pluginActive || isManualStop || wasInvisible) return; await bcrApplyColor(await bcrPickNextColor()); if (!pluginActive || isManualStop || wasInvisible) return; bcrSchedule(); }
-function bcrSchedule() { if (bcrRotatorTimer) clearTimeout(bcrRotatorTimer); if (!pluginActive || isManualStop || wasInvisible || bcrNitroBlocked()) return; const ms = Math.max(1, settings.store.bannerIntervalSeconds ?? BCR_DEFAULT_S) * 1000; bcrRotatorTimer = setTimeout(bcrRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms); }
+function bcrSchedule() { if (bcrRotatorTimer) clearTimeout(bcrRotatorTimer); if (!pluginActive || isManualStop || wasInvisible || bcrNitroBlocked()) return; const ms = Math.max(1, settings.store.bannerIntervalSeconds ?? BCR_DEFAULT_S) * 1000; bcrRotatorTimer = setTimeout(bcrRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms); emit(); }
 function bcrStartRotator(immediate = false) {
     if (!pluginActive) return;
     if (bcrRotatorTimer) clearTimeout(bcrRotatorTimer);
     bcrRandomBatch = []; bcrSeqBatch = []; bcrUsedFavs = []; bcrGradientState = null; bcrMonoBaseHue = null; bcrSeqBaseHue = 0; bcrShadeStep = 0; bcrShadeDir = 1;
     if (immediate) void bcrRotateNext(); else bcrRotatorTimer = setTimeout(bcrRotateNext, Math.max(1, settings.store.bannerIntervalSeconds ?? BCR_DEFAULT_S) * 1000);
+    emit();
 }
-function bcrStopRotator() { if (bcrRotatorTimer) { clearTimeout(bcrRotatorTimer); bcrRotatorTimer = null; } void bcrSaveData(); }
-const bcrSaveData = (): Promise<void> => DataStore.set(BCR_SK, { favorites: bcrFavorites, usedFavs: bcrUsedFavs, wasRunning: bcrRotatorTimer !== null, currentColor: bcrCurrentColor } as BcrStoreData);
+function bcrStopRotator() { if (bcrRotatorTimer) { clearTimeout(bcrRotatorTimer); bcrRotatorTimer = null; } void bcrSaveData(); emit(); }
+const bcrSaveData = (): Promise<void> => { emit(); return DataStore.set(BCR_SK, { favorites: bcrFavorites, usedFavs: bcrUsedFavs, wasRunning: bcrRotatorTimer !== null, currentColor: bcrCurrentColor } as BcrStoreData); };
 
 const BCR_MODES: { id: BcrCycleMode; emoji: string; label: string; desc: string; needsBase?: boolean; needsHueR?: boolean }[] = [
     { id: "full_random", emoji: "🎲", label: "Full Random", desc: "Any hex, 32-batch no repeats" },
@@ -445,6 +447,28 @@ let closeClanId = "";
 let closeBannerEnabled = false;
 let closeBannerColor = "#111214";
 
+const uiSubscribers = new Set<() => void>();
+let _emitQueued = false;
+function subscribe(fn: () => void): () => void {
+    uiSubscribers.add(fn);
+    return () => { uiSubscribers.delete(fn); };
+}
+function emitNow() { _emitQueued = false; for (const fn of uiSubscribers) fn(); }
+function emit() { if (_emitQueued) return; _emitQueued = true; queueMicrotask(emitNow); }
+
+function computeRunning(): boolean {
+    return nickTimers.size > 0
+        || guildPronounsTimers.size > 0
+        || statusTimer !== null
+        || clanTimer !== null
+        || bioTimer !== null
+        || pronounsTimer !== null
+        || globalNickTimer !== null
+        || globalSyncTimer !== null
+        || arRotatorTimer !== null
+        || bcrRotatorTimer !== null;
+}
+
 const saveCloseConfig = () => {
     const cfg = { closeStatusEnabled, closeStatusText, closeStatusEmoji, closeStatusType, closeClanEnabled, closeClanId, closeBannerEnabled, closeBannerColor };
     DataStore.set(RS_CLOSE_SK, cfg);
@@ -596,7 +620,7 @@ function fireCloseBanner(): void {
     });
 }
 
-const saveData = () => DataStore.set(SK, {
+const saveData = () => { emit(); return DataStore.set(SK, {
     createdAt: storeCreatedAt, globalNicks,
     guilds: guilds.map(g => { const { lastNickVal: _, ...rest } = g as any; return rest; }),
     bioEntries, pronounsList, statusEntries, statusPresets, clanIds,
@@ -604,7 +628,7 @@ const saveData = () => DataStore.set(SK, {
     statusLastVal, clanLastVal, bioLastVal, prLastVal,
     globalNickEntries, globalNickSeqIdx, globalNickLastVal,
     globalGuildPronouns, clanServerNames,
-} as StoreData);
+} as StoreData); };
 
 function parseList(raw: string): string[] { return raw.split("§").map(s => s.trim()).filter(Boolean); }
 function reorder<T>(arr: T[], from: number, to: number): T[] {
@@ -691,12 +715,13 @@ function scheduleNickTick(g: GuildEntry, ms: number) {
             scheduleNickTick(g, getMs(settings.store.nickIntervalSeconds));
     }, ms);
     nickTimers.set(g.id, id);
+    emit();
 }
 function startNickGuild(g: GuildEntry) {
     if (!nickTimers.has(g.id) && !settings.store.globalSync && settings.store.nickEnabled)
         scheduleNickTick(g, getMs(settings.store.nickIntervalSeconds));
 }
-function stopNickGuild(id: string) { const t = nickTimers.get(id); if (t) { clearTimeout(t); nickTimers.delete(id); } }
+function stopNickGuild(id: string) { const t = nickTimers.get(id); if (t) { clearTimeout(t); nickTimers.delete(id); } emit(); }
 function stopAllNicks() { [...nickTimers.keys()].forEach(stopNickGuild); }
 function tickAllNicks() {
     if (!settings.store.nickEnabled) return;
@@ -741,12 +766,13 @@ function scheduleGuildPronounsTick(g: GuildEntry, ms: number) {
             scheduleGuildPronounsTick(g, getMs(settings.store.serverPronounsIntervalSeconds));
     }, ms) as ReturnType<typeof setTimeout>;
     guildPronounsTimers.set(g.id, tid);
+    emit();
 }
 function startGuildPronouns(g: GuildEntry) {
     if (!guildPronounsTimers.has(g.id) && !settings.store.globalSync && g.guildPronounsEnabled && settings.store.serverPronounsEnabled && pronounsForGuild(g).length > 0)
         scheduleGuildPronounsTick(g, getMs(settings.store.serverPronounsIntervalSeconds));
 }
-function stopGuildPronouns(id: string) { const t = guildPronounsTimers.get(id); if (t) { clearTimeout(t); guildPronounsTimers.delete(id); } }
+function stopGuildPronouns(id: string) { const t = guildPronounsTimers.get(id); if (t) { clearTimeout(t); guildPronounsTimers.delete(id); } emit(); }
 function stopAllGuildPronouns() { [...guildPronounsTimers.keys()].forEach(stopGuildPronouns); }
 function tickAllGuildPronouns() {
     if (!settings.store.serverPronounsEnabled) return;
@@ -919,8 +945,9 @@ function scheduleStatusLoop() {
         tickStatus(); saveData();
         if (settings.store.statusEnabled) scheduleStatusLoop();
     }, getMs(settings.store.statusIntervalSeconds));
+    emit();
 }
-function stopStatusTimer() { if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; } }
+function stopStatusTimer() { if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; } emit(); }
 
 function getActiveClanIds(): string[] {
     if (!settings.store.clanAutoDetect) return clanIds;
@@ -1004,10 +1031,12 @@ function scheduleClanLoop() {
         tickClan(); saveData();
         if (settings.store.clanEnabled) scheduleClanLoop();
     }, getMs(settings.store.clanIntervalSeconds));
+    emit();
 }
 function stopClanTimer() {
     if (clanTimer) { clearTimeout(clanTimer); clanTimer = null; }
     if (clanAbortCtrl) { clanAbortCtrl.abort(); clanAbortCtrl = null; }
+    emit();
 }
 
 async function patchProfile(body: Record<string, string>) {
@@ -1081,8 +1110,9 @@ function scheduleBioLoop() {
         tickBio(); saveData();
         if (settings.store.profileBioEnabled) scheduleBioLoop();
     }, getMs(settings.store.bioIntervalSeconds));
+    emit();
 }
-function stopBioTimer() { if (bioTimer) { clearTimeout(bioTimer); bioTimer = null; } }
+function stopBioTimer() { if (bioTimer) { clearTimeout(bioTimer); bioTimer = null; } emit(); }
 
 function tickPronouns() {
     if (!settings.store.profilePronounsEnabled) return;
@@ -1100,8 +1130,9 @@ function schedulePronounsLoop() {
         tickPronouns(); saveData();
         if (settings.store.profilePronounsEnabled) schedulePronounsLoop();
     }, getMs(settings.store.pronounsIntervalSeconds));
+    emit();
 }
-function stopPronounsTimer() { if (pronounsTimer) { clearTimeout(pronounsTimer); pronounsTimer = null; } }
+function stopPronounsTimer() { if (pronounsTimer) { clearTimeout(pronounsTimer); pronounsTimer = null; } emit(); }
 
 function tickGlobalNick() {
     if (!settings.store.globalNickEnabled || !globalNickEntries.length) return;
@@ -1121,8 +1152,9 @@ function scheduleGlobalNickLoop() {
         tickGlobalNick(); saveData();
         if (settings.store.globalNickEnabled) scheduleGlobalNickLoop();
     }, ms);
+    emit();
 }
-function stopGlobalNickTimer() { if (globalNickTimer) { clearTimeout(globalNickTimer); globalNickTimer = null; } }
+function stopGlobalNickTimer() { if (globalNickTimer) { clearTimeout(globalNickTimer); globalNickTimer = null; } emit(); }
 
 function globalTick() { tickStatus(); tickBio(); tickPronouns(); tickGlobalNick(); tickAllNicks(); tickAllGuildPronouns(); saveData(); }
 
@@ -1134,8 +1166,9 @@ function scheduleGlobalLoop() {
         globalTick();
         scheduleGlobalLoop();
     }, getMs(settings.store.globalSyncSeconds));
+    emit();
 }
-function stopGlobalTimer() { if (globalSyncTimer) { clearTimeout(globalSyncTimer); globalSyncTimer = null; } }
+function stopGlobalTimer() { if (globalSyncTimer) { clearTimeout(globalSyncTimer); globalSyncTimer = null; } emit(); }
 
 function getMyVoiceGuildId(): string | null {
     try {
@@ -1203,6 +1236,7 @@ function stopAllRotators() {
     stopBioTimer(); stopPronounsTimer(); stopGlobalNickTimer();
     stopGlobalTimer(); stopVoiceWatcher(); bcrStopRotator(); arStopRotator();
     wxStop();
+    emit();
 }
 
 function startAllRotators() {
@@ -1228,6 +1262,7 @@ function startAllRotators() {
     if (settings.store.voiceActivateEnabled) startVoiceWatcher();
     if (settings.store.bannerEnabled) bcrStartRotator(false);
     if ((settings.store as any).weatherEnabled) wxStart();
+    emit();
 }
 
 function formatStopDuration(ms: number): string {
@@ -1251,6 +1286,7 @@ function doGlobalStop(durationMs: number | null) {
     } else {
         globalStopEndTime = null;
     }
+    emit();
     showToast({ text: durationMs ? `Rotators stopped for ${formatStopDuration(durationMs)}` : "All Rotators stopped" });
 }
 
@@ -1259,6 +1295,7 @@ function doGlobalResume() {
     if (globalStopTimer) { clearTimeout(globalStopTimer); globalStopTimer = null; }
     globalStopEndTime = null;
     if (pluginActive) startAllRotators();
+    emit();
     showToast({ text: "All Rotators resumed", variant: "success" });
 }
 
@@ -1281,10 +1318,12 @@ function startInvisibleWatcher() {
             wasInvisible = true;
             stopAllRotators();
             void applyOnCloseAll();
+            emit();
             showToast({ text: "Invisible detected - Rotators paused" });
         } else if (!nowInvis && wasInvisible) {
             wasInvisible = false;
             if (!isManualStop && pluginActive) startAllRotators();
+            emit();
             showToast({ text: "Status visible - Rotators resumed", variant: "success" });
         }
     }, 3000);
@@ -1303,10 +1342,12 @@ function startNitroWatcher() {
         if (arHasNitro()) {
             if (bcrRotatorTimer !== null) {
                 bcrStopRotator();
+                emit();
                 arToast("Nitro detected - ColorBanner paused. Disable Nitro Check in Banner tab to override.", "failure");
             }
         } else if (settings.store.bannerEnabled && bcrRotatorTimer === null && !isManualStop && !wasInvisible) {
             bcrStartRotator(false);
+            emit();
             arToast("Nitro no longer detected - ColorBanner resumed.");
         }
     };
@@ -1387,6 +1428,7 @@ function _netApply() {
                 stopStatusTimer(); stopClanTimer();
                 stopBioTimer(); stopPronounsTimer(); stopGlobalNickTimer();
                 stopGlobalTimer(); stopVoiceWatcher(); bcrStopRotator(); arStopRotator();
+                emit();
             }
         } else {
             const newM = rtt > th * 1.5 ? 5 : 3;
@@ -1478,9 +1520,9 @@ const settings = definePluginSettings({
         )
     },
     _sSyncGroup: { type: OptionType.COMPONENT, description: "", component: () => <SettingsSep title="Master Sync" color={C.data} /> },
-    globalSync: { type: OptionType.BOOLEAN, default: false, description: "Master Sync (configure in Data tab).", onChange: () => { if (pluginActive) startAllRotators(); } },
-    globalSyncSeconds: { type: OptionType.STRING, default: "500", description: "Master Sync interval seconds (configure in Data tab)." },
-    noDuplicateRandom: { type: OptionType.BOOLEAN, default: true, description: "No-Duplicate Random (configure in Data tab)." },
+    globalSync: { type: OptionType.BOOLEAN, default: false, description: "Master Sync (configure in Settings tab).", onChange: () => { if (pluginActive) startAllRotators(); } },
+    globalSyncSeconds: { type: OptionType.STRING, default: "500", description: "Master Sync interval seconds (configure in Settings tab)." },
+    noDuplicateRandom: { type: OptionType.BOOLEAN, default: true, description: "No-Duplicate Random (configure in Settings tab)." },
     _sStatusGroup: { type: OptionType.COMPONENT, description: "", component: () => <SettingsSep title="Status" color={C.status} /> },
     statusEnabled: { type: OptionType.BOOLEAN, default: false, description: "Status rotator enabled (configure in Status tab)." },
     statusIntervalSeconds: { type: OptionType.STRING, default: "10", description: "Status interval seconds (configure in Status tab)." },
@@ -1531,6 +1573,7 @@ const settings = definePluginSettings({
     voiceActivateGlobal: { type: OptionType.BOOLEAN, default: false, description: "Global: activate ALL server nick+pronoun rotators when in any voice/call. Overrides per-server." },
     _sMisc: { type: OptionType.COMPONENT, description: "", component: () => <SettingsSep title="Misc" color={C.hint} /> },
     showButton: { type: OptionType.BOOLEAN, default: true, description: "Show the Rotator Suite button in the user area (bottom-left)." },
+    showHeaderButton: { type: OptionType.BOOLEAN, default: false, description: "Show the Rotator Suite button in the header bar." },
     autoStart: { type: OptionType.BOOLEAN, default: true, description: "Auto-start all enabled rotators when Discord loads." },
     enableLogs: { type: OptionType.BOOLEAN, default: false, description: "Print rotator activity and errors to the console (F12)." },
     stopOnInvisible: { type: OptionType.BOOLEAN, default: true, description: "Pause all rotators automatically when status is set to invisible." },
@@ -1583,6 +1626,7 @@ async function wxUpdate() {
         const text = wxBuildText(result, tpl, (settings.store as any).weatherUnit === "F");
         if (text) void applyStatus({ emojiName: null, emojiId: null, text });
     }
+    emit();
 }
 
 function wxSchedule() {
@@ -3142,7 +3186,7 @@ function ProfileTab({ forceUpdate }: { forceUpdate: () => void }) {
     );
 }
 
-const arSaveData = (): Promise<void> => DataStore.set(AR_SK, { avatars: arAvatars, seqIndex: arSeqIndex, shuffleQueue: arShuffleQueue } as ArStoreData);
+const arSaveData = (): Promise<void> => { emit(); return DataStore.set(AR_SK, { avatars: arAvatars, seqIndex: arSeqIndex, shuffleQueue: arShuffleQueue } as ArStoreData); };
 
 function arGetExcluded(): string[] {
     return settings.store.avatarExcludedExtensions.split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
@@ -3371,6 +3415,7 @@ function arSchedule() {
     if (!settings.store.avatarEnabled || !pluginActive || !arGetActive().length) return;
     const ms = Math.max(1, settings.store.avatarIntervalSeconds || AR_DEFAULT_S) * 1000;
     arRotatorTimer = setTimeout(arRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms);
+    emit();
 }
 
 function arStartRotator(immediate = false) {
@@ -3379,11 +3424,13 @@ function arStartRotator(immediate = false) {
     const active = arGetActive();
     if (settings.store.avatarRandom) arShuffleQueue = arSfShuffle(active.length);
     if (immediate && active.length) arRotateNext(); else arSchedule();
+    emit();
     arToast("Avatar Rotator started");
 }
 
 function arStopRotator() {
     if (arRotatorTimer) { clearTimeout(arRotatorTimer); arRotatorTimer = null; }
+    emit();
 }
 
 function arExportJSON() {
@@ -5132,6 +5179,8 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
                 <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: ".7px", color: "#9e9e9e", marginBottom: 5 }}>Misc</div>
                 <PanelToggle label="Show User Area Button" description="Show the Rotator Suite button in the bottom-left user area" value={settings.store.showButton}
                     onChange={v => { settings.store.showButton = v; forceUpdate(); }} />
+                <PanelToggle label="Show Header bar button" description="Show the Rotator Suite button in the Discord header bar (top-right, near inbox)" value={settings.store.showHeaderButton}
+                    onChange={v => { settings.store.showHeaderButton = v; forceUpdate(); }} />
                 <PanelToggle label="Console Logs" description="Print all rotator activity and errors to the browser console (F12)" value={settings.store.enableLogs}
                     onChange={v => { settings.store.enableLogs = v; }} />
                 <PanelToggle label="Stop When Invisible" description="Automatically pause all rotators when your status is set to Invisible (resumes on visible)" value={settings.store.stopOnInvisible}
@@ -5546,10 +5595,7 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
     const [tab, setTab] = React.useState<TabId>("status");
     const [notActive] = React.useState(!pluginActive);
 
-    React.useEffect(() => {
-        const id = setInterval(forceUpdate, 1000);
-        return () => clearInterval(id);
-    }, []);
+    React.useEffect(() => subscribe(forceUpdate), []);
 
     const tabs: { id: TabId; label: string; color: string }[] = [
         { id: "status", label: "Status", color: C.status },
@@ -5558,7 +5604,7 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
         { id: "avatar", label: "Avatar", color: "#9c67ff" },
         { id: "colorbanner", label: "ColorBanner", color: "#c084fc" },
         { id: "servers", label: "Server Profiles", color: C.nick },
-        { id: "data", label: "Data", color: C.data },
+        { id: "data", label: "Settings", color: C.data },
     ];
 
     const isGlobalSync = settings.store.globalSync;
@@ -5600,20 +5646,20 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
                             onClick={() => setTab(t.id)}>{t.label}</button>
                     ))}
                 </div>
-                {tab === "status" && <StatusTab forceUpdate={forceUpdate} />}
-                {tab === "clan" && <ClanTab forceUpdate={forceUpdate} />}
-                {tab === "profile" && <ProfileTab forceUpdate={forceUpdate} />}
-                {tab === "avatar" && <AvatarTab forceUpdate={forceUpdate} />}
-                {tab === "colorbanner" && <BannerTab forceUpdate={forceUpdate} />}
-                {tab === "servers" && <NicksTab forceUpdate={forceUpdate} />}
-                {tab === "data" && <DataTab forceUpdate={forceUpdate} />}
+                {tab === "status" && <StatusTab forceUpdate={emit} />}
+                {tab === "clan" && <ClanTab forceUpdate={emit} />}
+                {tab === "profile" && <ProfileTab forceUpdate={emit} />}
+                {tab === "avatar" && <AvatarTab forceUpdate={emit} />}
+                {tab === "colorbanner" && <BannerTab forceUpdate={emit} />}
+                {tab === "servers" && <NicksTab forceUpdate={emit} />}
+                {tab === "data" && <DataTab forceUpdate={emit} />}
             </ModalContent>
 
             <ModalFooter>
                 <div style={{ display: "flex", gap: 8, width: "100%", alignItems: "center", flexWrap: "wrap" as const }}>
                     {(isManualStop || wasInvisible) && (
                         <div style={{ width: "100%", padding: "5px 10px", borderRadius: 7, background: "rgba(239,83,80,.1)", border: "1px solid rgba(239,83,80,.3)", fontSize: 11, color: "#ef9a9a", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                            {wasInvisible && !isManualStop ? "⛔ PAUSED - Invisible status" : isManualStop && globalStopEndTime ? `⏸ STOPPED - Go to Data tab to resume` : "⏸ MANUALLY STOPPED - Go to Data tab to resume"}
+                            {wasInvisible && !isManualStop ? "⛔ PAUSED - Invisible status" : isManualStop && globalStopEndTime ? `⏸ STOPPED - Go to Settings tab to resume` : "⏸ MANUALLY STOPPED - Go to Settings tab to resume"}
                         </div>
                     )}
                     {settings.store.stopOnInvisible && !wasInvisible && !isManualStop && (
@@ -5655,27 +5701,48 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
     );
 }
 
+const RSHeaderIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+    </svg>
+);
+
+const RSRunningIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+        <circle cx="18" cy="6" r="4" fill="#9c67ff" stroke="none" />
+    </svg>
+);
+
+const RSIdleIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+    </svg>
+);
+
+function RSHeaderButton() {
+    const s = settings.use(["showHeaderButton"]);
+    const [running, setRunning] = React.useState<boolean>(() => computeRunning());
+    React.useEffect(() => subscribe(() => setRunning(computeRunning())), []);
+    if (!s.showHeaderButton) return null;
+    return (
+        <HeaderBarButton
+            icon={running ? RSRunningIcon : RSIdleIcon}
+            tooltip={running ? "Rotator Suite - [Running]" : "Rotator Suite"}
+            onClick={() => openModal(props => <RotatorSuiteModal modalProps={props} />)}
+        />
+    );
+}
 
 function RSUserAreaButton() {
-    const [active, setActive] = React.useState(false);
-    React.useEffect(() => {
-        const id = setInterval(() => {
-            const timers = nickTimers.size + guildPronounsTimers.size + (statusTimer ? 1 : 0) + (clanTimer ? 1 : 0) + (bioTimer ? 1 : 0) + (pronounsTimer ? 1 : 0) + (globalNickTimer ? 1 : 0) + (globalSyncTimer ? 1 : 0) + (arRotatorTimer ? 1 : 0) + (bcrRotatorTimer ? 1 : 0);
-            setActive(timers > 0);
-        }, 800);
-        return () => clearInterval(id);
-    }, []);
-
-    if (!settings.store.showButton) return null;
+    const s = settings.use(["showButton"]);
+    const [running, setRunning] = React.useState<boolean>(() => computeRunning());
+    React.useEffect(() => subscribe(() => setRunning(computeRunning())), []);
+    if (!s.showButton) return null;
     return (
         <UserAreaButton
-            tooltipText={active ? "Rotator Suite - [Running]" : "Rotator Suite"}
-            icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
-                    {active && <circle cx="18" cy="6" r="4" fill="#9c67ff" stroke="none" />}
-                </svg>
-            }
+            tooltipText={running ? "Rotator Suite - [Running]" : "Rotator Suite"}
+            icon={running ? <RSRunningIcon /> : <RSIdleIcon />}
             onClick={() => openModal(props => <RotatorSuiteModal modalProps={props} />)}
         />
     );
@@ -5689,6 +5756,12 @@ export default definePlugin({
     enabledByDefault: false,
     settings,
     dependencies: ["UserAreaAPI"],
+
+    headerBarButton: {
+        icon: RSHeaderIcon,
+        render: RSHeaderButton,
+        priority: 5
+    },
 
     toolboxActions: {
         "Open Rotator Suite"() {
@@ -5826,5 +5899,6 @@ export default definePlugin({
         wxStop();
         wxCache = null;
         delete (window as any).__rsWx;
+        for (const fn of uiSubscribers) { try { fn(); } catch {} }
     },
 });

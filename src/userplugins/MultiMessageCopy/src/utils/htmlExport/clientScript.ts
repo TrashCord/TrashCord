@@ -1,18 +1,7 @@
-/**
- * htmlExport/clientScript.ts
- *
- * Client-side JavaScript embedded in the standalone HTML export.
- * Handles:
- *   - Image lightbox
- *   - User profile popout + copy user ID
- *   - Missing/deleted media fallback (error event capture)
- *   - Custom emoji broken-image fallback (pill showing :name:)
- *
- * Security: no raw user content is ever injected as JS literals here.
- * All user data is read via the PARTICIPANTS JSON object that is
- * safely built server-side by buildPopoutDataScript().
- * The missing-content placeholder is built with DOM APIs (textContent /
- * createElement), never innerHTML with untrusted values.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 export const HTML_EXPORT_CLIENT_SCRIPT = `

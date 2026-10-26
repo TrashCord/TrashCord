@@ -1,8 +1,7 @@
-/**
- * UpdateModal.tsx
- *
- * JSX modal for the MultiMessageCopy update notification.
- * All update-check logic lives in src/utils/updateChecker.ts.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal"

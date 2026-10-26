@@ -1,12 +1,7 @@
 /*
- * StreamAudioRouter for Vencord
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * Minimal EN/RU dictionary for the plugin's own UI text. Discord's own
- * strings (buttons, menus, etc.) already localize themselves - this only
- * covers text this plugin renders itself. Locale is picked up from
- * Discord's own LocaleStore, so switching Discord's language switches this
- * plugin's UI too, with no user-facing setting of its own.
  */
 
 export type Locale = "en" | "ru";

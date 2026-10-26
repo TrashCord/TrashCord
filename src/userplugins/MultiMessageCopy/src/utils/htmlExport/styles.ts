@@ -1,8 +1,7 @@
-/**
- * htmlExport/styles.ts
- *
- * All CSS for the standalone HTML export. Kept in one place so it is easy
- * to update without touching logic files.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 export const HTML_EXPORT_CSS = `

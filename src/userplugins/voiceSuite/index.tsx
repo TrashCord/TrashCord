@@ -1,6 +1,6 @@
 /*
- * VoiceSuite, a Vencord/Equicord user plugin
- * Copyright (c) 2026 zfrancesck1
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
@@ -97,10 +97,10 @@ interface Compiled {
 }
 
 const K = {
-    bg: "#120a1c", card: "#1b1128", card2: "#261838", card3: "#150d21", input: "#0d0716",
-    line: "#4b2d7f", soft: "#33204f", accent: "#a78bfa", deep: "#7c3aed", text: "#f1e9ff",
-    sub: "#cbb8f5", mute: "#9a8bb8", green: "#4ade80", red: "#f87171", amber: "#fbbf24",
-    blue: "#60a5fa", pink: "#f0abfc", cyan: "#22d3ee", orange: "#fb923c",
+    bg: "#0a0810", card: "#131020", card2: "#1a1628", card3: "#0d0a14", input: "#07050c",
+    line: "#2e2247", soft: "#1f1830", accent: "#8b7bc4", deep: "#5e3fa8", text: "#ddd6e8",
+    sub: "#a89bbf", mute: "#706884", green: "#4e8c62", red: "#b15858", amber: "#b8903e",
+    blue: "#5678a8", pink: "#a863a0", cyan: "#4a8f96", orange: "#b87848",
 };
 
 const TRIGGERS: { id: Trigger; label: string; desc: string; color: string; }[] = [
@@ -1515,17 +1515,23 @@ function SuiteUserAreaButton() {
     return <UserAreaButton tooltipText={tip} icon={<Glyph state={st} width={20} height={20} />} onClick={openSuite} />;
 }
 
-function Chip({ label, active, color = K.accent, disabled, onClick, title }: { label: string; active?: boolean; color?: string; disabled?: boolean; onClick?: () => void; title?: string; }) {
+function Chip({ label, active, color = K.accent, disabled, onClick, title, big, tint }: { label: string; active?: boolean; color?: string; disabled?: boolean; onClick?: () => void; title?: string; big?: boolean; tint?: boolean; }) {
     return (
         <div role="button" title={title} onClick={() => { if (!disabled && onClick) onClick(); }}
             style={{
-                padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 700, lineHeight: "16px",
+                padding: big ? "6px 13px" : "3px 9px", borderRadius: big ? 8 : 6, fontSize: big ? 13 : 11, fontWeight: 700, lineHeight: big ? "18px" : "16px",
                 cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.35 : 1, userSelect: "none", whiteSpace: "nowrap",
-                border: `1px solid ${active ? color : K.line}`, background: active ? `${color}30` : K.card2, color: active ? color : K.sub
+                border: `1px solid ${active ? color : tint ? `${color}44` : K.line}`,
+                background: active ? color : tint ? `${color}0e` : K.card2,
+                color: active ? "#ffffff" : tint ? color : K.sub
             }}>
             {label}
         </div>
     );
+}
+
+function QChip(p: React.ComponentProps<typeof Chip>) {
+    return <Chip big {...p} />;
 }
 
 function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean; }) {
@@ -1534,7 +1540,7 @@ function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: b
             style={{
                 width: 34, height: 18, borderRadius: 9, flexShrink: 0, position: "relative", userSelect: "none",
                 cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1,
-                background: value ? K.deep : "#3a2a55", border: `1px solid ${value ? K.accent : K.line}`
+                background: value ? K.deep : K.line, border: `1px solid ${value ? K.accent : K.line}`
             }}>
             <div style={{ position: "absolute", top: 2, left: value ? 18 : 2, width: 12, height: 12, borderRadius: 6, background: value ? "#fff" : K.mute }} />
         </div>
@@ -1589,8 +1595,8 @@ function Grid2({ children }: { children: React.ReactNode; }) {
     return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 16 }}>{children}</div>;
 }
 
-function Tag({ children }: { children: React.ReactNode; }) {
-    return <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.8, color: K.mute, width: 44, flexShrink: 0 }}>{children}</span>;
+function Tag({ children, color = K.mute }: { children: React.ReactNode; color?: string; }) {
+    return <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.8, color, width: 58, flexShrink: 0 }}>{children}</span>;
 }
 
 function Field({ value, onChange, onEnter, onBlur, placeholder, width, disabled, mono, center }: { value: string; onChange: (v: string) => void; onEnter?: () => void; onBlur?: () => void; placeholder?: string; width?: number | string; disabled?: boolean; mono?: boolean; center?: boolean; }) {
@@ -2052,7 +2058,7 @@ function QuickBar() {
     const rs = realState();
     const eff = effectiveFake();
     return (
-        <div style={{ background: K.card3, border: `1px solid ${K.soft}`, borderRadius: 9, padding: "6px 9px", marginBottom: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ background: K.card3, border: `1px solid ${K.soft}`, borderRadius: 9, padding: "7px 9px", marginBottom: 8, display: "flex", flexDirection: "column", gap: 7 }}>
             {hookWarn && (
                 <div style={{ fontSize: 11, color: K.amber, border: `1px solid ${K.amber}`, borderRadius: 6, padding: "4px 8px" }}>
                     ⚠ {tx("Fake states from Voice Suite are not reaching Discord. Reload Discord. If it continues, tell me which fake plugins are enabled.")}
@@ -2064,49 +2070,49 @@ function QuickBar() {
                 </div>
             )}
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <Tag>{tx("NOW")}</Tag>
-                <span style={{ fontSize: 11, color: cur ? K.green : K.mute, fontWeight: 700 }}>
+                <Tag color={K.green}>{tx("NOW")}</Tag>
+                <span style={{ fontSize: 12, color: cur ? K.green : K.mute, fontWeight: 700 }}>
                     {cur ? `#${ch?.name ?? cur}${ch?.guild_id ? ` · ${gName(ch.guild_id)}` : ""}` : tx("Not in a voice channel")}
                     {streaming ? " · " + tx(isFakeStreamOn() ? "fake stream" : "screensharing") : ""}
                 </span>
             </div>
-            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-                <Tag>{tx("FAKE")}</Tag>
-                <Chip label={tx("Mute")} color={K.pink} active={eff.selfMute} onClick={() => setFake("selfMute", !eff.selfMute)} />
-                <Chip label={tx("Deafen")} color={K.pink} active={eff.selfDeaf} onClick={() => setFake("selfDeaf", !eff.selfDeaf)} />
-                <Chip label={tx("Camera")} color={K.pink} active={eff.selfVideo} onClick={() => setFake("selfVideo", !eff.selfVideo)} />
-                <Chip label={tx("Stream")} color={K.pink} active={isFakeStreamOn()} disabled={streamLocked || !cur} onClick={() => setFakeStream(!isFakeStreamOn())} />
-                <Chip label={tx("Ghost")} title={tx("Fake mute + deafen")} color={K.pink} onClick={() => setFakeCombo(true, true, false)} />
-                <Chip label={tx("Reset")} color={K.red} onClick={resetFakes} />
+            <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+                <Tag color={K.pink}>{tx("FAKE")}</Tag>
+                <QChip label={tx("Mute")} color={K.pink} active={eff.selfMute} onClick={() => setFake("selfMute", !eff.selfMute)} />
+                <QChip label={tx("Deafen")} color={K.accent} active={eff.selfDeaf} onClick={() => setFake("selfDeaf", !eff.selfDeaf)} />
+                <QChip label={tx("Camera")} color={K.blue} active={eff.selfVideo} onClick={() => setFake("selfVideo", !eff.selfVideo)} />
+                <QChip label={tx("Stream")} color={K.cyan} active={isFakeStreamOn()} disabled={streamLocked || !cur} onClick={() => setFakeStream(!isFakeStreamOn())} />
+                <QChip label={tx("Ghost")} title={tx("Fake mute + deafen")} color={K.amber} onClick={() => setFakeCombo(true, true, false)} />
+                <QChip label={tx("Reset")} color={K.red} onClick={resetFakes} />
             </div>
-            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-                <Tag>{tx("REAL")}</Tag>
-                <Chip label={rs.mute ? tx("Muted") : tx("Mute")} color={K.red} active={rs.mute} disabled={!cur} onClick={toggleRealMute} />
-                <Chip label={rs.deaf ? tx("Deafened") : tx("Deafen")} color={K.red} active={rs.deaf} disabled={!cur} onClick={toggleRealDeaf} />
-                <Chip label={tx("Cam on")} color={K.green} disabled={!cur || rs.cam} onClick={() => setCamera(true)} />
-                <Chip label={tx("Cam off")} color={K.red} disabled={!cur || !rs.cam} onClick={() => setCamera(false)} />
-                <Chip label={tx("▶ Share")} color={K.green} disabled={!cur || streaming} title={tx("Starts a screenshare of the source chosen in Settings")} onClick={startRealStream} />
-                <Chip label={tx("■ Stop share")} color={K.red} disabled={!streaming} onClick={stopAnyStream} />
-                <Chip label={tx("Leave")} color={K.red} disabled={!cur} onClick={() => { disconnectVoice(); emit(); }} />
+            <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+                <Tag color={K.cyan}>{tx("REAL")}</Tag>
+                <QChip label={rs.mute ? tx("Muted") : tx("Mute")} color={K.red} active={rs.mute} disabled={!cur} onClick={toggleRealMute} />
+                <QChip label={rs.deaf ? tx("Deafened") : tx("Deafen")} color={K.orange} active={rs.deaf} disabled={!cur} onClick={toggleRealDeaf} />
+                <QChip label={tx("Cam on")} color={K.green} disabled={!cur || rs.cam} onClick={() => setCamera(true)} />
+                <QChip label={tx("Cam off")} color={K.amber} disabled={!cur || !rs.cam} onClick={() => setCamera(false)} />
+                <QChip label={tx("▶ Share")} color={K.cyan} disabled={!cur || streaming} title={tx("Starts a screenshare of the source chosen in Settings")} onClick={startRealStream} />
+                <QChip label={tx("■ Stop share")} color={K.red} disabled={!streaming} onClick={stopAnyStream} />
+                <QChip label={tx("Leave")} color={K.pink} disabled={!cur} onClick={() => { disconnectVoice(); emit(); }} />
             </div>
-            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-                <Tag>{tx("SHIELD")}</Tag>
-                <Chip label={tx("Hide camera")} color={K.pink} active={crashed} title={tx("Shows a frozen frame instead of your camera (Settings, Camera shield)")} onClick={() => crashCamera(!crashed)} />
-                <Chip label={tx("Safe camera")} color={K.pink} active={previousDevice !== null} title={tx("Swaps to your safe camera, click again to restore")} onClick={toggleSafeCamera} />
-                <Chip label={tx("Panic")} color={K.red} title={`Runs: ${panicSummary()}`} onClick={panic} />
+            <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+                <Tag color={K.orange}>{tx("SHIELD")}</Tag>
+                <QChip label={tx("Hide camera")} color={K.blue} active={crashed} title={tx("Shows a frozen frame instead of your camera (Settings, Camera shield)")} onClick={() => crashCamera(!crashed)} />
+                <QChip label={tx("Safe camera")} color={K.green} active={previousDevice !== null} title={tx("Swaps to your safe camera, click again to restore")} onClick={toggleSafeCamera} />
+                <QChip label={tx("Panic")} color={K.red} title={`Runs: ${panicSummary()}`} onClick={panic} />
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                <Tag>{tx("PAUSE")}</Tag>
+                <Tag color={K.amber}>{tx("PAUSE")}</Tag>
                 {paused
                     ? <>
-                        <span style={{ fontSize: 11, color: K.amber, fontWeight: 700 }}>{tx("Automation paused · {n} min left", { n: Math.ceil(left / 60000) })}</span>
-                        <Chip label={tx("Resume now")} color={K.green} active onClick={() => resumeNow()} />
+                        <span style={{ fontSize: 12, color: K.amber, fontWeight: 700 }}>{tx("Automation paused · {n} min left", { n: Math.ceil(left / 60000) })}</span>
+                        <QChip label={tx("Resume now")} color={K.green} active onClick={() => resumeNow()} />
                     </>
                     : <>
                         <span style={{ fontSize: 11, color: K.mute }}>{tx("Stop all rules for")}</span>
                         <NumField value={mins} min={1} max={10080} width={54} onCommit={v => { settings.store.pauseMinutes = v; emit(); }} />
                         <span style={{ fontSize: 11, color: K.mute }}>{tx("min")}</span>
-                        <Chip label={tx("Pause")} color={K.amber} onClick={() => pauseFor(mins)} />
+                        <QChip label={tx("Pause")} color={K.amber} onClick={() => pauseFor(mins)} />
                     </>}
             </div>
         </div>
@@ -2610,9 +2616,9 @@ function SuiteModal({ modalProps }: { modalProps: ModalProps; }) {
 
     const st = autoState();
     const editing = editId ? rules.find(r => r.id === editId) ?? null : null;
-    const tabs: [TabId, string][] = [["rules", "Rules"], ["keybinds", "Keybinds"]];
-    if (settings.store.showActivity) tabs.push(["activity", "Activity"]);
-    tabs.push(["settings", "Settings"], ["help", "Help"]);
+    const tabs: [TabId, string, string][] = [["rules", "Rules", K.green], ["keybinds", "Keybinds", K.amber]];
+    if (settings.store.showActivity) tabs.push(["activity", "Activity", K.blue]);
+    tabs.push(["settings", "Settings", K.cyan], ["help", "Help", K.pink]);
     const cur = tabs.some(t => t[0] === tab) ? tab : "rules";
     const stLabel = tx(st === "on" ? "AUTOMATION ON" : st === "paused" ? "PAUSED" : "AUTOMATION OFF");
     const stColor = st === "on" ? K.green : st === "paused" ? K.amber : K.red;
@@ -2629,9 +2635,9 @@ function SuiteModal({ modalProps }: { modalProps: ModalProps; }) {
             </ModalHeader>
             <ModalContent style={{ background: K.bg, padding: "10px 14px", maxHeight: "68vh", overflowY: "auto" }}>
                 <QuickBar />
-                <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
-                    {tabs.map(([id, label]) => (
-                        <Chip key={id} label={tx(label)} active={cur === id} onClick={() => { setTab(id); setEditId(null); }} />
+                <div style={{ display: "flex", gap: 6, marginBottom: 9, flexWrap: "wrap" }}>
+                    {tabs.map(([id, label, col]) => (
+                        <Chip key={id} big tint color={col} label={tx(label)} active={cur === id} onClick={() => { setTab(id); setEditId(null); }} />
                     ))}
                 </div>
                 {cur === "rules" && (editing

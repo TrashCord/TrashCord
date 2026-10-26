@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { RendererSettings } from "@main/settings";
 import { app, BrowserWindow, desktopCapturer, globalShortcut, type IpcMainInvokeEvent, net, powerSaveBlocker } from "electron";
 import { writeFileSync } from "fs";

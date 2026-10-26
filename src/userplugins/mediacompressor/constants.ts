@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 export const MEDIABUNNY_URL = "https://cdn.jsdelivr.net/npm/mediabunny@1.39.2/dist/bundles/mediabunny.mjs";
 export const MiB = 1024 * 1024;
 export const MIN_VIDEO_BITRATE = 72_000;

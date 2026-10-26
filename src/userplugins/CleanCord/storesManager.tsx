@@ -1,13 +1,8 @@
 /*
-* Vencord, a Discord client mod
-* Copyright (c) 2025 Vendicated and contributors
-* SPDX-License-Identifier: GPL-3.0-or-later
-*
-* Centralized Discord store management file
-* Handles lazy initialization and helper methods
-*
-* Way easier to deploy a fix when something changes with stores on Discord's end
-*/
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 import { Logger } from "@utils/Logger";
 

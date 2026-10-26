@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Captures YOUR OWN outbound screenshare on Vesktop / web.
 //
 // Remote participants' streams reach us through Discord's inbound Output class,

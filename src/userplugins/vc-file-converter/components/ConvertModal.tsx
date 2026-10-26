@@ -1,7 +1,7 @@
 /*
- * vc-file-converter
- * Copyright (c) 2026 emily7305
- * SPDX-License-Identifier: MIT
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { classNameFactory } from "@utils/css";

@@ -1,20 +1,7 @@
 /*
- * StreamAudioRouter for Vencord
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * macOS backend.
- *
- * Honest scope note: Core Audio has no per-app default output device concept
- * at the OS level (unlike Windows), and Apple does not expose a public API
- * for silently rerouting another process's audio without a virtual audio
- * driver. The standard, widely used, free solution is BlackHole - a virtual
- * audio driver you install once via Homebrew. This backend can detect
- * whether it's installed and open the relevant system panels, but the actual
- * "route this one app's output to BlackHole" step has to happen in that
- * app's own audio output picker (many apps, e.g. Chrome via a device
- * picker extension, Spotify, VLC, QuickTime, expose one) or via macOS's
- * built-in Audio MIDI Setup for system-wide routing - there is no
- * general-purpose per-app switch macOS will let a third-party script flip.
  */
 
 import { execFile } from "child_process";

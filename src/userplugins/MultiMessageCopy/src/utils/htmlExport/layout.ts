@@ -1,8 +1,7 @@
-/**
- * htmlExport/layout.ts
- *
- * HTML shell, sidebar, chat header, and messages container rendering.
- * Responsible for the overall page structure of the standalone export.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportDocument } from "../../types/export"

@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Runs in Electron main process. Auto-exposed to the renderer as
 // VencordNative.pluginHelpers.DiscordStreamArchiver.<method>.
 

@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Pure helpers: parse / serialize / mutate comma-separated ID lists.
 // No Vencord imports here — testable under vitest.
 

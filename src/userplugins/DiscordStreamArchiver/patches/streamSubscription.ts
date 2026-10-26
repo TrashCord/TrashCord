@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Headless stream subscription. Dispatches Discord's STREAM_WATCH Flux
 // action for a given streamKey, which causes the RTC layer to subscribe
 // to the remote stream without opening the stream viewer modal. Once the

@@ -1,9 +1,7 @@
-/**
- * htmlExport/index.ts
- *
- * Public entry point for the HTML export module.
- * Only function exported: formatExportAsHtml(doc).
- * Everything else is handled by the sub-modules.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportDocument } from "../../types/export"

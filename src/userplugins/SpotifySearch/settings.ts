@@ -1,11 +1,7 @@
 /*
- * Vencord SpotifySearch plugin
- * Copyright (c) 2026 raizefastohand
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { definePluginSettings } from "@api/Settings";

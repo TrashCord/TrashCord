@@ -1,7 +1,7 @@
 /*
- * CameraUnlock, a Vencord/Equicord user plugin
- * Copyright (c) 2026 Kurtzon (Kurtzon Audio)
- * SPDX-License-Identifier: MIT
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import definePlugin from "@utils/types";

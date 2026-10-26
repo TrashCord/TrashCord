@@ -1,8 +1,7 @@
-/**
- * htmlExport/embeds.ts
- *
- * Discord embed card rendering: Tenor/gifv, standard rich embeds, TikTok,
- * video embeds. All embeds use a consistent stable layout with no misalignment.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportEmbed } from "../../types/export"

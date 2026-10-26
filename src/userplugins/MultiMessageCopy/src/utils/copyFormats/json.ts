@@ -1,8 +1,7 @@
-/**
- * copyFormats/json.ts
- *
- * JSON format: each message is serialised as a JSON object.
- * The formatMessagesForCopy caller wraps all items in a top-level array.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { Message } from "../../types"

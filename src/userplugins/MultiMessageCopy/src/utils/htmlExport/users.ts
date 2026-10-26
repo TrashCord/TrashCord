@@ -1,8 +1,7 @@
-/**
- * htmlExport/users.ts
- *
- * User / participant helpers: participant map, display names, avatar
- * rendering, and popout data generation.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportDocument, ExportMessage, ExportParticipant } from "../../types/export"

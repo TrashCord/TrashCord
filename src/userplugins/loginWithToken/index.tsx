@@ -1,6 +1,7 @@
 /*
- * LoginWithToken — "Login with token" button on the login page
- * Uses the same login system as TokenImporter
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { EquicordDevs } from "@utils/constants";

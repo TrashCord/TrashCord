@@ -1,9 +1,7 @@
 /*
- * AI VTuber Bridge — WebSocket client + Discord command executor
- *
- * Connects to the AI VTuber backend via WebSocket. Receives commands
- * from the AI and executes them in Discord using internal APIs.
- * Forwards Discord events back to the AI backend.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { Logger } from "@utils/Logger";

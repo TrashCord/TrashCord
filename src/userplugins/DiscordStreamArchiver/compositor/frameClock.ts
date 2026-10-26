@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Pure, canvas-free core of the adaptive frame clock. Unit-tested in
 // tests/compositor/frameClock.test.ts. The Compositor wires these to real
 // <video> decoded-frame counters and MediaRecorder.

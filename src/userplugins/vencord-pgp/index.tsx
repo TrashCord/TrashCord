@@ -1,10 +1,6 @@
 /*
- * Vencord PGP - End-to-end encryption for Discord - Fixxed by zFrxncesck1
- * https://github.com/17z7h0m4s/vencord-pgp
- *
- * Inspired by gnupg-discord (https://github.com/ibnaleem/gnupg-discord)
- * Uses OpenPGP.js (https://openpgpjs.org/)
- *
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 

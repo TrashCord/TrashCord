@@ -1,8 +1,7 @@
-/**
- * htmlExport/safety.ts
- *
- * All sanitization and URL-validation helpers for the HTML export.
- * No side-effects, no DOM, fully testable.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 /** Escape a string so it is safe to embed as HTML text content. */

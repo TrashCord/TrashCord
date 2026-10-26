@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // UserRadar — k1ng_op
 // tracks msgs, edits, deletes, typing, profile/pfp, voice, status, activity, joins
 

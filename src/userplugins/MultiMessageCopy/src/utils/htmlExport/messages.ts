@@ -1,9 +1,7 @@
-/**
- * htmlExport/messages.ts
- *
- * Single-message rendering with stable two-column layout (avatar-slot +
- * message-main), reply previews, and proper grouped-message support.
- * No negative margins, no layout tricks that cause embed misalignment.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportMessage } from "../../types/export"

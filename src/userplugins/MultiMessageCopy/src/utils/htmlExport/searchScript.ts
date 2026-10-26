@@ -1,24 +1,7 @@
-/**
- * htmlExport/searchScript.ts
- *
- * Client-side JavaScript for the search/filter panel embedded in the
- * standalone HTML export. No external dependencies. Works offline.
- *
- * Security: all user content is accessed via DOM .textContent / dataset,
- * never injected as JS literals from the server side. Highlights are
- * built with document.createElement, never innerHTML.
- *
- * Features:
- *   - Text search across message content (debounced, 200 ms)
- *   - Filter by username
- *   - Filter: attachments only
- *   - Filter: links only
- *   - Filter: media only
- *   - Result count display
- *   - Next / Previous navigation
- *   - Clear button
- *   - CSS-class toggling (no DOM removal)
- *   - Keyboard shortcut: Escape clears search
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 export const HTML_EXPORT_SEARCH_SCRIPT = `

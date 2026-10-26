@@ -1,14 +1,8 @@
-/**
- * Vencord, a Discord client mod
- * Copyright (c) 2025 Vendicated and contributors*
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * Component for UI React displaying and managing hidden servers/folders
- * Used by both the Hidden Servers and Hidden Folders settings panels
- *
- * Cleaner implementation instead of being written within index.tsx :) !
- * We now consider Servers & Folders as "items", depending on the type prop we dynamically render the correct UI
-*/
+ */
 
 import { React } from "@webpack/common";
 import { DiscordStores } from "./storesManager";

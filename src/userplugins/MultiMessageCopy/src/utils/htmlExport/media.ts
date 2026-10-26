@@ -1,9 +1,7 @@
-/**
- * htmlExport/media.ts
- *
- * Media rendering: attachments (images, video, audio, files), stickers,
- * inline previews for direct Discord CDN media links, and the shared
- * missing-content placeholder used when any media fails to load.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportAttachment, ExportSticker } from "../../types/export"

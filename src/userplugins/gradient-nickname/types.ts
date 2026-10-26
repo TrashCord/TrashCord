@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 export type AnimationType = "none" | "hue" | "slide" | "pulse" | "wave";
 
 export type GlowAnimationType = "none" | "orbit" | "pulse" | "wave" | "flicker" | "bounce" | "spin-fast";

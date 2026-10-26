@@ -1,7 +1,7 @@
 /*
- * Profile Presets - Equicord & Vencord Plugin
- * Full feature preset manager with Disk Storage, Tag/Clan, Display Name, Bio, Pronouns, Custom Status,
- * Connected Accounts Visibility, Banner, Avatar, Themes, Decorations, Nameplate, Effects, Frames, Display Name Styles.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import * as DataStore from "@api/DataStore";

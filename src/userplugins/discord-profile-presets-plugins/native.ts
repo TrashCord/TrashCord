@@ -1,5 +1,7 @@
 /*
- * Profile Presets Native Helper - Save & Load Presets directly to/from disk.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { mkdir, readdir, readFile, rm, writeFile } from "fs/promises";

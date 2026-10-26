@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 export const MEDIA_EXTENSIONS_REGEX = /\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|webm)$/i
 
 export const SOUND_FREQUENCIES: Record<string, number> = {

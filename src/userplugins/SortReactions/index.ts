@@ -1,11 +1,7 @@
 /*
- * Vencord, a Discord client mod
- * Copyright (c) 2024 Vendicated and contributors
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
-/**
- * Copyright (c) 2024 HAHALOSAH. All rights reserved.
  */
 
 import { Devs } from "@utils/constants";

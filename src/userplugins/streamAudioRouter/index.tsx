@@ -1,39 +1,7 @@
 /*
- * StreamAudioRouter for Vencord
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * Lets you screen-share as usual, but exclude one app's audio (e.g. a
- * game) from Discord's "Share Audio" stream - whatever's left (e.g. your
- * browser) keeps streaming through.
- *
- * This works entirely through Discord's own built-in "Share Audio" /
- * "Stream With Audio" toggle (shown when you start a screen share) - that
- * toggle captures whatever plays through your system's default audio
- * output. So instead of patching Discord's screen share picker (which uses
- * obfuscated internals that change across updates, and can't be tested
- * without a live Discord instance), this plugin just makes sure the app you
- * DON'T want heard (e.g. the game) is moved off the default output, onto a
- * separate device it still plays through locally. Whatever's left on the
- * default output (e.g. your browser) is what Discord ends up streaming.
- *
- * Crucially, this never touches the microphone/voice input. Your voice and
- * the shared audio are two completely separate channels on Discord's side,
- * so the routed audio can never drown out or interfere with you talking.
- *
- * Workflow:
- *   1. Open Vencord Settings -> Plugins -> StreamAudioRouter (this panel).
- *   2. Pick the app you DON'T want Discord to hear (e.g. your game), click
- *      Exclude.
- *   3. Start your screen share as normal (share the game window/screen).
- *   4. Enable Discord's own "Share Audio" / "Stream With Audio" checkbox in
- *      the share settings - it now only captures your browser (or whatever
- *      else is still on the default output).
- *   5. When done, click "Include back" to undo and go back to normal.
- *
- * Platform support is not equal, because the underlying OS audio APIs are
- * not equal - see platform/linux.ts, platform/windows.ts and
- * platform/macos.ts for a per-OS explanation of exactly what is and isn't
- * automated.
  */
 
 import { definePluginSettings } from "@api/Settings";

@@ -1,12 +1,7 @@
-/**
- * filename.ts
- *
- * Builds a safe, human-readable filename for chat exports.
- *
- * Patterns:
- *   DM       → discord-export-{username}-{userId}-{YYYY-MM-DD-HH-mm}.{ext}
- *   Group DM → discord-export-group-{groupNameOrChannelId}-{YYYY-MM-DD-HH-mm}.{ext}
- *   Fallback → discord-export-dm-{channelId}-{YYYY-MM-DD-HH-mm}.{ext}
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportFormat } from "../types/export"

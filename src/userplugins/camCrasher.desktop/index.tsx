@@ -1,4 +1,11 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import type { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { HeaderBarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton } from "@api/UserArea";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -396,8 +403,9 @@ export const settings = definePluginSettings({
         type: OptionType.SELECT,
         description: "Where to place the button (applies instantly)",
         options: [
-            { label: "Hidden (camera context menu / keybind only)", value: "none", default: true },
-            { label: "Account Section", value: "account" }
+            { label: "Hidden (keybind / context menu only)", value: "none", default: true },
+            { label: "Account Section", value: "account" },
+            { label: "Header Bar", value: "header" } 
         ],
         onChange: () => syncButton()
     },
@@ -581,6 +589,59 @@ function CamButtonAccount() {
 
 const CamButtonWrapped = ErrorBoundary.wrap(CamButtonAccount, { noop: true });
 
+const HeaderCamIcon = () => {
+    const { isEnabled } = settings.use(["isEnabled"]);
+    const { switched } = useCamState();
+    return <CamIcon active={isEnabled || switched} />;
+};
+
+const StaticCamIcon = () => <CamIcon active={false} />;
+
+function CamButtonHeader() {
+    const buttonRef = useRef<HTMLDivElement>(null);
+    const { isEnabled, buttonLocation } = settings.use(["isEnabled", "buttonLocation"]);
+    const { switched } = useCamState();
+    const camOn = useStateFromStores(
+        [MediaEngineStore, SelectedChannelStore, VoiceStateStore],
+        () => cameraState() === "on"
+    );
+
+    if (buttonLocation !== "header") return null;
+    if (!camOn && !isEnabled && !switched) return null;
+
+    const active = isEnabled || switched;
+    const tooltip = active
+        ? "Show Camera (right-click for options)"
+        : "Hide Camera (right-click for options)";
+
+    return (
+        <Popout
+            position="bottom"
+            align="center"
+            animation={Popout.Animation.FADE}
+            spacing={4}
+            targetElementRef={buttonRef}
+            renderPopout={({ closePopout }) => <PopoutMenu closePopout={closePopout} />}
+        >
+            {({ onClick: openPopout }) => (
+                <div
+                    ref={buttonRef}
+                    onContextMenu={openPopout}
+                    style={{ display: "flex", alignItems: "center" }}
+                >
+                    <HeaderBarButton
+                        icon={HeaderCamIcon}
+                        tooltip={tooltip}
+                        onClick={panic}
+                    />
+                </div>
+            )}
+        </Popout>
+    );
+}
+
+const CamButtonHeaderWrapped = ErrorBoundary.wrap(CamButtonHeader, { noop: true });
+
 const styles = `.vc-camcrasher-btn { color: var(--interactive-normal); margin-left: 4px; } .vc-cc-wrap { width: fit-content; min-width: 0; }`;
 
 const CamCrasherPlugin = definePlugin({
@@ -592,6 +653,12 @@ const CamCrasherPlugin = definePlugin({
     searchTerms: ["CameraCrasher", "HideCamera", "WebcamPanic", "CameraPanic"],
     settings,
     styles,
+
+    headerBarButton: {
+        icon: StaticCamIcon,
+        render: CamButtonHeaderWrapped,
+        priority: 7,
+    },
 
     contextMenus: {
         "video-device-context": CamCrasherPatch

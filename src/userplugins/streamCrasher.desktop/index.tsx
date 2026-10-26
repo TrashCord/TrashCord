@@ -1,7 +1,14 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { definePluginSettings } from "@api/Settings";
 import { openPluginModal } from "@components/settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import type { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { HeaderBarButton } from "@api/HeaderBar";
 import { UserAreaButton } from "@api/UserArea";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
@@ -84,6 +91,7 @@ export const settings = definePluginSettings({
         options: [
             { label: "Account Section", value: "account", default: true },
             { label: "Streaming Panel", value: "stream" },
+            { label: "Header Bar", value: "header" },
             { label: "Hidden (keybind / context menu only)", value: "none" }
         ]
     },
@@ -328,6 +336,7 @@ function CrasherContextMenu({ closePopout }: { closePopout: () => void; }) {
                 {([
                     { label: "Account Section", value: "account" },
                     { label: "Streaming Panel", value: "stream" },
+                    { label: "Header Bar", value: "header" },
                     { label: "Hidden", value: "none" }
                 ] as const).map(opt => (
                     <Menu.MenuCheckboxItem
@@ -477,6 +486,53 @@ function CrashButtonStream() {
     return <CrashButton />;
 }
 
+const HeaderCrashIcon = () => {
+    const { isEnabled } = settings.use(["isEnabled"]);
+    return <CrashIcon isEnabled={isEnabled} />;
+};
+
+const StaticCrashIcon = () => <CrashIcon isEnabled={false} />;
+
+function CrashButtonHeader() {
+    const buttonRef = useRef(null);
+    const { isEnabled, buttonLocation } = settings.use(["isEnabled", "buttonLocation"]);
+    const userId = useMemo(() => UserStore.getCurrentUser()?.id, []);
+    const isStreaming = useStateFromStores(
+        [ApplicationStreamingStore],
+        () => !isSpamActive() && ApplicationStreamingStore.getActiveStreamForUser(userId) != null
+    );
+
+    if (buttonLocation !== "header") return null;
+    if (!isStreaming) return null;
+
+    return (
+        <Popout
+            position="bottom"
+            align="center"
+            animation={Popout.Animation.FADE}
+            spacing={4}
+            targetElementRef={buttonRef}
+            renderPopout={({ closePopout }) => <CrasherContextMenu closePopout={closePopout} />}
+        >
+            {({ onClick: openPopout }) => (
+                <div
+                    ref={buttonRef}
+                    onContextMenu={openPopout}
+                    style={{ display: "flex", alignItems: "center" }}
+                >
+                    <HeaderBarButton
+                        icon={HeaderCrashIcon}
+                        tooltip={isEnabled ? "Disable StreamCrasher (right-click for options)" : "Enable StreamCrasher (right-click for options)"}
+                        onClick={() => settings.store.isEnabled = !settings.store.isEnabled}
+                    />
+                </div>
+            )}
+        </Popout>
+    );
+}
+
+const CrashButtonHeaderWrapped = ErrorBoundary.wrap(CrashButtonHeader, { noop: true });
+
 let keybindLoopActive = false;
 let buttonTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -528,6 +584,13 @@ const StreamCrasherPlugin = definePlugin({
     searchTerms: ["StreamFreezer", "ScreenshareCrasher"],
     settings,
     styles,
+
+    headerBarButton: {
+        icon: StaticCrashIcon,
+        render: CrashButtonHeaderWrapped,
+        priority: 8,
+    },
+
     contextMenus: {
         "manage-streams": StreamCrasherPatch
     },

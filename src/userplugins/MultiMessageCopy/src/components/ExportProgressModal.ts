@@ -1,10 +1,7 @@
-/**
- * ExportProgressModal.ts
- *
- * Lightweight pure-DOM progress modal for the chat export feature.
- * Opened immediately when the user clicks "Export Chat", shows live
- * progress (phase, message count, elapsed time, format, warning),
- * and closes automatically when the export finishes or is cancelled.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { CancelToken } from "../utils/exportChat"

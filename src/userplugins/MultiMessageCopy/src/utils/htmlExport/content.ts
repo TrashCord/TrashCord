@@ -1,11 +1,7 @@
-/**
- * htmlExport/content.ts
- *
- * Message content rendering: thin wrapper that delegates to markdown.ts
- * for the full safe Discord Markdown pipeline, plus CDN media detection
- * and URL-suppression helpers used by messages.ts and embeds.ts.
- *
- * RENDERING ORDER — see markdown.ts for the authoritative description.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportEmbed } from "../../types/export"

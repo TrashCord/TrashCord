@@ -1,12 +1,7 @@
 /*
- * AI VTuber Bridge — Equicord Userplugin
- *
- * Connects your Discord client to the AI VTuber backend via WebSocket.
- * The AI can send messages, join voice channels, read events, and
- * interact with Discord as if it were you.
- *
- * Enable the plugin, set the backend URL in settings, and the AI
- * will have full access to Discord through your client.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import managedStyle from "./styles.css?managed";

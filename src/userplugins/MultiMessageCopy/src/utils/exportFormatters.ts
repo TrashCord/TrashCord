@@ -1,11 +1,7 @@
-/**
- * exportFormatters.ts
- *
- * Public formatting API. Keeps JSON and TXT formatters here (small,
- * self-contained) and delegates HTML rendering to the htmlExport module.
- *
- * IMPORTANT: Do NOT add large code to this file.
- * HTML logic lives in src/utils/htmlExport/
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type { ExportDocument, ExportFormat } from "../types/export"

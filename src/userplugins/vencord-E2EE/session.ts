@@ -1,25 +1,7 @@
 /*
- * Per-channel session lifecycle, handshake protocol, persistence.
- *
- * Wire format (all messages prefixed with 🔐 so they're visually distinct):
- *
- *   🔐⟨E2EE-INIT v1⟩b64(idPub‖ephPub)
- *       Sent by initiator. Contains 32-byte identity pubkey + 32-byte ephemeral
- *       pubkey. The recipient's plugin stashes it as a pending invitation; the
- *       ACK is only sent after an explicit user accept (lock click).
- *
- *   🔐⟨E2EE-ACK v1⟩b64(idPub‖ephPub)
- *       Responder's reply. Same shape. After both sides see this exchange they
- *       can derive the same 32-byte SK and bootstrap a Double Ratchet session.
- *
- *   🔐⟨E2EE v1⟩b64(header‖ciphertext)
- *       Normal encrypted message.
- *
- *   🔐⟨E2EE-RESET v1⟩
- *       Either side can send this to tear down the session (e.g. if decryption
- *       starts failing because state got out of sync). The other side will
- *       discard its session and the next encrypted send will trigger a new
- *       handshake.
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import {

@@ -1,8 +1,7 @@
-/**
- * exportChat.ts
- *
- * Safely fetches all messages from a channel/DM and produces a JSON download.
- * Designed to be progressive, cancellable, and rate-limit-aware.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import type {

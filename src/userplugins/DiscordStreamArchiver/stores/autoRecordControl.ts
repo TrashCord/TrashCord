@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Tiny registry that lets UI surfaces (context menus) ask the plugin core
 // to re-evaluate auto-record state right after a whitelist toggle.
 //

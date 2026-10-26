@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { Button, React, showToast, Tooltip, UserStore } from "@webpack/common";
 import { loadConfig, saveConfig, emit as emitStorage } from "./storage";
 import { getPrefs, updatePrefs, subscribePrefs } from "./pluginState";

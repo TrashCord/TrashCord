@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { React, Forms, Text, Button, TextInput, Select, Slider, Alerts, RestAPI, Constants, ChannelStore, SelectedChannelStore, UserStore, SnowflakeUtils, showToast } from "@webpack/common";
 import { Divider } from "@components/Divider";
 import { FormSwitch } from "@components/FormSwitch";

@@ -1,8 +1,6 @@
 /*
- * Vencord, a Discord client mod
- * StyleTranslate - Native bridge (runs in Node.js, NOT browser)
- * Copyright (c) 2026 Nyarc
- *
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 

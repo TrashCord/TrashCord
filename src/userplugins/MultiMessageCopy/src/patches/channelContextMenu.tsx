@@ -1,15 +1,7 @@
-/**
- * channelContextMenu.tsx
- *
- * Adds an "Export Chat" item to the DM / Group DM context menu when
- * exportChatEnabled is true in plugin settings.
- *
- * Context menu names in Vencord:
- *   - "gdm-context"           – group DMs
- *   - "user-context"          – right-click on a user inside a private DM
- *
- * Export Chat intentionally does NOT appear for server/guild channels,
- * threads, announcement channels, or any channel that has a guild_id.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu"

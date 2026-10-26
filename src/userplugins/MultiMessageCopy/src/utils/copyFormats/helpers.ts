@@ -1,8 +1,7 @@
-/**
- * copyFormats/helpers.ts
- *
- * Shared helpers for all copy-format modules.
- * No direct settings access here — callers pass options objects.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { moment } from "@webpack/common"

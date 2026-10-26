@@ -1,12 +1,7 @@
 /*
- * StreamAudioRouter for Vencord
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
- *
- * Runs in Discord's Electron main process (full Node access). Every exported
- * function here becomes callable from the plugin's renderer code as
- * `VencordNative.pluginHelpers.StreamAudioRouter.<name>(...)`.
- * The first parameter (an IpcMainInvokeEvent) is injected automatically by
- * Vencord and is intentionally unused here, hence the leading underscore.
  */
 
 import type { IpcMainInvokeEvent } from "electron";

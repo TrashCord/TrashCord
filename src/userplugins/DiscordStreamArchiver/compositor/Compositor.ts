@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import type { TileSpec, Rect } from "../types";
 import { layout } from "./GridLayout";
 import { drawAvatarTile, drawStreamTile } from "./TileRenderer";

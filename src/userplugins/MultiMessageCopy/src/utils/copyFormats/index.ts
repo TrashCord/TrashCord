@@ -1,9 +1,7 @@
-/**
- * copyFormats/index.ts
- *
- * Public entry point. Selects and runs the appropriate copy-format
- * function based on the current settings. All formatters are pure
- * functions that never touch the DOM or Discord internals.
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import settings from "../../settings"

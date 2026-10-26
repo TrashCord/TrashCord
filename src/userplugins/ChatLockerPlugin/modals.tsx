@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { openModal, Modal, React, useState, Forms, TextInput, showToast, SelectedChannelStore } from "@webpack/common";
 import { getHash, setHash, lock, unlock, isLocked, SALT, hasPassword } from "./storage";
 import { refreshOverlay } from "./overlayManager"; // we'll provide this

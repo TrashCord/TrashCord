@@ -1,3 +1,9 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Finds Discord's own loaded <img>/<video> elements by URL, so getFrame can
 // reuse them as drawImage sources when the user is viewing the recording
 // channel. This is a pure optimization — when the channel isn't in the
