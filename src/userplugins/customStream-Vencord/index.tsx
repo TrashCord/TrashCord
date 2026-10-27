@@ -114,6 +114,10 @@ function getRandomNext(): number {
     return randomQueue.shift() ?? 0;
 }
 
+function isRandomActive(): boolean {
+    return settings.store.slideshowRandom && cachedDataUris.length > 2;
+}
+
 function getActiveProfile(): Profile {
     let profile = profiles.get(activeProfileId);
     if (!profile) {
@@ -840,7 +844,8 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
     const images = profile.dataUris;
     const count = images.length;
     const selected = count === 0 ? 0 : Math.min(Math.max(profile.currentIndex, 0), count - 1);
-    const nextIndex = count > 1 && s.slideshowEnabled && !s.slideshowRandom ? (selected + 1) % count : -1;
+    const randomOk = count > 2;
+    const nextIndex = count > 1 && s.slideshowEnabled && !(s.slideshowRandom && randomOk) ? (selected + 1) % count : -1;
     const canDeleteProfile = profile.id !== DEFAULT_PROFILE_ID && count === 0;
     const frame = s.replaceEnabled ? C.green : C.mid;
     const profileSec = getIntervalSec(profile);
@@ -1010,7 +1015,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                         <Chip on={s.replaceEnabled} title="Sends your own image as the stream preview instead of your screen" label={s.replaceEnabled ? "Replace: ON" : "Replace: OFF"} onClick={() => { settings.store.replaceEnabled = !s.replaceEnabled; if (!s.replaceEnabled) forceNow(); }} />
                         <Chip on={s.bypassPreviewToggle} title="Also sends your image when 'Show stream previews' is OFF in Discord" label={s.bypassPreviewToggle ? "Bypass: ON" : "Bypass: OFF"} onClick={() => { settings.store.bypassPreviewToggle = !s.bypassPreviewToggle; }} />
                         <Chip on={s.slideshowEnabled} title="Changes the image automatically" label={s.slideshowEnabled ? "Slideshow: ON" : "Slideshow: OFF"} onClick={() => { settings.store.slideshowEnabled = !s.slideshowEnabled; randomQueue = []; restartKeepAlive(); }} />
-                        <Chip on={s.slideshowEnabled && s.slideshowRandom} disabled={!s.slideshowEnabled} title="Random order" label={s.slideshowRandom ? "Random: ON" : "Random: OFF"} onClick={() => { settings.store.slideshowRandom = !s.slideshowRandom; randomQueue = []; }} />
+                        <Chip on={s.slideshowEnabled && s.slideshowRandom && randomOk} disabled={!s.slideshowEnabled || !randomOk} title={randomOk ? "Random order" : "Random needs 3+ images"} label={s.slideshowRandom && randomOk ? "Random: ON" : "Random: OFF"} onClick={() => { settings.store.slideshowRandom = !s.slideshowRandom; randomQueue = []; }} />
                     </div>
                     {s.slideshowEnabled && (
                         <IntervalEditor seconds={profileSec} custom={profile.intervalSec > 0} profileName={profile.name} />
@@ -1266,7 +1271,7 @@ function StreamPreviewPanelButton(props: { nameplate?: any; }) {
             setImageCount(getImageCount());
             setIsEnabled(settings.store.replaceEnabled);
             setIsSlideshowEnabled(settings.store.slideshowEnabled);
-            setIsRandom(settings.store.slideshowRandom);
+            setIsRandom(settings.store.slideshowRandom && getImageCount() > 2);
             setCurrentIndex(currentSlideIndex);
             setStreamActive(isStreamActive);
             setCurrentImageUri(actualStreamImageUri);
@@ -1349,7 +1354,7 @@ const streamContextMenuPatch: NavContextMenuPatchCallback = (children: any[], { 
 
 function advanceSlide() {
     if (cachedDataUris.length <= 1) return;
-    currentSlideIndex = settings.store.slideshowRandom
+    currentSlideIndex = isRandomActive()
         ? getRandomNext()
         : (currentSlideIndex + 1) % cachedDataUris.length;
     getActiveProfile().currentIndex = currentSlideIndex;
@@ -1396,8 +1401,17 @@ function nextRetryDelay(): number {
     return RETRY_STEPS[Math.min(forceRetries++, RETRY_STEPS.length - 1)];
 }
 
+function spammerActive(): boolean {
+    try {
+        const g = window as any;
+        return (g.Vencord ?? g.Equicord)?.Plugins?.plugins?.ScreenshareSpammer?.isSpamming === true;
+    } catch {
+        return false;
+    }
+}
+
 function isStreamingHere(): boolean {
-    if (!isStreamActive) return false;
+    if (!isStreamActive || spammerActive()) return false;
     if (nativeSeen) return true;
     const voiceChannelId = SelectedChannelStoreMod?.getVoiceChannelId?.();
     if (!voiceChannelId) return false;
@@ -1553,7 +1567,7 @@ function scheduleKeepAlive() {
     const untilSlide = settings.store.slideshowEnabled ? Math.max(500, lastAdvanceAt + intervalMs - Date.now()) : intervalMs;
     instantTimer = setTimeout(() => {
         instantTimer = null;
-        if (!isStreamActive) return;
+        if (!isStreamActive || spammerActive()) return;
         if (isStreamingHere() && cachedDataUris.length > 0) {
             let changed = false;
             if (settings.store.slideshowEnabled && cachedDataUris.length > 1 && Date.now() >= lastAdvanceAt + getIntervalMs() - 250) {
@@ -1586,6 +1600,7 @@ function isBypassEnabled(): boolean {
 }
 
 function getCustomThumbnail(originalThumbnail: string): string {
+    if (spammerActive()) return originalThumbnail;
     isStreamActive = true;
     nativeSeen = true;
     scheduleKeepAlive();
@@ -1683,6 +1698,7 @@ export default definePlugin({
         const myId = () => UserStore.getCurrentUser()?.id;
 
         const onStreamCreate = (e: any) => {
+            if (spammerActive()) return;
             const key: string = e?.streamKey ?? "";
             if (key.split(":").pop() !== myId()) return;
             capturedStreamKey = key;
@@ -1695,6 +1711,7 @@ export default definePlugin({
         };
 
         const onStreamUpdate = (e: any) => {
+            if (spammerActive()) return;
             const key: string = e?.streamKey ?? "";
             if (key.split(":").pop() !== myId()) return;
             capturedStreamKey = key;
@@ -1715,6 +1732,7 @@ export default definePlugin({
         };
 
         const onStreamVideo = (e: any) => {
+            if (spammerActive()) return;
             if (e?.context !== "stream" || e?.streamId == null || e?.userId !== myId()) return;
             if (!capturedStreamKey) {
                 capturedStreamKey = e.guildId ? `guild:${e.guildId}:${e.channelId}:${e.userId}` : `call:${e.channelId}:${e.userId}`;
