@@ -712,7 +712,7 @@ export default definePlugin({
     description: "Scroll-to-zoom & drag-to-pan on webcam tiles. Real-time PiP overlay. Auto portrait minimap for mobile cameras. Compatible with NoMirroredCamera. Screenshares excluded.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Voice", "Media"],
-    enabledByDefault: false,
+    enabledByDefault: true,
     settings,
 
     start() {
