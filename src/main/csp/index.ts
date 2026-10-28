@@ -67,7 +67,7 @@ export const CspPolicies: PolicyMap = {
     "archive.org": ConnectSrc,
     "*.archive.org": ConnectSrc,
     "translate-pa.googleapis.com": ConnectSrc, // Google Translate API
-    "lrclib.net": ConnectSrc, // LRCLIB lyrics API
+    "lrclib.net": [...ImageScriptsAndCssSrc, "media-src"], // LRCLIB lyrics API
     "*.vencord.dev": ImageSrc, // VenCloud (api.vencord.dev) and Badges (badges.vencord.dev)
     "manti.vendicated.dev": ImageSrc, // ReviewDB API
     "decor.fieryflames.dev": ConnectSrc, // Decor API
@@ -169,6 +169,7 @@ const patchCsp = (headers: PolicyMap) => {
         // HOWEVER, at the time of writing (24 Jan 2025), Discord is INSANE and also uses unsafe-inline
         // Once they stop using it, we also should
         pushDirective("script-src", "'unsafe-inline'", "'unsafe-eval'");
+        pushDirective("media-src", "https:");
 
         for (const directive of ["style-src", "connect-src", "img-src", "font-src", "media-src", "worker-src"]) {
             pushDirective(directive, "blob:", "data:", "vencord:", "vesktop:", "equicord:", "equibop:");
