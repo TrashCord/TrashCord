@@ -924,11 +924,8 @@ function isEvalEntry(e: StatusEntry): boolean {
     return !!(e.text?.startsWith("eval ") || e.emojiName?.startsWith("eval "));
 }
 
-let lastStatusTick = 0;
 function tickStatus() {
     if (!settings.store.statusEnabled) return;
-    if (Date.now() - lastStatusTick < 30000) return;
-    lastStatusTick = Date.now();
     const pool = getActiveStatusPool();
     if (!pool.length) return;
     if (pool.length === 1 && isEvalEntry(pool[0])) {
@@ -5737,7 +5734,6 @@ export default definePlugin({
         pluginActive = false;
         window.removeEventListener("beforeunload", rsBeforeUnload);
         statusBlockedUntil = 0;
-        lastStatusTick = 0;
         lastGlobalNickApply = 0;
         cachedToken = null; cachedGuildStore = null; cachedVoiceStateStore = null; cachedChannelStore = null;
         isManualStop = false; wasInvisible = false;
