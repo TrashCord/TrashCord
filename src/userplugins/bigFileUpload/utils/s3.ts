@@ -141,7 +141,9 @@ export async function uploadToS3(
 
     const now = new Date();
     const { amzDate, dateStamp } = getTimestampParts(now);
-    const payloadHash = await sha256Hex(await fileBlob.arrayBuffer());
+    
+    const fileBuffer = await fileBlob.arrayBuffer();
+    const payloadHash = await sha256Hex(fileBuffer);
 
     const canonicalHeadersMap: Record<string, string> = {
         "content-type": fileBlob.type || "application/octet-stream",
@@ -193,8 +195,7 @@ export async function uploadToS3(
     }
 
     if (native) {
-        const arrayBuffer = await fileBlob.arrayBuffer();
-        const result = await native.uploadToS3(arrayBuffer, uploadUrl.toString(), requestHeaders);
+        const result = await native.uploadToS3(fileBuffer, uploadUrl.toString(), requestHeaders);
         if (!result.success) {
             throw new Error(result.error || "Upload failed");
         }

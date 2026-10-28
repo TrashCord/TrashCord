@@ -79,7 +79,7 @@ export function DownloadProgress({
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                 {progress.inProgress ? (
-                    <Button variant="dangerPrimary" onClick={onCancel}>
+                    <Button variant="danger" onClick={onCancel}>
                         Cancel Download
                     </Button>
                 ) : (

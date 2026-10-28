@@ -44,8 +44,8 @@ export default definePlugin({
             // gate reads and lets the real channel view take over.
             find: "getOnboardingPromptsForOnboarding(t)),",
             replacement: {
-                match: /function ec\(e\)\{/,
-                replace: "function ec(e){if($self.shouldSkip(e.guildId)){$self.autoBypass(e.guildId);return null;}"
+                match: /function (\i)\((\i)\)\{(?=let\{guildId:\i\}=\2,.{0,200}?getOnboardingPromptsForOnboarding)/,
+                replace: "function $1($2){if($self.shouldSkip($2.guildId)){$self.autoBypass($2.guildId);return null;}"
             }
         }
     ],

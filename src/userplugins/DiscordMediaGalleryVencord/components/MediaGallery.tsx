@@ -55,7 +55,10 @@ export function MediaGalleryModal({
     const downloadManagerRef = useRef<DownloadManager>(new DownloadManager(concurrency));
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Initial load when channel changes
+    // Initial load when channel changes.
+    // NOTE: dateFrom/dateTo are intentionally NOT dependencies here — the date filter is
+    // applied client-side inside `filteredItems`. Having them here would restart a full
+    // channel scan on every keystroke and freeze the renderer.
     useEffect(() => {
         setSelectedIds(new Set());
         setActivePreviewItem(null);
@@ -68,25 +71,35 @@ export function MediaGalleryModal({
         setIsLoadingMore(true);
         const controller = new AbortController();
         abortControllerRef.current = controller;
+
         (async () => {
             let combined = storeMessages;
             let before = getOldestMessageId(combined);
-            while (!controller.signal.aborted) {
+            // Cap the initial burst to avoid hammering the REST API on huge channels.
+            // Further pages are loaded on demand via the "Load Older Media" button.
+            const MAX_INITIAL_PAGES = 5;
+            let pages = 0;
+            let exhausted = false;
+
+            while (!controller.signal.aborted && pages < MAX_INITIAL_PAGES) {
+                pages++;
                 const older = await fetchOlderMessages(channelId, before, 100);
-                if (older.length === 0) break;
+                if (older.length === 0) {
+                    exhausted = true;
+                    break;
+                }
                 const previousOldest = before;
                 combined = mergeMessages(combined, older);
                 before = getOldestMessageId(older, before);
                 if (!controller.signal.aborted) setAllMessages(combined);
-                if (!before || before === previousOldest) break;
-                if (dateFrom) {
-                    const rangeStart = new Date(dateFrom).getTime();
-                    const oldestTimestamp = Math.min(...older.map(message => Date.parse(String((message as any).timestamp)) || 0));
-                    if (rangeStart && oldestTimestamp && oldestTimestamp <= rangeStart) break;
+                if (!before || before === previousOldest) {
+                    exhausted = true;
+                    break;
                 }
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
-            if (!controller.signal.aborted) setHasMore(false);
+
+            if (!controller.signal.aborted) setHasMore(!exhausted);
         })().catch(() => undefined).finally(() => {
             if (!controller.signal.aborted) setIsLoadingMore(false);
         });
@@ -94,7 +107,7 @@ export function MediaGalleryModal({
         return () => {
             controller.abort();
         };
-    }, [channelId, dateFrom]);
+    }, [channelId]);
 
     // Setup download manager callbacks
     useEffect(() => {
@@ -197,7 +210,6 @@ export function MediaGalleryModal({
         abortControllerRef.current = new AbortController();
 
         try {
-            // Find oldest message in current array
             const oldestMessage = allMessages.find(message => message.id === getOldestMessageId(allMessages));
 
             const older = await fetchOlderMessages(

@@ -257,7 +257,7 @@ async function bcrApplyColor(hex: string): Promise<void> {
     await p;
 }
 async function bcrRotateNext(): Promise<void> { if (!pluginActive || isManualStop || wasInvisible) return; await bcrApplyColor(await bcrPickNextColor()); if (!pluginActive || isManualStop || wasInvisible) return; bcrSchedule(); }
-function bcrSchedule() { if (bcrRotatorTimer) clearTimeout(bcrRotatorTimer); if (!pluginActive || isManualStop || wasInvisible || bcrNitroBlocked()) return; const ms = Math.max(1, settings.store.bannerIntervalSeconds ?? BCR_DEFAULT_S) * 1000; bcrRotatorTimer = setTimeout(bcrRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms); emit(); }
+function bcrSchedule() { if (bcrRotatorTimer) clearTimeout(bcrRotatorTimer); bcrRotatorTimer = null; if (!pluginActive || isManualStop || wasInvisible || bcrNitroBlocked()) return; const ms = Math.max(1, settings.store.bannerIntervalSeconds ?? BCR_DEFAULT_S) * 1000; bcrRotatorTimer = setTimeout(bcrRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms); emit(); }
 function bcrStartRotator(immediate = false) {
     if (!pluginActive) return;
     if (bcrRotatorTimer) clearTimeout(bcrRotatorTimer);
@@ -540,10 +540,7 @@ function fireCloseKeepalive(): void {
     }
 }
 
-if (!(window as any)._rsCloseReg) {
-    window.addEventListener("beforeunload", () => { loadCloseConfigSync(); void applyOnCloseAll(); fireCloseKeepalive(); });
-    (window as any)._rsCloseReg = true;
-}
+const rsBeforeUnload = () => { if (!pluginActive) return; loadCloseConfigSync(); void applyOnCloseAll(); fireCloseKeepalive(); };
 
 async function applyCloseStatus(): Promise<void> {
     if (!closeStatusEnabled) return;
@@ -638,6 +635,9 @@ function colorFor(id: string): string {
     let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     return PALETTE[h % PALETTE.length];
 }
+function guildTag(g: any): string | null {
+    return g?.profile?.tag ?? null;
+}
 function getMs(sec: string): number { const base = Math.max(1000, (parseFloat(sec) || 30) * 1000); return netGuardMultiplier > 1 ? base * netGuardMultiplier : base; }
 
 function pickItem<T>(list: T[], idx: number, rnd: boolean, lastVal: T | null | undefined): { val: T | null; next: number; lastPicked: T | null } {
@@ -719,11 +719,11 @@ function scheduleNickTick(g: GuildEntry, ms: number) {
 }
 function startNickGuild(g: GuildEntry) {
     if (!nickTimers.has(g.id) && !settings.store.globalSync && settings.store.nickEnabled)
-        scheduleNickTick(g, getMs(settings.store.nickIntervalSeconds));
+        scheduleNickTick(g, getMs(settings.store.nickIntervalSeconds) + Math.floor(Math.random() * 8000));
 }
 function stopNickGuild(id: string) { const t = nickTimers.get(id); if (t) { clearTimeout(t); nickTimers.delete(id); } emit(); }
 function stopAllNicks() { [...nickTimers.keys()].forEach(stopNickGuild); }
-function tickAllNicks() {
+async function tickAllNicks() {
     if (!settings.store.nickEnabled) return;
     const vcGuildId = (settings.store.voiceActivateEnabled && !settings.store.voiceActivateGlobal)
         ? getMyVoiceGuildId() : null;
@@ -736,7 +736,7 @@ function tickAllNicks() {
         if (g.seqIndex < 0 || g.seqIndex > nks.length * 2) g.seqIndex = 0;
         const { val: nick, next, lastPicked } = pickItem(nks, g.seqIndex, settings.store.nickRandomize, g.lastNickVal);
         g.seqIndex = next; g.lastNickVal = lastPicked;
-        if (nick) applyNick(g.id, nick);
+        if (nick) { void applyNick(g.id, nick); await rsSleep(400); if (!pluginActive) return; }
     }
 }
 
@@ -770,11 +770,11 @@ function scheduleGuildPronounsTick(g: GuildEntry, ms: number) {
 }
 function startGuildPronouns(g: GuildEntry) {
     if (!guildPronounsTimers.has(g.id) && !settings.store.globalSync && g.guildPronounsEnabled && settings.store.serverPronounsEnabled && pronounsForGuild(g).length > 0)
-        scheduleGuildPronounsTick(g, getMs(settings.store.serverPronounsIntervalSeconds));
+        scheduleGuildPronounsTick(g, getMs(settings.store.serverPronounsIntervalSeconds) + Math.floor(Math.random() * 8000));
 }
 function stopGuildPronouns(id: string) { const t = guildPronounsTimers.get(id); if (t) { clearTimeout(t); guildPronounsTimers.delete(id); } emit(); }
 function stopAllGuildPronouns() { [...guildPronounsTimers.keys()].forEach(stopGuildPronouns); }
-function tickAllGuildPronouns() {
+async function tickAllGuildPronouns() {
     if (!settings.store.serverPronounsEnabled) return;
     const vcGuildId = (settings.store.voiceActivateEnabled && !settings.store.voiceActivateGlobal)
         ? getMyVoiceGuildId() : null;
@@ -785,7 +785,7 @@ function tickAllGuildPronouns() {
         const pool = pronounsForGuild(g);
         const { val: pr, next, lastPicked } = pickItem(pool, g.guildPronounsSeqIdx ?? 0, settings.store.serverPronounsRandomize, g.guildPronounsLastVal);
         g.guildPronounsSeqIdx = next; g.guildPronounsLastVal = lastPicked;
-        if (pr) applyGuildPronoun(g.id, pr);
+        if (pr) { void applyGuildPronoun(g.id, pr); await rsSleep(400); if (!pluginActive) return; }
     }
 }
 
@@ -924,8 +924,11 @@ function isEvalEntry(e: StatusEntry): boolean {
     return !!(e.text?.startsWith("eval ") || e.emojiName?.startsWith("eval "));
 }
 
+let lastStatusTick = 0;
 function tickStatus() {
     if (!settings.store.statusEnabled) return;
+    if (Date.now() - lastStatusTick < 30000) return;
+    lastStatusTick = Date.now();
     const pool = getActiveStatusPool();
     if (!pool.length) return;
     if (pool.length === 1 && isEvalEntry(pool[0])) {
@@ -956,12 +959,7 @@ function getActiveClanIds(): string[] {
     if (!cachedClanGuilds.length || now - lastClanFetch >= refreshMs) {
         const store = getGuildStore()?.getGuilds?.() ?? {};
         cachedClanGuilds = Object.values(store)
-            .filter((g: any) => {
-                const feat = g?.features;
-                if (Array.isArray(feat)) return feat.includes("CLAN");
-                if (feat && typeof feat.has === "function") return feat.has("CLAN");
-                return !!g?.clan;
-            })
+            .filter((g: any) => !!guildTag(g))
             .map((g: any) => g.id);
         lastClanFetch = now;
         if (settings.store.enableLogs) console.log(`[RS/Clan] Auto-detect: ${cachedClanGuilds.length} clan-eligible guilds`);
@@ -2690,7 +2688,7 @@ function OnCloseClanPanel({ forceUpdate }: { forceUpdate: () => void }) {
             const gs = getGuildStore()?.getGuilds?.() ?? {};
             const g = gs[v];
             if (g) {
-                const storeTag = g.clan?.tag ?? g.clanTag ?? g.clan?.identity_tag ?? g.clan?.identityTag ?? null;
+                const storeTag = guildTag(g);
                 const tag = (storeTag ?? domTagCache.get(v) ?? clanServerNames[v]?.tag ?? null) as string | null;
                 return { name: g.name as string, tag };
             }
@@ -2800,7 +2798,7 @@ function ClanTab({ forceUpdate }: { forceUpdate: () => void }) {
         try {
             const raw = Object.values(getGuildStore()?.getGuilds?.() ?? {}) as any[];
             const result = raw.map((g: any) => {
-                const storeTag = g.clan?.tag ?? g.clanTag ?? g.clan?.identity_tag ?? g.clan?.identityTag ?? null;
+                const storeTag = guildTag(g);
                 const tag = (storeTag ?? domTagCache.get(g.id) ?? null) as string | null;
                 return { id: g.id as string, name: g.name as string, tag };
             });
@@ -2811,17 +2809,7 @@ function ClanTab({ forceUpdate }: { forceUpdate: () => void }) {
         } catch { return []; }
     }, [showBrowser, autoDetect]);
 
-    const clanGuilds = React.useMemo(() => {
-        return allDiscordGuilds.filter(g => {
-            if (g.tag) return true;
-            try {
-                const raw = (getGuildStore()?.getGuilds?.() ?? {})[g.id];
-                const feat = raw?.features;
-                if (!feat) return false;
-                return Array.isArray(feat) ? feat.includes("CLAN") : (feat.has?.("CLAN") ?? false);
-            } catch { return false; }
-        });
-    }, [allDiscordGuilds]);
+    const clanGuilds = React.useMemo(() => allDiscordGuilds.filter(g => !!g.tag), [allDiscordGuilds]);
 
     const browserGuilds = React.useMemo(() => {
         const source = allDiscordGuilds;
@@ -3186,7 +3174,8 @@ function ProfileTab({ forceUpdate }: { forceUpdate: () => void }) {
     );
 }
 
-const arSaveData = (): Promise<void> => { emit(); return DataStore.set(AR_SK, { avatars: arAvatars, seqIndex: arSeqIndex, shuffleQueue: arShuffleQueue } as ArStoreData); };
+const arSaveMeta = (): Promise<void> => DataStore.set(AR_SK + "_meta", { seqIndex: arSeqIndex, shuffleQueue: arShuffleQueue });
+const arSaveData = (): Promise<void> => { emit(); void arSaveMeta(); return DataStore.set(AR_SK, { avatars: arAvatars, seqIndex: arSeqIndex, shuffleQueue: arShuffleQueue } as ArStoreData); };
 
 function arGetExcluded(): string[] {
     return settings.store.avatarExcludedExtensions.split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
@@ -3199,9 +3188,9 @@ function arSfShuffle(len: number): number[] {
     return a;
 }
 
-function arToast(msg: string, type: "default" | "success" | "critical" = "success") {
+function arToast(msg: string, type: "default" | "success" | "critical" | "failure" | "message" = "success") {
     if (!settings.store.avatarShowToast) return;
-    showToast({ text: msg, variant: type });
+    showToast({ text: msg, variant: type === "failure" ? "critical" : type === "message" ? "default" : type });
 }
 
 function arGetExt(data: string): string {
@@ -3212,7 +3201,22 @@ function arGetExt(data: string): string {
 
 function arIsGif(data: string) { return /^data:image\/gif;/i.test(data); }
 
+function arStampGifFast(data: string): string | null {
+    const comma = data.indexOf(",");
+    if (comma < 0) return null;
+    const b64 = data.slice(comma + 1);
+    if (b64.length < 64 || b64.length % 4 !== 0 || !b64.startsWith("R0lG")) return null;
+    const cut = b64.length - 16;
+    const tail = atob(b64.slice(cut));
+    if (tail.charCodeAt(tail.length - 1) !== 0x3B) return null;
+    const stamp = Date.now().toString(36);
+    const ext = "\x21\xFE" + String.fromCharCode(stamp.length) + stamp + "\x00";
+    return "data:image/gif;base64," + b64.slice(0, cut) + btoa(tail.slice(0, -1) + ext + "\x3B");
+}
+
 function arStampGif(data: string): string {
+    const fast = arStampGifFast(data);
+    if (fast) return fast;
     try {
         const b64 = data.split(",")[1];
         if (!b64) return data;
@@ -3405,13 +3409,14 @@ async function arRotateNext(): Promise<void> {
     if (idx >= active.length) idx = 0;
     await arApplyAvatar(active[idx]);
     if (!pluginActive) return;
-    await arSaveData();
+    await arSaveMeta();
     if (!pluginActive) return;
     arSchedule();
 }
 
 function arSchedule() {
     if (arRotatorTimer) clearTimeout(arRotatorTimer);
+    arRotatorTimer = null;
     if (!settings.store.avatarEnabled || !pluginActive || !arGetActive().length) return;
     const ms = Math.max(1, settings.store.avatarIntervalSeconds || AR_DEFAULT_S) * 1000;
     arRotatorTimer = setTimeout(arRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms);
@@ -3634,153 +3639,6 @@ function ArCropModal({ src, onApply, onSkip, modalProps }: { src: string; onAppl
     );
 }
 
-async function gifDecode(data: string): Promise<{ frames: Array<{ canvas: HTMLCanvasElement; delay: number }>; w: number; h: number; loops: number } | null> {
-    if (typeof (window as any).ImageDecoder === "undefined") return null;
-    try {
-        const b64 = data.split(",")[1]; if (!b64) return null;
-        const raw = atob(b64);
-        const bytes = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-        if (bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46) return null;
-        const W = bytes[6] | (bytes[7] << 8), H = bytes[8] | (bytes[9] << 8);
-        const dec = new (window as any).ImageDecoder({ data: bytes.buffer, type: "image/gif" });
-        const frames: Array<{ canvas: HTMLCanvasElement; delay: number }> = [];
-        let fi = 0;
-        while (true) {
-            let r: any;
-            try { r = await dec.decode({ frameIndex: fi, completeFramesOnly: true }); fi++; } catch { break; }
-            const vf = r.image;
-            const delay = typeof vf.duration === "number" ? Math.max(20, Math.round(vf.duration / 1000)) : 100;
-            const fc = document.createElement("canvas"); fc.width = W; fc.height = H;
-            fc.getContext("2d")!.drawImage(vf, 0, 0, W, H);
-            vf.close();
-            frames.push({ canvas: fc, delay });
-            await rsSleep(0);
-            if (!pluginActive) return null;
-        }
-        dec.close();
-        return frames.length ? { frames, w: W, h: H, loops: 0 } : null;
-    } catch { return null; }
-}
-
-function gifLZWEnc(indices: Uint8Array, minCodeSize: number): Uint8Array {
-    const cc = 1 << minCodeSize, eoi = cc + 1;
-    const out: number[] = [];
-    let buf = 0, bits = 0, cs = minCodeSize + 1, nxt = cc + 2;
-    const emit = (code: number) => { buf |= code << bits; bits += cs; while (bits >= 8) { out.push(buf & 0xFF); buf >>>= 8; bits -= 8; } };
-    const dict = new Map<number, number>();
-    emit(cc);
-    if (!indices.length) { emit(eoi); if (bits) out.push(buf & 0xFF); return new Uint8Array(out); }
-    let prev = indices[0];
-    for (let i = 1; i < indices.length; i++) {
-        const sym = indices[i], key = prev * 256 + sym;
-        const found = dict.get(key);
-        if (found !== undefined) { prev = found; }
-        else {
-            emit(prev);
-            if (nxt <= 4095) { dict.set(key, nxt++); if (nxt === (1 << cs) && cs < 12) cs++; }
-            else { emit(cc); dict.clear(); nxt = cc + 2; cs = minCodeSize + 1; }
-            prev = sym;
-        }
-    }
-    emit(prev); emit(eoi); if (bits) out.push(buf & 0xFF);
-    return new Uint8Array(out);
-}
-
-function gifPackSubs(data: Uint8Array): Uint8Array {
-    const C = 255, out = new Uint8Array(data.length + Math.ceil(data.length / C) + 1);
-    let pos = 0;
-    for (let i = 0; i < data.length; i += C) {
-        const ch = data.subarray(i, Math.min(i + C, data.length));
-        out[pos++] = ch.length; out.set(ch, pos); pos += ch.length;
-    }
-    out[pos] = 0; return out;
-}
-
-function gifQuantize(imageData: ImageData): { palette: Uint8Array; indices: Uint8Array } {
-    const { data, width, height } = imageData, n = width * height;
-    const freq = new Map<number, number>();
-    for (let i = 0; i < n; i++) {
-        if (data[i*4+3] < 128) continue;
-        const k = (data[i*4]<<16)|(data[i*4+1]<<8)|data[i*4+2];
-        freq.set(k, (freq.get(k) ?? 0) + 1);
-    }
-    const sorted = [...freq.entries()].sort((a, b) => b[1] - a[1]);
-    const nc = Math.min(sorted.length, 256);
-    const palette = new Uint8Array(256 * 3);
-    const cmap = new Map<number, number>();
-    for (let i = 0; i < nc; i++) {
-        const k = sorted[i][0];
-        palette[i*3] = (k>>16)&0xFF; palette[i*3+1] = (k>>8)&0xFF; palette[i*3+2] = k&0xFF;
-        cmap.set(k, i);
-    }
-    const lut = new Uint8Array(4096).fill(0xFF);
-    for (let i = nc - 1; i >= 0; i--) lut[((palette[i*3]>>4)<<8)|((palette[i*3+1]>>4)<<4)|(palette[i*3+2]>>4)] = i;
-    const indices = new Uint8Array(n);
-    for (let i = 0; i < n; i++) {
-        const r = data[i*4], g = data[i*4+1], b = data[i*4+2];
-        if (data[i*4+3] < 128) { indices[i] = 0; continue; }
-        const ex = cmap.get((r<<16)|(g<<8)|b);
-        if (ex !== undefined) { indices[i] = ex; continue; }
-        const lv = lut[((r>>4)<<8)|((g>>4)<<4)|(b>>4)];
-        if (lv !== 0xFF) { indices[i] = lv; continue; }
-        let best = 0, bestD = Infinity;
-        for (let j = 0; j < nc; j++) {
-            const dr = r-palette[j*3], dg = g-palette[j*3+1], db = b-palette[j*3+2];
-            const d = dr*dr+dg*dg+db*db; if (d < bestD) { bestD = d; best = j; }
-        }
-        lut[((r>>4)<<8)|((g>>4)<<4)|(b>>4)] = best; indices[i] = best;
-    }
-    return { palette, indices };
-}
-
-function gifEncode(frames: Array<{ imageData: ImageData; delay: number }>, w: number, h: number, loops: number): string {
-    const w16 = (a: Uint8Array, i: number, v: number) => { a[i] = v&0xFF; a[i+1] = (v>>8)&0xFF; };
-    const parts: Uint8Array[] = [];
-    parts.push(new Uint8Array([0x47,0x49,0x46,0x38,0x39,0x61]));
-    const lsd = new Uint8Array(7); w16(lsd,0,w); w16(lsd,2,h); parts.push(lsd);
-    parts.push(new Uint8Array([0x21,0xFF,0x0B,0x4E,0x45,0x54,0x53,0x43,0x41,0x50,0x45,0x32,0x2E,0x30,0x03,0x01,loops&0xFF,(loops>>8)&0xFF,0x00]));
-    for (const { imageData, delay } of frames) {
-        const { palette, indices } = gifQuantize(imageData);
-        const dc = Math.max(2, Math.round(delay/10));
-        parts.push(new Uint8Array([0x21,0xF9,0x04,0x04,dc&0xFF,(dc>>8)&0xFF,0x00,0x00]));
-        const imd = new Uint8Array(10); imd[0]=0x2C; w16(imd,5,w); w16(imd,7,h); imd[9]=0x87; parts.push(imd);
-        parts.push(palette);
-        parts.push(new Uint8Array([8]));
-        parts.push(gifPackSubs(gifLZWEnc(indices, 8)));
-    }
-    parts.push(new Uint8Array([0x3B]));
-    const total = parts.reduce((s,p) => s+p.length, 0);
-    const out = new Uint8Array(total); let pos = 0;
-    for (const p of parts) { out.set(p, pos); pos += p.length; }
-    const C = 0x8000; let bin = "";
-    for (let i = 0; i < out.length; i += C) bin += String.fromCharCode(...out.subarray(i, Math.min(i+C, out.length)));
-    return "data:image/gif;base64," + btoa(bin);
-}
-
-async function gifApplyCrop(src: string, ox: number, oy: number, zoom: number, rot: number): Promise<string | null> {
-    const decoded = await gifDecode(src);
-    if (!decoded || !decoded.frames.length) return null;
-    const { frames, w: sw, h: sh, loops } = decoded;
-    const S = 256, ratio = S / AR_CIRC_D;
-    const encFrames: Array<{ imageData: ImageData; delay: number }> = [];
-    for (let fi = 0; fi < frames.length; fi++) {
-        await rsSleep(0);
-        if (!pluginActive) return null;
-        const { canvas, delay } = frames[fi];
-        const oc = document.createElement("canvas"); oc.width = S; oc.height = S;
-        const ctx = oc.getContext("2d")!;
-        ctx.save();
-        ctx.translate(S/2 + ox*ratio, S/2 + oy*ratio);
-        ctx.rotate(rot * Math.PI/180);
-        ctx.scale(zoom*ratio, zoom*ratio);
-        ctx.drawImage(canvas, -sw/2, -sh/2);
-        ctx.restore();
-        encFrames.push({ imageData: ctx.getImageData(0, 0, S, S), delay });
-    }
-    return arStampGif(gifEncode(encFrames, S, S, loops));
-}
-
 function arOpenCropFor(data: string, onDone: (d: string, cropParams?: CropParams) => void) {
     if (arIsGif(data)) {
         openModal((p: any) => (
@@ -3984,7 +3842,7 @@ function AvatarTab({ forceUpdate }: { forceUpdate: () => void }) {
             if (ct && !ct.startsWith("image/") && !ct.startsWith("application/octet")) throw new Error(`Not an image (${ct})`);
             const blob = await res.blob();
             if (!blob.size) throw new Error("Empty response");
-            if (blob.size > 50_000_000) throw new Error("Image too large (>50 MB)");
+            if (blob.size > 10_000_000) throw new Error("Image too large (>10 MB)");
             const data = await arBlobToDataUrl(blob);
             if (!data.startsWith("data:image/")) throw new Error("Could not read image data");
             arToast("Image loaded", "success");
@@ -5086,7 +4944,7 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
                 if (Array.isArray(p.guilds)) guilds = p.guilds.map((g: any) => ({ ...g, nickMode: g.nickMode ?? (g.useGlobal ? "global" : "custom"), lastNickVal: null, nickVoiceEnabled: g.nickVoiceEnabled ?? g.enabled, pronounsVoiceEnabled: g.pronounsVoiceEnabled ?? g.guildPronounsEnabled }));
                 if (Array.isArray(p.bioEntries)) bioEntries = p.bioEntries;
                 if (typeof p.pronounsList === "string") pronounsList = p.pronounsList;
-                if (Array.isArray(p.statusEntries)) statusEntries = p.statusEntries;
+                if (Array.isArray(p.statusEntries)) statusEntries = p.statusEntries.filter((e: StatusEntry) => !isEvalEntry(e));
                 else if (typeof p.statuses === "string") statusEntries = parseLegacyStatuses(p.statuses);
                 if (Array.isArray(p.statusPresets)) statusPresets = p.statusPresets;
                 if (Array.isArray(p.clanIds)) clanIds = p.clanIds;
@@ -5786,6 +5644,7 @@ export default definePlugin({
         cachedToken = null; cachedGuildStore = null; cachedClanGuilds = []; lastClanFetch = 0;
         statusLastVal = null; clanLastVal = null; bioLastVal = null; prLastVal = null;
         pluginActive = true;
+        window.addEventListener("beforeunload", rsBeforeUnload);
 
         const defaults: StoreData = {
             createdAt: new Date().toISOString(), globalNicks: [], guilds: [], bioEntries: [],
@@ -5839,8 +5698,9 @@ export default definePlugin({
 
         const arStored: ArStoreData = (await DataStore.get(AR_SK)) ?? { avatars: [], seqIndex: 0, shuffleQueue: [] };
         arAvatars = arStored.avatars ?? [];
-        arSeqIndex = arStored.seqIndex ?? 0;
-        arShuffleQueue = arStored.shuffleQueue ?? [];
+        const arMeta: any = await DataStore.get(AR_SK + "_meta");
+        arSeqIndex = arMeta?.seqIndex ?? arStored.seqIndex ?? 0;
+        arShuffleQueue = arMeta?.shuffleQueue ?? arStored.shuffleQueue ?? [];
         if (settings.store.avatarEnabled && arGetActive().length) arStartRotator(false);
 
         const bcrStored: BcrStoreData = (await DataStore.get(BCR_SK)) ?? { favorites: [], usedFavs: [], wasRunning: false, currentColor: null };
@@ -5875,7 +5735,9 @@ export default definePlugin({
 
     stop() {
         pluginActive = false;
+        window.removeEventListener("beforeunload", rsBeforeUnload);
         statusBlockedUntil = 0;
+        lastStatusTick = 0;
         lastGlobalNickApply = 0;
         cachedToken = null; cachedGuildStore = null; cachedVoiceStateStore = null; cachedChannelStore = null;
         isManualStop = false; wasInvisible = false;

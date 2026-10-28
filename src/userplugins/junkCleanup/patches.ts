@@ -278,8 +278,8 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
         patches: {
             find: "Not rendered due to asset error",
             replacement: {
-                match: /(?<=function \i\(\i\){)(?=let\{children:\i,overrideVisibility:\i\}=\i,\{quest:\i\}=\i\.useContext\(\i\),\i=\(0,\i\.\i\)\(\i\);return\(0,\i\.jsx\)\(\i\.\i,\{questOrQuests:)/,
-                replace: "return null;"
+                match: /\i&&(?=\(0,\i\.jsx\)\(\i,\{overrideVisibility:)/,
+                replace: "false&&"
             }
         }
     },

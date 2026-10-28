@@ -16,7 +16,7 @@ interface MediaGridItemProps {
     onOpenPreview: (item: MediaItem) => void;
 }
 
-function MediaGridItemComponent({
+export function MediaGridItem({
     item,
     isSelected,
     onToggleSelect,
@@ -85,5 +85,3 @@ function MediaGridItemComponent({
         </div>
     );
 }
-
-export const MediaGridItem = MediaGridItemComponent;
