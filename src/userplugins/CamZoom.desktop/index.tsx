@@ -294,7 +294,7 @@ function initTile(tile: HTMLElement) {
 
         if (scale <= EPS) {
             scale = 1; panX = 0; panY = 0;
-            if (zoomed) endZoom();
+            if (zoomed) { endZoom(); if (!panelShown) destroyPanel(); }
         } else {
             if (!zoomed) beginZoom();
             const ex = w * (scale - 1) / 2;
@@ -312,6 +312,7 @@ function initTile(tile: HTMLElement) {
         timer = window.setTimeout(() => {
             timer = 0;
             if (dead) return;
+            if (!tile.isConnected) { kill(); return; }
             if (hovering || sliding || mmDragging) { arm(HIDE_DELAY); return; }
             const left = HIDE_DELAY - (performance.now() - lastAct);
             if (left > 20) arm(left); else hidePanel();
@@ -592,6 +593,10 @@ function initTile(tile: HTMLElement) {
     active.add(tile);
 }
 
+function prune() {
+    for (const old of active) if (!old.isConnected) tiles.get(old)?.kill();
+}
+
 function onGlobalWheel(e: WheelEvent) {
     const t = e.target;
     if (!(t instanceof Element)) return;
@@ -605,7 +610,7 @@ function onGlobalWheel(e: WheelEvent) {
     }
     if (isInPiP(tile) || isInHiddenPanel(tile) || isScreenshare(tile)) return;
 
-    for (const old of active) if (!old.isConnected) tiles.get(old)?.kill();
+    prune();
 
     initTile(tile);
 }
@@ -759,10 +764,12 @@ export default definePlugin({
         document.head.appendChild(style);
 
         document.addEventListener("wheel", onGlobalWheel, { capture: true, passive: true });
+        document.addEventListener("pointerdown", prune, { capture: true, passive: true });
     },
 
     stop() {
         document.removeEventListener("wheel", onGlobalWheel, true);
+        document.removeEventListener("pointerdown", prune, true);
         for (const tile of [...active]) tiles.get(tile)?.kill();
         active.clear();
         document.getElementById(`${P}-cursor-lock`)?.remove();
