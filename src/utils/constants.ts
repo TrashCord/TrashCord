@@ -1497,6 +1497,10 @@ export const EquicordDevs = Object.freeze({
         name: "ItzMeShadow999",
         id: 1065604516399026176n
     },
+    rot: {
+        name: "rot",
+        id: 1021210809164111932n
+    },
 } satisfies Record<string, Dev>);
 
 export const TrashCordDevs = /* #__PURE__*/ Object.freeze({
