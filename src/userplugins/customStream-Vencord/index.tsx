@@ -1596,7 +1596,7 @@ function resetForceState() {
 }
 
 function isBypassEnabled(): boolean {
-    return settings.store.bypassPreviewToggle;
+    return settings.store.bypassPreviewToggle && isStreamingHere();
 }
 
 function getCustomThumbnail(originalThumbnail: string): string {
