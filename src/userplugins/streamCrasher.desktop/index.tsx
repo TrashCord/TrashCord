@@ -681,8 +681,8 @@ const StreamCrasherPlugin = definePlugin({
         {
             find: "_handleVideo",
             replacement: {
-                match: /if\(\i\.\i\.supports\(\i\.\i\.VIDEO\)&&null!=this\._connection&&this\.userId!==\i\)\{/,
-                replace: 'if($self.isSettingEnabled&&this.context==="Stream")return;$&'
+                match: /_handleVideo\(\i(?:,\i)*\)\{/,
+                replace: '$&if($self.isSettingEnabled&&this.context==="Stream")return;'
             }
         },
         {
