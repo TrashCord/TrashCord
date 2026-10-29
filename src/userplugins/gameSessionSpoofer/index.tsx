@@ -837,6 +837,7 @@ export default definePlugin({
     description: "Appear to be playing any game Discord can detect without launching it, alone or as a timed queue.",
     authors: [EquicordDevs.benjii],
     tags: ["Activity", "Utility"],
+    requiresRestart: true,
     enabledByDefault: false,
     managedStyle,
     dependencies: ["UserSettingsAPI", "UserAreaAPI"],
