@@ -80,7 +80,6 @@ let actualStreamImageUri: string | null = null;
 let capturedStreamKey: string | null = null;
 let instantTimer: ReturnType<typeof setTimeout> | null = null;
 let randomQueue: number[] = [];
-let userSelectedIndex: number | null = null;
 let forceBusy = false;
 let forcePending = false;
 let blockedUntil = 0;
@@ -244,6 +243,35 @@ async function saveProfilesToDataStore(): Promise<void> {
     await writeMeta();
 }
 
+const shrinking = new WeakSet<Profile>();
+
+async function shrinkOversized(p: Profile): Promise<void> {
+    if (shrinking.has(p)) return;
+    shrinking.add(p);
+    try {
+        for (const id of p.imageIds.slice()) {
+            if (!p.loaded || profiles.get(p.id) !== p) return;
+            let idx = p.imageIds.indexOf(id);
+            const cur = idx === -1 ? undefined : p.dataUris[idx];
+            if (typeof cur !== "string" || estimateSizeFromDataUri(cur) <= MAX_THUMB_BYTES) continue;
+            try {
+                const small = await shrinkDataUri(cur);
+                if (!p.loaded || profiles.get(p.id) !== p) return;
+                idx = p.imageIds.indexOf(id);
+                if (idx === -1) continue;
+                p.dataUris[idx] = small;
+                if (storageReady) await DataStore.set(imageKey(id), small).catch(() => { });
+                if (p.id === activeProfileId && profiles.get(p.id) === p) {
+                    notifyImageChange();
+                    if (p.imageIds.indexOf(id) === p.currentIndex) forceNow();
+                }
+            } catch { }
+        }
+    } finally {
+        shrinking.delete(p);
+    }
+}
+
 async function loadProfileImages(p: Profile): Promise<boolean> {
     try {
         const values = await DataStore.getMany<string | undefined>(p.imageIds.map(imageKey));
@@ -262,6 +290,7 @@ async function loadProfileImages(p: Profile): Promise<boolean> {
         p.loaded = true;
         p.currentIndex = clampIndex(p.currentIndex, uris.length);
         if (dropped) persistState();
+        void shrinkOversized(p);
         return true;
     } catch {
         return false;
@@ -581,8 +610,8 @@ async function applyBackup(data: StoredProfilesData): Promise<boolean> {
     active.loaded = true;
     loadedOrder = [active.id];
     lastForcedImage = null;
-    userSelectedIndex = null;
     syncCacheWithActiveProfile();
+    void shrinkOversized(active);
     notifyImageChange();
     await writeMeta();
     if (storageReady && oldIds.length > 0) DataStore.delMany(oldIds.map(imageKey)).catch(() => { });
@@ -598,7 +627,6 @@ async function resetLibrary(): Promise<void> {
     cachedDataUris = [];
     currentSlideIndex = 0;
     randomQueue = [];
-    userSelectedIndex = null;
     lastForcedImage = null;
     syncCacheWithActiveProfile();
     notifyImageChange();
@@ -610,41 +638,56 @@ function getImageCount(): number {
     return cachedDataUris.length;
 }
 
+const MAX_THUMB_BYTES = 190 * 1024;
+
+function canvasToBlob(c: HTMLCanvasElement, q: number): Promise<Blob | null> {
+    return new Promise(res => c.toBlob(res, "image/jpeg", q));
+}
+
+async function encodeUnderLimit(src: CanvasImageSource, w0: number, h0: number, qualities = [0.7, 0.6, 0.5, 0.4, 0.3]): Promise<string> {
+    const sizes: [number, number][] = [[1280, 720], [960, 540], [640, 360]];
+    let last: Blob | null = null;
+    for (const [w, h] of sizes) {
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext("2d")!;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, w, h);
+        const scale = Math.max(w / w0, h / h0);
+        ctx.drawImage(src, (w - w0 * scale) / 2, (h - h0 * scale) / 2, w0 * scale, h0 * scale);
+        for (const q of qualities) {
+            const b = await canvasToBlob(c, q);
+            if (!b) continue;
+            last = b;
+            if (b.size <= MAX_THUMB_BYTES) return blobToDataUrl(b);
+        }
+    }
+    if (!last) throw new Error("Failed to convert image");
+    return blobToDataUrl(last);
+}
+
+function shrinkDataUri(uri: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => encodeUnderLimit(img, img.naturalWidth, img.naturalHeight, [0.55, 0.45, 0.35, 0.3]).then(resolve, reject);
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = uri;
+    });
+}
+
 async function processImage(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new Image();
         const url = URL.createObjectURL(blob);
-
         img.onload = () => {
             URL.revokeObjectURL(url);
-            const targetWidth = 1280;
-            const targetHeight = 720;
-            const canvas = document.createElement("canvas");
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            const ctx = canvas.getContext("2d")!;
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, targetWidth, targetHeight);
-            const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
-            const scaledWidth = img.width * scale;
-            const scaledHeight = img.height * scale;
-            const x = (targetWidth - scaledWidth) / 2;
-            const y = (targetHeight - scaledHeight) / 2;
-            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-            canvas.toBlob(newBlob => {
-                if (newBlob) {
-                    blobToDataUrl(newBlob).then(resolve).catch(reject);
-                } else {
-                    reject(new Error("Failed to convert image"));
-                }
-            }, "image/jpeg", 0.7);
+            encodeUnderLimit(img, img.width, img.height).then(resolve, reject);
         };
-
         img.onerror = () => {
             URL.revokeObjectURL(url);
             reject(new Error("Failed to load image"));
         };
-
         img.src = url;
     });
 }
@@ -860,7 +903,6 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
         if (id === activeProfileId) return;
         if (!(await activateProfile(id))) return;
         const p = getActiveProfile();
-        userSelectedIndex = p.currentIndex;
         lastForcedImage = null;
         if (p.dataUris.length === 0) actualStreamImageUri = null;
         persistState();
@@ -872,7 +914,6 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
     const selectImage = (index: number) => {
         profile.currentIndex = index;
         currentSlideIndex = index;
-        userSelectedIndex = index;
         randomQueue = [];
         notifyImageChange();
         persistState();
@@ -945,7 +986,6 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
     const removeImage = async (index: number) => {
         await deleteImageAtIndex(index);
         const p = getActiveProfile();
-        userSelectedIndex = p.dataUris.length > 0 ? currentSlideIndex : null;
         persistState();
         if (p.dataUris.length > 0) forceNow();
     };
@@ -1079,7 +1119,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                     <div style={row}>
                         <Chip on label={busy ? "Working..." : "Add Image"} disabled={busy || count >= MAX_IMAGES_PER_PROFILE} onClick={() => singleInput.current?.click()} />
                         <Chip on label="Add Multiple" disabled={busy || count >= MAX_IMAGES_PER_PROFILE} onClick={() => multiInput.current?.click()} />
-                        <Chip on color={C.redDk} label="Delete All" disabled={count === 0} onClick={() => confirm(`Delete all images from "${profile.name}"?`, `All ${count} images will be removed.`, "Delete all", () => { void deleteAllImages(); userSelectedIndex = null; randomQueue = []; lastForcedImage = null; persistState(); })} />
+                        <Chip on color={C.redDk} label="Delete All" disabled={count === 0} onClick={() => confirm(`Delete all images from "${profile.name}"?`, `All ${count} images will be removed.`, "Delete all", () => { void deleteAllImages(); randomQueue = []; lastForcedImage = null; persistState(); })} />
                         <Chip label="Export" title="Save all profiles and timers to a file" onClick={exportBackup} />
                         <Chip label="Import" title="Replace everything with a backup file" onClick={() => backupInput.current?.click()} />
                         <Chip on color={C.redDk} label="Reset All" onClick={() => confirm("Reset all data?", "This permanently deletes ALL profiles and images.", "Reset", resetAll)} />
@@ -1122,7 +1162,6 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                                                 e.stopPropagation();
                                                 if (dragFrom !== i) {
                                                     void moveImage(dragFrom, i);
-                                                    userSelectedIndex = currentSlideIndex;
                                                     persistState();
                                                 }
                                             }
@@ -1771,7 +1810,6 @@ export default definePlugin({
         lastSlideChangeTime = 0;
         capturedStreamKey = null;
         randomQueue = [];
-        userSelectedIndex = null;
         profiles.clear();
         activeProfileId = DEFAULT_PROFILE_ID;
         storageReady = false;
