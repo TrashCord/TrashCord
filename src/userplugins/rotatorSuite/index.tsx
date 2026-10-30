@@ -3399,7 +3399,7 @@ function arGetActive(): AvatarEntry[] {
 }
 
 async function arRotateNext(): Promise<void> {
-    if (!pluginActive) return;
+    if (!pluginActive || isManualStop || wasInvisible || netGuardPaused) return;
     const active = arGetActive();
     if (!active.length) { arSchedule(); return; }
     let idx: number;
@@ -3407,16 +3407,16 @@ async function arRotateNext(): Promise<void> {
     else { idx = arSeqIndex % active.length; arSeqIndex = (arSeqIndex + 1) % active.length; }
     if (idx >= active.length) idx = 0;
     await arApplyAvatar(active[idx]);
-    if (!pluginActive) return;
+    if (!pluginActive || isManualStop || wasInvisible || netGuardPaused) return;
     await arSaveMeta();
-    if (!pluginActive) return;
+    if (!pluginActive || isManualStop || wasInvisible || netGuardPaused) return;
     arSchedule();
 }
 
 function arSchedule() {
     if (arRotatorTimer) clearTimeout(arRotatorTimer);
     arRotatorTimer = null;
-    if (!settings.store.avatarEnabled || !pluginActive || !arGetActive().length) return;
+    if (!settings.store.avatarEnabled || !pluginActive || isManualStop || wasInvisible || netGuardPaused || !arGetActive().length) return;
     const ms = Math.max(1, settings.store.avatarIntervalSeconds || AR_DEFAULT_S) * 1000;
     arRotatorTimer = setTimeout(arRotateNext, netGuardMultiplier > 1 ? ms * netGuardMultiplier : ms);
     emit();
