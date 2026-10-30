@@ -12,7 +12,6 @@ import { Margins } from "@utils/margins";
 import definePlugin from "@utils/types";
 import { ProfileEffect, User } from "@vencord/discord-types";
 import { Button, showToast, UserStore } from "@webpack/common";
-import virtualMerge from "virtual-merge";
 
 import style from "./index.css?managed";
 import { Decoration } from "./lib/api";
@@ -26,6 +25,17 @@ import { fakeProfileSection } from "./ui/fakeProfileSection";
 let customStatusGetter: (() => any) | null = null;
 let customStatusHook: (() => any) | null = null;
 const FAKE_STATUS_KEYS = ["fakeStatusEnabled", "fakeStatusText", "fakeStatusEmojiName", "fakeStatusEmojiId", "fakeStatusEmojiAnimated"] as const;
+
+function virtualMerge<T extends object, U extends object>(original: T, merge: U): T & U {
+    return new Proxy(original, {
+        get(target, prop, receiver) {
+            if (Object.prototype.hasOwnProperty.call(merge, prop)) {
+                return (merge as any)[prop];
+            }
+            return Reflect.get(target, prop, receiver);
+        },
+    }) as T & U;
+}
 
 export default definePlugin({
     name: "fakeProfile",
