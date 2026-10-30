@@ -14,7 +14,9 @@ import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize, open
 import { relaunch } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Message, RenderModalProps } from "@vencord/discord-types";
-import { Alerts, Button, GuildStore, React, SearchableSelect, showToast, Text, TextInput, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { Alerts, GuildStore, React, SearchableSelect, showToast, TextInput, UserStore } from "@webpack/common";
 
 import { buildModeFile, fetchMode, findModeAttachment } from "./share";
 import { ShareFileModal } from "./ShareFileModal";
@@ -45,7 +47,7 @@ const STATUS_OPTIONS = [
 ];
 
 function Label({ children }: { children: string; }) {
-    return <Text variant="text-sm/semibold" style={{ marginBottom: 4, marginTop: 12 }}>{children}</Text>;
+    return <Text size="sm" weight="semibold" style={{ marginBottom: 4, marginTop: 12 }}>{children}</Text>;
 }
 
 function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalProps; initial: Mode; onSaved(): void; }) {
@@ -102,7 +104,7 @@ function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalPro
     return (
         <ModalRoot {...rootProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Edit mode</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Edit mode</Text>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
             <ModalContent>
@@ -135,7 +137,7 @@ function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalPro
                     onChange={setWithThemes}
                 />
                 {withThemes && (
-                    <Button size={Button.Sizes.SMALL} look={Button.Looks.LINK} color={Button.Colors.LINK} onClick={() => setThemes(currentThemes())}>
+                    <Button size="small" variant="link" onClick={() => setThemes(currentThemes())}>
                         Re-capture from current themes
                     </Button>
                 )}
@@ -143,9 +145,9 @@ function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalPro
                 <Label>Plugins this mode toggles</Label>
                 {Object.entries(pluginMap).map(([n, want]) => (
                     <Flex key={n} style={{ gap: 8, alignItems: "center", padding: "4px 0" }}>
-                        <Text variant="text-sm/normal" style={{ flex: 1 }}>{n}</Text>
+                        <Text size="sm" weight="normal" style={{ flex: 1 }}>{n}</Text>
                         <FormSwitch hideBorder title={want ? "On" : "Off"} value={want} onChange={v => setPluginMap(m => ({ ...m, [n]: v }))} />
-                        <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} look={Button.Looks.LINK} onClick={() => setPluginMap(m => { const x = { ...m }; delete x[n]; return x; })}>Remove</Button>
+                        <Button size="small" variant="dangerPrimary" onClick={() => setPluginMap(m => { const x = { ...m }; delete x[n]; return x; })}>Remove</Button>
                     </Flex>
                 ))}
                 <div style={{ marginTop: 4 }}>
@@ -172,18 +174,18 @@ function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalPro
                     <>
                         {games.map(g => (
                             <Flex key={g} style={{ gap: 8, alignItems: "center", padding: "4px 0" }}>
-                                <Text variant="text-sm/normal" style={{ flex: 1 }}>{g}</Text>
-                                <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} look={Button.Looks.LINK} onClick={() => setGames(games.filter(x => x !== g))}>Remove</Button>
+                                <Text size="sm" weight="normal" style={{ flex: 1 }}>{g}</Text>
+                                <Button size="small" variant="dangerPrimary" onClick={() => setGames(games.filter(x => x !== g))}>Remove</Button>
                             </Flex>
                         ))}
                         <Flex style={{ gap: 8, marginTop: 4 }}>
                             <div style={{ flex: 1 }}>
                                 <TextInput value={gameDraft} onChange={setGameDraft} placeholder="Game name, e.g. League of Legends" />
                             </div>
-                            <Button size={Button.Sizes.SMALL} onClick={addGame}>Add</Button>
+                            <Button size="small" onClick={addGame}>Add</Button>
                         </Flex>
                         {detectedGames.length > 0 && (
-                            <Text variant="text-xs/normal" style={{ opacity: 0.6, marginTop: 4 }}>Detected right now: {detectedGames.join(", ")}</Text>
+                            <Text size="xs" weight="normal" style={{ opacity: 0.6, marginTop: 4 }}>Detected right now: {detectedGames.join(", ")}</Text>
                         )}
                     </>
                 )}
@@ -192,8 +194,8 @@ function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalPro
                     <>
                         {guildIds.map(id => (
                             <Flex key={id} style={{ gap: 8, alignItems: "center", padding: "4px 0" }}>
-                                <Text variant="text-sm/normal" style={{ flex: 1 }}>{GuildStore.getGuild(id)?.name ?? "Unknown server"}</Text>
-                                <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} look={Button.Looks.LINK} onClick={() => setGuildIds(guildIds.filter(x => x !== id))}>Remove</Button>
+                                <Text size="sm" weight="normal" style={{ flex: 1 }}>{GuildStore.getGuild(id)?.name ?? "Unknown server"}</Text>
+                                <Button size="small" variant="dangerPrimary" onClick={() => setGuildIds(guildIds.filter(x => x !== id))}>Remove</Button>
                             </Flex>
                         ))}
                         <div style={{ marginTop: 4 }}>
@@ -210,8 +212,8 @@ function ModeEditor({ rootProps, initial, onSaved }: { rootProps: RenderModalPro
                 />
 
                 <Flex style={{ gap: 8, justifyContent: "flex-end", margin: "16px 0" }}>
-                    <Button color={Button.Colors.PRIMARY} look={Button.Looks.LINK} onClick={rootProps.onClose}>Cancel</Button>
-                    <Button color={Button.Colors.BRAND} onClick={save}>Save mode</Button>
+                    <Button variant="secondary" onClick={rootProps.onClose}>Cancel</Button>
+                    <Button variant="primary" onClick={save}>Save mode</Button>
                 </Flex>
             </ModalContent>
         </ModalRoot>
@@ -226,11 +228,11 @@ function describeMode(mode: Mode, missingPlugins: string[]) {
     if (mode.plugins) parts.push(`${Object.keys(mode.plugins).length} plugin toggle(s)`);
     return (
         <div style={{ textAlign: "left" }}>
-            <Text variant="text-md/normal">
+            <Text size="md" weight="normal">
                 "{mode.emoji ? mode.emoji + " " : ""}{mode.name}" changes: {parts.length ? parts.join(", ") : "nothing yet"}.
             </Text>
             {missingPlugins.length > 0 && (
-                <Text variant="text-sm/normal" style={{ opacity: 0.8, marginTop: 8 }}>
+                <Text size="sm" weight="normal" style={{ opacity: 0.8, marginTop: 8 }}>
                     {missingPlugins.length} plugin(s) in this mode aren't available here and will be skipped: {missingPlugins.join(", ")}
                 </Text>
             )}
@@ -277,10 +279,10 @@ function ModeImportCardInner({ message }: { message: Message; }) {
 
     return (
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, margin: "4px 0", borderRadius: 8, background: "var(--background-secondary)" }}>
-            <Text variant="text-md/semibold" style={{ flex: 1 }}>
+            <Text size="md" weight="semibold" style={{ flex: 1 }}>
                 🎛️ {own ? "Your shared mode" : `${message.author?.username ?? "Someone"} shared a mode`}
             </Text>
-            <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={startImport}>Add</Button>
+            <Button size="small" variant="primary" onClick={startImport}>Add</Button>
         </div>
     );
 }
@@ -325,25 +327,25 @@ function ModesModal({ rootProps }: { rootProps: RenderModalProps; }) {
     return (
         <ModalRoot {...rootProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Modes ({modes.length})</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Modes ({modes.length})</Text>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
             <ModalContent>
                 {modes.length === 0
-                    ? <Text variant="text-md/normal" style={{ padding: "16px 0" }}>No modes yet. Set up your client how you like it, then create one — it captures your status, custom status and themes.</Text>
+                    ? <Text size="md" weight="normal" style={{ padding: "16px 0" }}>No modes yet. Set up your client how you like it, then create one — it captures your status, custom status and themes.</Text>
                     : modes.map(mode => (
                         <Flex key={mode.id} style={{ gap: 8, alignItems: "center", padding: "8px 0" }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <Text variant="text-md/semibold">
+                                <Text size="md" weight="semibold">
                                     {mode.emoji ? mode.emoji + " " : ""}{mode.name}
                                     {mode.id === activeId && <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.7 }}>active</span>}
                                     {mode.isDefault && <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.7 }}>default</span>}
                                 </Text>
-                                {triggerLabel(mode) && <Text variant="text-xs/normal" style={{ opacity: 0.6 }}>{triggerLabel(mode)}</Text>}
+                                {triggerLabel(mode) && <Text size="xs" weight="normal" style={{ opacity: 0.6 }}>{triggerLabel(mode)}</Text>}
                             </div>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => activate(mode)}>Activate</Button>
-                            <Button size={Button.Sizes.SMALL} look={Button.Looks.LINK} onClick={() => openEditor(mode)}>Edit</Button>
-                            <Button size={Button.Sizes.SMALL} look={Button.Looks.LINK} onClick={() => openModal(props => (
+                            <Button size="small" variant="primary" onClick={() => activate(mode)}>Activate</Button>
+                            <Button size="small" onClick={() => openEditor(mode)}>Edit</Button>
+                            <Button size="small" onClick={() => openModal(props => (
                                 <ShareFileModal
                                     rootProps={props}
                                     title={`Share "${mode.emoji ? mode.emoji + " " : ""}${mode.name}"`}
@@ -352,12 +354,12 @@ function ModesModal({ rootProps }: { rootProps: RenderModalProps; }) {
                                     defaultNote={`Here's my "${mode.name}" mode — add it with one tap!`}
                                 />
                             ))}>Share</Button>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} look={Button.Looks.LINK} onClick={async () => { await deleteMode(mode.id); forceUpdate(); }}>Delete</Button>
+                            <Button size="small" variant="dangerPrimary" onClick={async () => { await deleteMode(mode.id); forceUpdate(); }}>Delete</Button>
                         </Flex>
                     ))}
 
                 <Flex style={{ marginTop: 16 }}>
-                    <Button color={Button.Colors.BRAND} onClick={() => openEditor(captureInto(newMode("New mode")))}>+ New mode (captures current setup)</Button>
+                    <Button variant="primary" onClick={() => openEditor(captureInto(newMode("New mode")))}>+ New mode (captures current setup)</Button>
                 </Flex>
             </ModalContent>
         </ModalRoot>

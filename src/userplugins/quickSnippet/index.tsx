@@ -11,7 +11,8 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, MessageStore, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { MessageStore, useState } from "@webpack/common";
 
 const MarkdownRules = findByPropsLazy("RULES", "PROFILE_BIO_RULES");
 
@@ -61,7 +62,6 @@ const AppendButton = ErrorBoundary.wrap(function AppendButton(props: { code: Cod
     if (code.lang.toLowerCase() !== "css" || !settings.store.whitelistChannels.includes(context.channelId || "undefined") && !settings.store.whitelistChannels.includes("all")) return null;
 
     return <Button
-        look={Button.Looks.FILLED}
         onClick={() => {
             let trimedMessage = "";
             if (context.channelId && context.messageId) {

@@ -7,7 +7,8 @@
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { Text, UserStore } from "@webpack/common";
+import { Text } from "@components/Text";
+import { UserStore } from "@webpack/common";
 
 type Author = {
     nick: string;

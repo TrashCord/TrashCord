@@ -11,7 +11,8 @@ import { sleep } from "@utils/misc";
 import { ModalCloseButton,ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { Forms, React, useEffect, useMemo,useState } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { React, useEffect, useMemo, useState } from "@webpack/common";
 
 /* import { t, useTranslation } from "../autoTranslateNightcord"; */
 
@@ -140,9 +141,9 @@ function BulkFriendRemoveModal({ rootProps }: { rootProps: any; }) {
     return (
         <ModalRoot {...rootProps} size="medium">
             <ModalHeader separator={false}>
-                <Forms.FormTitle tag="h4" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#ffffff" }}>
+                <Heading tag="h4" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#ffffff" }}>
                     <BulkRemoveIcon width={16} height={16} /> {t("Remove friends")}
-                </Forms.FormTitle>
+                </Heading>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
             <ModalContent className="bfr-content">
@@ -164,10 +165,10 @@ function BulkFriendRemoveModal({ rootProps }: { rootProps: any; }) {
                     </button>
                 </div>
 
-                <Forms.FormTitle tag="h5" style={{ margin: "4px 0" }}>
+                <Heading tag="h5" style={{ margin: "4px 0" }}>
                     {friends.length} {friends.length !== 1 ? t("friends") : t("friend")}
                     {selected.length > 0 && <span className="bfr-selected-count"> · {selected.length} {selected.length !== 1 ? t("selected") : t("selected")}</span>}
-                </Forms.FormTitle>
+                </Heading>
 
                 <div className="bfr-list">
                     {filtered.length === 0 && <div className="bfr-empty">{t("No friends found")}</div>}

@@ -15,7 +15,8 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { findByCodeLazy, findByPropsLazy } from "@webpack";
-import { Button, lodash, MediaEngineStore, React, ReactDOM, RelationshipStore, SelectedChannelStore, UserStore, VoiceStateStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { lodash, MediaEngineStore, React, ReactDOM, RelationshipStore, SelectedChannelStore, UserStore, VoiceStateStore } from "@webpack/common";
 
 import { VolumeHold } from "./protection";
 
@@ -727,12 +728,12 @@ function MeterRow({ userId }: { userId: string; }) {
             <div style={{ width: 68, color: ignoredUser ? "var(--text-muted)" : "var(--header-secondary)", fontVariantNumeric: "tabular-nums" }}>
                 {level}%
             </div>
-            <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => toggleIgnored(userId)}>
+            <Button size="small" variant="secondary" onClick={() => toggleIgnored(userId)}>
                 {ignored.has(userId) ? "Allow" : "Ignore"}
             </Button>
-            {muted && <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => unmute(userId, "manual")}>Unmute</Button>}
-            {turned && <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => restoreVolume(userId, "manual")}>Restore</Button>}
-            {pausedDynamics.has(userId) && <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => pausedDynamics.delete(userId)}>Resume</Button>}
+            {muted && <Button size="small" variant="primary" onClick={() => unmute(userId, "manual")}>Unmute</Button>}
+            {turned && <Button size="small" variant="primary" onClick={() => restoreVolume(userId, "manual")}>Restore</Button>}
+            {pausedDynamics.has(userId) && <Button size="small" variant="primary" onClick={() => pausedDynamics.delete(userId)}>Resume</Button>}
         </div>
     );
 }
@@ -764,10 +765,10 @@ function GuardPanel() {
                     {[...turnedDown].map(([userId, entry]) => (
                         <div key={userId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
                             <span style={{ color: "var(--status-warning)" }}>{displayName(userId)}: {Math.round(amplitudeToVolume(entry.applied))}% volume</span>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => restoreVolume(userId, "manual")}>Restore</Button>
+                            <Button size="small" variant="secondary" onClick={() => restoreVolume(userId, "manual")}>Restore</Button>
                         </div>
                     ))}
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => restoreAll("manual")} style={{ marginTop: 4 }}>Restore all</Button>
+                    <Button size="small" variant="secondary" onClick={() => restoreAll("manual")} style={{ marginTop: 4 }}>Restore all</Button>
                 </div>
             )}
 
@@ -777,10 +778,10 @@ function GuardPanel() {
                     {[...mutedByUs.keys()].map(userId => (
                         <div key={userId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
                             <span style={{ color: "var(--status-danger)" }}>{displayName(userId)}</span>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => unmute(userId, "manual")}>Unmute</Button>
+                            <Button size="small" variant="primary" onClick={() => unmute(userId, "manual")}>Unmute</Button>
                         </div>
                     ))}
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => unmuteAll("manual")} style={{ marginTop: 4 }}>Unmute all</Button>
+                    <Button size="small" variant="secondary" onClick={() => unmuteAll("manual")} style={{ marginTop: 4 }}>Unmute all</Button>
                 </div>
             )}
 
@@ -790,7 +791,7 @@ function GuardPanel() {
                     {[...ignored].map(userId => (
                         <div key={userId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
                             <span>{displayName(userId)}</span>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => toggleIgnored(userId)}>Allow again</Button>
+                            <Button size="small" variant="secondary" onClick={() => toggleIgnored(userId)}>Allow again</Button>
                         </div>
                     ))}
                 </div>

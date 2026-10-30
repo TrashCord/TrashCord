@@ -8,7 +8,10 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, ModalCloseButton, openModal } from "@utils/modal";
 import { findByPropsLazy, waitFor } from "@webpack";
-import { Button, Forms, React, RestAPI, showToast, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { React, RestAPI, showToast, TextInput } from "@webpack/common";
 
 const UserStore         = findByPropsLazy("getCurrentUser", "getUser");
 const GuildStore        = findByPropsLazy("getGuilds", "getGuildCount");
@@ -282,14 +285,14 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
     >
         <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>
     </svg>
-    <Forms.FormTitle tag="h4" style={{ margin: 0, flex: 1 }}>
+    <Heading tag="h4" style={{ margin: 0, flex: 1 }}>
         Fake Accounts
         {_fakeSessionActive && (
             <span style={{ color: "var(--status-danger)", fontSize: "12px", marginLeft: "8px" }}>
                 ● Active as {_fakeSessionUser?.username}
             </span>
         )}
-    </Forms.FormTitle>
+    </Heading>
     <ModalCloseButton onClick={modalProps.onClose} />
 </ModalHeader>
             {/* ── Body ── */}
@@ -311,8 +314,8 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
 
                         {_fakeSessionActive && (
                             <Button
-                                size={Button.Sizes.SMALL}
-                                color={Button.Colors.RED}
+                                size="small"
+                                variant="dangerPrimary"
                                 style={{ marginLeft: "12px", flexShrink: 0 }}
                                 onClick={() => { deactivateFakeSession(); setActiveId(null); }}
                             >
@@ -332,8 +335,8 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                                 />
                             </div>
                             <Button
-                                size={Button.Sizes.MEDIUM}
-                                color={Button.Colors.GREEN}
+                                size="medium"
+                                variant="positive"
                                 disabled={loading || !userId.trim()}
                                 onClick={fetchAndAdd}
                             >
@@ -360,8 +363,8 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                                 />
                             </div>
                             <Button
-                                size={Button.Sizes.MEDIUM}
-                                color={Button.Colors.GREEN}
+                                size="medium"
+                                variant="positive"
                                 disabled={!manualUsername.trim()}
                                 onClick={addManual}
                             >
@@ -371,12 +374,12 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                     )}
 
                     {/* Account list */}
-                    <Forms.FormTitle tag="h5">Fake Accounts ({accounts.length})</Forms.FormTitle>
+                    <Heading tag="h5">Fake Accounts ({accounts.length})</Heading>
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "300px", overflowY: "auto" }}>
                         {accounts.length === 0 && (
-                            <Forms.FormText style={{ padding: "8px 0" }}>
+                            <Paragraph style={{ padding: "8px 0" }}>
                                 No fake accounts added yet.
-                            </Forms.FormText>
+                            </Paragraph>
                         )}
                         {accounts.map(acc => {
                             const isActive = activeId === acc.id;
@@ -414,8 +417,8 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                                         </div>
                                     </div>
                                     <Button
-                                        size={Button.Sizes.SMALL}
-                                        color={isActive ? Button.Colors.RED : Button.Colors.BRAND}
+                                        size="small"
+                                        variant={isActive ? "dangerPrimary" : "primary"}
                                         onClick={() => {
                                             if (isActive) {
                                                 deactivateFakeSession();
@@ -429,8 +432,8 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
                                         {isActive ? "Exit" : "Switch"}
                                     </Button>
                                     <Button
-                                        size={Button.Sizes.SMALL}
-                                        color={Button.Colors.RED}
+                                        size="small"
+                                        variant="dangerPrimary"
                                         onClick={() => {
                                             if (isActive) { deactivateFakeSession(); setActiveId(null); }
                                             updateAccounts(accounts.filter(a => a.id !== acc.id));
@@ -448,8 +451,7 @@ function FakeAccountModal({ modalProps }: { modalProps: ModalProps; }) {
             {/* ── Footer ── */}
             <ModalFooter>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
-                    look={Button.Looks.FILLED}
+                    variant="none"
                     onClick={modalProps.onClose}
                 >
                     Close

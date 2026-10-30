@@ -8,7 +8,11 @@ import { useState } from "@webpack/common";
 import { formatTxt, parseDate, triggerDownload } from "./utils";
 import { fetchMessages } from "./fetcher";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
-import { Button, Forms, Text, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { TextInput } from "@webpack/common";
 import { Settings } from "@api/Settings";
 
 // persist settings under vencord plugin settings
@@ -231,7 +235,7 @@ export function ExportModal({ modalProps, channelId, channelTitle }: {
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader separator={false}>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>
                     Export {channelTitle}
                 </Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
@@ -245,33 +249,33 @@ export function ExportModal({ modalProps, channelId, channelTitle }: {
                     gap: "16px",
                 }}>
                     <div>
-                        <Forms.FormTitle tag="h5">Message Limit</Forms.FormTitle>
+                        <Heading tag="h5">Message Limit</Heading>
                         <TextInput
                             value={limit}
                             onChange={handleLimitChange}
                             placeholder="e.g. 100"
                             disabled={running}
                         />
-                        <Forms.FormText style={{ marginTop: "4px" }}>
+                        <Paragraph style={{ marginTop: "4px" }}>
                             Number of most recent messages to export.
-                        </Forms.FormText>
+                        </Paragraph>
                     </div>
 
                     <div>
-                        <Forms.FormTitle tag="h5">Since (optional)</Forms.FormTitle>
+                        <Heading tag="h5">Since (optional)</Heading>
                         <TextInput
                             value={since}
                             onChange={handleSinceChange}
                             placeholder="e.g. 2024-03-01 or 2024-03-01 14:30"
                             disabled={running}
                         />
-                        <Forms.FormText style={{ marginTop: "4px" }}>
+                        <Paragraph style={{ marginTop: "4px" }}>
                             Only export messages after this date/time (UTC).
-                        </Forms.FormText>
+                        </Paragraph>
                     </div>
 
                     <div>
-                        <Forms.FormTitle tag="h5">Export Format</Forms.FormTitle>
+                        <Heading tag="h5">Export Format</Heading>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
                             {FORMAT_OPTIONS.map(opt => (
                                 <div
@@ -300,8 +304,8 @@ export function ExportModal({ modalProps, channelId, channelTitle }: {
                                 >
                                     <RadioButton selected={format === opt.value} />
                                     <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                                        <Text variant="text-sm/semibold">{opt.label}</Text>
-                                        <Text variant="text-xs/normal" style={{ color: "var(--text-muted)" }}>
+                                        <Text size="sm" weight="semibold">{opt.label}</Text>
+                                        <Text size="xs" weight="normal" style={{ color: "var(--text-muted)" }}>
                                             {opt.description}
                                         </Text>
                                     </div>
@@ -317,7 +321,7 @@ export function ExportModal({ modalProps, channelId, channelTitle }: {
                             background: "var(--background-secondary)",
                             border: "1px solid var(--background-tertiary)",
                         }}>
-                            <Text variant="text-sm/normal">{status}</Text>
+                            <Text size="sm" weight="normal">{status}</Text>
                         </div>
                     )}
 
@@ -328,8 +332,7 @@ export function ExportModal({ modalProps, channelId, channelTitle }: {
                 <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", width: "100%" }}>
                     <Button
                         onClick={modalProps.onClose}
-                        color={Button.Colors.TRANSPARENT}
-                        look={Button.Looks.LINK}
+                        variant="none"
                         disabled={running}
                     >
                         Cancel
@@ -337,7 +340,7 @@ export function ExportModal({ modalProps, channelId, channelTitle }: {
                     <Button
                         onClick={handleExport}
                         disabled={running}
-                        color={Button.Colors.BRAND}
+                        variant="primary"
                     >
                         {running ? "Exporting..." : "Export"}
                     </Button>

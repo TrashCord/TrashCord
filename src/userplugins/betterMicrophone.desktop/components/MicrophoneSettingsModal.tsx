@@ -8,7 +8,9 @@ import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
 import { Switch } from "@components/Switch";
 import { SelectOption } from "@vencord/discord-types";
-import { Forms, Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
 
 import { MicrophoneProfile, MicrophoneStore } from "../../betterMicrophone.desktop/stores";
 import {
@@ -106,7 +108,7 @@ export const MicrophoneSettingsModal = (props: MicrophoneSettingsModalProps) => 
 
     const simpleToggle =
         <Flex style={{ justifyContent: "center", alignItems: "center", gap: "0.6em" }}>
-            <Forms.FormTitle style={{ margin: 0 }} tag="h5">Simple</Forms.FormTitle>
+            <Heading style={{ margin: 0 }} tag="h5">Simple</Heading>
             <Switch checked={simpleMode ?? false} disabled={isSaving} onChange={checked => setSimpleMode(checked)} />
         </Flex>;
 
@@ -265,10 +267,10 @@ export const MicrophoneSettingsModal = (props: MicrophoneSettingsModalProps) => 
 
     const infoCard =
         <Card style={{ ...Styles.infoCard }}>
-            <Forms.FormTitle tag="h5">Important</Forms.FormTitle>
-            <Forms.FormText>
+            <Heading tag="h5">Important</Heading>
+            <Paragraph>
                 To take full advantage of this plugin, please disable <span style={{ fontWeight: "bold" }}>Krisp</span> and <span style={{ fontWeight: "bold" }}>Echo Cancellation</span>, otherwise features like Stereo (Channels) will not work.
-            </Forms.FormText>
+            </Paragraph>
         </Card>;
 
     return (

@@ -10,7 +10,11 @@ import { ChangeList } from "@utils/ChangeList";
 import { Devs } from "@utils/constants";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { Button, Forms, React, Switch,Text, TextInput, useMemo } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { Switch } from "@components/Switch";
+import { Text } from "@components/Text";
+import { React, TextInput, useMemo } from "@webpack/common";
 import { Alerts, Parser, Tooltip } from "@webpack/common";
 
 import Plugins from "~plugins";
@@ -51,20 +55,20 @@ function PluginCard({ plugin, disabled, onRestartNeeded, onMouseEnter, onMouseLe
         >
             <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
-                    <Text variant="heading-md/semibold">{plugin.name}</Text>
+                    <Text size="lg" weight="semibold">{plugin.name}</Text>
                     {plugin.description && (
-                        <Text variant="text-sm/normal" color="text-muted" style={{ marginTop: "4px" }}>
+                        <Text size="sm" weight="normal" color="text-muted" style={{ marginTop: "4px" }}>
                             {plugin.description}
                         </Text>
                     )}
                     {plugin.authors && (
-                        <Text variant="text-xs/normal" color="text-muted" style={{ marginTop: "2px" }}>
+                        <Text size="xs" weight="normal" color="text-muted" style={{ marginTop: "2px" }}>
                             by {plugin.authors.map(a => a.name).join(", ")}
                         </Text>
                     )}
                 </div>
                 {React.createElement(Switch as any, {
-                    value: isEnabled,
+                    checked: isEnabled,
                     onChange: togglePlugin,
                     disabled
                 })}
@@ -191,7 +195,7 @@ export function PluginListModal({ modalProps }: { modalProps: ModalProps; }) {
     return <ModalRoot {...modalProps} size={ModalSize.MEDIUM} >
         <ModalHeader>
             <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text variant="heading-lg/semibold">
+                <Text size="xl" weight="semibold">
                     Plugin Manager ({filteredPlugins.length} shown, {enabledCount} enabled)
                 </Text>
             </div>
@@ -209,22 +213,22 @@ export function PluginListModal({ modalProps }: { modalProps: ModalProps; }) {
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "8px" }}>
                         {React.createElement(Switch as any, {
-                            value: showEnabledOnly,
+                            checked: showEnabledOnly,
                             onChange: setShowEnabledOnly
                         })}
                         <Text>Show enabled only</Text>
                     </div>
                     <div style={{ display: "flex", flexDirection: "row", gap: "8px" }}>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={Button.Colors.BRAND}
+                            size="small"
+                            variant="primary"
                             onClick={handleEnableAll}
                         >
                             Enable All
                         </Button>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={(Button.Colors as any).SECONDARY}
+                            size="small"
+                            variant="secondary"
                             onClick={handleDisableAll}
                         >
                             Disable All
@@ -273,7 +277,7 @@ export function PluginListModal({ modalProps }: { modalProps: ModalProps; }) {
         </ModalContent>
         <ModalFooter>
             <div style={{ display: "flex", flexDirection: "row-reverse" }}>
-                <Button color={Button.Colors.RED} onClick={modalProps.onClose}>Close</Button>
+                <Button variant="dangerPrimary" onClick={modalProps.onClose}>Close</Button>
             </div>
         </ModalFooter>
     </ModalRoot>;
@@ -282,8 +286,8 @@ export function PluginListModal({ modalProps }: { modalProps: ModalProps; }) {
 function makeDependencyList(deps: string[]) {
     return (
         <React.Fragment>
-            <Forms.FormText>This plugin is required by:</Forms.FormText>
-            {deps.map((dep: string) => <Forms.FormText key={dep} className={cl("dep-text")}>{dep}</Forms.FormText>)}
+            <Paragraph>This plugin is required by:</Paragraph>
+            {deps.map((dep: string) => <Paragraph key={dep} className={cl("dep-text")}>{dep}</Paragraph>)}
         </React.Fragment>
     );
 }

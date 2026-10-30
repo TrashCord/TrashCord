@@ -12,7 +12,8 @@ import { Devs } from "@utils/constants";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Parser, Text, Timestamp, useState } from "@webpack/common";
+import { Text } from "@components/Text";
+import { Parser, Timestamp, useState } from "@webpack/common";
 import { Message as _Message } from "discord-types/general";
 import { HTMLAttributes } from "react";
 
@@ -86,7 +87,7 @@ function HistoryModal({ modalProps, close, message }: { modalProps: ModalProps; 
 
     return <ModalRoot {...modalProps} size={ModalSize.LARGE}>
         <ModalHeader className={cl("modal-head")}>
-            <Text variant="heading-lg/semibold">Message edit history</Text>
+            <Text size="xl" weight="semibold">Message edit history</Text>
             <ModalCloseButton onClick={close} />
             <div className={cl("revisions")}>
                 {...timestamps.map((timestamp, index) =>

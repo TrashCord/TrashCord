@@ -7,7 +7,7 @@
 import { Settings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { Forms, Text  } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
 
 export default definePlugin({
     name: "StagingBuild",
@@ -24,9 +24,9 @@ export default definePlugin({
             description: "",
             component: () => {
                 return (
-                    <Forms.FormText>
+                    <Paragraph>
                         This will enable experiments, disable tracking requests, allows access to more features
-                    </Forms.FormText>
+                    </Paragraph>
                 );
             }
         }

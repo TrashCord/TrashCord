@@ -6,7 +6,8 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
-import { Button, React } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React } from "@webpack/common";
 
 import { openBadgeSpooferModal } from "./components/BadgeSpooferModal";
 import { HypeSquadPicker } from "./hypesquad";
@@ -17,7 +18,7 @@ export const settings = definePluginSettings({
         description: "Open the Badge Spoofer control center to configure and start inflating your Discord badges",
         component: () => (
             <Button
-                color={Button.Colors.BRAND}
+                variant="primary"
                 onClick={openBadgeSpooferModal}
             >
                 Open Badge Spoofer Dashboard

@@ -5,7 +5,8 @@
  */
 
 import { findByPropsLazy } from "@webpack";
-import { Button, React, useEffect } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, useEffect } from "@webpack/common";
 
 const jumper: any = findByPropsLazy("jumpToMessage");
 import type { GalleryItem } from "../utils/extractImages";
@@ -92,10 +93,10 @@ export function LightboxViewer(props: {
                     zIndex: 2
                 }}
             >
-                <Button size={Button.Sizes.SMALL} onClick={jump}>
+                <Button size="small" onClick={jump}>
                     Open message
                 </Button>
-                <Button size={Button.Sizes.SMALL} onClick={onClose}>
+                <Button size="small" onClick={onClose}>
                     Close
                 </Button>
             </div>
@@ -154,7 +155,7 @@ export function LightboxViewer(props: {
                     zIndex: 2
                 }}
             >
-                <Button size={Button.Sizes.SMALL} disabled={!hasPrev} onClick={() => hasPrev && onChangeIndex(prevIndex)}>
+                <Button size="small" disabled={!hasPrev} onClick={() => hasPrev && onChangeIndex(prevIndex)}>
                     Prev
                 </Button>
             </div>
@@ -167,7 +168,7 @@ export function LightboxViewer(props: {
                     zIndex: 2
                 }}
             >
-                <Button size={Button.Sizes.SMALL} disabled={!hasNext} onClick={() => hasNext && onChangeIndex(nextIndex)}>
+                <Button size="small" disabled={!hasNext} onClick={() => hasNext && onChangeIndex(nextIndex)}>
                     Next
                 </Button>
             </div>

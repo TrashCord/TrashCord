@@ -8,15 +8,17 @@ import { definePluginSettings } from "@api/Settings";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
+import { Button } from "@components/Button";
+import { Divider } from "@components/Divider";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
 import {
-    Button,
     Constants,
     FluxDispatcher,
-    Forms,
     GuildStore,
     React,
     RestAPI,
-    Text,
     TextInput,
     UserStore,
     showToast,
@@ -752,7 +754,7 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
     return (
         <ModalRoot {...modalProps} size={ModalSize.LARGE}>
             <ModalHeader separator>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1, color: "var(--header-primary, #fff)" }}>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1, color: "var(--header-primary, #fff)" }}>
                     🧹 Purge Hack Spam Messages
                 </Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
@@ -773,48 +775,48 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                     important channels yourself after running it.
                 </div>
 
-                <Forms.FormSection>
-                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Image Hashes</Forms.FormTitle>
-                    <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
+                <section>
+                    <Heading style={{ color: "var(--header-secondary, #b9bbbe)" }}>Image Hashes</Heading>
+                    <Paragraph style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
                         Comma-separated hash fragments or attachment ID fragments matched against CDN URLs.
                         Paste the numeric ID from a spam attachment's URL for a match that won't expire.
-                    </Forms.FormText>
+                    </Paragraph>
                     <TextInput value={hashes} onChange={setHashes} placeholder="b859ab74,1548028513221615666,…" disabled={running} />
-                </Forms.FormSection>
+                </section>
 
-                <Forms.FormDivider style={{ margin: "12px 0" }} />
+                <Divider style={{ margin: "12px 0" }} />
 
-                <Forms.FormSection>
-                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Blacklisted Domains</Forms.FormTitle>
-                    <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
+                <section>
+                    <Heading style={{ color: "var(--header-secondary, #b9bbbe)" }}>Blacklisted Domains</Heading>
+                    <Paragraph style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
                         Links from these domains are flagged as spam during live detection and deleted in purge scans.
                         ⚙️ More settings enabled = better detection accuracy.
-                    </Forms.FormText>
+                    </Paragraph>
                     <TextInput value={blacklist} onChange={setBlacklist} placeholder="u.to,…" disabled={running} />
-                </Forms.FormSection>
+                </section>
 
-                <Forms.FormDivider style={{ margin: "12px 0" }} />
+                <Divider style={{ margin: "12px 0" }} />
 
-                <Forms.FormSection>
-                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Whitelisted Domains</Forms.FormTitle>
-                    <Forms.FormText style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
+                <section>
+                    <Heading style={{ color: "var(--header-secondary, #b9bbbe)" }}>Whitelisted Domains</Heading>
+                    <Paragraph style={{ marginBottom: 6, color: "var(--text-normal, #dcddde)" }}>
                         These domains are never treated as spam - whitelist always overrides blacklist.
-                    </Forms.FormText>
+                    </Paragraph>
                     <TextInput value={whitelist} onChange={setWhitelist} placeholder="discord.com,tenor.com,…" disabled={running} />
-                </Forms.FormSection>
+                </section>
 
-                <Forms.FormDivider style={{ margin: "12px 0" }} />
+                <Divider style={{ margin: "12px 0" }} />
 
-                <Forms.FormSection>
-                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Scan Targets</Forms.FormTitle>
+                <section>
+                    <Heading style={{ color: "var(--header-secondary, #b9bbbe)" }}>Scan Targets</Heading>
                     {row("Scan DMs", scanDMs, setScanDMs)}
                     {row("Scan Servers", scanG, setScanG)}
-                </Forms.FormSection>
+                </section>
 
-                <Forms.FormDivider style={{ margin: "12px 0" }} />
+                <Divider style={{ margin: "12px 0" }} />
 
-                <Forms.FormSection>
-                    <Forms.FormTitle style={{ color: "var(--header-secondary, #b9bbbe)" }}>Status</Forms.FormTitle>
+                <section>
+                    <Heading style={{ color: "var(--header-secondary, #b9bbbe)" }}>Status</Heading>
                     <div style={{
                         background: "var(--background-secondary-alt, #292b2f)",
                         borderRadius: 6,
@@ -833,21 +835,21 @@ function PurgeModal({ modalProps }: { modalProps: any; }): JSX.Element {
                             Messages deleted: {deleted}
                         </span>
                     )}
-                </Forms.FormSection>
+                </section>
             </ModalContent>
 
             <ModalFooter style={{ display: "flex", gap: 8 }}>
                 {running
-                    ? <Button color={Button.Colors.RED} onClick={stop}>🛑 Stop</Button>
+                    ? <Button variant="dangerPrimary" onClick={stop}>🛑 Stop</Button>
                     : <Button
-                        color={done ? Button.Colors.GREEN : Button.Colors.BRAND}
+                        variant={done ? "positive" : "primary"}
                         onClick={start}
                         disabled={!hashes.trim() && !blacklist.trim()}
                       >
                         {done ? "✓ Done - Run Again" : "🗑️ Start Purge"}
                       </Button>
                 }
-                <Button color={Button.Colors.TRANSPARENT} look={Button.Looks.LINK} onClick={modalProps.onClose}>
+                <Button variant="none" onClick={modalProps.onClose}>
                     {running ? "Close (scan continues in background)" : "Close"}
                 </Button>
             </ModalFooter>
@@ -866,22 +868,22 @@ export default definePlugin({
     settingsAboutComponent() {
         return (
             <div style={{ marginTop: 8 }}>
-                <Forms.FormText style={{ marginBottom: 10, color: "var(--text-normal, #dcddde)" }}>
+                <Paragraph style={{ marginBottom: 10, color: "var(--text-normal, #dcddde)" }}>
                     ⚙️ Default behavior: a message is flagged when it has 3+ attachments (configurable via
                     <b> Min Attachments</b>) OR a mention + attachment/link together, AND the same pattern repeats
                     across multiple different chats within a short window (<b>Global Min Channels</b>/<b>Global Window</b>) -
                     this is what catches spam spread thin across many DMs/servers, not just repeats in one chat.
                     Everything is adjustable in the settings below.
-                </Forms.FormText>
+                </Paragraph>
                 <Button
-                    color={Button.Colors.BRAND}
+                    variant="primary"
                     onClick={() => openModal(props => <PurgeModal modalProps={props} />)}
                 >
                     🧹 Open Purge Tool
                 </Button>
-                <Forms.FormText style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted, #72767d)" }}>
+                <Paragraph style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted, #72767d)" }}>
                     ⚠️ Purge Tool is experimental and may not catch every old message.
-                </Forms.FormText>
+                </Paragraph>
             </div>
         );
     },

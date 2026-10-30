@@ -5,7 +5,8 @@
  */
 
 import { Flex } from "@components/Flex";
-import { Button, Tooltip } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Tooltip } from "@webpack/common";
 import React, { JSX } from "react";
 
 export interface IconTooltipButtonProps {
@@ -17,7 +18,7 @@ export const IconTooltipButton = (props: React.ComponentProps<typeof Button> & I
     return (
         <Tooltip text={props.tooltipText}>
             {tooltipProps => <Button
-                size={Button.Sizes.MIN}
+                size="min"
                 {...props as any}
                 style={{ aspectRatio: 1, maxHeight: "32px", boxSizing: "border-box", ...props.style }}
             >

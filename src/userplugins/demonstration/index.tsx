@@ -9,7 +9,10 @@ import { classNameFactory } from "@api/Styles";
 import { Devs, EquicordDevs } from "@utils/constants";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, Switch, Text } from "@webpack/common";
+import { Button } from "@components/Button";
+import { FormSwitch } from "@components/FormSwitch";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
 
 // definitely not stolen from glide :P
 async function injectCSS() {
@@ -62,12 +65,10 @@ const settings = definePluginSettings({
 function ToggleModal() {
     const value = !settings.use(["showConfirmationModal"]).showConfirmationModal;
     return (
-        <Switch
-            note="You can re-enable this setting later"
+        <FormSwitch
+            description="You can re-enable this setting later"
             value={value}
-            onChange={v => { settings.store.showConfirmationModal = !v; }}>
-            Disable modal?
-        </Switch>
+            onChange={v => { settings.store.showConfirmationModal = !v; }} title="Disable modal?" />
     );
 }
 
@@ -84,14 +85,14 @@ function handleToggle() {
             const key = openModal(props => (
                 <ModalRoot {...props}>
                     <ModalHeader className={cl("header")}>
-                        <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }} >Demonstration</Text>
+                        <Text size="xl" weight="semibold" style={{ flexGrow: 1 }} >Demonstration</Text>
                         <ModalCloseButton onClick={() => closeModal(key)}></ModalCloseButton>
                     </ModalHeader>
                     <ModalContent className={cl("content")}>
-                        <Forms.FormText>
+                        <Paragraph>
                             This will censor all text! To disable this, remember the shortcut:
-                        </Forms.FormText>
-                        <Text variant="heading-xl/bold" style={{ textAlign: "center", width: "100%", paddingTop: "20px", paddingBottom: "20px" }}>
+                        </Paragraph>
+                        <Text size="xxl" weight="bold" style={{ textAlign: "center", width: "100%", paddingTop: "20px", paddingBottom: "20px" }}>
                             {settings.store.keyBind}
                         </Text>
                         <ToggleModal />

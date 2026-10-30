@@ -8,7 +8,11 @@ import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
-import { Button, Forms, IconUtils, showToast, Text, TextInput, UserStore, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { IconUtils, showToast, TextInput, UserStore, useState } from "@webpack/common";
 
 import { clearTarget, getCachedTarget, loadTarget, logger, resolveTargetUserId, setEnabled, settings } from "./data";
 
@@ -74,15 +78,15 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Fake User Profile (Legacy)</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Fake User Profile (Legacy)</Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
             <ModalContent>
-                <Forms.FormText className={Margins.bottom8}>
+                <Paragraph className={Margins.bottom8}>
                     Pick a user by ID. Your client will visually treat you as them: avatar, banner, badges, bio, pronouns, decorations, activities, name. Messages you send can be replaced with a local fake from the target user.
-                </Forms.FormText>
+                </Paragraph>
 
-                <Forms.FormTitle>Target user ID</Forms.FormTitle>
+                <Heading>Target user ID</Heading>
                 <Flex style={{ alignItems: "center", gap: 8 }} className={Margins.bottom16}>
                     <div style={{ flexGrow: 1 }}>
                         <TextInput
@@ -107,9 +111,9 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
                             style={{ borderRadius: "50%" }}
                         />
                         <div>
-                            <Text variant="text-md/semibold">{target.user.globalName ?? target.user.username}</Text>
+                            <Text size="md" weight="semibold">{target.user.globalName ?? target.user.username}</Text>
                             <Text
-                                variant="text-sm/normal"
+                                size="sm" weight="normal"
                                 style={{
                                     opacity: 0.7,
                                     cursor: "pointer",
@@ -168,8 +172,8 @@ export function FakeUserProfileModal({ modalProps }: { modalProps: ModalProps; }
             </ModalContent>
             <ModalFooter>
                 <Flex style={{ gap: 8 }}>
-                    <Button color={Button.Colors.RED} onClick={clear} disabled={!target}>Clear</Button>
-                    <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Close</Button>
+                    <Button variant="dangerPrimary" onClick={clear} disabled={!target}>Clear</Button>
+                    <Button variant="secondary" onClick={modalProps.onClose}>Close</Button>
                 </Flex>
             </ModalFooter>
         </ModalRoot>

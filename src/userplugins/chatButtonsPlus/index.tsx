@@ -17,7 +17,8 @@ import { Devs } from "@utils/constants";
 import { getCurrentChannel, sendMessage } from "@utils/discord";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, React, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, TextInput } from "@webpack/common";
 
 type ButtonEntry = {
     id: string;
@@ -247,9 +248,8 @@ function ButtonEntries() {
                         />
                         <Button
                             onClick={() => removeButtonEntry(entry.id, update)}
-                            look={Button.Looks.FILLED}
-                            color={Button.Colors.RED}
-                            size={Button.Sizes.SMALL}
+                            variant="dangerPrimary"
+                            size="small"
                         >
                             Delete
                         </Button>
@@ -300,8 +300,7 @@ function ButtonEntries() {
                 <Button onClick={() => addButtonEntry(update)}>Add Button</Button>
                 <Button
                     onClick={() => resetAllButtons(update)}
-                    look={Button.Looks.FILLED}
-                    color={Button.Colors.RED}
+                    variant="dangerPrimary"
                 >
                     Reset All
                 </Button>

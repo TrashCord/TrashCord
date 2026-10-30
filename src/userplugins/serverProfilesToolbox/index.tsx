@@ -11,11 +11,11 @@ import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { Guild, GuildMember } from "@vencord/discord-types";
 import { findComponentByCodeLazy } from "@webpack";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
 import {
-    Button,
     FluxDispatcher,
     GuildMemberStore,
-    Text,
     showToast,
     UserProfileStore,
     UserStore
@@ -176,7 +176,7 @@ export default definePlugin({
 
             return <SummaryItem title="Server Profiles Toolbox" hideDivider={false} forcedDivider className="vc-server-profiles-toolbox">
             <div style={{ display: "flex", alignItems: "center", flexDirection: "column", gap: "5px" }}>
-                <Text variant="text-md/normal">
+                <Text size="md" weight="normal">
                     Use the following buttons to mange the currently selected server
                 </Text>
                 <div style={{ display: "flex", gap: "5px" }}>

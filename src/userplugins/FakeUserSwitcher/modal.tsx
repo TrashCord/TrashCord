@@ -11,7 +11,8 @@ import { FormSwitch } from "@components/FormSwitch";
 import { Span } from "@components/Span";
 import { fetchUserProfile } from "@utils/discord";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
-import { Button, GuildStore, React, Select, SelectedGuildStore, showToast, UserProfileStore, UserStore, UserUtils } from "@webpack/common";
+import { Button } from "@components/Button";
+import { GuildStore, React, Select, SelectedGuildStore, showToast, UserProfileStore, UserStore, UserUtils } from "@webpack/common";
 
 import { clearTarget, getCachedTarget, getSavedUsers, isActive, loadTarget, logger, notify, resolveTargetUserId, setEnabled, setSavedUsers, settings, subscribe } from "./data";
 
@@ -724,7 +725,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                         <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--header-primary, #ffffff)" }}>Fake User Switcher</span>
                         {active && <span style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: "var(--status-danger, #f23f43)", backgroundColor: "rgba(237,66,69,0.15)", padding: "2px 8px", borderRadius: "4px" }}>Active</span>}
                     </div>
-                    <Button color={Button.Colors.PRIMARY} size={Button.Sizes.NONE} style={{ padding: "4px 8px" }} onClick={() => modalProps.onClose()}>✕</Button>
+                    <Button variant="secondary" size="iconOnly" style={{ padding: "4px 8px" }} onClick={() => modalProps.onClose()}>✕</Button>
                 </div>
             </ModalHeader>
 
@@ -743,7 +744,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                 placeholder="Enter a Discord User ID"
                                 style={{ flex: 1, padding: "10px 14px", backgroundColor: "var(--background-tertiary)", border: `1px solid ${isIdInvalid ? "var(--status-danger)" : "var(--border-neutral-semi-weak, rgba(255, 255, 255, 0.15))"}`, borderRadius: "8px", color: "#dbdee1", fontSize: "14px", outline: "none", fontFamily: "var(--font-code, monospace)" }}
                             />
-                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.BRAND} disabled={loading || !inputId.trim() || isIdInvalid} onClick={doPreview}>{loading ? "..." : "Preview"}</Button>
+                            <Button size="medium" variant="primary" disabled={loading || !inputId.trim() || isIdInvalid} onClick={doPreview}>{loading ? "..." : "Preview"}</Button>
                         </div>
                         {isIdInvalid && <div style={{ color: "var(--status-danger)", fontSize: "12px", marginTop: "4px" }}>Invalid User ID format. Must be 17-20 digits.</div>}
                     </div>
@@ -844,16 +845,16 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
 
                                     <div style={{ display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 }}>
                                         {!(active && (activeManualUser || currentTargetId === displayUser.id)) ? (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.GREEN} disabled={loading} onClick={() => doActivate(displayUser.id)}>
+                                            <Button size="medium" variant="positive" disabled={loading} onClick={() => doActivate(displayUser.id)}>
                                                 {loading ? "..." : "Activate"}
                                             </Button>
                                         ) : (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.RED} onClick={doDeactivate}>
+                                            <Button size="medium" variant="dangerPrimary" onClick={doDeactivate}>
                                                 Deactivate
                                             </Button>
                                         )}
                                         {displayUser && displayUser.id !== "0" && !saved.find(s => s.id === displayUser.id) && (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.PRIMARY} onClick={() => {
+                                            <Button size="medium" variant="secondary" onClick={() => {
                                                 const list = getSavedUsers();
                                                 list.push({
                                                     id: displayUser.id,
@@ -1150,8 +1151,8 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                         <>
                                                             {!isCurrent && (
                                                                 <Button
-                                                                    size={Button.Sizes.SMALL}
-                                                                    color={Button.Colors.GREEN}
+                                                                    size="small"
+                                                                    variant="positive"
                                                                     disabled={loading}
                                                                     onClick={() => doActivate(s.id)}
                                                                 >
@@ -1160,23 +1161,23 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                             )}
                                                             {isCurrent && (
                                                                 <Button
-                                                                    size={Button.Sizes.SMALL}
-                                                                    color={Button.Colors.RED}
+                                                                    size="small"
+                                                                    variant="dangerPrimary"
                                                                     onClick={doDeactivate}
                                                                 >
                                                                     Stop
                                                                 </Button>
                                                             )}
                                                             <Button
-                                                                size={Button.Sizes.SMALL}
-                                                                color={Button.Colors.BRAND}
+                                                                size="small"
+                                                                variant="primary"
                                                                 onClick={() => doEditSaved(s)}
                                                             >
                                                                 Edit
                                                             </Button>
                                                             <Button
-                                                                size={Button.Sizes.SMALL}
-                                                                color={Button.Colors.PRIMARY}
+                                                                size="small"
+                                                                variant="secondary"
                                                                 onClick={() => doRemoveSaved(s.id)}
                                                             >
                                                                 ✕
@@ -1398,7 +1399,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                     </div>
 
                                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "12px" }}>
-                                        <Button size={Button.Sizes.MEDIUM} color={Button.Colors.PRIMARY} onClick={() => {
+                                        <Button size="medium" variant="secondary" onClick={() => {
                                             const name = settings.store.manualUsername || "FakeUser";
                                             const list = getSavedUsers();
                                             list.push({
@@ -1457,9 +1458,9 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                             showToast({ text: "Saved custom profile preset!", variant: "success" });
                                         }}>Save Identity</Button>
                                         {active && settings.store.manualMode ? (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.RED} onClick={() => { settings.store.manualMode = false; setEnabled(false); showToast({ text: "Manual spoof disabled.", variant: "success" }); forceUpdate(); }}>Deactivate</Button>
+                                            <Button size="medium" variant="dangerPrimary" onClick={() => { settings.store.manualMode = false; setEnabled(false); showToast({ text: "Manual spoof disabled.", variant: "success" }); forceUpdate(); }}>Deactivate</Button>
                                         ) : (
-                                            <Button size={Button.Sizes.MEDIUM} color={Button.Colors.GREEN} onClick={() => { settings.store.manualMode = true; setEnabled(true); showToast({ text: "Manual spoof activated.", variant: "success" }); forceUpdate(); }}>Activate Spoof</Button>
+                                            <Button size="medium" variant="positive" onClick={() => { settings.store.manualMode = true; setEnabled(true); showToast({ text: "Manual spoof activated.", variant: "success" }); forceUpdate(); }}>Activate Spoof</Button>
                                         )}
                                 </div>
                             </div>
@@ -1943,8 +1944,8 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                             )}
                                                         </div>
                                                         <Button
-                                                            size={Button.Sizes.NONE}
-                                                            color={Button.Colors.RED}
+                                                            size="iconOnly"
+                                                            variant="dangerPrimary"
                                                             style={{ padding: "4px 8px", fontSize: "12px" }}
                                                             onClick={() => {
                                                                 const filtered = list.filter((_, i) => i !== index);
@@ -2006,8 +2007,8 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                 title="Verified Connection"
                                             />
                                             <Button
-                                                size={Button.Sizes.MEDIUM}
-                                                color={Button.Colors.BRAND}
+                                                size="medium"
+                                                variant="primary"
                                                 disabled={!connName.trim()}
                                                 onClick={() => {
                                                     let currentList: any[] = [];
@@ -2235,8 +2236,8 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                             ].map(preset => (
                                                 <Button
                                                     key={preset.val}
-                                                    size={Button.Sizes.MIN}
-                                                    color={settings.store.fakeNitroMonths === preset.val ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                                                    size="min"
+                                                    variant={settings.store.fakeNitroMonths === preset.val ? "primary" : "secondary"}
                                                     onClick={() => {
                                                         settings.store.fakeNitroMonths = preset.val;
                                                         notify();
@@ -2262,8 +2263,8 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                                 style={{ width: "100%", padding: "10px", backgroundColor: "var(--background-tertiary)", border: "1px solid var(--border-neutral-semi-weak, rgba(255, 255, 255, 0.15))", borderRadius: "8px", color: "#dbdee1", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
                                             />
                                             <Button
-                                                size={Button.Sizes.MEDIUM}
-                                                color={Button.Colors.RED}
+                                                size="medium"
+                                                variant="dangerPrimary"
                                                 disabled={settings.store.fakeNitroMonths === 0}
                                                 onClick={() => {
                                                     settings.store.fakeNitroMonths = 0;
@@ -2429,7 +2430,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
 
             {/* @ts-ignore */}
             <ModalFooter style={{ padding: "16px 20px" }}>
-                <Button color={Button.Colors.PRIMARY} onClick={() => modalProps.onClose()}>Close</Button>
+                <Button variant="secondary" onClick={() => modalProps.onClose()}>Close</Button>
             </ModalFooter>
         </ModalRoot>
     );

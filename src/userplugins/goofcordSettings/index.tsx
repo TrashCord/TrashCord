@@ -9,7 +9,7 @@ import { disableStyle, enableStyle, setStyleClassNames } from "@api/Styles";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findCssClassesLazy } from "@webpack";
-import { Forms } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
 
 import style from "./style.css?managed";
 
@@ -37,9 +37,9 @@ export default definePlugin({
     enabledByDefault: false,
     settings,
     settingsAboutComponent: () => (
-        <Forms.FormText>
+        <Paragraph>
             GoofCord ships rendering optimizations and keybinds enabled by default, so this plugin mirrors those defaults. GoofCord's other fixes live outside the renderer: Chromium performance flags, GPU/VA-API switches, firewall, encryption and UA spoofing. Those cannot run from an injected plugin and are already ported separately by TestcordOptimizer and GoofcordSecurity.
-        </Forms.FormText>
+        </Paragraph>
     ),
 
     patches: [

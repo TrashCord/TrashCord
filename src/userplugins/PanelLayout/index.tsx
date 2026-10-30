@@ -15,7 +15,8 @@ import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
-import { Button, React, Select, Slider } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, Select, Slider } from "@webpack/common";
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 

@@ -6,7 +6,8 @@
 
 import { copyWithToast } from "@utils/discord";
 import { Guild } from "@vencord/discord-types";
-import { EmojiStore, Forms, React, Text, useMemo } from "@webpack/common";
+import { Text } from "@components/Text";
+import { EmojiStore, React, useMemo } from "@webpack/common";
 
 export function EmojisTab({ guild }: { guild: Guild; }) {
     const emojis = useMemo(() => {
@@ -35,17 +36,17 @@ export function EmojisTab({ guild }: { guild: Guild; }) {
 
     return (
         <div className="gt-emojis">
-            <Forms.FormSection title={`Static Emojis (${stat.length})`}>
+            <section title={`Static Emojis (${stat.length})`}>
                 <div className="gt-emoji-grid">{stat.map(renderEmoji)}</div>
-            </Forms.FormSection>
+            </section>
 
-            <Forms.FormSection title={`Animated Emojis (${animated.length})`}>
+            <section title={`Animated Emojis (${animated.length})`}>
                 <div className="gt-emoji-grid">{animated.map(renderEmoji)}</div>
-            </Forms.FormSection>
+            </section>
 
-            <Forms.FormSection title={`Stickers (${stickers.length})`}>
+            <section title={`Stickers (${stickers.length})`}>
                 {stickers.length === 0 ? (
-                    <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>No stickers</Text>
+                    <Text size="sm" weight="normal" style={{ color: "var(--text-muted)" }}>No stickers</Text>
                 ) : (
                     <div className="gt-sticker-grid">
                         {stickers.map((s: any) => (
@@ -56,7 +57,7 @@ export function EmojisTab({ guild }: { guild: Guild; }) {
                         ))}
                     </div>
                 )}
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

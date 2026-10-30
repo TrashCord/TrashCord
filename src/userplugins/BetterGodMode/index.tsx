@@ -10,7 +10,8 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { Devs, EquicordDevs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { Guild } from "@vencord/discord-types";
-import { Forms, GuildStore, Menu, PermissionStore, React } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
+import { GuildStore, Menu, PermissionStore, React } from "@webpack/common";
 
 // Constants for Permission bitmasks
 const ADMINISTRATOR_PERMISSION = 8n;
@@ -73,9 +74,9 @@ export default definePlugin({
     tags: ["Utility", "Privacy", "Servers"],
     enabledByDefault: false,
     settingsAboutComponent: () => (
-        <Forms.FormText className="plugin-warning">
+        <Paragraph className="plugin-warning">
             Usage of this plugin might get detected by Discord. Use this plugin at your own risk!
-        </Forms.FormText>
+        </Paragraph>
     ),
 
     start: () => {

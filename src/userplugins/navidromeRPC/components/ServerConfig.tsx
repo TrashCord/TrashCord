@@ -5,7 +5,8 @@
  */
 
 import { relaunch } from "@utils/native";
-import { Alerts, Button, showToast } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Alerts, showToast } from "@webpack/common";
 
 import { settings } from "..";
 import { checkCSP, cl, navidromePassword } from "../utils/constants";
@@ -75,6 +76,6 @@ export function ServerConfig() {
                     }
                 });
             }
-        }} color={reactiveSettings.isLoggedIn ? Button.Colors.RED : Button.Colors.BRAND}>Sign {reactiveSettings.isLoggedIn ? "out" : "in"}</Button>
+        }} variant={reactiveSettings.isLoggedIn ? "dangerPrimary" : "primary"}>Sign {reactiveSettings.isLoggedIn ? "out" : "in"}</Button>
     </SettingsSection >;
 }

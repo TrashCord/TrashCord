@@ -10,7 +10,9 @@ import { Flex } from "@components/Flex";
 import { DeleteIcon } from "@components/Icons";
 import { useForceUpdater } from "@utils/react";
 import { OptionType } from "@utils/types";
-import { Button, Forms, React, TextInput, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { React, TextInput, useState } from "@webpack/common";
 
 import { DATASTORE_KEY, userWhitelist } from ".";
 
@@ -69,7 +71,7 @@ function WhitelistedUsersComponent(props: { update: () => void; }) {
 
     return (
         <>
-            <Forms.FormTitle tag="h4">Users to get whitelisted</Forms.FormTitle>
+            <Heading tag="h4">Users to get whitelisted</Heading>
             <Flex flexDirection="column" style={{ gap: "0.5em" }}>
                 {
                     userWhitelist.map((user, index) =>
@@ -83,7 +85,7 @@ function WhitelistedUsersComponent(props: { update: () => void; }) {
                                 />
 
                                 <Button
-                                    size={Button.Sizes.MIN}
+                                    size="min"
                                     onClick={() => onClickRemove(index)}
                                     style={{
                                         background: "none",

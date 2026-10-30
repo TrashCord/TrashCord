@@ -8,7 +8,8 @@ import { EquicordDevs } from "@utils/constants";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findByProps } from "@webpack";
-import { Forms, React, useState } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { React, useState } from "@webpack/common";
 
 // Identical to TokenImporter — same login logic
 function switchToAccount(token: string) {
@@ -48,15 +49,15 @@ function LoginWithTokenModal({ rootProps }: { rootProps: any; }) {
     return (
         <ModalRoot {...rootProps} size="small">
             <ModalHeader separator={false}>
-                <Forms.FormTitle tag="h4" style={{ margin: 0, color: "#ffffff" }}>
+                <Heading tag="h4" style={{ margin: 0, color: "#ffffff" }}>
                     Login with token
-                </Forms.FormTitle>
+                </Heading>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
             <ModalContent style={{ padding: "16px" }}>
-                <Forms.FormTitle tag="h5" style={{ marginBottom: 8, color: "rgba(255,255,255,0.6)", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                <Heading tag="h5" style={{ marginBottom: 8, color: "rgba(255,255,255,0.6)", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>
                     Discord Token
-                </Forms.FormTitle>
+                </Heading>
                 <input
                     type="password"
                     autoFocus

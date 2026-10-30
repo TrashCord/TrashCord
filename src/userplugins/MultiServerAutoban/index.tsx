@@ -10,7 +10,10 @@ import { Devs } from "@utils/constants";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { Button, ChannelStore, FluxDispatcher, Forms, GuildChannelStore, GuildStore, Menu, React, RestAPI, showToast, TextInput, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { ChannelStore, FluxDispatcher, GuildChannelStore, GuildStore, Menu, React, RestAPI, showToast, TextInput, UserStore } from "@webpack/common";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const sessionStore = findByPropsLazy("getSessionId");
@@ -46,14 +49,14 @@ function SettingsModal(props: ModalProps) {
     return (
         <ModalRoot {...props} size={ModalSize.LARGE}>
             <ModalHeader>
-                <Forms.FormTitle tag="h2">Multi-Server Auto-Ban Settings</Forms.FormTitle>
+                <Heading tag="h2">Multi-Server Auto-Ban Settings</Heading>
             </ModalHeader>
             <ModalContent>
                 <ServerConfigManager />
             </ModalContent>
             <ModalFooter>
                 <Button
-                    color={Button.Colors.BRAND}
+                    variant="primary"
                     onClick={props.onClose}
                 >
                     Close
@@ -430,13 +433,13 @@ function ServerConfigManager() {
             borderRadius: "8px",
             margin: "8px 0"
         }}>
-            <Forms.FormTitle style={{ marginBottom: "16px", fontSize: "18px" }}>
+            <Heading style={{ marginBottom: "16px", fontSize: "18px" }}>
                 dot's Multi-Server Auto-Ban Configuration
-            </Forms.FormTitle>
+            </Heading>
 
-            <Forms.FormText style={{ marginBottom: "20px", color: "var(--text-muted)" }}>
+            <Paragraph style={{ marginBottom: "20px", color: "var(--text-muted)" }}>
                 Configure servers where banned users should be automatically voice banned when they join voice channels.
-            </Forms.FormText>
+            </Paragraph>
 
             {/* Add New Server Section */}
             <div style={{
@@ -445,16 +448,16 @@ function ServerConfigManager() {
                 borderRadius: "6px",
                 marginBottom: "20px"
             }}>
-                <Forms.FormTitle style={{ marginBottom: "12px", fontSize: "16px" }}>
+                <Heading style={{ marginBottom: "12px", fontSize: "16px" }}>
                     Add New Server
-                </Forms.FormTitle>
+                </Heading>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                     {/* Server dropdown */}
                     <div>
-                        <Forms.FormText style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600" }}>
+                        <Paragraph style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600" }}>
                             Select Server *
-                        </Forms.FormText>
+                        </Paragraph>
                         <select
                             value={selectedGuildId}
                             onChange={e => {
@@ -485,17 +488,17 @@ function ServerConfigManager() {
                             ))}
                         </select>
                         {availableServers.length === 0 && (
-                            <Forms.FormText style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                            <Paragraph style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
                                 No servers found. Make sure you're logged into Discord.
-                            </Forms.FormText>
+                            </Paragraph>
                         )}
                     </div>
 
                     {/* Channel dropdown */}
                     <div>
-                        <Forms.FormText style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600" }}>
+                        <Paragraph style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600" }}>
                             Select Command Channel *
-                        </Forms.FormText>
+                        </Paragraph>
                         <select
                             value={selectedChannelId}
                             onChange={e => setSelectedChannelId(e.target.value)}
@@ -523,42 +526,42 @@ function ServerConfigManager() {
                             ))}
                         </select>
                         {selectedGuildId && availableChannels.length === 0 && !loadingChannels && (
-                            <Forms.FormText style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                            <Paragraph style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
                                 No text channels found or no permission to view channels.
-                            </Forms.FormText>
+                            </Paragraph>
                         )}
                     </div>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginBottom: "12px" }}>
                     <div>
-                        <Forms.FormText style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600" }}>
+                        <Paragraph style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600" }}>
                             Ban Command
-                        </Forms.FormText>
+                        </Paragraph>
                         <TextInput
                             placeholder="!voice-ban"
                             value={newCommand}
                             onChange={setNewCommand}
                             style={{ width: "100%" }}
                         />
-                        <Forms.FormText style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                        <Paragraph style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
                             The command that will be sent to ban users (e.g., !voice-ban, /ban, !tempban)
-                        </Forms.FormText>
+                        </Paragraph>
                     </div>
                 </div>
 
                 <div style={{ marginBottom: "12px" }}>
-                    <Forms.FormText style={{
+                    <Paragraph style={{
                         fontSize: "12px",
                         color: "var(--text-muted)",
                         fontStyle: "italic"
                     }}>
                         Note: Permission requirements are disabled - auto-ban will work regardless of your permissions
-                    </Forms.FormText>
+                    </Paragraph>
                 </div>
 
                 <Button
-                    color={Button.Colors.BRAND}
+                    variant="primary"
                     onClick={addNewConfig}
                     disabled={!selectedGuildId || !selectedChannelId}
                     style={{ marginTop: "8px" }}
@@ -569,9 +572,9 @@ function ServerConfigManager() {
 
             {/* Current Servers Section */}
             <div>
-                <Forms.FormTitle style={{ marginBottom: "12px", fontSize: "16px" }}>
+                <Heading style={{ marginBottom: "12px", fontSize: "16px" }}>
                     Configured Servers ({configs.length})
-                </Forms.FormTitle>
+                </Heading>
 
                 {configs.length === 0 ? (
                     <div style={{
@@ -581,9 +584,9 @@ function ServerConfigManager() {
                         borderRadius: "6px",
                         border: "2px dashed var(--background-modifier-accent)"
                     }}>
-                        <Forms.FormText style={{ color: "var(--text-muted)" }}>
+                        <Paragraph style={{ color: "var(--text-muted)" }}>
                             No servers configured yet. Add your first server above.
-                        </Forms.FormText>
+                        </Paragraph>
                     </div>
                 ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -598,10 +601,10 @@ function ServerConfigManager() {
                             }}>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
-                                        <Forms.FormText style={{ fontWeight: "600", fontSize: "14px" }}>
+                                        <Paragraph style={{ fontWeight: "600", fontSize: "14px" }}>
                                             {getGuildName(config.serverId)}
-                                        </Forms.FormText>
-                                        <Forms.FormText style={{
+                                        </Paragraph>
+                                        <Paragraph style={{
                                             fontSize: "12px",
                                             color: "var(--text-muted)",
                                             backgroundColor: "var(--background-secondary)",
@@ -609,25 +612,25 @@ function ServerConfigManager() {
                                             borderRadius: "3px"
                                         }}>
                                             {config.serverId}
-                                        </Forms.FormText>
+                                        </Paragraph>
                                     </div>
 
                                     <div style={{ display: "flex", gap: "16px" }}>
-                                        <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                                        <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                                             Channel: {getChannelName(config.channelId)}
-                                        </Forms.FormText>
-                                        <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                                        </Paragraph>
+                                        <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                                             Command: {config.voiceCommand}
-                                        </Forms.FormText>
-                                        <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                                        </Paragraph>
+                                        <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                                             Permissions: Disabled (always execute)
-                                        </Forms.FormText>
+                                        </Paragraph>
                                     </div>
                                 </div>
 
                                 <Button
-                                    color={Button.Colors.RED}
-                                    size={Button.Sizes.SMALL}
+                                    variant="dangerPrimary"
+                                    size="small"
                                     onClick={() => removeConfig(index)}
                                 >
                                     Remove
@@ -645,7 +648,7 @@ function ServerConfigManager() {
                 backgroundColor: "var(--background-modifier-accent)",
                 borderRadius: "6px"
             }}>
-                <Forms.FormText style={{ fontSize: "12px", lineHeight: "1.4" }}>
+                <Paragraph style={{ fontSize: "12px", lineHeight: "1.4" }}>
                     <strong>How to use:</strong><br />
                     1. Select a server from the dropdown<br />
                     2. Select a text channel where ban commands should be sent<br />
@@ -653,7 +656,7 @@ function ServerConfigManager() {
                     4. Right-click any user and click "Multi-Server Auto-Ban" to toggle them on the ban list<br />
                     5. When a banned user joins a voice channel you're in, they'll be automatically banned<br />
                     6. Permission checks are disabled - auto-bans will execute regardless of your Discord permissions
-                </Forms.FormText>
+                </Paragraph>
             </div>
         </div>
     );

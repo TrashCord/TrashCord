@@ -9,9 +9,12 @@
 
 import { classNameFactory } from "@api/Styles";
 import { Button } from "@components/Button";
-import { FormSwitchCompat } from "@components/FormSwitch";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { FormSwitch } from "@components/FormSwitch";
 import { ModalCloseButton, ModalContent, ModalHeader, type ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { Forms, GuildStore, ScrollerThin, Text, useState } from "@webpack/common";
+import { GuildStore, ScrollerThin, useState } from "@webpack/common";
 
 import { getUserConfig, persistUserConfig } from "../store";
 import { UserStalkerConfig } from "../types";
@@ -37,13 +40,10 @@ function SettingRowWithNotification({
     return (
         <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
             <div style={{ flex: 1 }}>
-                <FormSwitchCompat
+                <FormSwitch
                     value={logValue}
                     onChange={onLogChange}
-                    note={note}
-                >
-                    {label}
-                </FormSwitchCompat>
+                    description={note} title={<>{label}</>} />
             </div>
             <BellIcon enabled={notifyValue} onClick={() => onNotifyChange(!notifyValue)} />
         </div>
@@ -77,13 +77,13 @@ function ServerSelectorModal({ modalProps, currentList, onUpdate }: { modalProps
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM} className={cl("root") + " firestoker-modal-root"}>
             <ModalHeader className={cl("head")}>
-                <Text variant="heading-lg/semibold">Select Servers</Text>
+                <Text size="xl" weight="semibold">Select Servers</Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
             <ModalContent className={cl("contents") + " firestoker-modal-contents"} style={{ padding: "16px" }}>
-                <Forms.FormText style={{ marginBottom: "8px" }}>
+                <Paragraph style={{ marginBottom: "8px" }}>
                     Select which servers to include. You have {selectedServers.size} server(s) selected.
-                </Forms.FormText>
+                </Paragraph>
 
                 <input
                     type="text"
@@ -96,7 +96,7 @@ function ServerSelectorModal({ modalProps, currentList, onUpdate }: { modalProps
                 <ScrollerThin style={{ maxHeight: "400px", marginBottom: "16px" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                         {filteredGuilds.length === 0 ? (
-                            <Text variant="text-md/normal" color="text-muted" style={{ fontStyle: "italic", padding: "8px" }}>
+                            <Text size="md" weight="normal" color="text-muted" style={{ fontStyle: "italic", padding: "8px" }}>
                                 No servers found
                             </Text>
                         ) : (
@@ -133,7 +133,7 @@ function ServerSelectorModal({ modalProps, currentList, onUpdate }: { modalProps
                                             />
                                         )}
                                         <Text
-                                            variant="text-md/normal"
+                                            size="md" weight="normal"
                                             className="firestoker-server-item-name"
                                             style={{ flex: 1, fontWeight: isSelected ? "600" : "normal" }}
                                         >
@@ -193,17 +193,17 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM} className={cl("root") + " firestoker-modal-root"}>
             <ModalHeader className={cl("head")}>
-                <Text variant="heading-lg/semibold">
+                <Text size="xl" weight="semibold">
                     Stalker Settings for {user?.username ?? "User"}
                 </Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
             <ModalContent className={cl("contents") + " firestoker-modal-contents"} style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div>
-                    <Forms.FormTitle tag="h3">Logging & Notifications</Forms.FormTitle>
-                    <Forms.FormText style={{ marginBottom: "8px", opacity: 0.8 }}>
+                    <Heading tag="h3">Logging & Notifications</Heading>
+                    <Paragraph style={{ marginBottom: "8px", opacity: 0.8 }}>
                         Control which events are logged and whether they trigger notifications.
-                    </Forms.FormText>
+                    </Paragraph>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <div style={{ backgroundColor: "var(--background-secondary-alt)", borderRadius: "8px", padding: "12px", border: "1px solid var(--background-modifier-accent)" }}>
                             <SettingRowWithNotification
@@ -225,7 +225,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                     gridTemplateColumns: "repeat(2, 1fr)",
                                     gap: "6px"
                                 }}>
-                                    <Text variant="text-sm/semibold" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
+                                    <Text size="sm" weight="semibold" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
                                         Notify on status:
                                     </Text>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -235,7 +235,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyOnline", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyOnline", !(config.notifyOnline !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyOnline", !(config.notifyOnline !== false))}>
                                             🟢 Online
                                         </Text>
                                     </div>
@@ -246,7 +246,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyOffline", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyOffline", !(config.notifyOffline !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyOffline", !(config.notifyOffline !== false))}>
                                             ⚫ Offline
                                         </Text>
                                     </div>
@@ -257,7 +257,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyIdle", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyIdle", !(config.notifyIdle !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyIdle", !(config.notifyIdle !== false))}>
                                             🟡 Idle
                                         </Text>
                                     </div>
@@ -268,7 +268,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyDnd", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyDnd", !(config.notifyDnd !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyDnd", !(config.notifyDnd !== false))}>
                                             🔴 Do Not Disturb
                                         </Text>
                                     </div>
@@ -296,7 +296,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                     gridTemplateColumns: "repeat(2, 1fr)",
                                     gap: "6px"
                                 }}>
-                                    <Text variant="text-sm/semibold" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
+                                    <Text size="sm" weight="semibold" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
                                         Notify on changes:
                                     </Text>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -306,7 +306,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyUsername", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyUsername", !(config.notifyUsername !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyUsername", !(config.notifyUsername !== false))}>
                                             Username
                                         </Text>
                                     </div>
@@ -317,7 +317,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyAvatar", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyAvatar", !(config.notifyAvatar !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyAvatar", !(config.notifyAvatar !== false))}>
                                             Avatar
                                         </Text>
                                     </div>
@@ -328,7 +328,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyBanner", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyBanner", !(config.notifyBanner !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyBanner", !(config.notifyBanner !== false))}>
                                             Banner
                                         </Text>
                                     </div>
@@ -339,7 +339,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyBio", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyBio", !(config.notifyBio !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyBio", !(config.notifyBio !== false))}>
                                             Bio/About Me
                                         </Text>
                                     </div>
@@ -350,7 +350,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyPronouns", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyPronouns", !(config.notifyPronouns !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyPronouns", !(config.notifyPronouns !== false))}>
                                             Pronouns
                                         </Text>
                                     </div>
@@ -361,7 +361,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             onChange={e => updateConfig("notifyGlobalName", e.target.checked)}
                                             style={{ cursor: "pointer" }}
                                         />
-                                        <Text variant="text-sm/normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyGlobalName", !(config.notifyGlobalName !== false))}>
+                                        <Text size="sm" weight="normal" style={{ cursor: "pointer" }} onClick={() => updateConfig("notifyGlobalName", !(config.notifyGlobalName !== false))}>
                                             Display Name
                                         </Text>
                                     </div>
@@ -381,9 +381,9 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
 
                             {(config.logMessages || config.notifyMessages) && (
                                 <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--background-modifier-accent)" }}>
-                                    <Forms.FormText style={{ fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>
+                                    <Paragraph style={{ fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>
                                         Server Filtering
-                                    </Forms.FormText>
+                                    </Paragraph>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px" }}>
                                         <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
                                             <input
@@ -391,7 +391,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                                 checked={config.serverFilterMode === "all"}
                                                 onChange={() => updateConfig("serverFilterMode", "all")}
                                             />
-                                            <Text variant="text-sm/normal">All servers</Text>
+                                            <Text size="sm" weight="normal">All servers</Text>
                                         </label>
                                         <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
                                             <input
@@ -399,7 +399,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                                 checked={config.serverFilterMode === "whitelist"}
                                                 onChange={() => updateConfig("serverFilterMode", "whitelist")}
                                             />
-                                            <Text variant="text-sm/normal">Only specific servers (whitelist)</Text>
+                                            <Text size="sm" weight="normal">Only specific servers (whitelist)</Text>
                                         </label>
                                         <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
                                             <input
@@ -407,14 +407,14 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                                 checked={config.serverFilterMode === "blacklist"}
                                                 onChange={() => updateConfig("serverFilterMode", "blacklist")}
                                             />
-                                            <Text variant="text-sm/normal">All except specific servers (blacklist)</Text>
+                                            <Text size="sm" weight="normal">All except specific servers (blacklist)</Text>
                                         </label>
                                     </div>
 
                                     {config.serverFilterMode !== "all" && (
                                         <div style={{ marginTop: "8px" }}>
                                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                                                <Text variant="text-sm/bold">
+                                                <Text size="sm" weight="bold">
                                                     {config.serverFilterMode === "whitelist" ? "Whitelisted Servers" : "Blacklisted Servers"}
                                                 </Text>
                                                 <Button size="small" onClick={openServerSelector}>
@@ -423,7 +423,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             </div>
 
                                             {(config.serverList || []).length === 0 ? (
-                                                <Text variant="text-sm/normal" color="text-muted" style={{ fontStyle: "italic" }}>
+                                                <Text size="sm" weight="normal" color="text-muted" style={{ fontStyle: "italic" }}>
                                                     No servers selected yet.
                                                 </Text>
                                             ) : (
@@ -440,7 +440,7 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                                                             style={{ width: "20px", height: "20px", borderRadius: "50%" }}
                                                                         />
                                                                     )}
-                                                                    <Text variant="text-sm/normal">{guild?.name ?? serverId}</Text>
+                                                                    <Text size="sm" weight="normal">{guild?.name ?? serverId}</Text>
                                                                 </div>
                                                                 <Button size="small" variant="dangerPrimary" onClick={() => removeServer(serverId)}>
                                                                     Remove
@@ -459,26 +459,23 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                 </div>
 
                 <div style={{ borderTop: "1px solid var(--background-modifier-accent)", paddingTop: "12px" }}>
-                    <Forms.FormTitle tag="h3">Typing Notifications</Forms.FormTitle>
-                    <Forms.FormText style={{ marginBottom: "8px", opacity: 0.8 }}>
+                    <Heading tag="h3">Typing Notifications</Heading>
+                    <Paragraph style={{ marginBottom: "8px", opacity: 0.8 }}>
                         Get instant notifications when this user starts typing.
-                    </Forms.FormText>
+                    </Paragraph>
 
                     <div style={{ backgroundColor: "var(--background-secondary-alt)", borderRadius: "8px", padding: "12px", border: "1px solid var(--background-modifier-accent)" }}>
-                        <FormSwitchCompat
+                        <FormSwitch
                             value={config.notifyTyping}
                             onChange={value => updateConfig("notifyTyping", value)}
-                            note="Show instant notification when user starts typing"
-                        >
-                            Notify on Typing
-                        </FormSwitchCompat>
+                            description="Show instant notification when user starts typing" title="Notify on Typing" />
 
                         {config.notifyTyping && (
                             <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--background-modifier-accent)" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                                    <Forms.FormText style={{ fontSize: "12px", fontWeight: "600", margin: 0 }}>
+                                    <Paragraph style={{ fontSize: "12px", fontWeight: "600", margin: 0 }}>
                                         Conversation Window:
-                                    </Forms.FormText>
+                                    </Paragraph>
                                     <input
                                         type="number"
                                         min="0"
@@ -496,13 +493,13 @@ export function UserStalkerSettingsModal({ modalProps, userId, userStore }: { mo
                                             fontSize: "13px"
                                         }}
                                     />
-                                    <Forms.FormText style={{ fontSize: "12px", margin: 0 }}>
+                                    <Paragraph style={{ fontSize: "12px", margin: 0 }}>
                                         minutes
-                                    </Forms.FormText>
+                                    </Paragraph>
                                 </div>
-                                <Forms.FormText style={{ fontSize: "11px", opacity: 0.6, marginTop: "4px" }}>
+                                <Paragraph style={{ fontSize: "11px", opacity: 0.6, marginTop: "4px" }}>
                                     Skip typing notifications if you've recently messaged this user
-                                </Forms.FormText>
+                                </Paragraph>
                             </div>
                         )}
                     </div>

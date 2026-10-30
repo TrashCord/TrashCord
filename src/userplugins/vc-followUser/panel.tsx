@@ -8,9 +8,9 @@ import { UserAreaButton, UserAreaButtonFactory, UserAreaRenderProps } from "@api
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Margins } from "@utils/margins";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal, RenderModalProps } from "@utils/modal";
+import { Button } from "@components/Button";
 import {
     Avatar,
-    Button,
     ChannelStore,
     GuildStore,
     React,
@@ -152,11 +152,11 @@ function FollowUserModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                 </div>
                                 <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
                                     {followedChannel && (
-                                        <Button size={Button.Sizes.MEDIUM} color={Button.Colors.GREEN} onClick={() => doJoin(followedChannel.id)}>
+                                        <Button size="medium" variant="positive" onClick={() => doJoin(followedChannel.id)}>
                                             Join
                                         </Button>
                                     )}
-                                    <Button size={Button.Sizes.MEDIUM} color={Button.Colors.RED} onClick={doUnfollow}>
+                                    <Button size="medium" variant="dangerPrimary" onClick={doUnfollow}>
                                         Unfollow
                                     </Button>
                                 </div>
@@ -205,15 +205,15 @@ function FollowUserModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                                 </div>
                                             </div>
                                             <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                                                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => doJoin(friend.channelId)}>
+                                                <Button size="small" variant="primary" onClick={() => doJoin(friend.channelId)}>
                                                     Join
                                                 </Button>
                                                 {isFollowingThis ? (
-                                                    <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={doUnfollow}>
+                                                    <Button size="small" variant="dangerPrimary" onClick={doUnfollow}>
                                                         Unfollow
                                                     </Button>
                                                 ) : (
-                                                    <Button size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => doFollow(friend.userId)}>
+                                                    <Button size="small" variant="positive" onClick={() => doFollow(friend.userId)}>
                                                         Follow
                                                     </Button>
                                                 )}
@@ -274,7 +274,7 @@ function FollowUserModal({ modalProps }: { modalProps: RenderModalProps; }) {
             </ModalContent>
 
             <ModalFooter className={Margins.top8}>
-                <Button color={Button.Colors.PRIMARY} onClick={() => modalProps.onClose()}>
+                <Button variant="secondary" onClick={() => modalProps.onClose()}>
                     Close
                 </Button>
             </ModalFooter>

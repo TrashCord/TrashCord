@@ -13,7 +13,9 @@ import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModa
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
-import { Button, Forms, React, RestAPI, TextInput, showToast, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { React, RestAPI, TextInput, showToast, UserStore } from "@webpack/common";
 
 const SK = "RS_v1";
 const AR_SK = "AvatarRotator_v6";
@@ -1505,7 +1507,7 @@ const settings = definePluginSettings({
         type: OptionType.COMPONENT, description: "",
         component: () => (
             <div style={{ marginTop: 4 }}>
-                <Button color={Button.Colors.BRAND} onClick={() => openModal(props => <RotatorSuiteModal modalProps={props} />)}>
+                <Button variant="primary" onClick={() => openModal(props => <RotatorSuiteModal modalProps={props} />)}>
                     Open Rotator Suite Panel
                 </Button>
                 <div style={{ fontSize: 11, color: "#9e9e9e", marginTop: 6, lineHeight: 1.5 }}>
@@ -2593,7 +2595,7 @@ function StatusTab({ forceUpdate }: { forceUpdate: () => void }) {
             <div className="rs-add-preset-row">
                 <TextInput value={newPresetName} onChange={setNewPresetName} placeholder="New preset name..."
                     onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") addPreset(); }} />
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={addPreset} className="rs-btn-sm">+ Preset</Button>
+                <Button size="small" variant="primary" onClick={addPreset} className="rs-btn-sm">+ Preset</Button>
             </div>
 
 
@@ -2901,7 +2903,7 @@ function ClanTab({ forceUpdate }: { forceUpdate: () => void }) {
                     <div className="rs-row" style={{ marginTop: 6 }}>
                         <TextInput value={input} onChange={setInput} placeholder="Server ID (17-20 digits)..."
                             onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") add(); }} />
-                        <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={add} className="rs-btn-sm">Add</Button>
+                        <Button size="small" variant="primary" onClick={add} className="rs-btn-sm">Add</Button>
                     </div>
                 </>
             )}
@@ -3077,7 +3079,7 @@ function ProfileTab({ forceUpdate }: { forceUpdate: () => void }) {
                 <div className="rs-row" style={{ marginTop: 5 }}>
                     <TextInput value={gnDraft} onChange={(v: string) => setGnDraft(v.slice(0, 32))} placeholder="Add display name (max 32)..."
                         onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") addGn(); }} />
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={addGn} className="rs-btn-sm">Add</Button>
+                    <Button size="small" variant="primary" onClick={addGn} className="rs-btn-sm">Add</Button>
                     {globalNickEntries.length > 0 && <button className="rs-clearall" onClick={() => setConfirmGn(true)}>Clear</button>}
                 </div>
             </div>
@@ -3118,7 +3120,7 @@ function ProfileTab({ forceUpdate }: { forceUpdate: () => void }) {
                 <div className="rs-row" style={{ marginTop: 5 }}>
                     <TextInput value={prDraft} onChange={setPrDraft} placeholder="Add pronoun (e.g. he/him)..."
                         onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") addPronoun(); }} />
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={addPronoun} className="rs-btn-sm">Add</Button>
+                    <Button size="small" variant="primary" onClick={addPronoun} className="rs-btn-sm">Add</Button>
                     {prList.length > 0 && <button className="rs-clearall" onClick={() => setConfirmPr(true)}>Clear</button>}
                 </div>
             </div>
@@ -4335,7 +4337,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                     onKeyDown={(e: React.KeyboardEvent) => {
                         if (e.key === "Enter") { const v = (nickInputs.__g ?? "").trim(); if (v && !globalNicks.includes(v)) { globalNicks = [...globalNicks, v]; saveData(); setNickInputs(p => ({ ...p, __g: "" })); forceUpdate(); } }
                     }} />
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} className="rs-btn-sm" onClick={() => {
+                <Button size="small" variant="primary" className="rs-btn-sm" onClick={() => {
                     const v = (nickInputs.__g ?? "").trim();
                     if (v && !globalNicks.includes(v)) { globalNicks = [...globalNicks, v]; saveData(); setNickInputs(p => ({ ...p, __g: "" })); forceUpdate(); }
                 }}>Add</Button>
@@ -4379,7 +4381,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                     onKeyDown={(e: React.KeyboardEvent) => {
                         if (e.key === "Enter") { const v = (nickInputs.__gpr ?? "").trim(); if (v && !globalGuildPronouns.includes(v)) { globalGuildPronouns = [...globalGuildPronouns, v]; saveData(); setNickInputs(p => ({ ...p, __gpr: "" })); forceUpdate(); } }
                     }} />
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} className="rs-btn-sm" onClick={() => {
+                <Button size="small" variant="primary" className="rs-btn-sm" onClick={() => {
                     const v = (nickInputs.__gpr ?? "").trim();
                     if (v && !globalGuildPronouns.includes(v)) { globalGuildPronouns = [...globalGuildPronouns, v]; saveData(); setNickInputs(p => ({ ...p, __gpr: "" })); forceUpdate(); }
                 }}>Add</Button>
@@ -4494,7 +4496,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                                         🔊 {g.voiceActivated ? "VC-only" : "Always"}
                                     </button>
                                 )}
-                                <Button size={Button.Sizes.SMALL} color={g.enabled ? Button.Colors.GREEN : Button.Colors.GREY} className="rs-btn-sm"
+                                <Button size="small" variant={g.enabled ? "positive" : "secondary"} className="rs-btn-sm"
                                     onClick={() => toggleGuild(g)}>{g.enabled ? "ON" : "OFF"}</Button>
                                 {g.manual && <button className="rs-del-btn" onClick={() => removeGuild(g)}>&#10005;</button>}
                             </div>
@@ -4563,7 +4565,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                                             <TextInput value={nickInputs[g.id] ?? ""} onChange={(v: string) => setNickInputs(p => ({ ...p, [g.id]: v }))}
                                                 placeholder="Add a custom nick for this server..."
                                                 onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") addNick(g); }} />
-                                            <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => addNick(g)} className="rs-btn-sm">Add</Button>
+                                            <Button size="small" variant="primary" onClick={() => addNick(g)} className="rs-btn-sm">Add</Button>
                                             {g.nicks.length > 0 && <button className="rs-clearall" onClick={() => setConfirmClear(`nicks-${g.id}`)}>Clear</button>}
                                         </div>
                                     </>
@@ -4648,7 +4650,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                                             onKeyDown={(e: React.KeyboardEvent) => {
                                                 if (e.key === "Enter") { const v = (nickInputs[`__pr_${g.id}`] ?? "").trim(); if (v && !gPrList.includes(v)) { g.guildPronouns = [...gPrList, v]; saveData(); setNickInputs(p => ({ ...p, [`__pr_${g.id}`]: "" })); forceUpdate(); } }
                                             }} />
-                                        <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} className="rs-btn-sm" onClick={() => {
+                                        <Button size="small" variant="primary" className="rs-btn-sm" onClick={() => {
                                             const v = (nickInputs[`__pr_${g.id}`] ?? "").trim();
                                             if (v && !gPrList.includes(v)) { g.guildPronouns = [...gPrList, v]; saveData(); setNickInputs(p => ({ ...p, [`__pr_${g.id}`]: "" })); forceUpdate(); }
                                         }}>Add</Button>
@@ -4667,7 +4669,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                 <div style={{ display: "flex", gap: 6 }}>
                     <TextInput placeholder="Server ID (17-20 digits)" value={manualId} onChange={setManualId} style={{ flex: 1 }} />
                     <TextInput placeholder="Label (optional)" value={manualName} onChange={setManualName} style={{ flex: 1 }} />
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} className="rs-btn-sm" onClick={addManual}>Add</Button>
+                    <Button size="small" variant="primary" className="rs-btn-sm" onClick={addManual}>Add</Button>
                 </div>
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" as const, alignItems: "center" }}>
@@ -4677,7 +4679,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                         <button onClick={() => { enableAll(); setConfirmClear(null); }} style={{ padding: "1px 8px", borderRadius: 4, border: `1px solid ${ACT}44`, background: `${ACT}18`, color: ACT, cursor: "pointer", fontSize: 10, fontWeight: 800 }}>Yes</button>
                         <button onClick={() => setConfirmClear(null)} style={{ padding: "1px 8px", borderRadius: 4, border: "1px solid rgba(80,60,110,.4)", background: "rgba(15,5,35,.6)", color: "#9e9e9e", cursor: "pointer", fontSize: 10, fontWeight: 800 }}>No</button>
                       </div>
-                    : <Button color={Button.Colors.GREEN} onClick={() => setConfirmClear("__enableAll")} className="rs-btn-sm">Enable All</Button>
+                    : <Button variant="positive" onClick={() => setConfirmClear("__enableAll")} className="rs-btn-sm">Enable All</Button>
                 }
                 {confirmClear === "__disableAll"
                     ? <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 8px", borderRadius: 6, background: "rgba(120,120,120,.1)", border: "1px solid rgba(120,120,120,.3)" }}>
@@ -4685,7 +4687,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                         <button onClick={() => { disableAll(); setConfirmClear(null); }} style={{ padding: "1px 8px", borderRadius: 4, border: "1px solid #bdbdbd44", background: "#bdbdbd18", color: "#bdbdbd", cursor: "pointer", fontSize: 10, fontWeight: 800 }}>Yes</button>
                         <button onClick={() => setConfirmClear(null)} style={{ padding: "1px 8px", borderRadius: 4, border: "1px solid rgba(80,60,110,.4)", background: "rgba(15,5,35,.6)", color: "#9e9e9e", cursor: "pointer", fontSize: 10, fontWeight: 800 }}>No</button>
                       </div>
-                    : <Button color={Button.Colors.GREY} onClick={() => setConfirmClear("__disableAll")} className="rs-btn-sm">Disable All</Button>
+                    : <Button variant="secondary" onClick={() => setConfirmClear("__disableAll")} className="rs-btn-sm">Disable All</Button>
                 }
                 {confirmClear === "__resetNicks"
                     ? <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 8px", borderRadius: 6, background: "rgba(239,83,80,.1)", border: "1px solid rgba(239,83,80,.3)" }}>
@@ -4693,7 +4695,7 @@ function NicksTab({ forceUpdate }: { forceUpdate: () => void }) {
                         <button onClick={() => { resetAllNicks(); setConfirmClear(null); }} style={{ padding: "1px 8px", borderRadius: 4, border: `1px solid ${INACT}44`, background: `${INACT}18`, color: INACT, cursor: "pointer", fontSize: 10, fontWeight: 800 }}>Yes</button>
                         <button onClick={() => setConfirmClear(null)} style={{ padding: "1px 8px", borderRadius: 4, border: "1px solid rgba(80,60,110,.4)", background: "rgba(15,5,35,.6)", color: "#9e9e9e", cursor: "pointer", fontSize: 10, fontWeight: 800 }}>No</button>
                       </div>
-                    : <Button color={Button.Colors.RED} onClick={() => setConfirmClear("__resetNicks")} className="rs-btn-sm">Reset All Nicks</Button>
+                    : <Button variant="dangerPrimary" onClick={() => setConfirmClear("__resetNicks")} className="rs-btn-sm">Reset All Nicks</Button>
                 }
             </div>
             <div className="rs-hint" style={{ marginTop: 6 }}>
@@ -4783,7 +4785,7 @@ function StopAllPanel({ forceUpdate }: { forceUpdate: () => void }) {
                         ▶ Resume Now
                     </button>
                 )}
-                <Button color={Button.Colors.BRAND} onClick={() => { if (!isManualStop && !wasInvisible) { startAllRotators(); forceUpdate(); } }} className="rs-btn-sm"
+                <Button variant="primary" onClick={() => { if (!isManualStop && !wasInvisible) { startAllRotators(); forceUpdate(); } }} className="rs-btn-sm"
                     style={{ opacity: (isManualStop || wasInvisible) ? 0.4 : 1 }}>
                     ↺ Restart All Rotators
                 </Button>
@@ -5063,8 +5065,8 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
                     }}>{importMsg.text}</div>
                 )}
                 <div style={{ display: "flex", gap: 7 }}>
-                    <Button color={Button.Colors.BRAND} onClick={doExport} className="rs-btn-sm">Export JSON</Button>
-                    <Button color={Button.Colors.GREY} onClick={doImport} className="rs-btn-sm">Import JSON</Button>
+                    <Button variant="primary" onClick={doExport} className="rs-btn-sm">Export JSON</Button>
+                    <Button variant="secondary" onClick={doImport} className="rs-btn-sm">Import JSON</Button>
                 </div>
             </div>
 
@@ -5470,9 +5472,9 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
             <ModalHeader>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
                     <div className="rs-dot" style={{ width: 8, height: 8, background: totalActive > 0 ? "#9c67ff" : "#2a1a4a" }} />
-                    <Forms.FormTitle tag="h2" style={{ margin: 0, flex: 1, background: "linear-gradient(90deg,#9c67ff,#b24df7,#7c4dff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                    <Heading tag="h2" style={{ margin: 0, flex: 1, background: "linear-gradient(90deg,#9c67ff,#b24df7,#7c4dff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
                         Rotator Suite
-                    </Forms.FormTitle>
+                    </Heading>
                     {isGlobalSync && (
                         <div style={{ fontSize: 10, padding: "2px 9px", borderRadius: 10, background: "rgba(255,167,38,.15)", color: C.data, fontWeight: 800, border: `1px solid rgba(255,167,38,.35)` }}>
                             SYNC · {settings.store.globalSyncSeconds}s
@@ -5549,7 +5551,7 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
                             </>
                         }
                     </div>
-                    <Button color={Button.Colors.TRANSPARENT} onClick={modalProps.onClose}>Close</Button>
+                    <Button variant="none" onClick={modalProps.onClose}>Close</Button>
                 </div>
             </ModalFooter>
         </ModalRoot>
@@ -5626,7 +5628,7 @@ export default definePlugin({
 
     settingsAboutComponent: () => (
         <div style={{ marginTop: 10 }}>
-            <Button color={Button.Colors.BRAND} onClick={() => openModal(props => <RotatorSuiteModal modalProps={props} />)}>
+            <Button variant="primary" onClick={() => openModal(props => <RotatorSuiteModal modalProps={props} />)}>
                 Open Rotator Suite Panel
             </Button>
             <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(239,83,80,.08)", border: "1px solid rgba(239,83,80,.25)" }}>

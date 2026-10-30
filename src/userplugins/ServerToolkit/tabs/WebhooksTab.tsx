@@ -6,7 +6,8 @@
 
 import { copyWithToast } from "@utils/discord";
 import { Guild } from "@vencord/discord-types";
-import { Forms, React, RestAPI, Text, useEffect, useState } from "@webpack/common";
+import { Text } from "@components/Text";
+import { React, RestAPI, useEffect, useState } from "@webpack/common";
 
 import { logger } from "../index";
 
@@ -39,20 +40,20 @@ export function WebhooksTab({ guild }: { guild: Guild; }) {
 
     return (
         <div className="gt-webhooks">
-            <Forms.FormSection title="Webhooks">
-                {state === "loading" && <Text variant="text-sm/normal">Loading…</Text>}
+            <section title="Webhooks">
+                {state === "loading" && <Text size="sm" weight="normal">Loading…</Text>}
                 {state === "denied" && (
-                    <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
+                    <Text size="sm" weight="normal" style={{ color: "var(--text-muted)" }}>
                         You don't have Manage Webhooks permission in this server.
                     </Text>
                 )}
                 {state === "error" && (
-                    <Text variant="text-sm/normal" style={{ color: "var(--text-danger)" }}>
+                    <Text size="sm" weight="normal" style={{ color: "var(--text-danger)" }}>
                         Failed: {err}
                     </Text>
                 )}
                 {state === "done" && hooks.length === 0 && (
-                    <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>No webhooks.</Text>
+                    <Text size="sm" weight="normal" style={{ color: "var(--text-muted)" }}>No webhooks.</Text>
                 )}
                 {state === "done" && hooks.length > 0 && (
                     <div className="gt-webhook-list">
@@ -71,7 +72,7 @@ export function WebhooksTab({ guild }: { guild: Guild; }) {
                         ))}
                     </div>
                 )}
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

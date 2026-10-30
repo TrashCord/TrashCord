@@ -9,7 +9,8 @@ import { definePluginSettings } from "@api/Settings";
 import { Notice } from "@components/Notice";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, ChannelStore, GuildStore, RestAPI, showToast, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { ChannelStore, GuildStore, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const GiftActions = findByPropsLazy("redeemGiftCode");
 

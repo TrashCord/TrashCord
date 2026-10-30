@@ -11,7 +11,8 @@ import { BaseText } from "@components/BaseText";
 import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
-import { HeadingSecondary } from "@components/Heading";
+import { Button } from "@components/Button";
+import { HeadingSecondary, Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import showMeYourName from "@plugins/showMeYourName";
 import { Devs } from "@utils/constants";
@@ -20,7 +21,7 @@ import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, ColorPicker, FluxDispatcher, Forms, GuildMemberStore, React, Select, TextInput, UserProfileStore, UserStore, useState } from "@webpack/common";
+import { ColorPicker, FluxDispatcher, GuildMemberStore, React, Select, TextInput, UserProfileStore, UserStore, useState } from "@webpack/common";
 
 const GOOGLE_FONTS_URL = "https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Chicle&family=MedievalSharp&family=MuseoModerno:wght@400;600;700&family=Nosifer&family=Pixelify+Sans:wght@400;600;700&family=Zilla+Slab:wght@400;600;700&display=swap";
 
@@ -709,7 +710,7 @@ function SettingsAboutComponent() {
 
             <Divider className={classes(Margins.top16, Margins.bottom16)} />
 
-            <Forms.FormTitle tag="h3">Live Name Preview</Forms.FormTitle>
+            <Heading tag="h3">Live Name Preview</Heading>
             <div style={{
                 borderRadius: "8px",
                 border: "1px solid var(--background-tertiary, #111214)",
@@ -724,7 +725,7 @@ function SettingsAboutComponent() {
 
             <Divider className={classes(Margins.top16, Margins.bottom16)} />
 
-            <Forms.FormTitle tag="h3">Style Options</Forms.FormTitle>
+            <Heading tag="h3">Style Options</Heading>
             <Flex gap="1.5em" style={{ marginTop: "8px", marginBottom: "16px" }}>
                 <div style={{ flex: 1 }}>
                     <BaseText size="sm" style={{ marginBottom: "6px", fontWeight: 600 }}>Font Style</BaseText>
@@ -790,7 +791,7 @@ function SettingsAboutComponent() {
 
             <Divider className={classes(Margins.top16, Margins.bottom16)} />
 
-            <Forms.FormTitle tag="h3">Bio Generator</Forms.FormTitle>
+            <Heading tag="h3">Bio Generator</Heading>
             <Paragraph className={Margins.bottom8}>
                 Optionally enter your bio text below to generate your complete bio with invisible 3y3 characters appended:
             </Paragraph>
@@ -815,8 +816,8 @@ function SettingsAboutComponent() {
                         if (!tag) return;
                         copyWithToast(tag);
                     }}
-                    color={Button.Colors.BRAND}
-                    size={Button.Sizes.MEDIUM}
+                    variant="primary"
+                    size="medium"
                 >
                     Copy 3y3 Only
                 </Button>
@@ -830,8 +831,8 @@ function SettingsAboutComponent() {
                             if (!tag) return;
                             copyWithToast(clean ? `${clean}${tag}` : tag);
                         }}
-                        color={Button.Colors.PRIMARY}
-                        size={Button.Sizes.MEDIUM}
+                        variant="secondary"
+                        size="medium"
                     >
                         Copy Full Bio with 3y3
                     </Button>

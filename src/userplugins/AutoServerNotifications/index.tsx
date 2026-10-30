@@ -12,7 +12,9 @@ import { definePluginSettings } from "@api/Settings";
 import { CogWheel } from "@components/Icons";
 import { sleep } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, GuildStore, Menu, RestAPI, showToast, UserStore, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { GuildStore, Menu, RestAPI, showToast, UserStore, useEffect, useState } from "@webpack/common";
 
 type MessageNotifications = 0 | 1 | 2;
 
@@ -258,22 +260,22 @@ export default definePlugin({
     settingsAboutComponent() {
         const running = useIsRunning();
         return (
-            <Forms.FormSection>
-                <Forms.FormText style={{ marginBottom: 8 }}>
+            <section>
+                <Paragraph style={{ marginBottom: 8 }}>
                     {running
                         ? "Applying Settings to all Servers, please wait…"
                         : "Apply the Settings above to all your current Servers at once."
                     }
-                </Forms.FormText>
+                </Paragraph>
                 <Button
-                    color={Button.Colors.BRAND}
-                    size={Button.Sizes.SMALL}
+                    variant="primary"
+                    size="small"
                     disabled={running}
                     onClick={applyToAll}
                 >
                     {running ? "Applying…" : "Apply to all Servers"}
                 </Button>
-            </Forms.FormSection>
+            </section>
         );
     },
 });

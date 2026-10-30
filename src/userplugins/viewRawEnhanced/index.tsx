@@ -18,7 +18,8 @@ import { Margins } from "@utils/margins";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { IconComponent, OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { Button, ChannelStore, GuildRoleStore, Menu, React } from "@webpack/common";
+import { Button } from "@components/Button";
+import { ChannelStore, GuildRoleStore, Menu, React } from "@webpack/common";
 
 // ==================== ICONS ====================
 const CopyIcon: IconComponent = ({ height = 20, width = 20, className }) => {
@@ -838,23 +839,23 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
 
                     <div style={{ marginBottom: "12px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={activeTab === "json" ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                            size="small"
+                            variant={activeTab === "json" ? "primary" : "secondary"}
                             onClick={() => setActiveTab("json")}
                         >
                             {isEditing ? "Edit JSON" : "Raw JSON"}
                         </Button>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={activeTab === "formatted" ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                            size="small"
+                            variant={activeTab === "formatted" ? "primary" : "secondary"}
                             onClick={() => setActiveTab("formatted")}
                         >
                             Formatted
                         </Button>
                         {settings.store.enablePreview && (
                             <Button
-                                size={Button.Sizes.SMALL}
-                                color={activeTab === "preview" ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                                size="small"
+                                variant={activeTab === "preview" ? "primary" : "secondary"}
                                 onClick={() => setActiveTab("preview")}
                             >
                                 Preview
@@ -862,8 +863,8 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                         )}
                         {msgContent && (
                             <Button
-                                size={Button.Sizes.SMALL}
-                                color={activeTab === "content" ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                                size="small"
+                                variant={activeTab === "content" ? "primary" : "secondary"}
                                 onClick={() => setActiveTab("content")}
                             >
                                 Content
@@ -930,12 +931,12 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                         <>
                             <Button 
                                 onClick={toggleEdit}
-                                color={isEditing ? Button.Colors.RED : Button.Colors.BRAND}
+                                variant={isEditing ? "dangerPrimary" : "primary"}
                             >
                                 {isEditing ? "Stop Editing" : "✏️ Edit JSON"}
                             </Button>
                             {isEditing && (
-                                <Button onClick={resetEdit} color={Button.Colors.PRIMARY}>
+                                <Button onClick={resetEdit} variant="secondary">
                                     Reset
                                 </Button>
                             )}
@@ -950,7 +951,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                         </Button>
                     )}
                     {settings.store.enableExport && (
-                        <Button onClick={handleExport} color={Button.Colors.GREEN}>
+                        <Button onClick={handleExport} variant="positive">
                             <DownloadIcon height={16} width={16} style={{ marginRight: "6px" }} />
                             Export
                         </Button>

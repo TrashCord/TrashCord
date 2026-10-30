@@ -8,7 +8,8 @@ import managedStyle from "./style.css?managed";
 
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import {ChannelStore, DateUtils, GuildStore, IconUtils, NavigationRouter, Popout, SelectedGuildStore, SnowflakeUtils, Text, useRef, UserStore, useStateFromStores} from "@webpack/common";
+import { Text } from "@components/Text";
+import {ChannelStore, DateUtils, GuildStore, IconUtils, NavigationRouter, Popout, SelectedGuildStore, SnowflakeUtils, useRef, UserStore, useStateFromStores} from "@webpack/common";
 
 import { ArrowSvg, checkForIconExistence, cl, ServerProfileComponent } from "./utils";
 
@@ -42,7 +43,7 @@ export default definePlugin({
                                         size: 32
                                     })} alt={`Server icon for ${guild.name}`} className={cl("guild-icon")} />
                                 }
-                                <Text variant="text-sm/medium" className={cl("footer-text")} style={{
+                                <Text size="sm" weight="medium" className={cl("footer-text")} style={{
                                     marginLeft: checkForIconExistence(guild) ? "20px" : "0"
                                 }}>{guild ? guild.name : "View server"} </Text>
                                 <ArrowSvg />
@@ -54,7 +55,7 @@ export default definePlugin({
             }
             {
                 channel && <div className={cl("footer-element")} onClick={() => NavigationRouter.transitionTo(`/channels/${guild_id ?? "@me"}/${channel_id}/${message_id}`)} >
-                    <Text variant="text-sm/medium" className={cl("footer-text")}>{(() => {
+                    <Text size="sm" weight="medium" className={cl("footer-text")}>{(() => {
                         /*
                             - Text channel
                             - Voice channel
@@ -83,7 +84,7 @@ export default definePlugin({
             <div className={cl("footer-element")} style={{
                 pointerEvents: "none"
             }}>
-                <Text variant="text-sm/medium" className={cl("footer-text")}>
+                <Text size="sm" weight="medium" className={cl("footer-text")}>
                     {DateUtils.calendarFormat(new Date(SnowflakeUtils.extractTimestamp(message_id)))}
                 </Text>
             </div>

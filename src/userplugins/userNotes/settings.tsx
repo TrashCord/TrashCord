@@ -8,7 +8,8 @@ import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Alerts, Button, showToast } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Alerts, showToast } from "@webpack/common";
 
 import { clearUserNotes, transferUserNotes } from "./data";
 
@@ -81,11 +82,11 @@ export default definePluginSettings({
         description: "Clear plugin's notes",
         component: () =>
             <Button
-                color={Button.Colors.RED}
+                variant="dangerPrimary"
                 onClick={() => Alerts.show({
                     title: "Clear Notes",
                     body: "Are you sure you want to clear plugin's notes?",
-                    confirmColor: Button.Colors.RED,
+                    confirmColor: "danger",
                     confirmText: "Clear",
                     cancelText: "Cancel",
                     onConfirm: () => {

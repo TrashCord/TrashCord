@@ -6,7 +6,8 @@
 
 import { copyWithToast } from "@utils/discord";
 import { Guild } from "@vencord/discord-types";
-import { ChannelStore, Forms, React, SnowflakeUtils, Text, UserStore } from "@webpack/common";
+import { Text } from "@components/Text";
+import { ChannelStore, React, SnowflakeUtils, UserStore } from "@webpack/common";
 
 const VERIFICATION = ["None", "Low", "Medium", "High", "Highest"];
 const NSFW_LEVEL = ["Default", "Explicit", "Safe", "Age-Restricted"];
@@ -82,16 +83,16 @@ export function OverviewTab({ guild }: { guild: Guild; }) {
 
     return (
         <div className="gt-overview">
-            <Forms.FormSection title="Identity">
+            <section title="Identity">
                 <Row label="Name" value={guild.name} />
                 <Row label="ID" value={guild.id} copy={guild.id} />
                 <Row label="Owner" value={ownerValue} />
                 <Row label="Created" value={createdAt.toLocaleString()} />
                 {g.vanityURLCode && <Row label="Vanity" value={`discord.gg/${g.vanityURLCode}`} copy={`discord.gg/${g.vanityURLCode}`} />}
                 {g.description && <Row label="Description" value={g.description} />}
-            </Forms.FormSection>
+            </section>
 
-            <Forms.FormSection title="Configuration">
+            <section title="Configuration">
                 <Row label="Verification" value={VERIFICATION[g.verificationLevel] ?? g.verificationLevel} />
                 <Row label="NSFW Level" value={NSFW_LEVEL[g.nsfwLevel] ?? g.nsfwLevel} />
                 <Row label="MFA Requirement" value={MFA_LEVEL[g.mfaLevel] ?? g.mfaLevel} />
@@ -103,17 +104,17 @@ export function OverviewTab({ guild }: { guild: Guild; }) {
                 {g.rulesChannelId && <Row label="Rules Channel" value={renderChannelValue(g.rulesChannelId)} />}
                 {g.publicUpdatesChannelId && <Row label="Public Updates Channel" value={renderChannelValue(g.publicUpdatesChannelId)} />}
                 <Row label="Preferred Locale" value={g.preferredLocale ?? "?"} />
-            </Forms.FormSection>
+            </section>
 
-            <Forms.FormSection title="Boost">
+            <section title="Boost">
                 <Row label="Premium Tier" value={PREMIUM_TIER[g.premiumTier] ?? g.premiumTier} />
                 <Row label="Boost Count" value={g.premiumSubscriberCount ?? 0} />
                 {g.premiumProgressBarEnabled != null && <Row label="Progress Bar" value={g.premiumProgressBarEnabled ? "On" : "Off"} />}
-            </Forms.FormSection>
+            </section>
 
-            <Forms.FormSection title={`Features (${features.length})`}>
+            <section title={`Features (${features.length})`}>
                 {features.length === 0 ? (
-                    <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>No features</Text>
+                    <Text size="sm" weight="normal" style={{ color: "var(--text-muted)" }}>No features</Text>
                 ) : (
                     <div className="gt-feature-grid">
                         {features.map(f => (
@@ -121,7 +122,7 @@ export function OverviewTab({ guild }: { guild: Guild; }) {
                         ))}
                     </div>
                 )}
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

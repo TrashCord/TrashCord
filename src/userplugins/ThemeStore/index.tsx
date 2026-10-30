@@ -6,7 +6,8 @@
 
 import { Settings } from "@api/Settings";
 import definePlugin from "@utils/types";
-import { Forms, React, showToast } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
+import { React, showToast } from "@webpack/common";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -800,10 +801,10 @@ export default definePlugin({
 
     settingsAboutComponent: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Forms.FormText>
+            <Paragraph>
                 Browse 130+ themes with full previews. Click <strong>Install Theme</strong> to
                 activate it instantly via Online Themes.
-            </Forms.FormText>
+            </Paragraph>
             <OpenStoreButton />
         </div>
     ),

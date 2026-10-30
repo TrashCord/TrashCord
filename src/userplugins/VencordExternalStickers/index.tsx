@@ -10,7 +10,9 @@ import { enableStyle, setStyleClassNames } from "@api/Styles";
 import { Margins } from "@utils/margins";
 import { ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType, PluginAuthor, PluginNative } from "@utils/types";
-import { Button, Forms, Select, TextInput, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Select, TextInput, useEffect, useState } from "@webpack/common";
 
 import { StickerPickerModal } from "./StickerPickerModal";
 import { classNames, pluginStyle } from "./styles";
@@ -40,7 +42,7 @@ const settings = definePluginSettings({
             return <div>
                 {(tempValue).map((x, i) => (
                     <section key={i}>
-                        <Forms.FormTitle>Source Type</Forms.FormTitle>
+                        <Heading>Source Type</Heading>
                         <Select className={Margins.bottom20} options={[{ label: "DCCON", value: "dccon" }]} isSelected={v => v === x.type} select={newType => {
                             setTempValue(v => {
                                 const newValue = [...v];
@@ -52,7 +54,7 @@ const settings = definePluginSettings({
 
                         {x.type === "dccon" && (
                             <>
-                                <Forms.FormTitle>DCCON Package Id</Forms.FormTitle>
+                                <Heading>DCCON Package Id</Heading>
                                 <TextInput placeholder="123456" className={Margins.bottom20} onChange={newIdx => {
                                     setTempValue(v => {
                                         const newValue = [...v];
@@ -70,7 +72,7 @@ const settings = definePluginSettings({
                                         return newValue;
 
                                     });
-                                }} color={Button.Colors.RED}>Remove</Button>
+                                }} variant="dangerPrimary">Remove</Button>
                             </>
                         )}
                     </section>

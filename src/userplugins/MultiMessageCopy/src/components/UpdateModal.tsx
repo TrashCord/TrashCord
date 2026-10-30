@@ -6,7 +6,11 @@
 
 import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal"
 import { React } from "@webpack/common"
-import { Button, Text, Forms, showToast } from "@webpack/common"
+import { Button } from "@components/Button";
+import { Divider } from "@components/Divider";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { showToast } from "@webpack/common"
 import { REPO_URL, UPDATE_COMMAND } from "../utils/updateChecker"
 
 interface RemoteVersionInfo {
@@ -62,34 +66,34 @@ export function UpdateModal({ remoteInfo, installedVersion, onDismiss, modalProp
     return (
         <ModalRoot {...modalProps} size="small">
             <ModalHeader>
-                <Text variant="heading-lg/semibold">
+                <Text size="xl" weight="semibold">
                     MultiMessageCopy update available
                 </Text>
             </ModalHeader>
 
             <ModalContent>
-                <Forms.FormSection style={{ marginTop: "12px" }}>
-                    <Forms.FormText>
+                <section style={{ marginTop: "12px" }}>
+                    <Paragraph>
                         Installed: <strong>v{installedVersion}</strong>
                         {" "}&mdash;{" "}
                         Latest: <strong>v{remoteInfo.version}</strong>
-                    </Forms.FormText>
+                    </Paragraph>
 
                     {remoteInfo.changelog && (
-                        <Forms.FormText style={{ marginTop: "8px", color: "var(--text-muted)" }}>
+                        <Paragraph style={{ marginTop: "8px", color: "var(--text-muted)" }}>
                             {remoteInfo.changelog}
-                        </Forms.FormText>
+                        </Paragraph>
                     )}
 
-                    <Forms.FormDivider style={{ margin: "12px 0" }} />
+                    <Divider style={{ margin: "12px 0" }} />
 
-                    <Forms.FormText style={{ color: "var(--text-muted)" }}>
+                    <Paragraph style={{ color: "var(--text-muted)" }}>
                         Copy the command below, paste it into PowerShell, and run it.
                         The updater will replace plugin files and rebuild Vencord.
                         It will ask before restarting Discord — it will not do so automatically.
-                    </Forms.FormText>
+                    </Paragraph>
 
-                    <Forms.FormText
+                    <Paragraph
                         style={{
                             marginTop: "10px",
                             fontFamily: "var(--font-code)",
@@ -104,28 +108,26 @@ export function UpdateModal({ remoteInfo, installedVersion, onDismiss, modalProp
                         }}
                     >
                         {UPDATE_COMMAND}
-                    </Forms.FormText>
-                </Forms.FormSection>
+                    </Paragraph>
+                </section>
             </ModalContent>
 
             <ModalFooter>
                 <Button
-                    color={copied ? Button.Colors.GREEN : Button.Colors.BRAND}
+                    variant={copied ? "positive" : "primary"}
                     onClick={handleCopyCommand}
                 >
                     {copied ? "Copied!" : "Copy Update Command"}
                 </Button>
                 <Button
-                    color={Button.Colors.LINK}
-                    look={Button.Looks.LINK}
+                    variant="link"
                     onClick={handleOpenGitHub}
                     style={{ marginLeft: "8px" }}
                 >
                     Open GitHub
                 </Button>
                 <Button
-                    color={Button.Colors.PRIMARY}
-                    look={Button.Looks.OUTLINED}
+                    variant="secondary"
                     onClick={onDismiss}
                     style={{ marginLeft: "auto" }}
                 >

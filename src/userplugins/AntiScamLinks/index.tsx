@@ -6,7 +6,10 @@
 
 import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter, ModalCloseButton } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { Forms, Button, React } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { React } from "@webpack/common";
 
 const SCAM_LIST_URL = "https://cdn.jsdelivr.net/gh/Discord-AntiScam/scam-links@main/list.txt";
 
@@ -34,16 +37,16 @@ function ScamWarningModal({ url, onConfirm, onCancel, modalProps }: {
     return (
         <ModalRoot {...modalProps} size="small">
             <ModalHeader>
-                <Forms.FormTitle tag="h2" style={{ color: "#ed4245", margin: 0 }}>
+                <Heading tag="h2" style={{ color: "#ed4245", margin: 0 }}>
                     ⚠️ Scam Link Detected
-                </Forms.FormTitle>
+                </Heading>
                 <ModalCloseButton onClick={onCancel} />
             </ModalHeader>
             <ModalContent style={{ padding: "16px" }}>
-                <Forms.FormText style={{ marginBottom: 8 }}>
+                <Paragraph style={{ marginBottom: 8 }}>
                     This link is flagged as a <strong>scam or phishing site</strong>.
-                </Forms.FormText>
-                <Forms.FormText
+                </Paragraph>
+                <Paragraph
                     style={{
                         wordBreak: "break-all",
                         background: "var(--background-secondary)",
@@ -56,17 +59,17 @@ function ScamWarningModal({ url, onConfirm, onCancel, modalProps }: {
                     }}
                 >
                     {url}
-                </Forms.FormText>
-                <Forms.FormText>
+                </Paragraph>
+                <Paragraph>
                     Opening this site may compromise your account or steal your information.
                     Do you still want to proceed?
-                </Forms.FormText>
+                </Paragraph>
             </ModalContent>
             <ModalFooter style={{ gap: 8 }}>
-                <Button color={Button.Colors.PRIMARY} onClick={onCancel}>
+                <Button variant="secondary" onClick={onCancel}>
                     Go Back (Safe)
                 </Button>
-                <Button color={Button.Colors.RED} onClick={onConfirm}>
+                <Button variant="dangerPrimary" onClick={onConfirm}>
                     Open Anyway
                 </Button>
             </ModalFooter>

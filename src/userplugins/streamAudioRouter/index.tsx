@@ -10,7 +10,9 @@ import { Margins } from "@utils/margins";
 import definePlugin, { PluginNative } from "@utils/types";
 import { RenderModalProps } from "@vencord/discord-types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Forms, LocaleStore, Menu, Modal, openModal, Select, showToast, useEffect, useState, useStateFromStores } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { LocaleStore, Menu, Modal, openModal, Select, showToast, useEffect, useState, useStateFromStores } from "@webpack/common";
 
 import type { AudioApp as LinuxAudioApp } from "./platform/linux";
 import type { AudioApp as WindowsAudioApp } from "./platform/windows";
@@ -97,21 +99,21 @@ function LinuxPanel() {
 
     return (
         <>
-            <Forms.FormText>
+            <Paragraph>
                 {t.linuxDescription}
-            </Forms.FormText>
+            </Paragraph>
             <Divider className={Margins.top16} />
 
             {loadError && (
-                <Forms.FormText className={Margins.top8} style={{ color: "var(--text-danger)" }}>
+                <Paragraph className={Margins.top8} style={{ color: "var(--text-danger)" }}>
                     {loadError}
-                </Forms.FormText>
+                </Paragraph>
             )}
 
             {!loadError && apps.length === 0 && (
-                <Forms.FormText className={Margins.top8}>
+                <Paragraph className={Margins.top8}>
                     {busy ? t.linuxLoadingApps : t.linuxNoApps}
-                </Forms.FormText>
+                </Paragraph>
             )}
 
             {apps.length > 0 && (
@@ -125,13 +127,13 @@ function LinuxPanel() {
             )}
 
             <Divider className={Margins.top16} />
-            <Button onClick={refresh} disabled={busy} color={Button.Colors.PRIMARY} className={Margins.top8}>
+            <Button onClick={refresh} disabled={busy} variant="secondary" className={Margins.top8}>
                 {t.linuxRefreshButton}
             </Button>
-            <Button onClick={handleExclude} disabled={busy || !selectedId} color={Button.Colors.GREEN} className={Margins.top8}>
+            <Button onClick={handleExclude} disabled={busy || !selectedId} variant="positive" className={Margins.top8}>
                 {t.linuxExcludeButton}
             </Button>
-            <Button onClick={handleRestore} disabled={busy} color={Button.Colors.RED} className={Margins.top8}>
+            <Button onClick={handleRestore} disabled={busy} variant="dangerPrimary" className={Margins.top8}>
                 {t.linuxRestoreButton}
             </Button>
         </>
@@ -151,7 +153,7 @@ function LinuxPanel() {
 function WindowsListenStatus() {
     const t = useT();
     return (
-        <Forms.FormText className={Margins.top8}>{t.windowsManualListenHeading}</Forms.FormText>
+        <Paragraph className={Margins.top8}>{t.windowsManualListenHeading}</Paragraph>
     );
 }
 
@@ -193,20 +195,20 @@ function WindowsDeviceStatus() {
     }
 
     if (hasSecondDevice === null) {
-        return <Forms.FormText className={Margins.top8}>{t.windowsCheckingDevices}</Forms.FormText>;
+        return <Paragraph className={Margins.top8}>{t.windowsCheckingDevices}</Paragraph>;
     }
 
     if (hasSecondDevice) return null;
 
     return (
         <>
-            <Forms.FormText className={Margins.top8} style={{ color: "var(--text-danger)" }}>
+            <Paragraph className={Margins.top8} style={{ color: "var(--text-danger)" }}>
                 {t.windowsOnlyOneDevice}
-            </Forms.FormText>
+            </Paragraph>
             {cableInstalled ? (
-                <Forms.FormText className={Margins.top8}>{t.windowsVirtualCableInstalled}</Forms.FormText>
+                <Paragraph className={Margins.top8}>{t.windowsVirtualCableInstalled}</Paragraph>
             ) : (
-                <Button onClick={handleInstall} disabled={installing} color={Button.Colors.GREEN} className={Margins.top8}>
+                <Button onClick={handleInstall} disabled={installing} variant="positive" className={Margins.top8}>
                     {t.windowsInstallVirtualCableButton}
                 </Button>
             )}
@@ -272,23 +274,23 @@ function WindowsPanel() {
 
     return (
         <>
-            <Forms.FormText>
+            <Paragraph>
                 {t.windowsDescription}
-            </Forms.FormText>
+            </Paragraph>
             <Divider className={Margins.top16} />
 
             <WindowsDeviceStatus />
 
             {loadError && (
-                <Forms.FormText className={Margins.top8} style={{ color: "var(--text-danger)" }}>
+                <Paragraph className={Margins.top8} style={{ color: "var(--text-danger)" }}>
                     {loadError}
-                </Forms.FormText>
+                </Paragraph>
             )}
 
             {!loadError && apps.length === 0 && (
-                <Forms.FormText className={Margins.top8}>
+                <Paragraph className={Margins.top8}>
                     {busy ? t.windowsLoadingApps : t.windowsNoApps}
-                </Forms.FormText>
+                </Paragraph>
             )}
 
             {apps.length > 0 && (
@@ -302,23 +304,23 @@ function WindowsPanel() {
             )}
 
             <Divider className={Margins.top16} />
-            <Button onClick={refresh} disabled={busy} color={Button.Colors.PRIMARY} className={Margins.top8}>
+            <Button onClick={refresh} disabled={busy} variant="secondary" className={Margins.top8}>
                 {t.windowsRefreshButton}
             </Button>
-            <Button onClick={handleExclude} disabled={busy || !selectedId} color={Button.Colors.GREEN} className={Margins.top8}>
+            <Button onClick={handleExclude} disabled={busy || !selectedId} variant="positive" className={Margins.top8}>
                 {t.windowsExcludeButton}
             </Button>
-            <Button onClick={handleRestore} disabled={busy} color={Button.Colors.RED} className={Margins.top8}>
+            <Button onClick={handleRestore} disabled={busy} variant="dangerPrimary" className={Margins.top8}>
                 {t.windowsRestoreButton}
             </Button>
 
             <Divider className={Margins.top16} />
-            <Forms.FormText className={Margins.top8}>
+            <Paragraph className={Margins.top8}>
                 {t.windowsManualFallbackLabel}
-            </Forms.FormText>
+            </Paragraph>
             <Button
                 onClick={() => Native.windowsOpenAppVolumeSettings().catch(notifyError)}
-                color={Button.Colors.PRIMARY}
+                variant="secondary"
                 className={Margins.top8}
             >
                 {t.windowsOpenSettingsButton}
@@ -347,38 +349,38 @@ function MacPanel() {
 
     return (
         <>
-            <Forms.FormText>
+            <Paragraph>
                 {t.macDescription}
-            </Forms.FormText>
+            </Paragraph>
             <Divider className={Margins.top16} />
 
             {isChecking && (
-                <Forms.FormText className={Margins.top8}>{t.macChecking}</Forms.FormText>
+                <Paragraph className={Margins.top8}>{t.macChecking}</Paragraph>
             )}
             {notFoundReady && (
-                <Forms.FormText className={Margins.top8}>
+                <Paragraph className={Margins.top8}>
                     {installCommand
                         ? <>{t.macNotFoundPrefix}<code>{installCommand}</code></>
                         : t.macNotFoundNoCommand}
-                </Forms.FormText>
+                </Paragraph>
             )}
             {installed === true && (
-                <Forms.FormText className={Margins.top8}>
+                <Paragraph className={Margins.top8}>
                     {t.macInstalled}
-                </Forms.FormText>
+                </Paragraph>
             )}
 
             <Divider className={Margins.top16} />
             <Button
                 onClick={() => Native.macosOpenAudioMidiSetup().catch(notifyError)}
-                color={Button.Colors.PRIMARY}
+                variant="secondary"
                 className={Margins.top8}
             >
                 {t.macOpenAudioMidiButton}
             </Button>
             <Button
                 onClick={() => Native.macosOpenSoundSettings().catch(notifyError)}
-                color={Button.Colors.PRIMARY}
+                variant="secondary"
                 className={Margins.top8}
             >
                 {t.macOpenSoundSettingsButton}
@@ -393,12 +395,12 @@ function SettingsPanel() {
 
     useEffect(() => { Native.getPlatform().then(setPlatform); }, []);
 
-    if (platform === null) return <Forms.FormText>{t.detectingPlatform}</Forms.FormText>;
+    if (platform === null) return <Paragraph>{t.detectingPlatform}</Paragraph>;
     if (platform === "linux") return <LinuxPanel />;
     if (platform === "win32") return <WindowsPanel />;
     if (platform === "darwin") return <MacPanel />;
 
-    return <Forms.FormText>{format(t.unsupportedPlatform, { platform: platform ?? "" })}</Forms.FormText>;
+    return <Paragraph>{format(t.unsupportedPlatform, { platform: platform ?? "" })}</Paragraph>;
 }
 
 function RouterIcon() {

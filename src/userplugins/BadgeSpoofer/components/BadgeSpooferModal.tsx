@@ -6,7 +6,11 @@
 
 import { ModalContent, ModalFooter, openModal } from "@utils/modal";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Button, Forms, Modal, React, Text, TextInput, showToast, useEffect, useRef, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { Modal, React, TextInput, showToast, useEffect, useRef, useState } from "@webpack/common";
 
 import { badgeSpooferEngine } from "../engine";
 import { HypeSquadPicker } from "../hypesquad";
@@ -116,27 +120,27 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                     border: "1px solid var(--background-modifier-accent)"
                 }}>
                     <div>
-                        <Forms.FormTitle tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>GAMES SPOOFED</Forms.FormTitle>
-                        <Text variant="heading-md/bold" color="header-primary">{stats.totalGamesClaimed.toLocaleString()}</Text>
+                        <Heading tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>GAMES SPOOFED</Heading>
+                        <Text size="lg" weight="bold" color="header-primary">{stats.totalGamesClaimed.toLocaleString()}</Text>
                     </div>
                     <div>
-                        <Forms.FormTitle tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>HOURS PLAYED</Forms.FormTitle>
-                        <Text variant="heading-md/bold" color="header-primary">{Math.round(stats.totalHoursClaimed).toLocaleString()}h</Text>
+                        <Heading tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>HOURS PLAYED</Heading>
+                        <Text size="lg" weight="bold" color="header-primary">{Math.round(stats.totalHoursClaimed).toLocaleString()}h</Text>
                     </div>
                     <div>
-                        <Forms.FormTitle tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>HOURS STREAMED</Forms.FormTitle>
-                        <Text variant="heading-md/bold" color="header-primary">{Math.round(stats.totalStreamHoursClaimed || 0).toLocaleString()}h</Text>
+                        <Heading tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>HOURS STREAMED</Heading>
+                        <Text size="lg" weight="bold" color="header-primary">{Math.round(stats.totalStreamHoursClaimed || 0).toLocaleString()}h</Text>
                     </div>
                     <div>
-                        <Forms.FormTitle tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>DB GAMES</Forms.FormTitle>
-                        <Text variant="heading-md/bold" color="header-primary">{totalAvailableGames.toLocaleString()}</Text>
+                        <Heading tag="h5" style={{ margin: 0, marginBottom: "4px", fontSize: "11px" }}>DB GAMES</Heading>
+                        <Text size="lg" weight="bold" color="header-primary">{totalAvailableGames.toLocaleString()}</Text>
                     </div>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                         <div>
-                            <Forms.FormTitle tag="h5">PLAY HOURS</Forms.FormTitle>
+                            <Heading tag="h5">PLAY HOURS</Heading>
                             <TextInput
                                 type="number"
                                 disabled={isRunning}
@@ -144,13 +148,13 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                                 onChange={setHours}
                                 placeholder="1"
                             />
-                            <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                            <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
                                 Playtime per game
-                            </Forms.FormText>
+                            </Paragraph>
                         </div>
 
                         <div>
-                            <Forms.FormTitle tag="h5">STREAM HOURS</Forms.FormTitle>
+                            <Heading tag="h5">STREAM HOURS</Heading>
                             <TextInput
                                 type="number"
                                 disabled={isRunning}
@@ -158,36 +162,36 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                                 onChange={setStreamHours}
                                 placeholder="1"
                             />
-                            <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                            <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
                                 Streamed per game
-                            </Forms.FormText>
+                            </Paragraph>
                         </div>
 
                         <div>
-                            <Forms.FormTitle tag="h5">GAME COUNT</Forms.FormTitle>
+                            <Heading tag="h5">GAME COUNT</Heading>
                             <TextInput
                                 disabled={isRunning}
                                 value={gameCount}
                                 onChange={setGameCount}
                                 placeholder={`All (${totalAvailableGames})`}
                             />
-                            <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                            <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
                                 Number or blank
-                            </Forms.FormText>
+                            </Paragraph>
                         </div>
                     </div>
 
                     <div>
-                        <Forms.FormTitle tag="h5">EXECUTABLE FINGERPRINT (OPTIONAL)</Forms.FormTitle>
+                        <Heading tag="h5">EXECUTABLE FINGERPRINT (OPTIONAL)</Heading>
                         <TextInput
                             disabled={isRunning}
                             value={fingerprint}
                             onChange={setFingerprint}
                             placeholder="Optional base64 executable_fingerprint for games-played count"
                         />
-                        <Forms.FormText style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+                        <Paragraph style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
                             Used by Discord to verify the executable. Leave blank to use defaults.
-                        </Forms.FormText>
+                        </Paragraph>
                     </div>
                 </div>
 
@@ -210,10 +214,10 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                         gap: "6px"
                     }}>
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <Text variant="text-xs/medium" color="text-normal">
+                            <Text size="xs" weight="medium" color="text-normal">
                                 {progress?.status || (isRunning ? "Spoofing in progress..." : "Ready")}
                             </Text>
-                            <Text variant="text-xs/bold" color="header-primary">{percent}%</Text>
+                            <Text size="xs" weight="bold" color="header-primary">{percent}%</Text>
                         </div>
                         <div style={{
                             width: "100%",
@@ -233,7 +237,7 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                 )}
 
                 <div>
-                    <Forms.FormTitle tag="h5">LIVE OUTPUT LOGS</Forms.FormTitle>
+                    <Heading tag="h5">LIVE OUTPUT LOGS</Heading>
                     <div className="tc-badge-spoofer-logs">
                         {logs.map(log => (
                             <div key={log.id} className="tc-badge-spoofer-log-line">
@@ -258,10 +262,10 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                     flexDirection: "column",
                     gap: "2px"
                 }}>
-                    <Text variant="text-xs/medium" color="header-primary" style={{ fontWeight: 600 }}>
+                    <Text size="xs" weight="medium" color="header-primary" style={{ fontWeight: 600 }}>
                         Note
                     </Text>
-                    <Text variant="text-xs/normal" color="text-muted" style={{ lineHeight: 1.4 }}>
+                    <Text size="xs" weight="normal" color="text-muted" style={{ lineHeight: 1.4 }}>
                         Discord accepts these events with status <code style={{ background: "rgba(0,0,0,0.3)", padding: "1px 4px", borderRadius: "3px", color: "var(--text-positive)" }}>204 OK</code>. Badge tiers refresh on their backend within 24-48 hours.
                     </Text>
                 </div>
@@ -271,18 +275,16 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                 <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
                     <div style={{ display: "flex", gap: "8px" }}>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={Button.Colors.PRIMARY}
-                            look={Button.Looks.FILLED}
+                            size="small"
+                            variant="secondary"
                             disabled={isRunning}
                             onClick={handleRefreshGames}
                         >
                             Reload Database
                         </Button>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={Button.Colors.PRIMARY}
-                            look={Button.Looks.FILLED}
+                            size="small"
+                            variant="secondary"
                             disabled={isRunning}
                             onClick={handleClearStats}
                         >
@@ -293,14 +295,14 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                     <div style={{ display: "flex", gap: "8px" }}>
                         {isRunning ? (
                             <Button
-                                color={Button.Colors.RED}
+                                variant="dangerPrimary"
                                 onClick={handleStop}
                             >
                                 Stop Spoofing
                             </Button>
                         ) : (
                             <Button
-                                color={Button.Colors.BRAND}
+                                variant="primary"
                                 onClick={handleStart}
                             >
                                 Start Spoofing

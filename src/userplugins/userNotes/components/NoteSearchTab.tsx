@@ -7,9 +7,9 @@
 import { createStore, del, entries, set } from "@api/DataStore";
 import { copyWithToast, openUserProfile } from "@utils/discord";
 import { findByPropsLazy } from "@webpack";
+import { Button } from "@components/Button";
 import {
     Avatar,
-    Button,
     React,
     RelationshipStore,
     RestAPI,
@@ -330,8 +330,8 @@ export function NoteSearchTab() {
                     </div>
                     <Button
                         className="vc-note-btn"
-                        size={Button.Sizes.SMALL}
-                        color={Button.Colors.PRIMARY}
+                        size="small"
+                        variant="secondary"
                         onClick={loadNotes}
                     >
                         Refresh Notes
@@ -408,8 +408,8 @@ export function NoteSearchTab() {
                                         {isDirty && (
                                             <Button
                                                 className="vc-note-btn"
-                                                size={Button.Sizes.SMALL}
-                                                color={Button.Colors.GREEN}
+                                                size="small"
+                                                variant="positive"
                                                 onClick={() => handleSaveNote(userId)}
                                             >
                                                 Save
@@ -417,24 +417,24 @@ export function NoteSearchTab() {
                                         )}
                                         <Button
                                             className="vc-note-btn"
-                                            size={Button.Sizes.SMALL}
-                                            color={Button.Colors.PRIMARY}
+                                            size="small"
+                                            variant="secondary"
                                             onClick={() => openUserProfile(userId)}
                                         >
                                             Profile
                                         </Button>
                                         <Button
                                             className="vc-note-btn"
-                                            size={Button.Sizes.SMALL}
-                                            color={Button.Colors.PRIMARY}
+                                            size="small"
+                                            variant="secondary"
                                             onClick={() => copyWithToast(currentText, "Note text copied to clipboard")}
                                         >
                                             Copy
                                         </Button>
                                         <Button
                                             className="vc-note-btn"
-                                            size={Button.Sizes.SMALL}
-                                            color={Button.Colors.RED}
+                                            size="small"
+                                            variant="dangerPrimary"
                                             onClick={() => handleDeleteNote(userId)}
                                         >
                                             Delete

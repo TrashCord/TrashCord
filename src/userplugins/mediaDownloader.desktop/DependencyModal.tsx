@@ -6,7 +6,8 @@
 
 import { BaseText } from "@components/BaseText";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
-import { Button, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { useEffect, useState } from "@webpack/common";
 
 export function DependencyModal({ props, options: { key, checkytdlp, checkffmpeg } }: {
     props: ModalProps;

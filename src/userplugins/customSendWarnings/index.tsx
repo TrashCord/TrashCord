@@ -10,11 +10,11 @@ import { definePluginSettings } from "@api/Settings";
 import { Card } from "@webpack/common";
 import { Flex } from "@components/Flex";
 import { Paragraph } from "@components/Paragraph";
-import { Forms } from "@webpack/common";
+import { Text } from "@components/Text";
 import { Span } from "@components/Span";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { TextInput, useState, TrashIcon, Tooltip, Text } from "@webpack/common";
+import { TextInput, useState, TrashIcon, Tooltip } from "@webpack/common";
 
 type WarningRule = { id: string; match: string; message: string; };
 
@@ -91,7 +91,7 @@ function renderRegexError(match: string) {
         new RegExp(regexMatch[1], regexMatch[2]);
         return null;
     } catch (e) {
-        return <Text variant="text-sm/normal" color="text-danger">{String(e)}</Text>;
+        return <Text size="sm" weight="normal" color="text-danger">{String(e)}</Text>;
     }
 }
 

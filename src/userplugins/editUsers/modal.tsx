@@ -9,7 +9,10 @@ import { Flex } from "@components/Flex";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { User } from "@vencord/discord-types";
-import { Button, DisplayProfileUtils, showToast, Switch, TabBar, Text, TextInput, UsernameUtils, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { FormSwitch } from "@components/FormSwitch";
+import { Text } from "@components/Text";
+import { DisplayProfileUtils, showToast, TabBar, TextInput, UsernameUtils, useState } from "@webpack/common";
 import type { Dispatch, SetStateAction } from "react";
 
 import { emptyOverride, hasFlag, OverrideFlags, settings, UserOverride } from "./data";
@@ -48,21 +51,15 @@ function SettingsRow(props: SettingsRowProps) {
                 placeholder={placeholder}
                 autoFocus
             />
-            <Switch
+            <FormSwitch
                 value={hasFlag(flags, flagDisable)}
                 onChange={v => setOverride(o => ({ ...o, flags: toggleFlag(v, flagDisable) }))}
-                note={`Will use the user's global ${name} (or your EditUser configured ${name}) over server specific ${namePlural}`}
-            >
-                Disable server specific {namePlural}
-            </Switch>
-            <Switch
+                description={`Will use the user's global ${name} (or your EditUser configured ${name}) over server specific ${namePlural}`} title={<>Disable server specific {namePlural}</>} />
+            <FormSwitch
                 value={hasFlag(flags, flagPrefer)}
                 onChange={v => setOverride(o => ({ ...o, flags: toggleFlag(v, flagPrefer) }))}
-                note={`Will use server specific ${namePlural} over the EditUser configured ${name}`}
-                hideBorder
-            >
-                Prefer server specific {namePlural}
-            </Switch>
+                description={`Will use server specific ${namePlural} over the EditUser configured ${name}`}
+                hideBorder title={<>Prefer server specific {namePlural}</>} />
         </>
     );
 }
@@ -131,7 +128,7 @@ function EditModal({ user, modalProps }: { user: User; modalProps: ModalProps; }
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Edit User {user.username}</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Edit User {user.username}</Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
 
@@ -144,7 +141,7 @@ function EditModal({ user, modalProps }: { user: User; modalProps: ModalProps; }
             <ModalFooter>
                 <Flex>
                     <Button
-                        color={Button.Colors.RED}
+                        variant="dangerPrimary"
                         onClick={() => setOverride({ ...emptyOverride })}
                     >
                         Reset All

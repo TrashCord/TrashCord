@@ -10,7 +10,9 @@ import { Badges } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { Forms, showToast, UserStore } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { showToast, UserStore } from "@webpack/common";
 // eslint-disable-next-line unused-imports/no-unused-imports
 import { User } from "discord-types/general";
 
@@ -29,8 +31,8 @@ export default definePlugin({
     tags: ["Appearance", "Customisation"],
     enabledByDefault: false,
     settingsAboutComponent: () => <>
-        <Forms.FormTitle style={{ color: "red", fontSize: "2rem", fontWeight: "bold" }}>Only you can view the badges. No, this can't and won't be changed.</Forms.FormTitle>
-        <Forms.FormText>You may need to reload Discord after editing your settings for them to apply.</Forms.FormText>
+        <Heading style={{ color: "red", fontSize: "2rem", fontWeight: "bold" }}>Only you can view the badges. No, this can't and won't be changed.</Heading>
+        <Paragraph>You may need to reload Discord after editing your settings for them to apply.</Paragraph>
     </>,
     settings: definePluginSettings({
         discordStaff: {

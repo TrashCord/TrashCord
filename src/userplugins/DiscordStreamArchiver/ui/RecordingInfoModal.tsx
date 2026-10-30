@@ -5,7 +5,9 @@
  */
 
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { Button, SelectedChannelStore, Text, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { SelectedChannelStore, useEffect, useState } from "@webpack/common";
 
 import type { RecordingStatusSnapshot } from "../session/RecordingSession";
 import { settings } from "../settings";
@@ -18,8 +20,8 @@ import { describeStopCondition, joinNames, formatCaptureFps } from "./statusText
 function Row({ label, value }: { label: string; value: string }) {
     return (
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "3px 0" }}>
-            <Text variant="text-sm/semibold" style={{ color: "var(--header-secondary)" }}>{label}</Text>
-            <Text variant="text-sm/normal" style={{ textAlign: "right", wordBreak: "break-word" }}>{value}</Text>
+            <Text size="sm" weight="semibold" style={{ color: "var(--header-secondary)" }}>{label}</Text>
+            <Text size="sm" weight="normal" style={{ textAlign: "right", wordBreak: "break-word" }}>{value}</Text>
         </div>
     );
 }
@@ -41,21 +43,21 @@ function RecordingInfoModal({ modalProps, hooks }: { modalProps: any; hooks: Rec
     return (
         <ModalRoot {...modalProps} size={ModalSize.SMALL}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold">Stream Archiver</Text>
+                <Text size="xl" weight="semibold">Stream Archiver</Text>
             </ModalHeader>
             <ModalContent>
                 <div style={{ padding: "12px 0" }}>
                     {recording && status ? (
                         <>
-                            <Text variant="text-md/semibold" style={{ marginBottom: 8 }}>
+                            <Text size="md" weight="semibold" style={{ marginBottom: 8 }}>
                                 {status.conditional ? "🟡 Auto-recording" : "🔴 Recording"}
                             </Text>
                             {status.conditionNames.length > 0 && (
-                                <Text variant="text-md/semibold" style={{ marginBottom: 6, color: "var(--status-warning, #faa61a)" }}>
+                                <Text size="md" weight="semibold" style={{ marginBottom: 6, color: "var(--status-warning, #faa61a)" }}>
                                     {`Recording because of: ${joinNames(status.conditionNames)}`}
                                 </Text>
                             )}
-                            <Text variant="text-sm/normal" style={{ marginBottom: 12, color: "var(--text-muted)" }}>
+                            <Text size="sm" weight="normal" style={{ marginBottom: 12, color: "var(--text-muted)" }}>
                                 {describeStopCondition({
                                     trigger: status.trigger,
                                     continueAfterStreamEnds: status.continueAfterStreamEnds,
@@ -75,7 +77,7 @@ function RecordingInfoModal({ modalProps, hooks }: { modalProps: any; hooks: Rec
                         </>
                     ) : (
                         <>
-                            <Text variant="text-md/semibold" style={{ marginBottom: 8 }}>⚪ Not recording</Text>
+                            <Text size="md" weight="semibold" style={{ marginBottom: 8 }}>⚪ Not recording</Text>
                             <Row label="In a voice channel" value={inVoice ? "yes" : "no"} />
                             <Row label="Auto-record on join" value={settings.store.autoRecordOnJoin ? "on" : "off"} />
                             <Row label="Auto-record when you stream" value={settings.store.autoRecordOnSelfStream ? "on" : "off"} />
@@ -86,13 +88,13 @@ function RecordingInfoModal({ modalProps, hooks }: { modalProps: any; hooks: Rec
             </ModalContent>
             <ModalFooter>
                 {recording && status?.conditional && (
-                    <Button color={Button.Colors.GREEN} onClick={() => hooks.promote()}>Make permanent</Button>
+                    <Button variant="positive" onClick={() => hooks.promote()}>Make permanent</Button>
                 )}
                 {recording && (
-                    <Button color={Button.Colors.RED} onClick={() => hooks.stop()}>Stop</Button>
+                    <Button variant="dangerPrimary" onClick={() => hooks.stop()}>Stop</Button>
                 )}
                 {!recording && inVoice && (
-                    <Button color={Button.Colors.BRAND} onClick={() => {
+                    <Button variant="primary" onClick={() => {
                         const cid = (SelectedChannelStore as any).getVoiceChannelId?.();
                         if (cid) hooks.start(cid);
                     }}>Start</Button>

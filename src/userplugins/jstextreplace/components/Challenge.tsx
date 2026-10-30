@@ -8,7 +8,9 @@ import { ErrorCard } from "@components/ErrorCard";
 import { Link } from "@components/Link";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
-import { Forms, React, Text, TextInput, showToast, useState } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { React, TextInput, showToast, useState } from "@webpack/common";
 import challengeText from "file://../challenge.mjs";
 
 import { settings } from "..";
@@ -25,7 +27,7 @@ export function Challenge() {
             className={classes(Margins.top16, Margins.bottom16)}
             style={{ padding: "1em" }}
         >
-            <Forms.FormText>When using JSTextReplace, please review any rule that you paste from someone. This plugin allows arbitrary code execution. You are expected to understand JS code and not blindly add rules. You have been warned.
+            <Paragraph>When using JSTextReplace, please review any rule that you paste from someone. This plugin allows arbitrary code execution. You are expected to understand JS code and not blindly add rules. You have been warned.
                 <br /><br />
                 {
                     !reactiveSettings.hasDoneChallenge && <Text>
@@ -51,17 +53,17 @@ export function Challenge() {
                         (note: the month value is zero-based)
                     </Text>
                 }
-            </Forms.FormText>
+            </Paragraph>
             {
                 !reactiveSettings.hasDoneChallenge ? <TextInput placeholder="The answer to the above" style={{ marginTop: "15px" }} onChange={async value => {
                     if (value === solveChallenge([values[1], values[0], {}, values[2]])) {
                         settings.store.hasDoneChallenge = true;
                         showToast({ text: "You can now use the plugin.", variant: "success" });
                     }
-                }} /> : <Forms.FormText>You can now use the plugin as you have shown some understanding of JS. You are now on your own. <Link onClick={() => { settings.store.hasDoneChallenge = false; setExpanded(false); }}>
+                }} /> : <Paragraph>You can now use the plugin as you have shown some understanding of JS. You are now on your own. <Link onClick={() => { settings.store.hasDoneChallenge = false; setExpanded(false); }}>
                     Disable
                 </Link>
-                </Forms.FormText>
+                </Paragraph>
             }
         </ErrorCard>
     </>;

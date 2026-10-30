@@ -7,7 +7,8 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { getTheme, Theme } from "@utils/discord";
 import { Guild, RenderModalProps } from "@vencord/discord-types";
-import { Button, Checkbox, GuildRoleStore, GuildStore, Modal, openModal, React, RestAPI, SearchableSelect, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Checkbox, GuildRoleStore, GuildStore, Modal, openModal, React, RestAPI, SearchableSelect, UserStore } from "@webpack/common";
 import type { PointerEvent } from "react";
 
 import { CloneOptions } from "../types";
@@ -282,8 +283,8 @@ function CloneModalComponent({
 
                     {targetGuildId && (
                         <div className="vc-server-cloner-mode-buttons">
-                            <Button color={!resumeMode ? Button.Colors.BRAND : Button.Colors.PRIMARY} onClick={() => setResumeMode(false)}>Overwrite</Button>
-                            <Button color={resumeMode ? Button.Colors.GREEN : Button.Colors.PRIMARY} onClick={() => setResumeMode(true)}>Resume</Button>
+                            <Button variant={!resumeMode ? "primary" : "secondary"} onClick={() => setResumeMode(false)}>Overwrite</Button>
+                            <Button variant={resumeMode ? "positive" : "secondary"} onClick={() => setResumeMode(true)}>Resume</Button>
                         </div>
                     )}
 

@@ -16,7 +16,8 @@ import { sendMessage } from "@utils/discord";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, React, TextInput, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, TextInput, UserStore } from "@webpack/common";
 
 const MessageActions = findByPropsLazy("deleteMessage", "startEditMessage");
 
@@ -195,9 +196,8 @@ function StickyEntries() {
                         <Heading>Sticky {i + 1}</Heading>
                         <Button
                             onClick={() => removeEntry(entry.id, update)}
-                            look={Button.Looks.FILLED}
-                            color={Button.Colors.RED}
-                            size={Button.Sizes.SMALL}
+                            variant="dangerPrimary"
+                            size="small"
                         >
                             Delete
                         </Button>

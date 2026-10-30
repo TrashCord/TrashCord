@@ -6,7 +6,9 @@
 
 import { Logger } from "@utils/Logger";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot } from "@utils/modal";
-import { Button, Forms, TextArea, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { TextArea, useState } from "@webpack/common";
 
 import { classFactory, settings, SoundTrigger } from "../index";
 import { failToast, getUniqueTriggers, successToast, triggersAreUnique, validateAndFormatTrigger } from "../util";
@@ -17,7 +19,7 @@ export function ImportModal(props: ModalProps) {
     return (
         <ModalRoot {...props}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Import</Forms.FormTitle>
+                <Heading tag="h4">Import</Heading>
             </ModalHeader>
             <ModalContent>
                 <div style={{ padding: "10px" }}>

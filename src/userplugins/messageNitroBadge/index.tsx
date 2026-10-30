@@ -9,7 +9,8 @@ import managedStyle from "./style.css?managed";
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { FluxDispatcher as Flux, Forms } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
+import { FluxDispatcher as Flux } from "@webpack/common";
 
 
 const options = {
@@ -40,10 +41,10 @@ export default definePlugin({
     dependencies: ["Experiments"],
 
     settingsAboutComponent: () => <>
-        <Forms.FormText className="vc-plugin-messageNitroBadge-notice">
+        <Paragraph className="vc-plugin-messageNitroBadge-notice">
             Only shows Nitro Badge in servers <br />
             Doesnt show Nitro Badge for other people - ONLY YOURSELF
-        </Forms.FormText>
+        </Paragraph>
     </>,
 
     start: () => Flux.dispatch({ ...options, experimentBucket: Number(settings.store.experimentTreatment) }),

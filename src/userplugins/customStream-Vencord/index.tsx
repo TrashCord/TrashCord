@@ -13,7 +13,8 @@ import { Alerts } from "@webpack/common";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
-import { FluxDispatcher, Menu, React, Text, UserStore, useState, useEffect, useRef } from "@webpack/common";
+import { Text } from "@components/Text";
+import { FluxDispatcher, Menu, React, UserStore, useState, useEffect, useRef } from "@webpack/common";
 
 const PanelButton = findComponentByCodeLazy(".GREEN,positionKeyStemOverride:");
 const ChannelStoreMod = findByPropsLazy("getChannel", "getDMFromUserId");
@@ -788,7 +789,7 @@ function IntervalEditor({ seconds, custom, profileName }: { seconds: number; cus
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 6, background: "var(--background-secondary)" }}>
             <div style={row}>
-                <Text variant="text-sm/semibold" style={{ color: "var(--header-primary)" }}>Image every</Text>
+                <Text size="sm" weight="semibold" style={{ color: "var(--header-primary)" }}>Image every</Text>
                 <input
                     type="text"
                     inputMode="decimal"
@@ -986,7 +987,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
     return (
         <ModalRoot {...rootProps} size={ModalSize.LARGE}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Stream Preview</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Stream Preview</Text>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
             <ModalContent>
@@ -1023,7 +1024,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
 
                     <div style={{ padding: 8, borderRadius: 6, background: "var(--background-secondary)" }}>
                         <div style={{ ...row, marginBottom: naming ? 6 : 0 }}>
-                            <Text variant="text-sm/semibold" style={{ color: "var(--header-primary)" }}>Profiles {profileList.length}/{MAX_PROFILES}</Text>
+                            <Text size="sm" weight="semibold" style={{ color: "var(--header-primary)" }}>Profiles {profileList.length}/{MAX_PROFILES}</Text>
                             {profileList.map(x => (
                                 <Chip key={x.id} on={x.id === activeProfileId} label={`${x.name} - ${x.imageIds.length}`} onClick={() => switchTo(x.id)} />
                             ))}
@@ -1189,7 +1190,7 @@ function ImagePickerModal({ rootProps }: { rootProps: any; }) {
                         }}
                     />
                     <div style={{ position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "8px 0 4px", background: "var(--modal-background, var(--background-primary))" }}>
-                        <Text variant="text-xs/normal" style={{ color: "var(--text-muted)" }}>
+                        <Text size="xs" weight="normal" style={{ color: "var(--text-muted)" }}>
                             Click = Send Now | Drag = Reorder | Saved Locally
                         </Text>
                         <button type="button" onClick={rootProps.onClose} style={closeBtn}>Close</button>

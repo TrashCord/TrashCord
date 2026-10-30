@@ -10,7 +10,10 @@ import { FormSwitch } from "@components/FormSwitch";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { FluxDispatcher, Forms, React, Slider } from "@webpack/common";
+import { Divider } from "@components/Divider";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { FluxDispatcher, React, Slider } from "@webpack/common";
 
 const configModule = findByPropsLazy("getOutputVolume");
 
@@ -391,19 +394,19 @@ const _Slider = Slider as any;
 
 function SettingsPanel() {
   return (
-    <Forms.FormSection>
-      <Forms.FormTitle>Limiting Settings</Forms.FormTitle>
+    <section>
+      <Heading>Limiting Settings</Heading>
 
-      <Forms.FormDivider />
+      <Divider />
 
-      <Forms.FormText>
+      <Paragraph>
         This plugin automatically limits output volume to avoid sounds that are
         too loud.
-      </Forms.FormText>
+      </Paragraph>
 
-      <Forms.FormDivider />
+      <Divider />
 
-      <Forms.FormTitle>Maximum Volume (%)</Forms.FormTitle>
+      <Heading>Maximum Volume (%)</Heading>
       <_Slider
         initialValue={settings.store.maxVolume}
         onValueChange={(value: any) => (settings.store.maxVolume = value)}
@@ -412,11 +415,11 @@ function SettingsPanel() {
         markers={[50, 60, 70, 80, 90, 100]}
         stickToMarkers={false}
       />
-      <Forms.FormText>
+      <Paragraph>
         Maximum allowed volume: {settings.store.maxVolume}%
-      </Forms.FormText>
+      </Paragraph>
 
-      <Forms.FormTitle>Maximum Decibels (dB)</Forms.FormTitle>
+      <Heading>Maximum Decibels (dB)</Heading>
       <_Slider
         initialValue={settings.store.maxDecibels}
         onValueChange={(value: any) => (settings.store.maxDecibels = value)}
@@ -425,11 +428,11 @@ function SettingsPanel() {
         markers={[-20, -15, -10, -6, -3, 0]}
         stickToMarkers={false}
       />
-      <Forms.FormText>
+      <Paragraph>
         Maximum audio level: {settings.store.maxDecibels} dB
-      </Forms.FormText>
+      </Paragraph>
 
-      <Forms.FormDivider />
+      <Divider />
 
       <FormSwitch
         title="Enable volume limiting"
@@ -452,15 +455,15 @@ function SettingsPanel() {
         onChange={value => (settings.store.showVisualIndicator = value)}
       />
 
-      <Forms.FormDivider />
+      <Divider />
 
-      <Forms.FormText>
+      <Paragraph>
         <strong>Status:</strong> {limiterState.isActive ? "Active" : "Inactive"}
-      </Forms.FormText>
-      <Forms.FormText>
+      </Paragraph>
+      <Paragraph>
         <strong>Limitations applied:</strong> {limiterState.limitingCount}
-      </Forms.FormText>
-    </Forms.FormSection>
+      </Paragraph>
+    </section>
   );
 }
 

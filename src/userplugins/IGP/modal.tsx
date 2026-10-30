@@ -14,7 +14,9 @@ import {
     ModalRoot,
     openModal,
 } from "@utils/modal";
-import { Button, ChannelStore, Forms, React, SelectedChannelStore, showToast, TextArea, useEffect } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { ChannelStore, React, SelectedChannelStore, showToast, TextArea, useEffect } from "@webpack/common";
 
 import { encrypt } from "./index";
 
@@ -51,18 +53,18 @@ function Modal(props: ModalProps) {
     return (
         <ModalRoot {...props}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">PGP/GPG Message</Forms.FormTitle>
+                <Heading tag="h4">PGP/GPG Message</Heading>
             </ModalHeader>
 
             <ModalContent>
-                <Forms.FormTitle tag="h5">Message</Forms.FormTitle>
+                <Heading tag="h5">Message</Heading>
                 <TextArea
                     onChange={(e: string) => {
                         setMessage(e);
                     }}
                 />
 
-                <Forms.FormTitle tag="h5">Recipient public key</Forms.FormTitle>
+                <Heading tag="h5">Recipient public key</Heading>
                 <TextArea
                     value={pKey}
                     onChange={(e: string) => {
@@ -74,7 +76,7 @@ function Modal(props: ModalProps) {
             </ModalContent>
             <ModalFooter>
                 <Button
-                    color={Button.Colors.GREEN}
+                    variant="positive"
                     onClick={() => {
 
                         try {

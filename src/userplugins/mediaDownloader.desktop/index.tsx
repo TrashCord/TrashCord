@@ -17,7 +17,8 @@ import { Logger } from "@utils/Logger";
 import { openModal } from "@utils/modal";
 import definePlugin, { OptionType, PluginNative, ReporterTestable } from "@utils/types";
 import { Channel } from "@vencord/discord-types";
-import { Button, DraftType, FluxDispatcher, UploadHandler, UploadManager, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { DraftType, FluxDispatcher, UploadHandler, UploadManager, UserStore } from "@webpack/common";
 
 import { DependencyModal } from "./DependencyModal";
 

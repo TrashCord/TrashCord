@@ -6,7 +6,11 @@
 
 import { classNameFactory } from "@api/Styles";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot } from "@utils/modal";
-import { Button, Forms, Text, TextInput, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Divider } from "@components/Divider";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { TextInput, useEffect, useState } from "@webpack/common";
 
 import { checkPassword } from "../data";
 
@@ -55,31 +59,31 @@ export function PasswordModal({ channelId, type, callback, modalProps }: Props) 
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>{type}</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>{type}</Text>
             </ModalHeader>
 
             {/* form is here so when you press enter while in the text input it submits */}
             <form onSubmit={onSubmit}>
                 <ModalContent className={cl("content")}>
-                    <Forms.FormSection>
-                        <Forms.FormTitle>Password</Forms.FormTitle>
+                    <section>
+                        <Heading>Password</Heading>
                         <TextInput
                             type="password"
                             value={password}
                             onChange={e => setPassword(e)}
                         />
-                    </Forms.FormSection>
+                    </section>
                     {[ModalType.Lock, ModalType.Unlock].includes(type) && (
-                        <Forms.FormSection>
-                            <Forms.FormTitle>Confirm Password</Forms.FormTitle>
+                        <section>
+                            <Heading>Confirm Password</Heading>
                             <TextInput
                                 type="password"
                                 value={confirmPasswordValue}
                                 onChange={e => setConfirmPasswordValue(e)}
                             />
-                        </Forms.FormSection>
+                        </section>
                     )}
-                    <Forms.FormDivider {...({} as any)} />
+                    <Divider {...({} as any)} />
                     {error && <Text color="text-danger">{error}</Text>}
                 </ModalContent>
                 <ModalFooter>

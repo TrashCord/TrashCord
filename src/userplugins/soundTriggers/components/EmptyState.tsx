@@ -5,7 +5,7 @@
  */
 
 import { Card } from "@components/Card";
-import { Text } from "@webpack/common";
+import { Text } from "@components/Text";
 
 interface EmptyStateProps {
     text: string;

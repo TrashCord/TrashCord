@@ -6,7 +6,7 @@
 
 import { copyWithToast } from "@utils/discord";
 import type { Channel, Guild } from "@vencord/discord-types";
-import { ChannelStore, Forms, React, TextInput, useMemo, useState } from "@webpack/common";
+import { ChannelStore, React, TextInput, useMemo, useState } from "@webpack/common";
 
 const TYPE_LABEL: Record<number, string> = {
     0: "text", 2: "voice", 4: "category", 5: "announcement",
@@ -76,7 +76,7 @@ export function ChannelsTab({ guild }: { guild: Guild; }) {
 
     return (
         <div className="gt-channels">
-            <Forms.FormSection title={`Channels (${channels.length})`}>
+            <section title={`Channels (${channels.length})`}>
                 <TextInput
                     placeholder="Filter channels…"
                     value={filter}
@@ -119,7 +119,7 @@ export function ChannelsTab({ guild }: { guild: Guild; }) {
                         );
                     })}
                 </div>
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

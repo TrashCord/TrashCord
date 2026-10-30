@@ -7,7 +7,9 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import { closeAllModals,ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { Button, Forms, SelectedChannelStore, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { SelectedChannelStore, TextInput } from "@webpack/common";
 
 const cl = classNameFactory("vc-membercount-");
 import "./style.css";
@@ -21,12 +23,12 @@ export function showPrefefinedDurationModal(duration: string, id: string) {
             <ErrorBoundary>
                 <ModalRoot {...props} size={ModalSize.DYNAMIC} fullscreenOnMobile={true} >
                     <ModalHeader className={cl("header")}>
-                        <Forms.FormText style={{ fontSize: "1.2rem", fontWeight: "bold", marginRight: "7px" }}>Mute user</Forms.FormText>
+                        <Paragraph style={{ fontSize: "1.2rem", fontWeight: "bold", marginRight: "7px" }}>Mute user</Paragraph>
                     </ModalHeader>
                     <ModalContent>
                         <TextInput onChange={v => { reason = v; }} placeholder="Reason" className="vc-punishcommands-reason" />
                         <div className="vc-punishcommands-button-container">
-                            <Button color={Button.Colors.RED} onClick={() => {
+                            <Button variant="dangerPrimary" onClick={() => {
                                 sendMessage(SelectedChannelStore.getChannelId(), { content: `+Cg ${id} ${duration} ${reason}` });
                                 closeAllModals();
                             }}>Mute</Button>
@@ -46,13 +48,13 @@ export function showCustomDurationModal(id: string) {
             <ErrorBoundary>
                 <ModalRoot {...props} size={ModalSize.DYNAMIC} fullscreenOnMobile={true} >
                     <ModalHeader className={cl("header")}>
-                        <Forms.FormText style={{ fontSize: "1.2rem", fontWeight: "bold", marginRight: "7px" }}>Mute user</Forms.FormText>
+                        <Paragraph style={{ fontSize: "1.2rem", fontWeight: "bold", marginRight: "7px" }}>Mute user</Paragraph>
                     </ModalHeader>
                     <ModalContent>
                         <TextInput onChange={v => { duration = v; }} placeholder="Duration (as written in the command)" className="vc-punishcommands-duration-c" />
                         <TextInput onChange={v => { reason = v; }} placeholder="Reason" className="vc-punishcommands-reason-c" />
                         <div className="vc-punishcommands-button-container">
-                            <Button color={Button.Colors.RED} onClick={() => {
+                            <Button variant="dangerPrimary" onClick={() => {
                                 if (pendingSend) return;
                                 pendingSend = true;
                                 sendMessage(SelectedChannelStore.getChannelId(), { content: `+Cg ${id} ${duration} ${reason}` });

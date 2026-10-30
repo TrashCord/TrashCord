@@ -9,7 +9,9 @@ import "./styles.css";
 import { Flex } from "@components/Flex";
 import { copyToClipboard } from "@utils/clipboard";
 import { openModal } from "@utils/modal";
-import { Button, Forms } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Divider } from "@components/Divider";
+import { Heading } from "@components/Heading";
 
 import { classFactory, settings } from "../index";
 import { successToast } from "../util";
@@ -55,11 +57,11 @@ export function SoundTriggerSettings() {
             </Flex>
             <Flex flexDirection="column" style={{ gap: "6px" }}>
                 <Flex flexDirection="row" style={{ flexGrow: 1, alignItems: "center" }}>
-                    <Forms.FormTitle tag="h5" style={{ flex: 1 }}>Pattern</Forms.FormTitle>
-                    <Forms.FormTitle tag="h5" style={{ flex: 1 }}>Sound</Forms.FormTitle>
+                    <Heading tag="h5" style={{ flex: 1 }}>Pattern</Heading>
+                    <Heading tag="h5" style={{ flex: 1 }}>Sound</Heading>
                     <div className={classFactory("rounded-button")} />
                 </Flex>
-                <Forms.FormDivider />
+                <Divider />
                 {settingsExist && settings.store.soundTriggers.length > 0
                     ? settings.store.soundTriggers.map((trigger, i) => (
                         <SoundTriggerEntry

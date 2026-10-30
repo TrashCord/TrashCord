@@ -11,7 +11,8 @@ import { Paragraph } from "@components/Paragraph";
 import { Devs } from "@utils/constants";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, ChannelStore, Constants, PermissionsBits, PermissionStore, React, RestAPI, TextInput, showToast } from "@webpack/common";
+import { Button } from "@components/Button";
+import { ChannelStore, Constants, PermissionsBits, PermissionStore, React, RestAPI, TextInput, showToast } from "@webpack/common";
 
 const BUTTONS_KEY = "CustomReactionButtons_buttons";
 interface ReactionButton {
@@ -129,9 +130,8 @@ function ReactionButtonsEditor() {
                         <Paragraph>#{index + 1}</Paragraph>
                         <Button
                             onClick={() => removeButton(btn.id)}
-                            look={Button.Looks.FILLED}
-                            color={Button.Colors.RED}
-                            size={Button.Sizes.MIN}
+                            variant="dangerPrimary"
+                            size="min"
                         >
                             Remove
                         </Button>

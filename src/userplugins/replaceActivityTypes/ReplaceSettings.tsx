@@ -9,7 +9,10 @@ import { Card } from "@components/Card";
 import { Margins } from "@utils/margins";
 import { identity } from "@utils/misc";
 import { findByCodeLazy } from "@webpack";
-import { Forms, React, Select, SnowflakeUtils, Switch } from "@webpack/common";
+import { FormSwitch } from "@components/FormSwitch";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { React, Select, SnowflakeUtils } from "@webpack/common";
 
 import { makeEmptyAppId } from ".";
 import { ActivityType, RpcApp, SettingsProps } from "./types";
@@ -40,18 +43,18 @@ function isValidSnowflake(v: string) {
 export function ReplaceTutorial() {
     return (
         <>
-            <Forms.FormTitle tag="h3">How to get an Application ID</Forms.FormTitle>
-            <Forms.FormText>
+            <Heading tag="h3">How to get an Application ID</Heading>
+            <Paragraph>
                 The method of getting an app's id will differ depending on what app it is. If the source code is available you can most likely find it inside the app's repository.
-            </Forms.FormText>
-            <Forms.FormText>
+            </Paragraph>
+            <Paragraph>
                 Another method is to start the app in question, then open Discord's console and look for a log from RPCServer saying something like
                 <code>"cmd: 'SET_ACTIVITY'"</code> with your app's name somewhere inside
-            </Forms.FormText>
+            </Paragraph>
 
-            <Forms.FormTitle tag="h3" style={{ color: "var(--text-danger)", textAlign: "center" }}>
+            <Heading tag="h3" style={{ color: "var(--text-danger)", textAlign: "center" }}>
                 Note: ActivityTypes other than Playing will only show timestamps on Mobile. It's a Discord issue.
-            </Forms.FormTitle>
+            </Heading>
         </>
     );
 }
@@ -80,17 +83,14 @@ export function ReplaceSettings({ appIds, update, save }: SettingsProps) {
             {
                 appIds.map((setting, i) =>
                     <Card style={{ padding: "1em 1em 0" }}>
-                        <Switch
+                        <FormSwitch
                             value={setting.enabled}
                             onChange={value => {
                                 onChange(value, i, "enabled");
                             }}
                             className={Margins.bottom16}
-                            hideBorder={true}
-                        >
-                            {setting.appName}
-                        </Switch>
-                        <Forms.FormTitle>Application ID</Forms.FormTitle>
+                            hideBorder={true} title={<>{setting.appName}</>} />
+                        <Heading>Application ID</Heading>
                         <CheckedTextInput
                             value={setting.appId}
                             onChange={async v => {
@@ -102,7 +102,7 @@ export function ReplaceSettings({ appIds, update, save }: SettingsProps) {
                         />
                         {setting.activityType === ActivityType.STREAMING &&
                             <>
-                                <Forms.FormTitle>Stream URL</Forms.FormTitle>
+                                <Heading>Stream URL</Heading>
                                 <CheckedTextInput
                                     value={setting.streamUrl}
                                     onChange={async v => {
@@ -111,7 +111,7 @@ export function ReplaceSettings({ appIds, update, save }: SettingsProps) {
                                     validate={st => !/https?:\/\/(www\.)?(twitch\.tv|youtube\.com)\/\w+/.test(st) && "Only Twitch and Youtube urls will work." || true}
                                 />
                             </>}
-                        <Forms.FormTitle>New activity type</Forms.FormTitle>
+                        <Heading>New activity type</Heading>
                         <Select
                             options={[
                                 { label: "Playing", value: ActivityType.PLAYING },
@@ -127,16 +127,13 @@ export function ReplaceSettings({ appIds, update, save }: SettingsProps) {
                             isSelected={value => setting.activityType === value}
                             serialize={identity}
                         />
-                        <Switch
+                        <FormSwitch
                             value={setting.swapNameAndDetails}
                             onChange={value => {
                                 onChange(value, i, "swapNameAndDetails");
                             }}
                             className={Margins.bottom16}
-                            hideBorder={true}
-                        >
-                            Swap presence name and details
-                        </Switch>
+                            hideBorder={true} title="Swap presence name and details" />
                     </Card>
                 )
             }

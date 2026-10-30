@@ -10,7 +10,9 @@ import {
     closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, openModal
 } from "@utils/modal";
 import { LazyComponent, useAwaiter } from "@utils/react";
-import { Alerts, Avatar, Button, ContextMenuApi, Menu, Popout, React, RelationshipStore, Select, Text, TextArea, TextInput, Tooltip, useCallback, useMemo, useReducer, useRef, UserStore, UserUtils, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { Alerts, Avatar, ContextMenuApi, Menu, Popout, React, RelationshipStore, Select, TextArea, TextInput, Tooltip, useCallback, useMemo, useReducer, useRef, UserStore, UserUtils, useState } from "@webpack/common";
 
 import { cacheUsers, deleteUserNotes, getRunning, saveUserNotes, setupStates, stopCacheProcess, usersCache, usersNotes as usersNotesMap } from "../data";
 import settings from "../settings";
@@ -104,7 +106,7 @@ export function NotesDataModal({ modalProps, close }: {
     return (
         <ModalRoot className={cl("root")} {...modalProps as any}>
             <ModalHeader className={cl("header")} style={{ gap: "8px" }}>
-                <Text className={cl("header-text")} variant="heading-lg/semibold">Notes Data</Text>
+                <Text className={cl("header-text")} size="xl" weight="semibold">Notes Data</Text>
                 <TextInput className={cl("header-input")} value={searchValue.query} onChange={onSearch} placeholder="Filter Notes (ID/Notes and Global/Username if cached)" />
                 <div className={cl("header-user-type")}>
                     <Select
@@ -136,15 +138,15 @@ export function NotesDataModal({ modalProps, close }: {
                         });
 
                         return <div className={cl("cache-container")}>
-                            <Text className={cl("cache-header")} variant="heading-lg/semibold">
+                            <Text className={cl("cache-header")} size="xl" weight="semibold">
                                 Fetch the profile of all users to filter notes by global name or username
                             </Text>
                             <div>
                                 <div className={cl("cache-buttons")}>
                                     <Button
                                         className={cl("cache-cache")}
-                                        size={Button.Sizes.NONE}
-                                        color={Button.Colors.GREEN}
+                                        size="iconOnly"
+                                        variant="positive"
                                         disabled={isRunning}
                                         onClick={() => cacheUsers()}
                                     >
@@ -154,8 +156,8 @@ export function NotesDataModal({ modalProps, close }: {
                                     </Button>
                                     <Button
                                         className={cl("cache-cache-missing")}
-                                        size={Button.Sizes.NONE}
-                                        color={(Button.Colors as Record<string, string>).YELLOW}
+                                        size="iconOnly"
+                                        variant="secondary"
                                         disabled={isRunning || cacheStatus === 0 || cacheStatus === usersNotesMap.size}
                                         onClick={() => cacheUsers(true)}
                                     >
@@ -163,8 +165,8 @@ export function NotesDataModal({ modalProps, close }: {
                                     </Button>
                                     <Button
                                         className={cl("cache-stop")}
-                                        size={Button.Sizes.NONE}
-                                        color={Button.Colors.RED}
+                                        size="iconOnly"
+                                        variant="dangerPrimary"
                                         disabled={!isRunning}
                                         onClick={() => {
                                             stopCacheProcess();
@@ -187,7 +189,7 @@ export function NotesDataModal({ modalProps, close }: {
                                     }
                                 </div>
                             </div>
-                            <Text className={cl("cache-footer")} variant="heading-md/normal">
+                            <Text className={cl("cache-footer")} size="lg" weight="normal">
                                 Please note that during this process, Discord may not properly load some content, such as messages, images or user profiles
                             </Text>
                         </div>;
@@ -197,8 +199,8 @@ export function NotesDataModal({ modalProps, close }: {
                         (_, { isShown }) =>
                             <Button
                                 className={cl("header-cache")}
-                                size={Button.Sizes.NONE}
-                                color={Button.Colors.PRIMARY}
+                                size="iconOnly"
+                                variant="secondary"
                                 onClick={() => setShouldShow(!isShown)}
                             >
                                 Cache
@@ -256,7 +258,7 @@ function NotesDataContentFactory({ visibleNotes, canLoadMore, loadMore, refreshN
                 canLoadMore &&
                 <Button
                     className={cl("load-more")}
-                    size={Button.Sizes.NONE}
+                    size="iconOnly"
                     onClick={() => loadMore()}
                 >
                     Load More
@@ -271,7 +273,7 @@ const NotesDataContent = LazyComponent(() => React.memo(NotesDataContentFactory)
 function NoNotes() {
     return (
         <div className={cl("no-notes")} style={{ textAlign: "center" }}>
-            <Text variant="text-lg/normal">
+            <Text size="lg" weight="normal">
                 No Notes.
             </Text>
         </div>
@@ -378,9 +380,9 @@ function NotesDataRow({ userId, userNotes: userNotesArg, refreshNotesData }: {
                     />
             }
             <div className={cl("user-info")}>
-                <Text className={cl("user-info-globalname")} variant="text-lg/bold">{userInfo.globalName}</Text>
-                <Text className={cl("user-info-username")} variant="text-md/normal">{userInfo.username}</Text>
-                <Text className={cl("user-info-id")} variant="text-md/normal">{userInfo.id}</Text>
+                <Text className={cl("user-info-globalname")} size="lg" weight="bold">{userInfo.globalName}</Text>
+                <Text className={cl("user-info-username")} size="md" weight="normal">{userInfo.username}</Text>
+                <Text className={cl("user-info-id")} size="md" weight="normal">{userInfo.id}</Text>
             </div>
             <div className={cl("user-notes-container")}>
                 <TextArea
@@ -395,8 +397,8 @@ function NotesDataRow({ userId, userNotes: userNotesArg, refreshNotesData }: {
                         {({ onMouseLeave, onMouseEnter }) => (
                             <Button
                                 className={cl("user-actions-save")}
-                                size={Button.Sizes.NONE}
-                                color={Button.Colors.GREEN}
+                                size="iconOnly"
+                                variant="positive"
                                 onClick={() => {
                                     saveUserNotes(userId, userNotes);
                                     refreshNotesData();
@@ -412,13 +414,13 @@ function NotesDataRow({ userId, userNotes: userNotesArg, refreshNotesData }: {
                         {({ onMouseLeave, onMouseEnter }) => (
                             <Button
                                 className={cl("user-actions-delete")}
-                                size={Button.Sizes.NONE}
-                                color={Button.Colors.RED}
+                                size="iconOnly"
+                                variant="dangerPrimary"
                                 onClick={() => {
                                     Alerts.show({
                                         title: "Delete Notes",
                                         body: `Are you sure you want to delete notes for ${pending ? userId : `${userInfo!.globalName} (${userId})`}?`,
-                                        confirmColor: Button.Colors.RED,
+                                        confirmColor: "danger",
                                         confirmText: "Delete",
                                         cancelText: "Cancel",
                                         onConfirm: () => {
@@ -438,8 +440,8 @@ function NotesDataRow({ userId, userNotes: userNotesArg, refreshNotesData }: {
                         {({ onMouseLeave, onMouseEnter }) => (
                             <Button
                                 className={cl("user-actions-refresh")}
-                                size={Button.Sizes.NONE}
-                                color={Button.Colors.TRANSPARENT}
+                                size="iconOnly"
+                                variant="none"
                                 onClick={() => setUserNotes(userNotesArg)}
                                 onMouseLeave={onMouseLeave}
                                 onMouseEnter={onMouseEnter}
@@ -452,8 +454,8 @@ function NotesDataRow({ userId, userNotes: userNotesArg, refreshNotesData }: {
                         {({ onMouseLeave, onMouseEnter }) => (
                             <Button
                                 className={cl("user-actions-popup")}
-                                size={Button.Sizes.NONE}
-                                color={Button.Colors.PRIMARY}
+                                size="iconOnly"
+                                variant="secondary"
                                 disabled={pending}
                                 onClick={async () => {
                                     const user = UserStore.getUser(userId);

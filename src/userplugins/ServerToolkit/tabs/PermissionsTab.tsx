@@ -5,7 +5,7 @@
  */
 
 import { Guild } from "@vencord/discord-types";
-import { Forms, GuildMemberStore, GuildRoleStore, PermissionsBits, React, useMemo, UserStore } from "@webpack/common";
+import { GuildMemberStore, GuildRoleStore, PermissionsBits, React, useMemo, UserStore } from "@webpack/common";
 
 export const PERM_LABELS: Record<string, string> = {
     ADMINISTRATOR: "Administrator",
@@ -58,15 +58,15 @@ export function PermissionsTab({ guild }: { guild: Guild; }) {
 
     return (
         <div className="gt-perms">
-            <Forms.FormSection title={`Your role in ${guild.name}`}>
+            <section title={`Your role in ${guild.name}`}>
                 <div className="gt-perm-summary">
                     {isOwner && <span className="gt-pill gt-pill-good">Owner</span>}
                     {isAdmin && !isOwner && <span className="gt-pill gt-pill-good">Administrator</span>}
                     {!isOwner && !isAdmin && <span className="gt-pill">Regular member</span>}
                 </div>
-            </Forms.FormSection>
+            </section>
 
-            <Forms.FormSection title="Permission breakdown">
+            <section title="Permission breakdown">
                 <div className="gt-perm-grid">
                     {Object.entries(PERM_LABELS).map(([key, label]) => {
                         const bit = (PermissionsBits as any)?.[key];
@@ -79,7 +79,7 @@ export function PermissionsTab({ guild }: { guild: Guild; }) {
                         );
                     })}
                 </div>
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

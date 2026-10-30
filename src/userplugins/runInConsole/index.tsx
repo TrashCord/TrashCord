@@ -10,7 +10,9 @@ import { Logger } from "@utils/Logger";
 import { classes } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { Button, Forms, showToast, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { showToast, useEffect, useState } from "@webpack/common";
 
 import style from "./style.css?managed";
 
@@ -34,9 +36,9 @@ function EditCodeModal({ rootProps, close, value }: { rootProps: ModalProps, clo
     return (
         <ModalRoot {...rootProps} className="vc-ric-modal" size={ModalSize.LARGE}>
             <ModalHeader className={cl("modal-header")}>
-                <Forms.FormTitle tag="h2">
+                <Heading tag="h2">
                     Edit Code & Run
-                </Forms.FormTitle>
+                </Heading>
 
                 <ModalCloseButton onClick={close} />
             </ModalHeader>

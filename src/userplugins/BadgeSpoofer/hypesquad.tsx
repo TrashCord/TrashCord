@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Forms, React, RestAPI, showToast, Text, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { React, RestAPI, showToast, UserStore } from "@webpack/common";
 
 export const HOUSE_FLAGS = { 1: 64, 2: 128, 3: 256 } as const;
 
@@ -58,7 +61,7 @@ export function HypeSquadPicker() {
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <Forms.FormTitle tag="h5" style={{ margin: 0 }}>HYPESQUAD HOUSE</Forms.FormTitle>
+            <Heading tag="h5" style={{ margin: 0 }}>HYPESQUAD HOUSE</Heading>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
                 {HOUSES.map(h => {
                     const isSelected = selectedHouse === h.id;
@@ -107,7 +110,7 @@ export function HypeSquadPicker() {
                                 style={{ width: 28, height: 28, filter: isSelected ? "none" : "grayscale(0.4)" }}
                             />
                             <Text
-                                variant="text-sm/semibold"
+                                size="sm" weight="semibold"
                                 color={isSelected ? "header-primary" : "text-muted"}
                             >
                                 {h.name}
@@ -117,10 +120,10 @@ export function HypeSquadPicker() {
                 })}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={() => handleClick(0)}>
+                <Button size="small" variant="dangerPrimary" onClick={() => handleClick(0)}>
                     Leave HypeSquad
                 </Button>
-                <Text variant="text-xs/normal" color="text-muted">
+                <Text size="xs" weight="normal" color="text-muted">
                     Removes the badge from your account (0 = None).
                 </Text>
             </div>

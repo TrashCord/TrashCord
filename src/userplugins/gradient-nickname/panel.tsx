@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, React, showToast, Tooltip, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, showToast, Tooltip, UserStore } from "@webpack/common";
 import { loadConfig, saveConfig, emit as emitStorage } from "./storage";
 import { getPrefs, updatePrefs, subscribePrefs } from "./pluginState";
 import { encode } from "./encoding";
@@ -1153,9 +1154,8 @@ function CopyBioTagButton({ cfg }: { cfg: any }) {
         <Button
             {...extraProps}
             onClick={onCopy}
-            color={copied ? Button.Colors.GREEN : Button.Colors.BRAND}
-            size={Button.Sizes.SMALL}
-            look={Button.Looks.FILLED}
+            variant={copied ? "positive" : "primary"}
+            size="small"
         >
             {copied ? "Copied ✓" : "Copy bio tag"}
         </Button>

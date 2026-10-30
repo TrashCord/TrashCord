@@ -10,7 +10,9 @@ import { ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, Mod
 import { useAwaiter } from "@utils/react";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, GuildMemberCountStore, GuildMemberStore, GuildStore, PermissionsBits, PermissionStore, RelationshipStore, RestAPI, SnowflakeUtils, Text, useEffect, UserStore, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { GuildMemberCountStore, GuildMemberStore, GuildStore, PermissionsBits, PermissionStore, RelationshipStore, RestAPI, SnowflakeUtils, useEffect, UserStore, useState } from "@webpack/common";
 
 import style from "./style.css?managed";
 
@@ -23,7 +25,7 @@ function InfoWithIcon(props) {
     return (
         <div className={cl("infowithicon")}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d={svg} /></svg>
-            <Text color="header-primary" variant="heading-md/semibold">{children}</Text>
+            <Text color="header-primary" size="lg" weight="semibold">{children}</Text>
         </div>
     );
 }
@@ -100,7 +102,7 @@ function PruneModal(props: ModalProps) {
     return (
         <ModalRoot {...props} size={ModalSize.MEDIUM}>
             <ModalHeader separator={false}>
-                <Text color="header-primary" variant="heading-lg/semibold" tag="h1" style={{ flexGrow: 1 }}>
+                <Text color="header-primary" size="xl" weight="semibold" tag="h1" style={{ flexGrow: 1 }}>
                     Server Prune ({index + 1}/{joinedServers.length})
                 </Text>
                 <ModalCloseButton onClick={props.onClose} />
@@ -108,8 +110,8 @@ function PruneModal(props: ModalProps) {
             <ModalContent scrollbarType="none">
                 <ServerInfoComponent server={joinedServers[index]} messages={messages} recentMessages={recentMessages} />
                 <div className={cl("buttongroup")}>
-                    <Button onClick={() => ProcessNext(false)} disabled={!waited} color={Button.Colors.GREEN}>Keep</Button>
-                    <Button onClick={() => ProcessNext(true)} disabled={!waited} color={Button.Colors.RED}>Leave</Button>
+                    <Button onClick={() => ProcessNext(false)} disabled={!waited} variant="positive">Keep</Button>
+                    <Button onClick={() => ProcessNext(true)} disabled={!waited} variant="dangerPrimary">Leave</Button>
                 </div>
             </ModalContent>
         </ModalRoot>

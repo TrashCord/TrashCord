@@ -9,7 +9,9 @@ import { Devs } from "@utils/constants";
 import { getTheme, insertTextIntoChatInputBox, Theme } from "@utils/discord";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { Button, Forms, Select, TextInput, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Select, TextInput, useState } from "@webpack/common";
 
 const Formats = [
     {
@@ -121,15 +123,15 @@ function PickerModal({ rootProps, close }: { rootProps: ModalProps, close(): voi
     return (
         <ModalRoot {...rootProps}>
             <ModalHeader>
-                <Forms.FormTitle tag="h2">
+                <Heading tag="h2">
                     Insert Colored Text
-                </Forms.FormTitle>
+                </Heading>
 
                 <ModalCloseButton onClick={close} />
             </ModalHeader>
 
             <ModalContent>
-                <Forms.FormTitle>Text</Forms.FormTitle>
+                <Heading>Text</Heading>
                 <TextInput
                     type="text"
                     onChange={v => setValue(v)}
@@ -138,7 +140,7 @@ function PickerModal({ rootProps, close }: { rootProps: ModalProps, close(): voi
                     }}
                 />
 
-                <Forms.FormTitle>Format</Forms.FormTitle>
+                <Heading>Format</Heading>
                 <Select
                     options={
                         Formats.map(m => ({
@@ -150,7 +152,7 @@ function PickerModal({ rootProps, close }: { rootProps: ModalProps, close(): voi
                     select={v => setFormat(v)}
                     serialize={v => v}
                 />
-                <Forms.FormTitle>Text Color</Forms.FormTitle>
+                <Heading>Text Color</Heading>
                 <Select
                     options={
                         TextColors.map(m => ({
@@ -162,7 +164,7 @@ function PickerModal({ rootProps, close }: { rootProps: ModalProps, close(): voi
                     select={v => setTextColor(v)}
                     serialize={v => v}
                 />
-                <Forms.FormTitle>Background Color</Forms.FormTitle>
+                <Heading>Background Color</Heading>
                 <Select
                     options={
                         BackgroundColors.map(m => ({

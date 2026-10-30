@@ -15,7 +15,8 @@ import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, PluginSettingComponentProps } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
 import { Avatar, ChannelStore, FluxDispatcher, IconUtils, React, RelationshipStore, Select, SelectedChannelStore, showToast, UploadHandler, useEffect, UserStore, useState } from "@webpack/common";
-import { Button, SearchableSelect, TextInput } from "@webpack/common/components";
+import { Button } from "@components/Button";
+import { SearchableSelect, TextInput } from "@webpack/common/components";
 
 import { checkOutput, getMicLabel, getRecordingStart, isCurrentlyRecording, onSaved, setLevels, startRecording, startReplay, stopAll, stopRecording, testMic } from "./recorder";
 import { buildClip, isRewinding, setRewindSeconds } from "./rewind";
@@ -193,11 +194,11 @@ function deviceSelector(key: "micDevice" | "playbackDevice", title: string, def:
                                 : "Default is the device selected in Discord. Test plays back 4 seconds of your mic with the current settings."}
                         </div>
                         {playback ? (
-                            <Button size={Button.Sizes.SMALL} onClick={() => { void getNative()?.openSoundSettings?.(); }}>
+                            <Button size="small" onClick={() => { void getNative()?.openSoundSettings?.(); }}>
                                 Windows sound
                             </Button>
                         ) : (
-                            <Button size={Button.Sizes.SMALL} disabled={busyTest} onClick={runTest}>
+                            <Button size="small" disabled={busyTest} onClick={runTest}>
                                 Test
                             </Button>
                         )}
@@ -319,7 +320,7 @@ function folderSelector(key: "replayFolder" | "recordFolder" | "autoFolder", tit
                             />
                         </div>
                         <Button
-                            size={Button.Sizes.SMALL}
+                            size="small"
                             onClick={async () => {
                                 try {
                                     const dir = await getNative()?.pickDirectory?.();

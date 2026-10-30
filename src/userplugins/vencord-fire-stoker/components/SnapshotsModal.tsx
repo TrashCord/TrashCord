@@ -9,7 +9,9 @@
 
 import { classNameFactory } from "@api/Styles";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { Forms, ScrollerThin, Text } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { ScrollerThin } from "@webpack/common";
 
 import { lastKnownUsers } from "../store";
 import { ProfileCard } from "./ProfileCard";
@@ -27,15 +29,15 @@ export function SnapshotsModal({ modalProps, userId }: { modalProps: ModalProps;
     return (
         <ModalRoot {...modalProps} size={ModalSize.LARGE} className={cl("root") + " firestoker-modal-root"}>
             <ModalHeader className={cl("head")}>
-                <Text variant="heading-lg/semibold">{title}</Text>
+                <Text size="xl" weight="semibold">{title}</Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
             <ModalContent className={cl("contents") + " firestoker-modal-contents"}>
                 <div style={{ padding: "16px 0" }}>
                     {!userId && (
-                        <Forms.FormText style={{ marginBottom: "16px" }}>
+                        <Paragraph style={{ marginBottom: "16px" }}>
                             Currently tracking {snapshots.length} user profiles. These are the latest snapshots used for change detection.
-                        </Forms.FormText>
+                        </Paragraph>
                     )}
 
                     {snapshots.length > 0 ? (
@@ -51,7 +53,7 @@ export function SnapshotsModal({ modalProps, userId }: { modalProps: ModalProps;
                             ))}
                         </ScrollerThin>
                     ) : (
-                        <Forms.FormText>No profile snapshots found.</Forms.FormText>
+                        <Paragraph>No profile snapshots found.</Paragraph>
                     )}
                 </div>
             </ModalContent>

@@ -11,7 +11,8 @@ import { copyWithToast } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import definePlugin from "@utils/types";
 import { ProfileEffect, User } from "@vencord/discord-types";
-import { Button, showToast, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { showToast, UserStore } from "@webpack/common";
 
 import style from "./index.css?managed";
 import { Decoration } from "./lib/api";
@@ -391,8 +392,8 @@ export default definePlugin({
                 const colorString = encode(primary, accent);
                 copyWithToast(colorString);
             }}
-            color={Button.Colors.PRIMARY}
-            size={Button.Sizes.XLARGE}
+            variant="secondary"
+            size="large"
             className={Margins.left16}
         >Copy 3y3
         </Button >;

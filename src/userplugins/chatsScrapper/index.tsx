@@ -10,7 +10,8 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, ChannelStore, ContextMenuApi, Menu, React, RestAPI, showToast, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { ChannelStore, ContextMenuApi, Menu, React, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     location: {
@@ -228,7 +229,7 @@ function WhitelistModal({ modalProps }: { modalProps: any; }) {
                                     fontSize: "14px"
                                 }}>{label}</div>
                                 <Button
-                                    size={Button.Sizes.SMALL}
+                                    size="small"
                                     onClick={() => setWl(uniq([...wl, recipientId]))}
                                     disabled={!recipientId}
                                     style={{
@@ -265,7 +266,7 @@ function WhitelistModal({ modalProps }: { modalProps: any; }) {
                         }}
                     >Save</Button>
                     <Button
-                        color={Button.Colors.RED}
+                        variant="dangerPrimary"
                         onClick={start}
                         style={{
                             background: "var(--button-danger-background)",

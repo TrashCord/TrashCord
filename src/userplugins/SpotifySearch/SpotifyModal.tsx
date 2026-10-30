@@ -5,7 +5,10 @@
  */
 
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalCloseButton, ModalSize } from "@utils/modal";
-import { Button, Forms, Text, useEffect, useRef, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { useEffect, useRef, useState } from "@webpack/common";
 import { SpotifyTrack } from "./api";
 import spotifyLogoBase64 from "file://logo/Spotify_Primary_Logo_RGB_White.png?base64";
 
@@ -111,16 +114,16 @@ export function SpotifyModal({ rootProps, tracks, onPick }: Props) {
                 onKeyDownCapture={handleKeyDownCapture}
             >
                 <ModalHeader>
-                    <Forms.FormTitle tag="h2" style={{ margin: 0, flex: 1 }}>
+                    <Heading tag="h2" style={{ margin: 0, flex: 1 }}>
                         Spotify — pick a track
-                    </Forms.FormTitle>
+                    </Heading>
                     <ModalCloseButton onClick={rootProps.onClose} />
                 </ModalHeader>
 
                 <ModalContent>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 0" }}>
                         {tracks.length === 0 && (
-                            <Text variant="text-md/normal">No tracks found.</Text>
+                            <Text size="md" weight="normal">No tracks found.</Text>
                         )}
                         {tracks.map((track, i) => (
                             <div
@@ -135,7 +138,7 @@ export function SpotifyModal({ rootProps, tracks, onPick }: Props) {
                                 }}
                             >
                                 <Text
-                                    variant="text-sm/semibold"
+                                    size="sm" weight="semibold"
                                     style={{
                                         color: "var(--text-muted)",
                                         minWidth: "20px",
@@ -170,8 +173,8 @@ export function SpotifyModal({ rootProps, tracks, onPick }: Props) {
                                     />
                                 </div>
                                 <Button
-                                    size={Button.Sizes.SMALL}
-                                    color={Button.Colors.GREEN}
+                                    size="small"
+                                    variant="positive"
                                     onClick={() => {
                                         onPick(track);
                                         rootProps.onClose();
@@ -193,8 +196,7 @@ export function SpotifyModal({ rootProps, tracks, onPick }: Props) {
                         gap: "8px",
                     }}>
                         <Button
-                            color={Button.Colors.PRIMARY}
-                            look={Button.Looks.LINK}
+                            variant="secondary"
                             onClick={rootProps.onClose}
                         >
                             Cancel

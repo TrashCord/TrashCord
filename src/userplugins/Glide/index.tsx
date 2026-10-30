@@ -8,7 +8,9 @@ import { definePluginSettings, Settings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, StartAt } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Forms, TextInput, showToast, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { TextInput, showToast, useState } from "@webpack/common";
 
 import { darkenColorHex, generateRandomColorHex, saturateColorHex } from "./generateTheme";
 import { themes } from "./themeDefinitions";
@@ -66,15 +68,15 @@ function CopyPresetComponent() {
     const [inputtedName, setInputtedName] = useState("");
     return (
         <>
-            <Forms.FormSection>
-                <Forms.FormTitle>{"Preset name"}</Forms.FormTitle>
+            <section>
+                <Heading>{"Preset name"}</Heading>
                 <TextInput
                     type="text"
                     value={inputtedName}
                     onChange={setInputtedName}
                     placeholder={"Enter a name"}
                 />
-            </Forms.FormSection>
+            </section>
             <Button onClick={() => {
                 copyPreset(inputtedName);
             }}>Copy preset</Button>
@@ -199,7 +201,7 @@ export function ColorPick({ propertyname }: { propertyname: string; }) {
     return (
 
         <div className="color-options-container">
-            <Forms.FormTitle tag="h3">{propertyname}</Forms.FormTitle>
+            <Heading tag="h3">{propertyname}</Heading>
 
             <ColorPicker
                 color={parseInt(settings.store[propertyname], 16)}

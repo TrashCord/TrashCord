@@ -11,7 +11,10 @@ import { FolderIcon as VFolderIcon, SafetyIcon as VSafetyIcon } from "@component
 import { ModalCloseButton,ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Avatar, Button, ChannelStore, FluxDispatcher, Forms, GuildStore, IconUtils, React, RelationshipStore, RestAPI, ScrollerThin, SearchableSelect, Select, showToast, Text, useMemo, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { Avatar, ChannelStore, FluxDispatcher, GuildStore, IconUtils, React, RelationshipStore, RestAPI, ScrollerThin, SearchableSelect, Select, showToast, useMemo, UserStore } from "@webpack/common";
 
 const ShieldIcon = (props: any) => <VSafetyIcon width={props.width || 24} height={props.height || 24} {...props} />;
 
@@ -306,15 +309,15 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
             <ModalHeader separator={false}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
                     <VFolderIcon width={24} height={24} />
-                    <Text variant="heading-lg/semibold" color="header-primary" style={{ color: "#FFFFFF" }}>SharePerms Manager</Text>
+                    <Text size="xl" weight="semibold" color="header-primary" style={{ color: "#FFFFFF" }}>SharePerms Manager</Text>
                 </div>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
             <ModalContent style={{ padding: 20 }}>
                 <div style={{ marginBottom: 20 }}>
-                    <Text variant="heading-md/bold" style={{ marginBottom: 15, color: "#FFFFFF" }}>Add New Access</Text>
+                    <Text size="lg" weight="bold" style={{ marginBottom: 15, color: "#FFFFFF" }}>Add New Access</Text>
 
-                    <Forms.FormTitle style={{ color: "#FFFFFF", marginBottom: 8 }}>Target Users (Friends)</Forms.FormTitle>
+                    <Heading style={{ color: "#FFFFFF", marginBottom: 8 }}>Target Users (Friends)</Heading>
                     <SearchableSelect
                         options={friends.map((f: any) => ({
                             label: f.globalName || f.username,
@@ -346,7 +349,7 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                         } as any}
                     />
 
-                    <Forms.FormTitle style={{ color: "#FFFFFF", marginBottom: 8, marginTop: 15 }}>Server (Guild)</Forms.FormTitle>
+                    <Heading style={{ color: "#FFFFFF", marginBottom: 8, marginTop: 15 }}>Server (Guild)</Heading>
                     <SearchableSelect
                         options={guilds.map((g: any) => ({
                             label: g.name,
@@ -359,7 +362,7 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
 
                     <div style={{ display: "flex", gap: 15, marginTop: 15 }}>
                         <div style={{ flex: 1 }}>
-                            <Forms.FormTitle style={{ color: "#FFFFFF", marginBottom: 8 }}>Duration</Forms.FormTitle>
+                            <Heading style={{ color: "#FFFFFF", marginBottom: 8 }}>Duration</Heading>
                             <Select
                                 options={[
                                     { label: "1 Hour", value: "1h" },
@@ -375,7 +378,7 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                             />
                         </div>
                         <div style={{ flex: 1 }}>
-                            <Forms.FormTitle style={{ color: "#FFFFFF", marginBottom: 8 }}>Max Uses</Forms.FormTitle>
+                            <Heading style={{ color: "#FFFFFF", marginBottom: 8 }}>Max Uses</Heading>
                             <Select
                                 options={[
                                     { label: "Unlimited", value: "0" },
@@ -392,7 +395,7 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                             />
                         </div>
                         <div style={{ flex: 1 }}>
-                            <Forms.FormTitle style={{ color: "#FFFFFF", marginBottom: 8 }}>Permissions</Forms.FormTitle>
+                            <Heading style={{ color: "#FFFFFF", marginBottom: 8 }}>Permissions</Heading>
                             <SearchableSelect
                                 options={permOptions}
                                 value={newPerms}
@@ -416,10 +419,10 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                             `}</style>
                         </div>
                     </div>
-                    <Button onClick={addUser} color={Button.Colors.BRAND} style={{ marginTop: 20, width: "100%" }}>Grant Access</Button>
+                    <Button onClick={addUser} variant="primary" style={{ marginTop: 20, width: "100%" }}>Grant Access</Button>
                 </div>
 
-                <Text variant="heading-md/bold" style={{ marginBottom: 15, marginTop: 25, color: "#FFFFFF" }}>Active Permissions</Text>
+                <Text size="lg" weight="bold" style={{ marginBottom: 15, marginTop: 25, color: "#FFFFFF" }}>Active Permissions</Text>
                 <div className="shareperms-list">
                     {users.length === 0 ? (
                         <Text style={{ color: "#FFFFFF", opacity: 0.6 }}>No one has access yet.</Text>
@@ -433,30 +436,30 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                                     <Avatar src={IconUtils.getUserAvatarURL(user || { id: u.id, avatar: null } as any)} size={"SIZE_40" as any} />
                                     <div>
-                                        <Text variant="text-md/semibold" style={{ color: "#FFFFFF" }}>{user?.globalName || user?.username || u.id}</Text>
-                                        <Text variant="text-xs/normal" style={{ color: "#FFFFFF", opacity: 0.7, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        <Text size="md" weight="semibold" style={{ color: "#FFFFFF" }}>{user?.globalName || user?.username || u.id}</Text>
+                                        <Text size="xs" weight="normal" style={{ color: "#FFFFFF", opacity: 0.7, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis" }}>
                                             {u.permissions.split(",").map(p => p.replace("_", " ").toUpperCase()).join(", ")}
                                         </Text>
                                         <div style={{ display: "flex", gap: 10 }}>
-                                            <Text variant="text-xs/bold" style={{ color: timeLeft < 300000 ? "#FF4444" : "#44FF44" }}>
+                                            <Text size="xs" weight="bold" style={{ color: timeLeft < 300000 ? "#FF4444" : "#44FF44" }}>
                                                 {formatTimeLeft(timeLeft)}
                                             </Text>
                                             {u.maxUses > 0 && (
-                                                <Text variant="text-xs/bold" style={{ color: (u.maxUses - u.uses) <= 1 ? "#FF4444" : "#44FF44" }}>
+                                                <Text size="xs" weight="bold" style={{ color: (u.maxUses - u.uses) <= 1 ? "#FF4444" : "#44FF44" }}>
                                                     {u.uses}/{u.maxUses} Uses
                                                 </Text>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => removeUser(index)}>
+                                <Button size="small" variant="secondary" onClick={() => removeUser(index)}>
                                     Revoke
                                 </Button>
                             </div>
                         );
                     })}
                 </div>
-                <Text variant="heading-md/bold" style={{ marginBottom: 15, marginTop: 25, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 8 }}>
+                <Text size="lg" weight="bold" style={{ marginBottom: 15, marginTop: 25, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 8 }}>
                     <ShieldIcon width={20} height={20} /> Action Logs
                 </Text>
                 <ScrollerThin style={{ maxHeight: 250, background: "rgba(0,0,0,0.3)", borderRadius: 12, padding: "12px 16px", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -481,10 +484,10 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                         <Avatar src={IconUtils.getUserAvatarURL(user || { id: log.userId, avatar: null } as any)} size={"SIZE_20" as any} />
-                                        <Text variant="text-sm/bold" style={{ color: "#FFFFFF" }}>
+                                        <Text size="sm" weight="bold" style={{ color: "#FFFFFF" }}>
                                             {user?.globalName || user?.username || log.userId}
                                         </Text>
-                                        <Text variant="text-xs/normal" style={{ color: "rgba(255,255,255,0.6)" }}>
+                                        <Text size="xs" weight="normal" style={{ color: "rgba(255,255,255,0.6)" }}>
                                             executed
                                         </Text>
                                         <div style={{
@@ -500,15 +503,15 @@ function SharePermsModal({ rootProps }: { rootProps: any; }) {
                                             {log.command}
                                         </div>
                                     </div>
-                                    <Text variant="text-xxs/medium" style={{ color: "rgba(255,255,255,0.4)" }}>
+                                    <Text size="xxs" weight="medium" style={{ color: "rgba(255,255,255,0.4)" }}>
                                         {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                     </Text>
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 28 }}>
-                                    <Text variant="text-xs/medium" style={{ color: "rgba(255,255,255,0.7)" }}>
+                                    <Text size="xs" weight="medium" style={{ color: "rgba(255,255,255,0.7)" }}>
                                         Target:
                                     </Text>
-                                    <Text variant="text-xs/semibold" style={{ color: "#FFFFFF" }}>
+                                    <Text size="xs" weight="semibold" style={{ color: "#FFFFFF" }}>
                                         {log.targetId.startsWith("<@") ? log.targetId : (UserStore.getUser(log.targetId)?.username || log.targetId)}
                                     </Text>
                                     <div style={{

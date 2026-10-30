@@ -12,7 +12,8 @@ import { sleep } from "@utils/misc";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps, findByPropsLazy, findStoreLazy } from "@webpack";
-import { Forms, Menu, React, showToast, useEffect, useMemo, useState } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Menu, React, showToast, useEffect, useMemo, useState } from "@webpack/common";
 
 const GuildStore = findStoreLazy("GuildStore");
 const GuildActions = findByPropsLazy("leaveGuild");
@@ -121,9 +122,9 @@ function LeaveAllServersModal({ rootProps }: { rootProps: any; }) {
     return (
         <ModalRoot {...rootProps} size="medium">
             <ModalHeader separator={false}>
-                <Forms.FormTitle tag="h4" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
+                <Heading tag="h4" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>
                     Leave All Servers
-                </Forms.FormTitle>
+                </Heading>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
 
@@ -147,7 +148,7 @@ function LeaveAllServersModal({ rootProps }: { rootProps: any; }) {
 
                 {/* Header liste + boutons tout/rien */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Forms.FormTitle tag="h5" className="las-label">SELECT SERVERS</Forms.FormTitle>
+                    <Heading tag="h5" className="las-label">SELECT SERVERS</Heading>
                     <div style={{ display: "flex", gap: 6 }}>
                         <button className="las-mini-btn" onClick={selectAll} disabled={status === "running"}>All</button>
                         <button className="las-mini-btn" onClick={selectNone} disabled={status === "running"}>None</button>

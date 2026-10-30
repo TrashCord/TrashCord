@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button } from "@webpack/common";
+import { Button } from "@components/Button";
 import React from "react";
 
 import { IconTooltipButton } from ".";
@@ -12,7 +12,7 @@ import { IconTooltipButton } from ".";
 export const DeleteButton = (props: React.ComponentProps<typeof Button>) => {
     return (
         <IconTooltipButton
-            color={Button.Colors.RED}
+            variant="dangerPrimary"
             tooltipText="Delete Profile"
             icon={
                 <svg width="18" height="18" viewBox="0 0 24 24">

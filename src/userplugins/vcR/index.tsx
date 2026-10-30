@@ -12,7 +12,11 @@ import { sleep } from "@utils/misc";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize,openModal } from "@utils/modal";
 import { useForceUpdater } from "@utils/react";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, Menu, React, showToast, Text, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Divider } from "@components/Divider";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { Menu, React, showToast, TextInput } from "@webpack/common";
 import { CSSProperties } from "react";
 
 const DISCORD_GATEWAY = "wss://gateway.discord.gg/?v=9&encoding=json";
@@ -51,8 +55,8 @@ function TokenDisplay({ token, onRemove }) {
     const hiddenPart = "*".repeat(Math.max(0, token.length - 8));
     return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px", border: "1px solid var(--background-modifier-accent)", borderRadius: "6px", marginBottom: "6px" }}>
-            <Text variant={"text-md/normal"}>{visiblePart + hiddenPart}</Text>
-            <Button size="small" style={{ marginLeft: "8px" }} color={Button.Colors.RED} onClick={onRemove}>Remove</Button>
+            <Text size="md" weight="normal">{visiblePart + hiddenPart}</Text>
+            <Button size="small" style={{ marginLeft: "8px" }} variant="dangerPrimary" onClick={onRemove}>Remove</Button>
         </div>
     );
 }
@@ -90,13 +94,13 @@ function TokenManager() {
 
     return (
         <>
-            <Forms.FormDivider as any />
-            <Forms.FormTitle tag="h4">VC Raper - Connected Slaves: {getConnectionCount()}</Forms.FormTitle>
-            <Text variant={"heading-md/normal"}>Enter Token</Text>
+            <Divider as any />
+            <Heading tag="h4">VC Raper - Connected Slaves: {getConnectionCount()}</Heading>
+            <Text size="lg" weight="normal">Enter Token</Text>
             <TextInput value={currentInput} onChange={setCurrentInput} placeholder="Paste a token here" />
             <Button onClick={addToken} style={{ marginTop: "8px" }}>Add</Button>
-            <Forms.FormDivider as any />
-            <Text variant={"heading-md/normal"}>Slave list</Text>
+            <Divider as any />
+            <Text size="lg" weight="normal">Slave list</Text>
             <ul style={{ paddingLeft: "0", listStyleType: "none", marginTop: "8px" }}>
                 {tokenEntries.map(token => (
                     <li key={token}>
@@ -324,9 +328,9 @@ function VCRaperModal(props) {
         <ModalRoot {...props} size={ModalSize.DYNAMIC}>
             <ModalHeader>
                 <div style={{ display: "flex", alignItems: "center", padding: "0 5px" }}>
-                    <Forms.FormTitle tag="h4" style={{ color: "#ffffff", fontSize: "20px", fontWeight: "600", margin: 0 }}>
+                    <Heading tag="h4" style={{ color: "#ffffff", fontSize: "20px", fontWeight: "600", margin: 0 }}>
                         VC Raper Control Panel
-                    </Forms.FormTitle>
+                    </Heading>
                     <div style={{ backgroundColor: "#059669", padding: "6px 16px", borderRadius: "20px", fontSize: "14px", marginLeft: "auto" }}>
                         <span style={{ color: "#ffffff", fontWeight: "500" }}>Connected: {getConnectionCount()}</span>
                     </div>

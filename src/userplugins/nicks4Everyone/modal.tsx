@@ -12,7 +12,9 @@ import {
     ModalRoot,
     openModal,
 } from "@utils/modal";
-import { Button, Forms, React, TextInput, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { React, TextInput, useState } from "@webpack/common";
 
 import { setUsername } from "./index";
 
@@ -22,13 +24,13 @@ function Modal({ user, props: modalProps }: { user: any, props: ModalProps; }) {
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">
+                <Heading tag="h4">
                     {user.customNick ? "Change" : "Add"} Custom Nickname
-                </Forms.FormTitle>
+                </Heading>
             </ModalHeader>
 
             <ModalContent>
-                <Forms.FormTitle>Nickname</Forms.FormTitle>
+                <Heading>Nickname</Heading>
                 <TextInput
                     style={{ marginBottom: "10px" }}
                     value={nickname}
@@ -38,9 +40,8 @@ function Modal({ user, props: modalProps }: { user: any, props: ModalProps; }) {
                     }}
                 />
                 <Button
-                    color={Button.Colors.LINK}
-                    size={Button.Sizes.NONE}
-                    look={Button.Looks.LINK}
+                    variant="link"
+                    size="iconOnly"
                     style={{ padding: "0px" }}
                     onClick={() => {
                         setNickname("");
@@ -51,7 +52,7 @@ function Modal({ user, props: modalProps }: { user: any, props: ModalProps; }) {
 
             <ModalFooter>
                 <Button
-                    color={Button.Colors.BLACK}
+                    variant="primary"
                     onClick={async () => {
                         setUsername(nickname.length > 0 ? nickname : user.globalName, user.id);
                         modalProps.onClose();
@@ -60,8 +61,7 @@ function Modal({ user, props: modalProps }: { user: any, props: ModalProps; }) {
                     Save
                 </Button>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
-                    look={Button.Looks.LINK}
+                    variant="none"
                     onClick={modalProps.onClose}
                 >
                     Cancel

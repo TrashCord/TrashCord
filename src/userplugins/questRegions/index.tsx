@@ -18,7 +18,9 @@ import { Logger } from "@utils/Logger";
 import { classes } from "@utils/misc";
 import definePlugin, { PluginNative } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, Constants, GuildStore, Menu, NavigationRouter, React, RestAPI, Text, Tooltip, useCallback, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { Constants, GuildStore, Menu, NavigationRouter, React, RestAPI, Tooltip, useCallback, useState } from "@webpack/common";
 
 import {
     fetchProxiesForCountry,
@@ -2103,14 +2105,14 @@ function QuestRegionBadge({ name, flagUrl }: { name: string; flagUrl: string; })
 function QuestRegionOverflowTooltip({ regions }: { regions: QuestRegionCard[]; }) {
     return (
         <div className={cl("quest-region-overflow-tooltip")}>
-            <Text variant="text-sm/semibold" className={cl("quest-region-overflow-title")}>
+            <Text size="sm" weight="semibold" className={cl("quest-region-overflow-title")}>
                 +{regions.length} other countr{regions.length === 1 ? "y" : "ies"}
             </Text>
             <div className={cl("quest-region-overflow-list")}>
                 {regions.map(region => (
                     <div key={region.code} className={cl("quest-region-overflow-item")}>
                         <img className={cl("quest-region-overflow-item-flag")} src={region.flagUrl} alt={region.name} />
-                        <Text variant="text-sm/normal">
+                        <Text size="sm" weight="normal">
                             {region.name}
                         </Text>
                     </div>
@@ -2237,15 +2239,15 @@ function ProxyFilePicker() {
             <Paragraph style={{ margin: 0, fontWeight: 600 }}>Proxy List File</Paragraph>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => document.getElementById("vc-quest-regions-proxy-input")?.click()}
                 >
                     Load .txt file
                 </Button>
                 {settings.store.proxyFileContent && (
                     <Button
-                        size={Button.Sizes.SMALL}
-                        color={Button.Colors.RED}
+                        size="small"
+                        variant="dangerPrimary"
                         onClick={handleClear}
                     >
                         Clear

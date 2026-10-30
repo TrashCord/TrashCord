@@ -19,8 +19,8 @@ import {
     openModal,
 } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
+import { Button } from "@components/Button";
 import {
-    Button,
     React,
     useState,
 } from "@webpack/common";
@@ -195,7 +195,7 @@ pause`;
                             <Button
                                 onClick={splitFile}
                                 disabled={isProcessing}
-                                color={Button.Colors.BRAND}
+                                variant="primary"
                             >
                                 {isProcessing ? "Splitting in progress..." : "Split file"}
                             </Button>
@@ -239,15 +239,14 @@ pause`;
                             <div style={{ marginBottom: "16px" }}>
                                 <Button
                                     onClick={downloadAllChunks}
-                                    color={Button.Colors.GREEN}
+                                    variant="positive"
                                     style={{ marginRight: "8px" }}
                                 >
                                     📥 Download all
                                 </Button>
                                 <Button
                                     onClick={generateRejoinScript}
-                                    color={Button.Colors.PRIMARY}
-                                    look={(Button as any).Looks.OUTLINED}
+                                    variant="secondary"
                                 >
                                     🔧 Rejoin script
                                 </Button>
@@ -273,9 +272,8 @@ pause`;
                                         </BaseText>
                                         <Button
                                             onClick={() => downloadChunk(chunk)}
-                                            size={Button.Sizes.SMALL}
-                                            color={Button.Colors.PRIMARY}
-                                            look={Button.Looks.LINK}
+                                            size="small"
+                                            variant="secondary"
                                         >
                                             Download
                                         </Button>
@@ -298,8 +296,7 @@ pause`;
                 <Flex justifyContent="flex-end">
                     <Button
                         onClick={modalProps.onClose}
-                        color={Button.Colors.PRIMARY}
-                        look={(Button as any).Looks.OUTLINED}
+                        variant="secondary"
                     >
                         Close
                     </Button>

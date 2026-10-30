@@ -6,7 +6,8 @@
 
 import { Flex } from "@components/Flex";
 import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
-import { Button, useRef } from "@webpack/common";
+import { Button } from "@components/Button";
+import { useRef } from "@webpack/common";
 import React from "react";
 
 import { classFactory } from "../index";

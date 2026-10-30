@@ -5,7 +5,8 @@
  */
 
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { Text, useEffect, useState } from "@webpack/common";
+import { Text } from "@components/Text";
+import { useEffect, useState } from "@webpack/common";
 
 import { hasId, toggleId } from "./allowlist";
 import { HtmlFrame } from "./HtmlFrame";

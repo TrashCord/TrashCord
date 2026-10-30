@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { openModal, Modal, React, useState, Forms, TextInput, showToast, SelectedChannelStore } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { openModal, Modal, React, useState, TextInput, showToast, SelectedChannelStore } from "@webpack/common";
 import { getHash, setHash, lock, unlock, isLocked, SALT, hasPassword } from "./storage";
 import { refreshOverlay } from "./overlayManager"; // we'll provide this
 
@@ -50,14 +52,14 @@ export function SetPasswordModal({ modalProps, channelId }: { modalProps: any; c
 
     return (
         <Modal {...modalProps} title="Set Lock Password" actions={modalActions(submit, modalProps.onClose, "Set & Lock", "primary")}>
-            <Forms.FormSection>
-                <Forms.FormTitle>Create a password to lock this chat.</Forms.FormTitle>
+            <section>
+                <Heading>Create a password to lock this chat.</Heading>
                 <div style={inputContainerStyle}>
                     <TextInput type="password" placeholder="New password (min 4 chars)" value={pwd} onChange={setPwd} autoFocus />
                     <TextInput type="password" placeholder="Confirm password" value={confirm} onChange={setConfirm} onKeyDown={(e: KeyboardEvent) => { if (e.key === "Enter") submit(); }} />
                 </div>
-                {error && <Forms.FormText style={errorStyle}>{error}</Forms.FormText>}
-            </Forms.FormSection>
+                {error && <Paragraph style={errorStyle}>{error}</Paragraph>}
+            </section>
         </Modal>
     );
 }
@@ -85,13 +87,13 @@ export function UnlockModal({ modalProps, channelId }: { modalProps: any; channe
 
     return (
         <Modal {...modalProps} title="Enter Password" actions={modalActions(submit, modalProps.onClose, busy ? "Checking..." : "Unlock", "primary")}>
-            <Forms.FormSection>
-                <Forms.FormTitle>This chat is locked. Enter the password to unlock.</Forms.FormTitle>
+            <section>
+                <Heading>This chat is locked. Enter the password to unlock.</Heading>
                 <div style={inputContainerStyle}>
                     <TextInput type="password" placeholder="Password" value={pwd} onChange={setPwd} onKeyDown={(e: KeyboardEvent) => { if (e.key === "Enter") submit(); }} autoFocus />
                 </div>
-                {error && <Forms.FormText style={errorStyle}>{error}</Forms.FormText>}
-            </Forms.FormSection>
+                {error && <Paragraph style={errorStyle}>{error}</Paragraph>}
+            </section>
         </Modal>
     );
 }
@@ -116,15 +118,15 @@ export function ChangePasswordModal({ modalProps, channelId }: { modalProps: any
 
     return (
         <Modal {...modalProps} title="Change Password" actions={modalActions(submit, modalProps.onClose, "Change", "primary")}>
-            <Forms.FormSection>
-                <Forms.FormTitle>Enter your current password and choose a new one.</Forms.FormTitle>
+            <section>
+                <Heading>Enter your current password and choose a new one.</Heading>
                 <div style={inputContainerStyle}>
                     <TextInput type="password" placeholder="Current password" value={oldPwd} onChange={setOldPwd} autoFocus />
                     <TextInput type="password" placeholder="New password (min 4 chars)" value={newPwd} onChange={setNewPwd} />
                     <TextInput type="password" placeholder="Confirm new password" value={confirmPwd} onChange={setConfirmPwd} onKeyDown={(e: KeyboardEvent) => { if (e.key === "Enter") submit(); }} />
                 </div>
-                {error && <Forms.FormText style={errorStyle}>{error}</Forms.FormText>}
-            </Forms.FormSection>
+                {error && <Paragraph style={errorStyle}>{error}</Paragraph>}
+            </section>
         </Modal>
     );
 }
@@ -153,13 +155,13 @@ export function RemoveLockModal({ modalProps, channelId }: { modalProps: any; ch
 
     return (
         <Modal {...modalProps} title="Remove Lock" actions={modalActions(submit, modalProps.onClose, busy ? "Checking..." : "Remove", "danger")}>
-            <Forms.FormSection>
-                <Forms.FormTitle>Enter the current password to permanently remove the lock from this chat.</Forms.FormTitle>
+            <section>
+                <Heading>Enter the current password to permanently remove the lock from this chat.</Heading>
                 <div style={inputContainerStyle}>
                     <TextInput type="password" placeholder="Current password" value={pwd} onChange={setPwd} onKeyDown={(e: KeyboardEvent) => { if (e.key === "Enter") submit(); }} autoFocus />
                 </div>
-                {error && <Forms.FormText style={errorStyle}>{error}</Forms.FormText>}
-            </Forms.FormSection>
+                {error && <Paragraph style={errorStyle}>{error}</Paragraph>}
+            </section>
         </Modal>
     );
 }

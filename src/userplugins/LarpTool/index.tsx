@@ -14,6 +14,9 @@ import { copyWithToast } from "@utils/discord";
 import { RenderModalProps, User } from "@vencord/discord-types";
 import type { Embed, Message } from "@vencord/discord-types";
 import { waitFor, filters, findByCodeLazy, findByPropsLazy } from "@webpack";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
 import {
     AuthenticationStore,
     ConnectedAccount,
@@ -23,9 +26,6 @@ import {
     Modal,
     TextInput,
     Checkbox,
-    Button,
-    Forms,
-    Text,
     DisplayProfileUtils,
     ScrollerThin,
     UserProfileStore,
@@ -227,7 +227,7 @@ const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         component: () => (
             <>
-                <Forms.FormText>Ctrl+B to open.</Forms.FormText>
+                <Paragraph>Ctrl+B to open.</Paragraph>
                 <Button onClick={openBadgeManager} size="small" style={{ marginTop: 8 }}>
                     Open Larp Tool
                 </Button>
@@ -1174,7 +1174,7 @@ function BadgeRow({ badge, visible, owned, onChange }: {
                             <div style={{ width: 24, height: 24, borderRadius: 4, background: "var(--background-tertiary)" }} />
                         )}
                     </div>
-                    <Text variant="text-sm/medium" style={{ color: "var(--text-normal)" }}>{badge.description}</Text>
+                    <Text size="sm" weight="medium" style={{ color: "var(--text-normal)" }}>{badge.description}</Text>
                 </div>
             </Checkbox>
         </div>
@@ -1212,7 +1212,7 @@ function ProfilePreview({ asTitle }: { asTitle?: boolean }) {
                 flexShrink: 0,
             }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-                <Text variant="text-lg/semibold">@{handle}</Text>
+                <Text size="lg" weight="semibold">@{handle}</Text>
                 {visible.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                         {visible.map(b => {
@@ -1360,9 +1360,9 @@ function ConnectionsSection() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {!activeReal.length && !custom.length && !hiddenReal.length && (
-                <Forms.FormText style={{ margin: 0, color: "var(--text-muted)" }}>
+                <Paragraph style={{ margin: 0, color: "var(--text-muted)" }}>
                     No linked accounts on your profile.
-                </Forms.FormText>
+                </Paragraph>
             )}
 
             {activeReal.map(connection => {
@@ -1438,7 +1438,7 @@ function ConnectionsSection() {
                                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 10px", opacity: 0.55 }}
                             >
                                 <ConnectionPlatformIcon type={connection.type} size={20} />
-                                <Text variant="text-xs/normal" style={{ color: "var(--text-muted)", flex: 1 }}>
+                                <Text size="xs" weight="normal" style={{ color: "var(--text-muted)", flex: 1 }}>
                                     Hidden
                                 </Text>
                                 <Button size="tiny" variant="secondary" onClick={() => restoreRealConnection(key)}>
@@ -1469,9 +1469,9 @@ function BadgeSection({ title, badges, owned, search }: {
         return (
             <div style={{ marginBottom: 24 }}>
                 <div style={sectionTitleStyle}>{title}</div>
-                <Forms.FormText style={{ margin: 0, color: "var(--text-muted)" }}>
+                <Paragraph style={{ margin: 0, color: "var(--text-muted)" }}>
                     Loading your badges… try reopening if this stays empty.
-                </Forms.FormText>
+                </Paragraph>
             </div>
         );
     }
@@ -1487,7 +1487,7 @@ function BadgeSection({ title, badges, owned, search }: {
                 <span style={{ marginLeft: 8, opacity: 0.55, fontWeight: 600 }}>{countLabel}</span>
             </div>
             {!filtered.length ? (
-                <Forms.FormText style={{ margin: 0, color: "var(--text-muted)" }}>No badges match your search.</Forms.FormText>
+                <Paragraph style={{ margin: 0, color: "var(--text-muted)" }}>No badges match your search.</Paragraph>
             ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {filtered.map(badge => (
@@ -1544,7 +1544,7 @@ function ConfigSection() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={connectionRowStyle}>
-                <Text variant="text-xs/medium" style={{ color: "var(--text-muted)", flex: 1 }}>Export config</Text>
+                <Text size="xs" weight="medium" style={{ color: "var(--text-muted)", flex: 1 }}>Export config</Text>
                 <Button size="tiny" variant="secondary" onClick={exportJson}>Copy</Button>
                 <Button size="tiny" variant="secondary" onClick={downloadJson}>Save</Button>
             </div>
@@ -1642,7 +1642,7 @@ const BadgeModal = ErrorBoundary.wrap(function BadgeModal(props: RenderModalProp
                 <ScrollerThin style={{ maxHeight: "48vh", paddingTop: 2 }}>
                     {tab === ModalTabs.Username && (
                         <div style={cardStyle}>
-                            <Text variant="text-xs/medium" style={{ ...sectionTitleStyle, marginBottom: 8 }}>
+                            <Text size="xs" weight="medium" style={{ ...sectionTitleStyle, marginBottom: 8 }}>
                                 Custom username
                             </Text>
                             <TextInput

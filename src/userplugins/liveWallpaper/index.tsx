@@ -7,7 +7,9 @@
 import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, showToast } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { React, showToast } from "@webpack/common";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -68,13 +70,13 @@ function SettingsComponent() {
 
     return (
         <div className="live-wallpaper-settings">
-            <Forms.FormTitle tag="h3">File (Image / Gif / Video)</Forms.FormTitle>
+            <Heading tag="h3">File (Image / Gif / Video)</Heading>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {/* File Picker */}
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     <Button
-                        size={Button.Sizes.SMALL}
+                        size="small"
                         onClick={async () => {
                             const dataUrl = await pickFile();
                             if (!mounted.current) return;
@@ -94,8 +96,8 @@ function SettingsComponent() {
 
                     {hasFile && (
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={Button.Colors.RED}
+                            size="small"
+                            variant="dangerPrimary"
                             onClick={async () => {
                                 await DataStore.set(REMOTE_URL_KEY, "");
                                 await DataStore.set(LOCAL_DATA_KEY, "");
@@ -113,7 +115,7 @@ function SettingsComponent() {
 
                 {/* URL Input (Alternative) */}
                 <div style={{ marginTop: "8px" }}>
-                    <Forms.FormTitle tag="h5" style={{ marginBottom: "8px" }}>OR Paste a URL</Forms.FormTitle>
+                    <Heading tag="h5" style={{ marginBottom: "8px" }}>OR Paste a URL</Heading>
                     <input
                         type="text"
                         placeholder="https://example.com/video.mp4"

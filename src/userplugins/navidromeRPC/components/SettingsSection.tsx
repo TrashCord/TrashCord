@@ -5,7 +5,7 @@
  */
 
 import { Flex } from "@components/Flex";
-import { Text } from "@webpack/common";
+import { Text } from "@components/Text";
 
 import { cl } from "../utils/constants";
 

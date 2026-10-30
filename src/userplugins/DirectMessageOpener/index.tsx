@@ -12,8 +12,11 @@ import { Devs } from "@utils/constants";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, Forms, NavigationRouter, React, RestAPI, TextInput } from "@webpack/common";
-const FormText = Forms.FormText as any;
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { NavigationRouter, React, RestAPI, TextInput } from "@webpack/common";
+const FormText = Paragraph as any;
 
 const UserIcon = (props: any) => (
     <svg
@@ -90,14 +93,14 @@ function DirectMessageModal(props: any) {
     return (
         <ModalRoot {...props} title="">
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Open Direct Message</Forms.FormTitle>
+                <Heading tag="h4">Open Direct Message</Heading>
                 <ModalCloseButton onClick={props.onClose} />
             </ModalHeader>
 
             <ModalContent>
-                <Forms.FormTitle tag="h5" style={{ marginTop: "10px" }}>
+                <Heading tag="h5" style={{ marginTop: "10px" }}>
                     User ID
-                </Forms.FormTitle>
+                </Heading>
                 <FormText type={"description" as any} style={{ marginBottom: "10px" }}>
                     Enter the Discord User ID of the person you want to message
                 </FormText>
@@ -116,15 +119,14 @@ function DirectMessageModal(props: any) {
 
             <ModalFooter style={{ display: "flex", flexDirection: "row-reverse", gap: "16px", alignItems: "center" }}>
                 <Button
-                    color={Button.Colors.BRAND}
+                    variant="primary"
                     disabled={loading || !userId.trim()}
                     onClick={openDM}
                 >
                     {loading ? "Opening..." : "Open DM"}
                 </Button>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
-                    look={Button.Looks.LINK}
+                    variant="none"
                     onClick={props.onClose}
                     style={{ marginRight: "8px" }}
                 >

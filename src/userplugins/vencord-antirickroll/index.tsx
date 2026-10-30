@@ -11,7 +11,8 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import type { Message } from "@vencord/discord-types";
-import { React, Text } from "@webpack/common";
+import { Text } from "@components/Text";
+import { React } from "@webpack/common";
 
 import { knownHosts } from "./knownHosts";
 import { knownVideoIds } from "./knownVideoIDs";
@@ -145,7 +146,7 @@ function RickrollWarning({ message, isCustom }: { message: Message; isCustom: bo
 
     return (
         <div>
-            <Text color="text-danger" variant="text-xs/semibold">
+            <Text color="text-danger" size="xs" weight="semibold">
                 ⚠️ This link is {isCustom ? "matching one of your filters for rickrolls." : "a known rickroll."}
             </Text>
 

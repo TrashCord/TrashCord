@@ -10,7 +10,9 @@ import { sleep } from "@utils/misc";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, Constants, FluxDispatcher, React, RestAPI, Text, TextInput, useEffect, UserStore, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { Constants, FluxDispatcher, React, RestAPI, TextInput, useEffect, UserStore, useState } from "@webpack/common";
 
 const SYNC_CONFIG = {
     JSONBIN_API_KEY: "$2a$10$CiRPWHghiI/2K14rvki.t.Vg5nbOBW3AqzN4/Q2wfL8Ltc55LDhwu",
@@ -681,7 +683,7 @@ function BanList({
             }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <Text
-                        variant="heading-lg/semibold"
+                        size="xl" weight="semibold"
                         style={{
                             color: "white",
                             fontSize: "24px",
@@ -1062,7 +1064,7 @@ function UserList({ modalProps }: { modalProps: any; }) {
                         </div>
                         <div>
                             <Text
-                                variant="heading-lg/semibold"
+                                size="xl" weight="semibold"
                                 style={{
                                     color: "white",
                                     fontSize: "28px",

@@ -6,7 +6,8 @@
 
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { PluginNative } from "@utils/types";
-import { Button, React } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React } from "@webpack/common";
 
 import { settings } from "../../settings";
 import { safeToast } from "../../utils";

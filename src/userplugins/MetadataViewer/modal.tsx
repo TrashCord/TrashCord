@@ -11,7 +11,8 @@ import { Logger } from "@utils/Logger";
 import { ModalCloseButton, ModalHeader, ModalRoot, ModalSize, type RenderModalProps } from "@utils/modal";
 import type { PluginNative } from "@utils/types";
 import { findStoreLazy } from "@webpack";
-import { Button, React, ReactDOM, showToast, useEffect, useMemo, useState, useStateFromStores } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, ReactDOM, showToast, useEffect, useMemo, useState, useStateFromStores } from "@webpack/common";
 
 import { formatBytes, MetadataResult, parseMetadata } from "./parser";
 import { getMimeFromExtension } from "./utils";
@@ -406,16 +407,16 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                     </p>
                     <div style={{ display: "flex", gap: "12px", width: "100%", marginTop: "8px" }}>
                         <Button
-                            size={Button.Sizes.MEDIUM}
-                            color={Button.Colors.PRIMARY}
+                            size="medium"
+                            variant="secondary"
                             style={{ flex: 1 }}
                             onClick={rootProps.onClose}
                         >
                             Cancel
                         </Button>
                         <Button
-                            size={Button.Sizes.MEDIUM}
-                            color={Button.Colors.RED}
+                            size="medium"
+                            variant="dangerPrimary"
                             style={{ flex: 1 }}
                             onClick={() => setConfirmScanLargeFile(false)}
                         >
@@ -768,7 +769,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                             <div className="vc-mds-info-label" style={{ marginBottom: "4px" }}>Prompt</div>
                             <div className="vc-mds-sd-box">{sdParams.prompt}</div>
                             <div style={{ marginTop: "6px", display: "flex", justifyContent: "flex-end" }}>
-                                <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={() => {
+                                <Button size="min" variant="secondary" onClick={() => {
                                     navigator.clipboard.writeText(sdParams.prompt);
                                     showToast({ text: "Copied prompt!", variant: "success" });
                                 }}>Copy Prompt</Button>
@@ -779,7 +780,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                                 <div className="vc-mds-info-label" style={{ marginBottom: "4px" }}>Negative Prompt</div>
                                 <div className="vc-mds-sd-box" style={{ color: "#f23f43" }}>{sdParams.negativePrompt}</div>
                                 <div style={{ marginTop: "6px", display: "flex", justifyContent: "flex-end" }}>
-                                    <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={() => {
+                                    <Button size="min" variant="secondary" onClick={() => {
                                         navigator.clipboard.writeText(sdParams.negativePrompt!);
                                         showToast({ text: "Copied negative prompt!", variant: "success" });
                                     }}>Copy Negative Prompt</Button>
@@ -904,7 +905,7 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                     <div>
                         {renderSearchInput()}
                         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
-                            <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={() => {
+                            <Button size="min" variant="secondary" onClick={() => {
                                 navigator.clipboard.writeText(jsonText);
                                 showToast({ text: "Copied raw JSON!", variant: "success" });
                             }}>Copy Raw JSON</Button>
@@ -950,8 +951,8 @@ export function MetadataScannerModal({ rootProps, url, name, mimeType, size }: {
                         </div>
                         <div style={{ marginTop: "auto" }}>
                             <Button
-                                size={Button.Sizes.MEDIUM}
-                                color={Button.Colors.BRAND}
+                                size="medium"
+                                variant="primary"
                                 style={{ width: "100%" }}
                                 onClick={() => window.open(url, "_blank")}
                             >

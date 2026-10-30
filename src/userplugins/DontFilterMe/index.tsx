@@ -7,7 +7,8 @@
 import { addMessagePreSendListener, removeMessagePreSendListener } from "@api/MessageEvents";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Alerts, ChannelStore, Forms } from "@webpack/common";
+import { Paragraph } from "@components/Paragraph";
+import { Alerts, ChannelStore } from "@webpack/common";
 
 import filterList from "./constants";
 
@@ -20,12 +21,12 @@ function warningEmbedNotice(trigger) {
         Alerts.show({
             title: "Hold on!",
             body: <div>
-                <Forms.FormText>
+                <Paragraph>
                     Your message contains a term on the automod preset list. (Term "{trigger}")
-                </Forms.FormText>
-                <Forms.FormText type={Forms.FormText.Types.DESCRIPTION}>
+                </Paragraph>
+                <Paragraph>
                     There is a high chance your message will be blocked and potentially moderated by a server moderator.
-                </Forms.FormText>
+                </Paragraph>
             </div>,
             confirmText: "Send Anyway",
             cancelText: "Cancel",

@@ -10,7 +10,10 @@ import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, op
 import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Button, FluxDispatcher, Forms, Menu, TextArea, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { FluxDispatcher, Menu, TextArea, useState } from "@webpack/common";
 
 const MessageStore = findByPropsLazy("getMessage", "getMessages");
 const MessageActions = findByPropsLazy("deleteMessage");
@@ -39,13 +42,13 @@ function EditModal({ message, modalProps }: { message: Message; modalProps: any;
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Forms.FormTitle tag="h2">Edit Message (Local Demo)</Forms.FormTitle>
+                <Heading tag="h2">Edit Message (Local Demo)</Heading>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
             <ModalContent>
-                <Forms.FormText style={{ marginBottom: "8px" }}>
+                <Paragraph style={{ marginBottom: "8px" }}>
                     This will only change the message locally on your client. Perfect for demonstrating security vulnerabilities.
-                </Forms.FormText>
+                </Paragraph>
                 <TextArea
                     value={content}
                     onChange={setContent}
@@ -101,7 +104,7 @@ function EditModal({ message, modalProps }: { message: Message; modalProps: any;
                     Save Local Edit
                 </Button>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
+                    variant="none"
                     onClick={modalProps.onClose}
                 >
                     Cancel

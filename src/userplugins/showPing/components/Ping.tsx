@@ -11,7 +11,7 @@ import { FluxDispatcher, useEffect, useState } from "@webpack/common";
 
 
 import { RTCConnectionStore } from "../stores";
-import { TextCompat } from "@components/BaseText";
+import { Text } from "@components/Text";
 
 export function PingElement({ variant, parenthesis = true, color }: { variant: TextVariant; parenthesis?: boolean; color?: string; }) {
     const [ping, setPing] = useState(() => RTCConnectionStore.getLastPing());
@@ -31,5 +31,5 @@ export function PingElement({ variant, parenthesis = true, color }: { variant: T
         };
     }, []);
 
-    return (<TextCompat variant={variant} className="pingDisplay" style={{ color: color ?? "inherit" }}>{formatPing(ping)}</TextCompat>);
+    return (<Text variant={variant} className="pingDisplay" style={{ color: color ?? "inherit" }}>{formatPing(ping)}</Text>);
 }

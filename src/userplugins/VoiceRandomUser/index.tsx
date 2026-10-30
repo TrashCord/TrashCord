@@ -10,9 +10,20 @@ import { definePluginSettings } from "@api/Settings";
 import { HeadingSecondary } from "@components/Heading";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
+import { Button } from "@components/Button";
 import {
-    Button, ChannelStore, GuildChannelStore, GuildStore, Menu, PermissionsBits, PermissionStore,
-    RestAPI, showToast, useEffect, UserStore, useState, VoiceStateStore,
+    ChannelStore,
+    GuildChannelStore,
+    GuildStore,
+    Menu,
+    PermissionsBits,
+    PermissionStore,
+    RestAPI,
+    showToast,
+    useEffect,
+    UserStore,
+    useState,
+    VoiceStateStore,
 } from "@webpack/common";
 import type { SVGProps } from "react";
 
@@ -442,11 +453,11 @@ function TrackedUsersList() {
                                         </span>
                                         <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{id}</span>
                                     </div>
-                                    <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={() => unfollowUser(id)}>Remove</Button>
+                                    <Button size="small" variant="dangerPrimary" onClick={() => unfollowUser(id)}>Remove</Button>
                                 </div>
                             ))}
                         </div>
-                        <Button style={{ marginTop: "4px" }} size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={unfollowAll}>Clear All</Button>
+                        <Button style={{ marginTop: "4px" }} size="small" variant="dangerPrimary" onClick={unfollowAll}>Clear All</Button>
                     </div>
                 )}
         </div>

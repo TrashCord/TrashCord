@@ -6,7 +6,7 @@
 
 import { copyWithToast } from "@utils/discord";
 import { Guild } from "@vencord/discord-types";
-import { Forms, GuildRoleStore, PermissionsBits, React, TextInput, useMemo, useState } from "@webpack/common";
+import { GuildRoleStore, PermissionsBits, React, TextInput, useMemo, useState } from "@webpack/common";
 
 import { PERM_LABELS } from "./PermissionsTab";
 
@@ -29,7 +29,7 @@ export function RolesTab({ guild }: { guild: Guild; }) {
 
     return (
         <div className="gt-roles">
-            <Forms.FormSection title={`Roles (${roles.length})`}>
+            <section title={`Roles (${roles.length})`}>
                 <TextInput
                     placeholder="Filter roles by name or ID…"
                     value={filter}
@@ -117,7 +117,7 @@ export function RolesTab({ guild }: { guild: Guild; }) {
                         );
                     })}
                 </div>
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

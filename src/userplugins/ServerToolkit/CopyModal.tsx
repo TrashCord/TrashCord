@@ -11,14 +11,14 @@ import {
     ModalProps,
     openModal,
 } from "@utils/modal";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
 import {
-    Button,
-    Forms,
     GuildStore,
     Modal,
     React,
     Select,
-    Text,
     TextInput,
     useEffect,
     useMemo,
@@ -160,19 +160,19 @@ function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGu
             title={`Duplicate Server — ${guild.name}`}
         >
             <ModalContent className="guild-toolkit-content">
-                <Forms.FormSection title="Target">
+                <section title="Target">
                     <div className="gt-target-toggle">
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={targetMode === "new" ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                            size="small"
+                            variant={targetMode === "new" ? "primary" : "secondary"}
                             className={targetMode === "new" ? "gt-mode-btn gt-selected" : "gt-mode-btn"}
                             onClick={() => setTargetMode("new")}
                         >
                             Create new server
                         </Button>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={targetMode === "existing" ? Button.Colors.BRAND : Button.Colors.PRIMARY}
+                            size="small"
+                            variant={targetMode === "existing" ? "primary" : "secondary"}
                             className={targetMode === "existing" ? "gt-mode-btn gt-selected" : "gt-mode-btn"}
                             onClick={() => setTargetMode("existing")}
                             disabled={ownedGuilds.length === 0}
@@ -206,9 +206,9 @@ function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGu
                             />
                         </div>
                     )}
-                </Forms.FormSection>
+                </section>
 
-                <Forms.FormSection title="What to copy">
+                <section title="What to copy">
                     <FormSwitch value={incRoles} onChange={setIncRoles} title="Roles" />
                     <FormSwitch value={incChannels} onChange={setIncChannels} title="Channels" />
                     <FormSwitch value={incEmojis} onChange={setIncEmojis} title="Emojis" />
@@ -218,10 +218,10 @@ function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGu
                     <FormSwitch value={incOwnNick} onChange={setIncOwnNick} title="Your own nickname" description="Your nickname in the source server" />
                     <FormSwitch value={incOtherNicks} onChange={setIncOtherNicks} title="Other members' nicknames" description="Requires Manage Nicknames on the target. Members must already be in the target server." />
                     <FormSwitch value={incBots} onChange={setIncBots} title="Bot list" description="Create a #bots-list channel with invite links for all bots" />
-                </Forms.FormSection>
+                </section>
 
                 {targetMode === "existing" && (
-                    <Forms.FormSection title="Wipe target before copying">
+                    <section title="Wipe target before copying">
                         <Text style={{ color: "var(--text-danger)", marginBottom: 8 }}>
                             Destructive. Deleted items cannot be recovered.
                         </Text>
@@ -232,7 +232,7 @@ function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGu
 
                         {anyWipe && (
                             <>
-                                <Forms.FormText>Type <strong>OVERWRITE</strong> to confirm:</Forms.FormText>
+                                <Paragraph>Type <strong>OVERWRITE</strong> to confirm:</Paragraph>
                                 <TextInput
                                     placeholder="OVERWRITE"
                                     value={confirmText}
@@ -241,32 +241,31 @@ function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGu
                                 />
                             </>
                         )}
-                    </Forms.FormSection>
+                    </section>
                 )}
 
                 {log.length > 0 && (
-                    <Forms.FormSection title="Progress">
+                    <section title="Progress">
                         <div className="gt-log">
                             {log.map((line, i) => (
                                 <div key={i} className="gt-log-line">{line}</div>
                             ))}
                         </div>
-                    </Forms.FormSection>
+                    </section>
                 )}
             </ModalContent>
 
             <ModalFooter>
                 <div style={{ display: "flex", gap: "12px", marginLeft: "auto" }}>
                     <Button
-                        color={Button.Colors.PRIMARY}
-                        look={Button.Looks.LINK}
+                        variant="secondary"
                         onClick={closeModal}
                         disabled={running}
                     >
                         {running ? "Running…" : "Close"}
                     </Button>
                     <Button
-                        color={Button.Colors.BRAND}
+                        variant="primary"
                         onClick={handleRun}
                         disabled={!canRun}
                     >

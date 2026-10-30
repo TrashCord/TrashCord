@@ -12,7 +12,9 @@ import { getIntlMessage } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
 import type { RenderModalProps } from "@vencord/discord-types";
 import { findComponentByCodeLazy } from "@webpack";
-import { ChannelRTCStore, Forms, Menu, Modal, openModal, showToast, TextInput, UserStore, useState } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { ChannelRTCStore, Menu, Modal, openModal, showToast, TextInput, UserStore, useState } from "@webpack/common";
 
 import { PluginInfo } from "../betterScreenshare.desktop/constants";
 import { openScreenshareModal } from "../betterScreenshare.desktop/modals";
@@ -252,14 +254,14 @@ function CreateQualityPresetModal({ modalProps, preset }: CreateQualityPresetMod
                 }
             ]}
         >
-            <Forms.FormTitle tag="h5">Preset Name</Forms.FormTitle>
+            <Heading tag="h5">Preset Name</Heading>
             <TextInput
                 value={name}
                 placeholder="My stream preset"
                 onChange={setName}
             />
             {alreadyExists && !isReservedName && (
-                <Forms.FormText>A custom preset with this name already exists and will be overwritten.</Forms.FormText>
+                <Paragraph>A custom preset with this name already exists and will be overwritten.</Paragraph>
             )}
         </Modal>
     );

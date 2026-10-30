@@ -10,7 +10,10 @@ import { localStorage } from "@utils/localStorage";
 import { closeAllModals, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Button, FluxDispatcher, Forms, React, showToast } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { FluxDispatcher, React, showToast } from "@webpack/common";
 
 import AppIconModal from "./AppIconModal";
 
@@ -88,12 +91,12 @@ export default definePlugin({
         const { editorFooter } = EditorFooterClasses;
         return (
             <>
-                <Button color={Button.Colors.BRAND} size={Button.Sizes.MEDIUM} className={editorFooter} onClick={() => {
+                <Button variant="primary" size="medium" className={editorFooter} onClick={() => {
                     openModal(props => <AppIconModal {...props as any} />);
                 }}>
                     Add Custom App Icon
                 </Button>
-                <Button color={Button.Colors.RED} size={Button.Sizes.MEDIUM} className={editorFooter} onClick={removeAppIcon}>
+                <Button variant="dangerPrimary" size="medium" className={editorFooter} onClick={removeAppIcon}>
                     Remove Custom selected App Icon
                 </Button>
             </>
@@ -103,15 +106,15 @@ export default definePlugin({
     settingsAboutComponent: () => {
         return (
             <>
-                <Forms.FormTitle>
-                    <Forms.FormTitle>How to use?</Forms.FormTitle>
-                </Forms.FormTitle>
-                <Forms.FormText>
-                    <Forms.FormText>Go to <Link href="/settings/appearance" onClick={e => { e.preventDefault(); closeAllModals(); FluxDispatcher.dispatch({ type: "USER_SETTINGS_MODAL_SET_SECTION", section: "Appearance" }); }}>Appearance Settings</Link> tab.</Forms.FormText>
-                    <Forms.FormText>Scroll down to "In-app Icons" and click on "Preview App Icon".</Forms.FormText>
-                    <Forms.FormText>And upload your own custom icon!</Forms.FormText>
-                    <Forms.FormText>You can only use links when you are uploading your Custom Icon.</Forms.FormText>
-                </Forms.FormText>
+                <Heading>
+                    <Heading>How to use?</Heading>
+                </Heading>
+                <Paragraph>
+                    <Paragraph>Go to <Link href="/settings/appearance" onClick={e => { e.preventDefault(); closeAllModals(); FluxDispatcher.dispatch({ type: "USER_SETTINGS_MODAL_SET_SECTION", section: "Appearance" }); }}>Appearance Settings</Link> tab.</Paragraph>
+                    <Paragraph>Scroll down to "In-app Icons" and click on "Preview App Icon".</Paragraph>
+                    <Paragraph>And upload your own custom icon!</Paragraph>
+                    <Paragraph>You can only use links when you are uploading your Custom Icon.</Paragraph>
+                </Paragraph>
             </>
         );
     }

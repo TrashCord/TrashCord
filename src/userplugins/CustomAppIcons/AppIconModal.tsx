@@ -7,7 +7,11 @@
 import { localStorage } from "@utils/localStorage";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize } from "@utils/modal";
 import { findByPropsLazy } from "@webpack";
-import { Button, FluxDispatcher, Forms, React, showToast, Text, TextInput, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { FluxDispatcher, React, showToast, TextInput, useState } from "@webpack/common";
 
 interface AppIcon {
     id: string,
@@ -61,15 +65,15 @@ function AppIconModal(props: ModalProps) {
 
     return <ModalRoot {...props} size={ModalSize.MEDIUM}>
         <ModalHeader>
-            <Text color="header-primary" variant="heading-lg/semibold" tag="h1" style={{ flexGrow: 1 }}>Add a custom app icon:</Text>
+            <Text color="header-primary" size="xl" weight="semibold" tag="h1" style={{ flexGrow: 1 }}>Add a custom app icon:</Text>
             <ModalCloseButton onClick={props.onClose}></ModalCloseButton>
         </ModalHeader>
         <ModalContent>
             <br />
-            <div><Forms.FormTitle tag="h5">Name</Forms.FormTitle>
-                <Forms.FormText>
+            <div><Heading tag="h5">Name</Heading>
+                <Paragraph>
                     This name will be shown in the App Icons list.
-                </Forms.FormText>
+                </Paragraph>
                 <TextInput
                     placeholder="My awesome Custom App Icon!"
                     value={name}
@@ -77,10 +81,10 @@ function AppIconModal(props: ModalProps) {
                 />
             </div>
             <br />
-            <div><Forms.FormTitle tag="h5">Image URL</Forms.FormTitle>
-                <Forms.FormText>
+            <div><Heading tag="h5">Image URL</Heading>
+                <Paragraph>
                     Paste here your image URL to upload your icon (.webp, .jpg, .jpeg, .png, .gif, .ico and Discord Icons, Emojis, PFPs, etc.).
-                </Forms.FormText>
+                </Paragraph>
                 <TextInput
                     placeholder="https://cdn.discordapp.com/emojis/1098881040900173895.gif"
                     value={imageUrl}
@@ -99,8 +103,7 @@ function AppIconModal(props: ModalProps) {
             </Button>
             <Button
                 onClick={props.onClose}
-                color={Button.Colors.PRIMARY}
-                look={Button.Looks.LINK}
+                variant="secondary"
             >
                 Cancel
             </Button>

@@ -7,7 +7,9 @@
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
-import { Button, ChannelStore, Forms, showToast, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Paragraph } from "@components/Paragraph";
+import { ChannelStore, showToast, useEffect, useState } from "@webpack/common";
 
 const CHANNEL_TYPE_DM = 1;
 const CHANNEL_TYPE_GROUP_DM = 3;
@@ -124,18 +126,18 @@ export default definePlugin({
     settingsAboutComponent() {
         const running = useIsRunning();
         return (
-            <Forms.FormSection>
-                <Forms.FormText style={{ marginBottom: 8 }}>
+            <section>
+                <Paragraph style={{ marginBottom: 8 }}>
                     Choose which DMs to target and, for muting, how long, using the settings below.
                     Then press one of the buttons to apply it instantly to every matching DM.
-                </Forms.FormText>
-                <Forms.FormText style={{ marginBottom: 8, opacity: 0.8 }}>
+                </Paragraph>
+                <Paragraph style={{ marginBottom: 8, opacity: 0.8 }}>
                     {running ? "Applying…" : "Ready."}
-                </Forms.FormText>
+                </Paragraph>
                 <div style={{ display: "flex", gap: 8 }}>
                     <Button
-                        color={Button.Colors.BRAND}
-                        size={Button.Sizes.SMALL}
+                        variant="primary"
+                        size="small"
                         disabled={running}
                         onClick={() => {
                             if (window.confirm(`Are you sure you want to mute all ${targetLabel()}?`)) applyMute(true);
@@ -144,8 +146,8 @@ export default definePlugin({
                         Mute All
                     </Button>
                     <Button
-                        color={Button.Colors.BRAND}
-                        size={Button.Sizes.SMALL}
+                        variant="primary"
+                        size="small"
                         disabled={running}
                         onClick={() => {
                             if (window.confirm(`Are you sure you want to unmute all ${targetLabel()}?`)) applyMute(false);
@@ -154,7 +156,7 @@ export default definePlugin({
                         Unmute All
                     </Button>
                 </div>
-            </Forms.FormSection>
+            </section>
         );
     },
 });

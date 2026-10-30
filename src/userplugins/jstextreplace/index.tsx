@@ -10,7 +10,8 @@ import { definePluginSettings } from "@api/Settings";
 import { Flex } from "@components/Flex";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { Alerts, Button, ChannelStore, GuildMemberStore, GuildStore, SelectedGuildStore, useEffect, UserStore, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Alerts, ChannelStore, GuildMemberStore, GuildStore, SelectedGuildStore, useEffect, UserStore, useState } from "@webpack/common";
 import ace from "file://ace/ace.js?minify";
 import highlighter from "file://ace/highlighter.js?minify";
 import theme from "file://ace/theme.js?minify";
@@ -45,7 +46,7 @@ export const settings = definePluginSettings({
                     <Button style={{ flex: "1" }} disabled={!reactiveSettings.hasDoneChallenge} onClick={() => {
                         settings.store.rules.push(makeEmptyRule());
                     }}>Create new rule</Button>
-                    <Button style={{ flex: "1" }} color={Button.Colors.WHITE} onClick={() => {
+                    <Button style={{ flex: "1" }} variant="secondary" onClick={() => {
                         Alerts.show({
                             title: "_ contents",
                             body: <>

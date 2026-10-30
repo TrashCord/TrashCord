@@ -11,7 +11,8 @@ import { debounce } from "@shared/debounce";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal,RenderModalProps } from "@utils/modal";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
-import { Button,ContextMenuApi, FluxDispatcher, Menu, React, RelationshipStore, Slider, UserStore, VoiceActions, VoiceStateStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { ContextMenuApi, FluxDispatcher, Menu, React, RelationshipStore, Slider, UserStore, VoiceActions, VoiceStateStore } from "@webpack/common";
 
 const MediaEngineStore = findStoreLazy("MediaEngineStore");
 const { setLocalVolume } = findByPropsLazy("setLocalVolume");
@@ -364,7 +365,7 @@ function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                     Targeting: <strong style={{ color: (soloedUserId || soloedGroupId) ? C.green : C.text }}>{currentSoloText}</strong>
                                 </div>
                                 {(soloedUserId || soloedGroupId) && (
-                                    <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={() => { clearSolo(); forceUpdate(); }}>⏹ Clear</Button>
+                                    <Button size="small" variant="dangerPrimary" onClick={() => { clearSolo(); forceUpdate(); }}>⏹ Clear</Button>
                                 )}
                             </div>
                         </Card>
@@ -382,7 +383,7 @@ function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                             <img src={pfp} width={24} height={24} style={{ borderRadius: "50%" }} />
                                             <span style={{ color: C.text, fontSize: 15, fontWeight: 500 }}>{u?.globalName ?? u?.username ?? uid}</span>
                                         </div>
-                                        <Button size={Button.Sizes.SMALL} color={isSolo ? Button.Colors.GREEN : Button.Colors.BRAND} onClick={() => { applySoloUser(uid); forceUpdate(); }}>
+                                        <Button size="small" variant={isSolo ? "positive" : "primary"} onClick={() => { applySoloUser(uid); forceUpdate(); }}>
                                             {isSolo ? "✓ Active" : "Solo"}
                                         </Button>
                                     </div>
@@ -401,7 +402,7 @@ function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                             <span style={{ color: C.text, fontSize: 15, fontWeight: 500 }}>{g.name}</span>
                                             <span style={{ color: C.textMuted, fontSize: 12 }}>{g.userIds.length} members ({g.volume ?? 100}%)</span>
                                         </div>
-                                        <Button size={Button.Sizes.SMALL} color={isSolo ? Button.Colors.GREEN : Button.Colors.BRAND} onClick={() => { applySoloGroup(g.id); forceUpdate(); }}>
+                                        <Button size="small" variant={isSolo ? "positive" : "primary"} onClick={() => { applySoloGroup(g.id); forceUpdate(); }}>
                                             {isSolo ? "✓ Active" : "Solo"}
                                         </Button>
                                     </div>
@@ -413,7 +414,7 @@ function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
                     {tab === "groups" && <>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                             <SectionLabel style={{ margin: 0 }}>Your Squads</SectionLabel>
-                            <Button size={Button.Sizes.MIN} color={Button.Colors.BRAND} onClick={() => {
+                            <Button size="min" variant="primary" onClick={() => {
                                 const name = prompt("Enter new group name:");
                                 if (name?.trim()) { createGroup(name.trim()); forceUpdate(); }
                             }}>+ New Group</Button>
@@ -423,7 +424,7 @@ function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
                             <Card key={group.id}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, paddingBottom: "12px", marginBottom: "12px" }}>
                                     <span style={{ color: C.text, fontSize: "16px", fontWeight: "bold" }}>{group.name}</span>
-                                    <Button size={Button.Sizes.MIN} color={Button.Colors.RED} onClick={() => { deleteGroup(group.id); forceUpdate(); }}>Delete</Button>
+                                    <Button size="min" variant="dangerPrimary" onClick={() => { deleteGroup(group.id); forceUpdate(); }}>Delete</Button>
                                 </div>
 
                                 <SliderRow
@@ -504,7 +505,7 @@ function SoloAudioModal({ modalProps }: { modalProps: RenderModalProps; }) {
             </ModalContent>
 
             <ModalFooter style={{ padding: "16px 24px", backgroundColor: "transparent", borderTop: "none" }}>
-                <Button color={Button.Colors.BRAND} onClick={() => modalProps.onClose()} style={{ width: "100%" }}>Done</Button>
+                <Button variant="primary" onClick={() => modalProps.onClose()} style={{ width: "100%" }}>Done</Button>
             </ModalFooter>
         </ModalRoot>
     );

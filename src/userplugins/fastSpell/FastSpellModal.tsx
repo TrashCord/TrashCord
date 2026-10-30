@@ -8,7 +8,10 @@ import { Divider } from "@components/Divider";
 import { FormSwitch } from "@components/FormSwitch";
 import { Margins } from "@utils/margins";
 import { RenderModalProps } from "@vencord/discord-types";
-import { Button, Forms, Modal, openModal, TextInput, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Modal, openModal, TextInput, useState } from "@webpack/common";
 
 import { addCustomCorrection, removeCustomCorrection, useCustomCorrections } from "./customCorrections";
 import { addToUserDictionary, removeFromUserDictionary, settings } from "./settings";
@@ -65,10 +68,10 @@ function IgnoredWords() {
 
     return (
         <section className={Margins.top16}>
-            <Forms.FormTitle tag="h3">Never correct these words</Forms.FormTitle>
-            <Forms.FormText className={Margins.bottom8}>
+            <Heading tag="h3">Never correct these words</Heading>
+            <Paragraph className={Margins.bottom8}>
                 Slang, names, other languages — anything the autocorrect keeps getting wrong.
-            </Forms.FormText>
+            </Paragraph>
 
             <div className="vc-fastspell-row">
                 <TextInput
@@ -81,7 +84,7 @@ function IgnoredWords() {
             </div>
 
             <div className="vc-fastspell-chips">
-                {words.length === 0 && <Forms.FormText>Nothing here yet.</Forms.FormText>}
+                {words.length === 0 && <Paragraph>Nothing here yet.</Paragraph>}
                 {words.map(w => (
                     <span key={w} className="vc-fastspell-chip" title="Click to remove" onClick={() => removeFromUserDictionary(w)}>
                         {w} ✕
@@ -110,10 +113,10 @@ function CustomCorrections() {
 
     return (
         <section className={Margins.top16}>
-            <Forms.FormTitle tag="h3">Custom corrections</Forms.FormTitle>
-            <Forms.FormText className={Margins.bottom8}>
+            <Heading tag="h3">Custom corrections</Heading>
+            <Paragraph className={Margins.bottom8}>
                 Always replace a word with another one, e.g. "alot" → "a lot" or "im" → "I'm".
-            </Forms.FormText>
+            </Paragraph>
 
             <div className="vc-fastspell-row">
                 <TextInput placeholder="When I type..." value={wrong} onChange={setWrong} />
@@ -122,7 +125,7 @@ function CustomCorrections() {
             </div>
 
             <div className="vc-fastspell-chips">
-                {entries.length === 0 && <Forms.FormText>Nothing here yet.</Forms.FormText>}
+                {entries.length === 0 && <Paragraph>Nothing here yet.</Paragraph>}
                 {entries.map(([from, to]) => (
                     <span key={from} className="vc-fastspell-chip" title="Click to remove" onClick={() => removeCustomCorrection(from)}>
                         {from} → {to} ✕
@@ -138,10 +141,10 @@ function VoiceTranslation() {
 
     return (
         <section className={Margins.top16}>
-            <Forms.FormTitle tag="h3">Voice typing translation</Forms.FormTitle>
-            <Forms.FormText className={Margins.bottom8}>
+            <Heading tag="h3">Voice typing translation</Heading>
+            <Paragraph className={Margins.bottom8}>
                 Speak in any language and the mic button will type it out in this one. Leave empty to keep the language you spoke.
-            </Forms.FormText>
+            </Paragraph>
             <TextInput
                 placeholder="Translate my speech into... (e.g. English)"
                 value={sttTranslateTo}

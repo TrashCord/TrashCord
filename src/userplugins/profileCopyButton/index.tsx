@@ -16,8 +16,9 @@ import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
 import {
-    Button,
     Constants,
     DisplayProfileUtils,
     FluxDispatcher,
@@ -30,7 +31,6 @@ import {
     RestAPI,
     Select,
     showToast,
-    Text,
     TextInput,
     UserStore,
     useState
@@ -238,21 +238,21 @@ function EmojiGuildPickerModal({ modalProps, missingEmojis, onConfirm }: {
     return (
         <ModalRoot {...modalProps} size={ModalSize.SMALL}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Upload missing emojis</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Upload missing emojis</Text>
                 <ModalCloseButton onClick={handleSkip} />
             </ModalHeader>
             <ModalContent>
-                <Text variant="text-sm/normal" className={Margins.bottom8}>
+                <Text size="sm" weight="normal" className={Margins.bottom8}>
                     The bio contains {missingEmojis.length} custom emoji{missingEmojis.length !== 1 ? "s" : ""} you don't have access to:
                 </Text>
-                <Text variant="text-sm/normal" style={{ fontStyle: "italic" }} className={Margins.bottom16}>
+                <Text size="sm" weight="normal" style={{ fontStyle: "italic" }} className={Margins.bottom16}>
                     {emojiList}
                 </Text>
-                <Text variant="text-sm/normal" className={Margins.bottom8}>
+                <Text size="sm" weight="normal" className={Margins.bottom8}>
                     Select a server to upload them to, or skip to remove them from the bio.
                 </Text>
                 {guilds.length === 0
-                    ? <Text variant="text-sm/normal" style={{ color: "var(--text-danger)" }}>
+                    ? <Text size="sm" weight="normal" style={{ color: "var(--text-danger)" }}>
                         You don't have Manage Expressions permission in any server.
                     </Text>
                     : <Select
@@ -265,7 +265,7 @@ function EmojiGuildPickerModal({ modalProps, missingEmojis, onConfirm }: {
             </ModalContent>
             <ModalFooter>
                 <Flex>
-                    <Button color={Button.Colors.PRIMARY} onClick={handleSkip}>
+                    <Button variant="secondary" onClick={handleSkip}>
                         Skip (remove from bio)
                     </Button>
                     <Button
@@ -811,11 +811,11 @@ function PromptModal({ modalProps }: { modalProps: ModalProps; }) {
     return (
         <ModalRoot {...modalProps} size={ModalSize.SMALL}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Copy profile from user</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Copy profile from user</Text>
                 <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
             <ModalContent>
-                <Text variant="text-sm/normal" className={Margins.bottom8}>
+                <Text size="sm" weight="normal" className={Margins.bottom8}>
                     Enter a user ID or a cached username. The profile editor fields are filled with their info, but you still need to click Save to apply.
                 </Text>
                 <TextInput
@@ -827,7 +827,7 @@ function PromptModal({ modalProps }: { modalProps: ModalProps; }) {
             </ModalContent>
             <ModalFooter>
                 <Flex>
-                    <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Cancel</Button>
+                    <Button variant="secondary" onClick={modalProps.onClose}>Cancel</Button>
                     <Button onClick={submit} disabled={busy || !value.trim()}>
                         {busy ? "Copying..." : "Copy"}
                     </Button>
@@ -843,7 +843,7 @@ function CopySection() {
             <Flex>
                 <Button
                     onClick={() => openModal(props => <PromptModal modalProps={props as any} />)}
-                    size={Button.Sizes.MEDIUM}
+                    size="medium"
                 >
                     Copy from User
                 </Button>

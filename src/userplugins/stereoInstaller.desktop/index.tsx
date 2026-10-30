@@ -15,7 +15,8 @@ import { Paragraph } from "@components/Paragraph";
 import SettingsPlugin from "@plugins/_core/settings";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType, PluginNative, ReporterTestable } from "@utils/types";
-import { Alerts, Button, React, Select, SettingsRouter, showToast, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Alerts, React, Select, SettingsRouter, showToast, TextInput } from "@webpack/common";
 
 import type { ActionInfo, InstallInfo, NativeResult, PatchMethod } from "./native";
 
@@ -184,8 +185,8 @@ function LogPanel({ lines, onClear }: { lines: string[]; onClear: () => void; })
                 <span className="vc-stereo-log-title">
                     Console - {lines.length}/{MAX_LOG_LINES} line{lines.length !== 1 ? "s" : ""}
                 </span>
-                <Button className="vc-stereo-btn vc-stereo-btn--brand" color={Button.Colors.PRIMARY} size={Button.Sizes.TINY} onClick={handleCopy}>Copy</Button>
-                <Button className="vc-stereo-btn vc-stereo-btn--red"   color={Button.Colors.RED}     size={Button.Sizes.TINY} onClick={onClear}>Clear</Button>
+                <Button className="vc-stereo-btn vc-stereo-btn--brand" variant="secondary" size="min" onClick={handleCopy}>Copy</Button>
+                <Button className="vc-stereo-btn vc-stereo-btn--red"   variant="dangerPrimary"     size="min" onClick={onClear}>Clear</Button>
             </div>
             <div ref={logRef} className="vc-stereo-log">
                 {lines.length === 0 && <div className="vc-stereo-log-line vc-stereo-log-line--empty">No activity logged yet.</div>}
@@ -461,7 +462,6 @@ function StereoInstallerPanel() {
             ),
             confirmText: "Patch now",
             cancelText: "Cancel",
-            confirmColor: Button.Colors.GREEN,
             onConfirm: () => void handlePatch(),
         });
     }), [requireRoot, installerMethod, handlePatch]);
@@ -477,7 +477,7 @@ function StereoInstallerPanel() {
             ),
             confirmText: "Revert",
             cancelText: "Cancel",
-            confirmColor: Button.Colors.RED,
+            confirmColor: "danger",
             onConfirm: () => void handleRevert(),
         });
     }), [requireRoot, handleRevert]);
@@ -494,7 +494,7 @@ function StereoInstallerPanel() {
             ),
             confirmText: "Replace index.js",
             cancelText: "Cancel",
-            confirmColor: Button.Colors.RED,
+            confirmColor: "danger",
             onConfirm: () => void handleMethod2IndexPatch(),
         });
     }), [requireRoot, handleMethod2IndexPatch]);
@@ -538,16 +538,16 @@ function StereoInstallerPanel() {
                     <div className="vc-stereo-source-buttons">
                         <Button
                             className="vc-stereo-btn vc-stereo-btn--brand"
-                            color={Button.Colors.PRIMARY}
-                            size={Button.Sizes.SMALL}
+                            variant="secondary"
+                            size="small"
                             onClick={openDacSource}
                         >
                             Discord Audio Collective
                         </Button>
                         <Button
                             className="vc-stereo-btn vc-stereo-btn--brand"
-                            color={Button.Colors.PRIMARY}
-                            size={Button.Sizes.SMALL}
+                            variant="secondary"
+                            size="small"
                             onClick={openVpSource}
                         >
                             Voice Playground
@@ -568,16 +568,16 @@ function StereoInstallerPanel() {
                     <div className="vc-stereo-inline-buttons">
                         <Button
                             className="vc-stereo-btn vc-stereo-btn--brand"
-                            color={Button.Colors.PRIMARY}
-                            size={Button.Sizes.SMALL}
+                            variant="secondary"
+                            size="small"
                             onClick={openVpTutorial}
                         >
                             Corruption fix tutorial
                         </Button>
                         <Button
                             className="vc-stereo-btn vc-stereo-btn--red"
-                            color={Button.Colors.RED}
-                            size={Button.Sizes.SMALL}
+                            variant="dangerPrimary"
+                            size="small"
                             disabled={busy || !hasRoot}
                             onClick={confirmMethod2IndexPatch}
                         >
@@ -598,8 +598,8 @@ function StereoInstallerPanel() {
                 <div className="vc-stereo-buttons">
                     <Button
                         className="vc-stereo-btn vc-stereo-btn--brand"
-                        color={Button.Colors.PRIMARY}
-                        size={Button.Sizes.SMALL}
+                        variant="secondary"
+                        size="small"
                         disabled={busy}
                         onClick={() => void handleAutoDetect()}
                     >
@@ -607,8 +607,8 @@ function StereoInstallerPanel() {
                     </Button>
                     <Button
                         className="vc-stereo-btn vc-stereo-btn--brand"
-                        color={Button.Colors.PRIMARY}
-                        size={Button.Sizes.SMALL}
+                        variant="secondary"
+                        size="small"
                         disabled={busy}
                         onClick={() => void handleBrowse()}
                     >
@@ -616,8 +616,8 @@ function StereoInstallerPanel() {
                     </Button>
                     <Button
                         className="vc-stereo-btn vc-stereo-btn--green"
-                        color={Button.Colors.GREEN}
-                        size={Button.Sizes.SMALL}
+                        variant="positive"
+                        size="small"
                         disabled={busy || !hasRoot}
                         onClick={confirmPatch}
                     >
@@ -625,8 +625,8 @@ function StereoInstallerPanel() {
                     </Button>
                     <Button
                         className="vc-stereo-btn vc-stereo-btn--red"
-                        color={Button.Colors.RED}
-                        size={Button.Sizes.SMALL}
+                        variant="dangerPrimary"
+                        size="small"
                         disabled={busy || !hasRoot}
                         onClick={confirmRevert}
                     >

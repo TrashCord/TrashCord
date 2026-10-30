@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Link } from "@components/Link";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType, PluginSettingDef } from "@utils/types";
-import { Forms } from "@webpack/common";
+import { Heading } from "@components/Heading";
 
 import Patches from "./patches";
 
@@ -48,8 +48,8 @@ export default definePlugin({
     patches: ParsedPatches.flatMap(p => p.patches),
     settingsAboutComponent: () => {
         return <div>
-            <Forms.FormTitle>Total patch count: {ParsedPatches.length}</Forms.FormTitle>
-            <Forms.FormTitle style={{ marginBottom: 0 }}><Link href="https://github.com/Sqaaakoi/vc-junkCleanup">View repository on GitHub</Link></Forms.FormTitle>
+            <Heading>Total patch count: {ParsedPatches.length}</Heading>
+            <Heading style={{ marginBottom: 0 }}><Link href="https://github.com/Sqaaakoi/vc-junkCleanup">View repository on GitHub</Link></Heading>
         </div>;
     }
 });

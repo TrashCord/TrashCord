@@ -9,7 +9,9 @@ import {
     closeModal, ModalCloseButton, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal
 } from "@utils/modal";
 import { User } from "@vencord/discord-types";
-import { Button, Text, TextArea, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { TextArea, useState } from "@webpack/common";
 
 import { getUserNotes, saveUserNotes } from "../data";
 import settings from "../settings";
@@ -28,7 +30,7 @@ export function UserNotesModal({ modalProps, close, user, userNotes, saveCallbac
     return (
         <ModalRoot className={cl("root")} {...modalProps as any}>
             <ModalHeader className={cl("header")}>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Notes: {typeof user === "string" ? user : user.username}</Text>
+                <Text size="xl" weight="semibold" style={{ flexGrow: 1 }}>Notes: {typeof user === "string" ? user : user.username}</Text>
                 <ModalCloseButton onClick={close} />
             </ModalHeader>
             <div className={cl("content")}>
@@ -42,7 +44,7 @@ export function UserNotesModal({ modalProps, close, user, userNotes, saveCallbac
             </div>
             <ModalFooter className={cl("footer")}>
                 <Button
-                    color={Button.Colors.GREEN}
+                    variant="positive"
                     onClick={() => {
                         saveUserNotes(typeof user === "string" ? user : user.id, value);
                         close();

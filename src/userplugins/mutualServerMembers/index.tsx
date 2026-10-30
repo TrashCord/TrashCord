@@ -8,13 +8,13 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { Devs } from "@utils/constants";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
+import { Text } from "@components/Text";
 import {
     GuildMemberStore,
     GuildStore,
     Menu,
     React,
     showToast,
-    Text,
     useMemo,
     UserStore,
     useState,
@@ -219,7 +219,7 @@ function MutualMembersModal({ guildAId, guildBId, modalProps }: { guildAId: stri
                 </div>
             </ModalContent>
             <ModalFooter>
-                <Text variant="text-xs/normal" color="text-muted">
+                <Text size="xs" weight="normal" color="text-muted">
                     Results are based on cached members. Open the member list in both servers for best results.
                 </Text>
             </ModalFooter>

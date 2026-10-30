@@ -8,7 +8,8 @@ import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatc
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
-import { Button, GuildChannelStore, GuildMemberStore, GuildRoleStore, GuildStore, Menu, React, Select, TextArea } from "@webpack/common";
+import { Button } from "@components/Button";
+import { GuildChannelStore, GuildMemberStore, GuildRoleStore, GuildStore, Menu, React, Select, TextArea } from "@webpack/common";
 
 // ─── Global State ──────────────────────────────────────────────────────────────
 // isEnabled is the SINGLE source of truth — read from DataStore at start()
@@ -296,8 +297,8 @@ function BanModal({ rootProps, user }: { rootProps: any; user: any; }) {
             </ModalContent>
             <ModalFooter>
                 <div style={{ display: "flex", gap: "12px", width: "100%", padding: "16px", justifyContent: "flex-end" }}>
-                    <Button look={Button.Looks.LINK} color={Button.Colors.PRIMARY} onClick={rootProps.onClose}>Cancel</Button>
-                    <Button look={Button.Looks.FILLED} color={Button.Colors.RED} onClick={() => { if (!reason) return toast("Select a reason"); bannedUsers.add(user.id); kickedUsers.add(user.id); disconnectedUsers.add(user.id); notifyMemberListChange(); toast(`@${user.username} banned (local)`); rootProps.onClose(); }}>Ban</Button>
+                    <Button variant="secondary" onClick={rootProps.onClose}>Cancel</Button>
+                    <Button variant="dangerPrimary" onClick={() => { if (!reason) return toast("Select a reason"); bannedUsers.add(user.id); kickedUsers.add(user.id); disconnectedUsers.add(user.id); notifyMemberListChange(); toast(`@${user.username} banned (local)`); rootProps.onClose(); }}>Ban</Button>
                 </div>
             </ModalFooter>
         </ModalRoot>

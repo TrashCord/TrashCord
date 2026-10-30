@@ -7,7 +7,9 @@
 import { ModalContent, openModal } from "@utils/modal";
 import { Guild, RenderModalProps } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Forms, GuildStore, Modal, React, TabBar, Text, useState } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { GuildStore, Modal, React, TabBar, useState } from "@webpack/common";
 
 import { ChannelsTab } from "./tabs/ChannelsTab";
 import { EmojisTab } from "./tabs/EmojisTab";
@@ -53,8 +55,8 @@ function XRayModal({ guild: bareGuild, ...props }: RenderModalProps & { guild: G
                 <div className="guild-toolkit-header-content">
                     {iconUrl && <img src={iconUrl} alt="" className="guild-toolkit-icon" />}
                     <div>
-                        <Forms.FormTitle tag="h2" style={{ marginBottom: 0 }}>{guild.name}</Forms.FormTitle>
-                        <Text variant="text-xs/normal" style={{ color: "var(--text-muted)" }}>
+                        <Heading tag="h2" style={{ marginBottom: 0 }}>{guild.name}</Heading>
+                        <Text size="xs" weight="normal" style={{ color: "var(--text-muted)" }}>
                             {guild.id}
                         </Text>
                     </div>

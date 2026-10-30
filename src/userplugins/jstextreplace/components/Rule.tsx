@@ -6,7 +6,9 @@
 
 import { Flex } from "@components/Flex";
 import { DeleteIcon } from "@components/Icons";
-import { Button, Text, Tooltip, useEffect, useRef, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { Tooltip, useEffect, useRef, useState } from "@webpack/common";
 
 import { rmRule, settings } from "..";
 import { cl, Rule } from "../utils";
@@ -47,7 +49,7 @@ export function Rule(props: {
                             initialValue={rule.onlyIfIncludes}
                             onChange={v => { settings.store.rules[index].onlyIfIncludes = v; }}
                         />
-                        <Button color={!isBeingEdited ? Button.Colors.TRANSPARENT : Button.Colors.BRAND} className={cl("replacement-btn")} onClick={() => {
+                        <Button variant={!isBeingEdited ? "none" : "primary"} className={cl("replacement-btn")} onClick={() => {
                             if (!isBeingEdited) {
                                 setBeingEdited(true);
                                 editorTimerRef.current = setTimeout(() => {
@@ -76,7 +78,7 @@ export function Rule(props: {
                     </Flex>
                     <Tooltip text={`${isBeingEdited ? "Save replacement to d" : "D"}elete rule`}>
                         {({ onMouseLeave, onMouseEnter }) => <Button
-                            size={Button.Sizes.MIN}
+                            size="min"
                             onMouseEnter={onMouseEnter}
                             onMouseLeave={onMouseLeave}
                             onClick={() => {

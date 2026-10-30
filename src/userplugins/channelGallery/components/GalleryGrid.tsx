@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, React, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
 import type { GalleryItem } from "../utils/extractImages";
 
@@ -174,7 +175,7 @@ export function GalleryGrid(props: {
                 {error ? (
                     <div style={{ color: "var(--text-danger)" }}>
                         {error}{" "}
-                        <Button size={Button.Sizes.SMALL} onClick={onRetry}>
+                        <Button size="small" onClick={onRetry}>
                             Retry
                         </Button>
                     </div>

@@ -8,7 +8,8 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { IPluginOptionComponentProps, OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
-import { Button, showToast, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { showToast, useEffect, useState } from "@webpack/common";
 // two lines because formatting removes the two spaces at the end of the line
 /**
  * shortcut: keys & mods in a string, joined by "+"

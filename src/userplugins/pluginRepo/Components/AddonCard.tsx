@@ -7,7 +7,7 @@
 // import "./addonCard.css";
 
 import { classNameFactory } from "@api/Styles";
-import { Text } from "@webpack/common";
+import { Text } from "@components/Text";
 
 function AddonBadge({ text, color }: { text: string; color: string; }) {
     return (
@@ -41,11 +41,11 @@ export function AddonCard({ disabled, isNew, name, infoButton, footer, author, e
         >
             <div className={cl("header")}>
                 <div className={cl("name-author")}>
-                    <Text variant="text-md/bold" className={cl("name")}>
+                    <Text size="md" weight="bold" className={cl("name")}>
                         {name}{isNew && <AddonBadge text="NEW" color="#ED4245" />}
                     </Text>
                     {!!author && (
-                        <Text variant="text-md/normal" className={cl("author")}>
+                        <Text size="md" weight="normal" className={cl("author")}>
                             {author}
                         </Text>
                     )}
@@ -54,7 +54,7 @@ export function AddonCard({ disabled, isNew, name, infoButton, footer, author, e
                 {infoButton}
             </div>
 
-            <Text className={cl("note")} variant="text-sm/normal">{description}</Text>
+            <Text className={cl("note")} size="sm" weight="normal">{description}</Text>
 
             {footer}
         </div>

@@ -12,7 +12,9 @@ import SettingsPlugin from "@plugins/_core/settings";
 import { Devs } from "@utils/constants";
 import * as Modal from "@utils/modal";
 import definePlugin, { type IconProps } from "@utils/types";
-import { Button, React, Text, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { React, TextInput } from "@webpack/common";
 
 function KeyIcon({ height = 20, width = 20, className }: IconProps) {
     return (
@@ -78,11 +80,11 @@ const AddAccountModal = ({ manager, onClose, ...props }: { manager: TokenLoginMa
     return (
         <Modal.ModalRoot {...props}>
             <Modal.ModalHeader separator={false}>
-                <Text variant="heading-lg/semibold">Add Account</Text>
+                <Text size="xl" weight="semibold">Add Account</Text>
             </Modal.ModalHeader>
             <Modal.ModalContent className="token-login-modal-content">
                 <div className="token-login-section">
-                    <Text variant="heading-sm/medium" style={{ marginBottom: "8px" }}>Username</Text>
+                    <Text size="md" weight="medium" style={{ marginBottom: "8px" }}>Username</Text>
                     <TextInput
                         placeholder="Username"
                         value={username}
@@ -90,7 +92,7 @@ const AddAccountModal = ({ manager, onClose, ...props }: { manager: TokenLoginMa
                     />
                 </div>
                 <div className="token-login-section">
-                    <Text variant="heading-sm/medium" style={{ marginBottom: "8px" }}>Token</Text>
+                    <Text size="md" weight="medium" style={{ marginBottom: "8px" }}>Token</Text>
                     <TextInput
                         placeholder="User Token"
                         value={token}
@@ -101,7 +103,7 @@ const AddAccountModal = ({ manager, onClose, ...props }: { manager: TokenLoginMa
             <Modal.ModalFooter className="token-login-footer">
                 <Flex style={{ justifyContent: "flex-end", gap: "10px" }}>
                     <Button
-                        color={Button.Colors.BRAND}
+                        variant="primary"
                         disabled={!username || !token}
                         onClick={() => {
                             manager.addAccount({ username, token });
@@ -111,7 +113,7 @@ const AddAccountModal = ({ manager, onClose, ...props }: { manager: TokenLoginMa
                         Save
                     </Button>
                     <Button
-                        color={Button.Colors.TRANSPARENT}
+                        variant="none"
                         onClick={onClose}
                     >
                         Cancel
@@ -132,26 +134,26 @@ const AccountEntryComponent = ({ account, manager, onDelete }: {
     return (
         <div className="account-entry" key={account.id}>
             <div>
-                <Text variant="heading-sm/medium">{account.username}</Text>
+                <Text size="md" weight="medium">{account.username}</Text>
                 <Text className={showToken ? "" : "token-field"}>{showToken ? account.token : "••••••••••••••••"}</Text>
             </div>
             <div className="account-actions">
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => setShowToken(!showToken)}
                 >
                     {showToken ? "Hide Token" : "Show Token"}
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
-                    color={Button.Colors.BRAND}
+                    size="small"
+                    variant="primary"
                     onClick={() => loginWithToken(account.token)}
                 >
                     Login
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
-                    color={Button.Colors.RED}
+                    size="small"
+                    variant="dangerPrimary"
                     onClick={() => {
                         manager.deleteAccount(account.id);
                         onDelete();
@@ -180,7 +182,7 @@ class TokenLoginManagerUI {
         return (
             <div className="token-login-container">
                 <Flex style={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Text variant="heading-lg/semibold">Token Login Manager</Text>
+                    <Text size="xl" weight="semibold">Token Login Manager</Text>
                     <Button
                         onClick={() => {
                             Modal.openModal((props: any) => (

@@ -11,9 +11,9 @@ import { Heading } from "@components/Heading";
 import { resolveError } from "@components/settings/tabs/plugins/components/Common";
 import { debounce } from "@shared/debounce";
 import { classNameFactory } from "@utils/css";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
 import {
-  Button,
-  Text,
   TextInput,
   useEffect,
   useRef,
@@ -108,7 +108,7 @@ function SingleSetting<T>({
       />
       {!!state && (
         <Button
-          color={Button.Colors.TRANSPARENT}
+          variant="none"
           onClick={() => {
             validationRequest.current++;
             settings.store[settingsKey] = "";
@@ -122,7 +122,7 @@ function SingleSetting<T>({
         </Button>
       )}
       {error && (
-        <Text className={cl("error")} variant="text-sm/normal">
+        <Text className={cl("error")} size="sm" weight="normal">
           {error}
         </Text>
       )}
@@ -185,14 +185,14 @@ function ApplicationSearch(props: { onSelect: (appID: string) => void }) {
         value={query}
         onChange={setQuery}
       />
-      {loading && <Text variant="text-sm/normal">Searching...</Text>}
+      {loading && <Text size="sm" weight="normal">Searching...</Text>}
       {error && (
-        <Text className={cl("error")} variant="text-sm/normal">
+        <Text className={cl("error")} size="sm" weight="normal">
           {error}
         </Text>
       )}
       {!loading && query.trim() && !error && results.length === 0 && (
-        <Text variant="text-sm/normal">
+        <Text size="sm" weight="normal">
           No matching detectable games found.
         </Text>
       )}
@@ -279,7 +279,7 @@ function TimestampSettings() {
         onChange={handleStartTimestampChange}
       />
       {error && (
-        <Text className={cl("error")} variant="text-sm/normal">
+        <Text className={cl("error")} size="sm" weight="normal">
           {error}
         </Text>
       )}

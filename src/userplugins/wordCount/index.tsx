@@ -7,7 +7,7 @@
 import { addMessageAccessory, removeMessageAccessory } from "@api/MessageAccessories";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Text } from "@webpack/common";
+import { Text } from "@components/Text";
 
 function WordCount({ messageContent }: { messageContent: string; }) {
     const words = messageContent.split(/\s+/).filter((word: string) => word.length > 0);
@@ -17,7 +17,7 @@ function WordCount({ messageContent }: { messageContent: string; }) {
     return (
         <div>
             <Text
-                variant="text-xs/normal"
+                size="xs" weight="normal"
                 style={{ color: "var(--text-muted)" }}
             >
                 {words.length} words, {characters} characters

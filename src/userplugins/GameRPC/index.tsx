@@ -16,10 +16,11 @@ import definePlugin, { OptionType } from "@utils/types";
 import { Activity } from "@vencord/discord-types";
 import { ActivityType } from "@vencord/discord-types/enums";
 import { findByCodeLazy, findComponentByCodeLazy } from "@webpack";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
 import {
-  Button,
   FluxDispatcher,
-  Forms,
   React,
   showToast,
   UserStore,
@@ -358,10 +359,10 @@ export default definePlugin({
             className={classes(Margins.top16, Margins.bottom16)}
             style={{ padding: "1em" }}
           >
-            <Forms.FormTitle>GameRPC is disabled</Forms.FormTitle>
-            <Forms.FormText>
+            <Heading>GameRPC is disabled</Heading>
+            <Paragraph>
               Enable the GameRPC plugin to... enable the plugin..?
-            </Forms.FormText>
+            </Paragraph>
           </ErrorCard>
         )}
 
@@ -370,14 +371,14 @@ export default definePlugin({
             className={classes(Margins.top16, Margins.bottom16)}
             style={{ padding: "1em" }}
           >
-            <Forms.FormTitle>Notice</Forms.FormTitle>
-            <Forms.FormText>
+            <Heading>Notice</Heading>
+            <Paragraph>
               Activity Sharing isn't enabled, people won't be able to see your
               game rich presence!
-            </Forms.FormText>
+            </Paragraph>
 
             <Button
-              color={Button.Colors.TRANSPARENT}
+              variant="none"
               className={Margins.top8}
               onClick={() => ShowCurrentGame.updateSetting(true)}
             >
@@ -386,7 +387,7 @@ export default definePlugin({
           </ErrorCard>
         )}
 
-        <Forms.FormText className={Margins.top16}>
+        <Paragraph className={Margins.top16}>
           {previewLoading && "Loading activity preview..."}
           {!previewLoading &&
             preview.status === "empty" &&
@@ -397,7 +398,7 @@ export default definePlugin({
           {!previewLoading &&
             preview.status === "error" &&
             "Discord's detectable applications service could not be reached."}
-        </Forms.FormText>
+        </Paragraph>
 
         {React.createElement(
           "div",

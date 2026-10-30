@@ -9,7 +9,8 @@ import { DataStore } from "@api/index";
 import { addMessageAccessory, removeMessageAccessory } from "@api/MessageAccessories";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Parser, React, Text } from "@webpack/common";
+import { Text } from "@components/Text";
+import { Parser, React } from "@webpack/common";
 
 const DATA_KEY = "UserFlags_data";
 const LEGACY_KEY = "USERFLAGS";
@@ -91,7 +92,7 @@ function FlagBadge({ userId }: { userId: string }) {
 
     const kind = FlagType[flag.type];
     return (
-        <Text variant="text-md/bold" style={{ color: kind.color }}>
+        <Text size="md" weight="bold" style={{ color: kind.color }}>
             {Parser.parse(`${kind.emoji} ${flag.text}`)}
         </Text>
     );

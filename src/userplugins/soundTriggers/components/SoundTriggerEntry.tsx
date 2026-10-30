@@ -6,7 +6,9 @@
 
 import { Flex } from "@components/Flex";
 import { DeleteIcon } from "@components/Icons";
-import { Alerts, Button, ContextMenuApi, FluxDispatcher, Menu, Text } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { Alerts, ContextMenuApi, FluxDispatcher, Menu } from "@webpack/common";
 
 import { classFactory, settings, SoundTrigger } from "../index";
 import { openTriggerModal } from "./SoundTriggerModal";
@@ -72,7 +74,7 @@ function SoundTriggerEntryMenu(props: SoundTriggerEntryMenuProps) {
                         ),
                         onConfirm: () => onDelete(index),
                         confirmText: "Delete",
-                        confirmColor: Button.Colors.RED,
+                        confirmColor: "danger",
                         cancelText: "Cancel"
                     })}
             />

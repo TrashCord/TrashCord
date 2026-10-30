@@ -8,7 +8,7 @@ import "../styles.css";
 
 import { copyToClipboard } from "@utils/clipboard";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Button, Modal, React, showToast, TextInput, useEffect, useRef, useState } from "@webpack/common";
+import { Modal, React, showToast, TextInput, useEffect, useRef, useState } from "@webpack/common";
 
 import {
     createAccount, deleteAccount, deleteMessage,

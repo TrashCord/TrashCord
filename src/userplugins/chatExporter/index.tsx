@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { React, Forms, Text, Button, TextInput, Select, Slider, Alerts, RestAPI, Constants, ChannelStore, SelectedChannelStore, UserStore, SnowflakeUtils, showToast } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { Text } from "@components/Text";
+import { React, TextInput, Select, Slider, Alerts, RestAPI, Constants, ChannelStore, SelectedChannelStore, UserStore, SnowflakeUtils, showToast } from "@webpack/common";
 import { Divider } from "@components/Divider";
 import { FormSwitch } from "@components/FormSwitch";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
@@ -507,19 +511,19 @@ export default definePlugin({
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
         <div>
-          <Forms.FormText>
+          <Paragraph>
             Export complete chat history from the currently selected channel: <strong>#{channel?.name || "No channel selected"}</strong>
-          </Forms.FormText>
+          </Paragraph>
         </div>
 
         <div>
-          <Forms.FormTitle tag="h5">Export Path</Forms.FormTitle>
+          <Heading tag="h5">Export Path</Heading>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Forms.FormText style={{ flex: 1, margin: 0, padding: "8px", background: "var(--background-secondary)", borderRadius: "4px" }}>
+            <Paragraph style={{ flex: 1, margin: 0, padding: "8px", background: "var(--background-secondary)", borderRadius: "4px" }}>
               {exportPath || "Not set (downloads to browser default)"}
-            </Forms.FormText>
+            </Paragraph>
             <Button
-              size={Button.Sizes.SMALL}
+              size="small"
               onClick={handleSelectFolder}
               disabled={IS_WEB}
             >
@@ -552,7 +556,7 @@ export default definePlugin({
         ) : (
           <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
-              <Forms.FormTitle tag="h5">Select Format</Forms.FormTitle>
+              <Heading tag="h5">Select Format</Heading>
               <Select
                 options={[
                   { label: "JSON (Complete Metadata)", value: "json" },
@@ -566,7 +570,7 @@ export default definePlugin({
             </div>
             <Button
               onClick={() => handleExport(format)}
-              color={Button.Colors.BRAND}
+              variant="primary"
               disabled={!channel}
               style={{ padding: "10px 24px" }}
             >
@@ -578,7 +582,7 @@ export default definePlugin({
         <Divider />
 
         <div>
-          <Forms.FormTitle tag="h5">Quick Date Presets</Forms.FormTitle>
+          <Heading tag="h5">Quick Date Presets</Heading>
           <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
             {[
               { label: "Today", days: 0 },
@@ -588,8 +592,8 @@ export default definePlugin({
             ].map(p => (
               <Button
                 key={p.label}
-                size={Button.Sizes.SMALL}
-                color={Button.Colors.PRIMARY}
+                size="small"
+                variant="secondary"
                 onClick={() => {
                   if (p.days === -1) {
                     settings.store.filterStartDate = "";
@@ -610,7 +614,7 @@ export default definePlugin({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div>
-              <Forms.FormTitle tag="h5">Start Date</Forms.FormTitle>
+              <Heading tag="h5">Start Date</Heading>
               <TextInput
                 type="date"
                 value={filterStartDate}
@@ -618,7 +622,7 @@ export default definePlugin({
               />
             </div>
             <div>
-              <Forms.FormTitle tag="h5">End Date</Forms.FormTitle>
+              <Heading tag="h5">End Date</Heading>
               <TextInput
                 type="date"
                 value={filterEndDate}
@@ -629,7 +633,7 @@ export default definePlugin({
         </div>
 
         <div>
-          <Forms.FormTitle tag="h5">Only from User (ID)</Forms.FormTitle>
+          <Heading tag="h5">Only from User (ID)</Heading>
           <TextInput
             placeholder="Discord User ID"
             value={filterUserId}

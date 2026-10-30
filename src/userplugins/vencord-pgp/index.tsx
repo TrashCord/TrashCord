@@ -9,7 +9,10 @@ import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, Select, TabBar, Text, TextArea, TextInput, showToast, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { React, Select, TabBar, TextArea, TextInput, showToast, UserStore } from "@webpack/common";
 
 const logger = new Logger("PGP");
 
@@ -450,12 +453,12 @@ function KeyManagerModal({ onClose }: { onClose: () => void }) {
         return (
             <ModalRoot size={ModalSize.MEDIUM}>
                 <ModalHeader>
-                    <Text variant="heading-lg/semibold">🔐 PGP Key Manager</Text>
+                    <Text size="xl" weight="semibold">🔐 PGP Key Manager</Text>
                     <ModalCloseButton onClick={onClose} />
                 </ModalHeader>
                 <ModalContent>
                     <div style={{ padding: "32px", textAlign: "center" }}>
-                        <Text variant="text-lg/normal">Loading OpenPGP.js...</Text>
+                        <Text size="lg" weight="normal">Loading OpenPGP.js...</Text>
                     </div>
                 </ModalContent>
             </ModalRoot>
@@ -465,7 +468,7 @@ function KeyManagerModal({ onClose }: { onClose: () => void }) {
     return (
         <ModalRoot size={ModalSize.LARGE}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold">🔐 PGP Key Manager</Text>
+                <Text size="xl" weight="semibold">🔐 PGP Key Manager</Text>
                 <ModalCloseButton onClick={onClose} />
             </ModalHeader>
             <ModalContent>
@@ -504,8 +507,8 @@ function MyKeyTab() {
     if (loading) return <Text>Loading...</Text>;
     if (!keyInfo) return (
         <div style={{ padding: "16px", textAlign: "center" }}>
-            <Text variant="heading-md/normal">No key pair configured</Text>
-            <Text variant="text-md/normal" style={{ color: "var(--text-muted)", marginTop: "8px" }}>
+            <Text size="lg" weight="normal">No key pair configured</Text>
+            <Text size="md" weight="normal" style={{ color: "var(--text-muted)", marginTop: "8px" }}>
                 Go to Generate tab to create a new key.
             </Text>
         </div>
@@ -513,21 +516,21 @@ function MyKeyTab() {
 
     return (
         <div style={{ padding: "8px" }}>
-            <Forms.FormSection title="Key Information">
+            <section title="Key Information">
                 <div style={{ background: "var(--background-secondary)", padding: "16px", borderRadius: "8px", marginBottom: "16px" }}>
-                    <div style={{ marginBottom: "8px" }}><Text variant="text-sm/semibold">Fingerprint:</Text></div>
+                    <div style={{ marginBottom: "8px" }}><Text size="sm" weight="semibold">Fingerprint:</Text></div>
                     <Text style={{ fontFamily: "monospace", wordBreak: "break-all" }}>{formatFingerprint(keyInfo.fingerprint)}</Text>
-                    <div style={{ marginTop: "12px", marginBottom: "8px" }}><Text variant="text-sm/semibold">User ID:</Text></div>
+                    <div style={{ marginTop: "12px", marginBottom: "8px" }}><Text size="sm" weight="semibold">User ID:</Text></div>
                     <Text>{keyInfo.userIDs.join(", ")}</Text>
                 </div>
-            </Forms.FormSection>
-            <Forms.FormSection title="Public Key">
+            </section>
+            <section title="Public Key">
                 <TextArea value={getPGPEngine().getPublicKey() || ""} disabled rows={6} style={{ fontFamily: "monospace", fontSize: "11px" }} />
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
                     <Button onClick={() => { navigator.clipboard.writeText(getPGPEngine().getPublicKey()!); showToast({ text: "Copied!", variant: "success" }); }}>Copy</Button>
-                    <Button color={Button.Colors.RED} onClick={() => { if (confirm("Delete keys?")) { getPGPEngine().clearKeys(); setKeyInfo(null); } }}>Delete</Button>
+                    <Button variant="dangerPrimary" onClick={() => { if (confirm("Delete keys?")) { getPGPEngine().clearKeys(); setKeyInfo(null); } }}>Delete</Button>
                 </div>
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }
@@ -537,31 +540,31 @@ function ContactsTab() {
 
     if (contacts.length === 0) return (
         <div style={{ padding: "16px", textAlign: "center" }}>
-            <Text variant="heading-md/normal">No contacts</Text>
-            <Text variant="text-md/normal" style={{ color: "var(--text-muted)" }}>Import keys in the Import tab.</Text>
+            <Text size="lg" weight="normal">No contacts</Text>
+            <Text size="md" weight="normal" style={{ color: "var(--text-muted)" }}>Import keys in the Import tab.</Text>
         </div>
     );
 
     return (
         <div style={{ padding: "8px" }}>
-            <Forms.FormSection title={`Contacts (${contacts.length})`}>
+            <section title={`Contacts (${contacts.length})`}>
                 {contacts.map(({ userId, key }) => {
                     const user = UserStore.getUser(userId);
                     return (
                         <div key={userId} style={{ background: "var(--background-secondary)", padding: "12px", borderRadius: "8px", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div>
-                                <Text variant="text-md/semibold">{user?.username || userId}</Text>
+                                <Text size="md" weight="semibold">{user?.username || userId}</Text>
                                 {key.verified && <span style={{ marginLeft: "8px", background: "var(--status-positive)", color: "white", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" }}>✓</span>}
-                                <div><Text variant="text-xs/normal" style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>{key.fingerprint.substring(0, 16)}...</Text></div>
+                                <div><Text size="xs" weight="normal" style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>{key.fingerprint.substring(0, 16)}...</Text></div>
                             </div>
                             <div style={{ display: "flex", gap: "8px" }}>
-                                {!key.verified && <Button size={Button.Sizes.SMALL} onClick={() => { getKeyManager().verifyKey(userId); setContacts(getKeyManager().getAllKeysWithUsers()); }}>Verify</Button>}
-                                <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={() => { getKeyManager().removeKeyForUser(userId); setContacts(getKeyManager().getAllKeysWithUsers()); }}>Remove</Button>
+                                {!key.verified && <Button size="small" onClick={() => { getKeyManager().verifyKey(userId); setContacts(getKeyManager().getAllKeysWithUsers()); }}>Verify</Button>}
+                                <Button size="small" variant="dangerPrimary" onClick={() => { getKeyManager().removeKeyForUser(userId); setContacts(getKeyManager().getAllKeysWithUsers()); }}>Remove</Button>
                             </div>
                         </div>
                     );
                 })}
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }
@@ -593,19 +596,19 @@ function GenerateTab() {
 
     return (
         <div style={{ padding: "8px" }}>
-            <Forms.FormSection title="Generate New Key Pair">
-                <Forms.FormTitle>Name</Forms.FormTitle>
+            <section title="Generate New Key Pair">
+                <Heading>Name</Heading>
                 <TextInput value={name} onChange={setName} placeholder="Your Name" className={Margins.bottom16} />
-                <Forms.FormTitle>Email</Forms.FormTitle>
+                <Heading>Email</Heading>
                 <TextInput value={email} onChange={setEmail} placeholder="you@example.com" className={Margins.bottom16} />
-                <Forms.FormTitle>Passphrase</Forms.FormTitle>
+                <Heading>Passphrase</Heading>
                 <TextInput type="password" value={pass} onChange={setPass} placeholder="Min 8 characters" className={Margins.bottom16} />
-                <Forms.FormTitle>Confirm Passphrase</Forms.FormTitle>
+                <Heading>Confirm Passphrase</Heading>
                 <TextInput type="password" value={pass2} onChange={setPass2} placeholder="Confirm" className={Margins.bottom16} />
-                <Forms.FormTitle>Key Type</Forms.FormTitle>
+                <Heading>Key Type</Heading>
                 <Select options={[{ value: "ecc", label: "ECC (Curve25519)" }, { value: "rsa", label: "RSA 4096" }]} select={setType} isSelected={v => v === type} serialize={v => v} className={Margins.bottom16} />
                 <Button onClick={generate} disabled={generating}>{generating ? "Generating..." : "Generate"}</Button>
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }
@@ -639,25 +642,25 @@ function ImportTab() {
 
     return (
         <div style={{ padding: "8px" }}>
-            <Forms.FormSection title="Import Key">
-                <Forms.FormTitle>Type</Forms.FormTitle>
+            <section title="Import Key">
+                <Heading>Type</Heading>
                 <Select options={[{ value: "contact", label: "Contact's Public Key" }, { value: "private", label: "My Private Key" }]} select={setMode} isSelected={v => v === mode} serialize={v => v} className={Margins.bottom16} />
                 {mode === "contact" && (
                     <>
-                        <Forms.FormTitle>Discord User ID</Forms.FormTitle>
+                        <Heading>Discord User ID</Heading>
                         <TextInput value={userId} onChange={setUserId} placeholder="Right-click user → Copy ID" className={Margins.bottom16} />
                     </>
                 )}
-                <Forms.FormTitle>PGP Key</Forms.FormTitle>
+                <Heading>PGP Key</Heading>
                 <TextArea value={key} onChange={setKey} placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----" rows={8} style={{ fontFamily: "monospace", fontSize: "11px" }} className={Margins.bottom16} />
                 {mode === "private" && (
                     <>
-                        <Forms.FormTitle>Passphrase</Forms.FormTitle>
+                        <Heading>Passphrase</Heading>
                         <TextInput type="password" value={pass} onChange={setPass} placeholder="Key passphrase" className={Margins.bottom16} />
                     </>
                 )}
                 <Button onClick={doImport} disabled={importing}>{importing ? "Importing..." : "Import"}</Button>
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }
@@ -693,7 +696,7 @@ function KeyserverTab() {
 
     return (
         <div style={{ padding: "8px" }}>
-            <Forms.FormSection title="Search Keyserver">
+            <section title="Search Keyserver">
                 <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
                     <TextInput value={query} onChange={setQuery} placeholder="Email or key ID" style={{ flex: 1 }} />
                     <Button onClick={search} disabled={searching}>{searching ? "..." : "Search"}</Button>
@@ -702,8 +705,8 @@ function KeyserverTab() {
                     <div style={{ background: "var(--background-secondary)", padding: "12px", borderRadius: "8px" }}>
                         {results.map(({ key, info }, i) => (
                             <div key={i} onClick={() => setSelected(key)} style={{ padding: "8px", marginBottom: "4px", borderRadius: "4px", cursor: "pointer", background: selected === key ? "var(--brand-experiment)" : "var(--background-tertiary)" }}>
-                                <Text variant="text-sm/semibold">{info?.userIDs[0] || `Key ${i + 1}`}</Text>
-                                {info && <div><Text variant="text-xs/normal" style={{ fontFamily: "monospace" }}>{info.fingerprint.substring(0, 16)}...</Text></div>}
+                                <Text size="sm" weight="semibold">{info?.userIDs[0] || `Key ${i + 1}`}</Text>
+                                {info && <div><Text size="xs" weight="normal" style={{ fontFamily: "monospace" }}>{info.fingerprint.substring(0, 16)}...</Text></div>}
                             </div>
                         ))}
                         {selected && (
@@ -723,7 +726,7 @@ function KeyserverTab() {
                         )}
                     </div>
                 )}
-            </Forms.FormSection>
+            </section>
         </div>
     );
 }

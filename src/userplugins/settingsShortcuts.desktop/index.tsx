@@ -6,7 +6,7 @@
 
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { Button } from "@webpack/common";
+import { Button } from "@components/Button";
 
 import { openMicrophoneSettingsModal } from "../betterMicrophone.desktop/modals";
 import { openScreenshareModal } from "../betterScreenshare.desktop/modals";
@@ -14,15 +14,15 @@ import { openScreenshareModal } from "../betterScreenshare.desktop/modals";
 const SettingsShortcutsElement = () => (
     <div style={{ display: "flex", gap: "0.5rem" }}>
         <Button
-            size={Button.Sizes.SMALL}
-            color={Button.Colors.PRIMARY}
+            size="small"
+            variant="secondary"
             onClick={openMicrophoneSettingsModal}
         >
             {"Better Microphone Settings"}
         </Button>
         <Button
-            size={Button.Sizes.SMALL}
-            color={Button.Colors.PRIMARY}
+            size="small"
+            variant="secondary"
             onClick={openScreenshareModal}
         >
             {"Better Screenshare Settings"}

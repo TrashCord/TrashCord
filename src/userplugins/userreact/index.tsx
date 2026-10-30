@@ -12,7 +12,10 @@ import { Logger } from "@utils/Logger";
 import { sleep } from "@utils/misc";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, FluxDispatcher, Forms, Menu, React, RestAPI, showToast, TextInput, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { FluxDispatcher, Menu, React, RestAPI, showToast, TextInput, UserStore } from "@webpack/common";
 
 const logger = new Logger("UserReact");
 
@@ -290,13 +293,13 @@ function EmojiPickerModal(props: any) {
     return (
         <ModalRoot {...props} size={ModalSize.DYNAMIC}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">UserReact: {username}</Forms.FormTitle>
+                <Heading tag="h4">UserReact: {username}</Heading>
                 <ModalCloseButton onClick={onClose} />
             </ModalHeader>
             <ModalContent>
-                <Forms.FormText style={{ marginBottom: "12px", color: "var(--text-muted)" }}>
+                <Paragraph style={{ marginBottom: "12px", color: "var(--text-muted)" }}>
                     Select emojis to auto-react to every message from this user
-                </Forms.FormText>
+                </Paragraph>
 
                 {/* Selected Emojis Display */}
                 <div style={{
@@ -311,7 +314,7 @@ function EmojiPickerModal(props: any) {
                     alignItems: "center"
                 }}>
                     {selectedEmojis.length === 0 && (
-                        <Forms.FormText style={{ color: "var(--text-muted)" }}>No emojis selected</Forms.FormText>
+                        <Paragraph style={{ color: "var(--text-muted)" }}>No emojis selected</Paragraph>
                     )}
                     {selectedEmojis.map((emoji, i) => (
                         <div
@@ -351,7 +354,7 @@ function EmojiPickerModal(props: any) {
 
                 {/* Emoji Input */}
                 <div style={{ marginBottom: "16px" }}>
-                    <Forms.FormText style={{ marginBottom: "8px" }}>Paste or pick emojis:</Forms.FormText>
+                    <Paragraph style={{ marginBottom: "8px" }}>Paste or pick emojis:</Paragraph>
                     <TextInput
                         value={inputValue}
                         onChange={text => {
@@ -397,14 +400,13 @@ function EmojiPickerModal(props: any) {
             </ModalContent>
             <ModalFooter>
                 <Button
-                    color={selectedEmojis.length > 0 ? Button.Colors.GREEN : Button.Colors.RED}
+                    variant={selectedEmojis.length > 0 ? "positive" : "dangerPrimary"}
                     onClick={saveRule}
                 >
                     {selectedEmojis.length > 0 ? "Save Rule" : "Remove Rule"}
                 </Button>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
-                    look={Button.Looks.LINK}
+                    variant="none"
                     onClick={onClose}
                 >
                     Cancel
@@ -482,13 +484,13 @@ function ChannelEmojiPickerModal(props: any) {
     return (
         <ModalRoot {...props} size={ModalSize.DYNAMIC}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Channel React: #{channelName}</Forms.FormTitle>
+                <Heading tag="h4">Channel React: #{channelName}</Heading>
                 <ModalCloseButton onClick={onClose} />
             </ModalHeader>
             <ModalContent>
-                <Forms.FormText style={{ marginBottom: "12px", color: "var(--text-muted)" }}>
+                <Paragraph style={{ marginBottom: "12px", color: "var(--text-muted)" }}>
                     Select emojis to auto-react to every new message in this channel
-                </Forms.FormText>
+                </Paragraph>
 
                 <div style={{
                     padding: "12px",
@@ -502,7 +504,7 @@ function ChannelEmojiPickerModal(props: any) {
                     alignItems: "center"
                 }}>
                     {selectedEmojis.length === 0 && (
-                        <Forms.FormText style={{ color: "var(--text-muted)" }}>No emojis selected</Forms.FormText>
+                        <Paragraph style={{ color: "var(--text-muted)" }}>No emojis selected</Paragraph>
                     )}
                     {selectedEmojis.map((emoji, i) => (
                         <div
@@ -538,7 +540,7 @@ function ChannelEmojiPickerModal(props: any) {
                 </div>
 
                 <div style={{ marginBottom: "16px" }}>
-                    <Forms.FormText style={{ marginBottom: "8px" }}>Paste or pick emojis:</Forms.FormText>
+                    <Paragraph style={{ marginBottom: "8px" }}>Paste or pick emojis:</Paragraph>
                     <TextInput
                         value={inputValue}
                         onChange={text => {
@@ -580,14 +582,13 @@ function ChannelEmojiPickerModal(props: any) {
             </ModalContent>
             <ModalFooter>
                 <Button
-                    color={selectedEmojis.length > 0 ? Button.Colors.GREEN : Button.Colors.RED}
+                    variant={selectedEmojis.length > 0 ? "positive" : "dangerPrimary"}
                     onClick={save}
                 >
                     {selectedEmojis.length > 0 ? "Save Rule" : "Remove Rule"}
                 </Button>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
-                    look={Button.Looks.LINK}
+                    variant="none"
                     onClick={onClose}
                 >
                     Cancel
@@ -635,13 +636,13 @@ function SettingsPanel() {
 
     return (
         <div>
-            <Forms.FormTitle tag="h5" style={{ marginBottom: "12px" }}>UserReact Rules</Forms.FormTitle>
-            <Forms.FormText style={{ marginBottom: "8px", color: "var(--text-muted)" }}>
+            <Heading tag="h5" style={{ marginBottom: "12px" }}>UserReact Rules</Heading>
+            <Paragraph style={{ marginBottom: "8px", color: "var(--text-muted)" }}>
                 Right-click on a user and select "UserReact" to add or edit rules
-            </Forms.FormText>
-            <Forms.FormText style={{ marginBottom: "16px", color: "var(--text-muted)" }}>
+            </Paragraph>
+            <Paragraph style={{ marginBottom: "16px", color: "var(--text-muted)" }}>
                 Currently configured for <strong>{rules.length} {rules.length === 1 ? "user" : "users"}</strong>
-            </Forms.FormText>
+            </Paragraph>
 
             {rules.length > 0 ? (
                 <div style={{
@@ -661,16 +662,16 @@ function SettingsPanel() {
                             alignItems: "center"
                         }}>
                             <div>
-                                <Forms.FormText style={{ fontWeight: 600 }}>
+                                <Paragraph style={{ fontWeight: 600 }}>
                                     {rule.username}
-                                </Forms.FormText>
-                                <Forms.FormText style={{ color: "var(--text-muted)", fontSize: "12px" }}>
+                                </Paragraph>
+                                <Paragraph style={{ color: "var(--text-muted)", fontSize: "12px" }}>
                                     {rule.reactions.map(emojiToString).join(" ")}
-                                </Forms.FormText>
+                                </Paragraph>
                             </div>
                             <Button
-                                color={Button.Colors.RED}
-                                size={Button.Sizes.SMALL}
+                                variant="dangerPrimary"
+                                size="small"
                                 onClick={() => {
                                     const newRules = parseRules(settings.store.rules);
                                     newRules.splice(i, 1);
@@ -685,7 +686,7 @@ function SettingsPanel() {
                     ))}
                 </div>
             ) : (
-                <Forms.FormText style={{
+                <Paragraph style={{
                     marginBottom: "16px",
                     color: "var(--text-muted)",
                     padding: "16px",
@@ -694,7 +695,7 @@ function SettingsPanel() {
                     textAlign: "center"
                 }}>
                     No rules configured. Right-click on a user to add one!
-                </Forms.FormText>
+                </Paragraph>
             )}
         </div>
     );

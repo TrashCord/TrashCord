@@ -13,7 +13,10 @@ import { Devs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal, type RenderModalProps } from "@utils/modal";
 import definePlugin, { type PluginNative } from "@utils/types";
-import { Button, Forms, React, showToast, TabBar, TextArea, TextInput, useEffect, useRef, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { React, showToast, TabBar, TextArea, TextInput, useEffect, useRef, useState } from "@webpack/common";
 
 const WEBHOOK_HISTORY_KEY = "WebhookSend_history";
 const MAX_HISTORY = 20;
@@ -161,9 +164,8 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                 <span className={cl("embed-title")}>{summary}</span>
                 {fieldCount > 0 && <span className={cl("embed-badge")}>{fieldCount} field{fieldCount !== 1 ? "s" : ""}</span>}
                 <Button
-                    size={Button.Sizes.MIN}
-                    color={Button.Colors.RED}
-                    look={Button.Looks.LINK}
+                    size="min"
+                    variant="dangerPrimary"
                     onClick={e => { e.stopPropagation(); onRemove(); }}
                 >
                     Remove
@@ -203,7 +205,7 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                         />
                     </div>
 
-                    <Forms.FormTitle tag="h5" className={cl("section-title")}>Author</Forms.FormTitle>
+                    <Heading tag="h5" className={cl("section-title")}>Author</Heading>
                     <div className={cl("embed-row")}>
                         <TextInput
                             value={embed.author?.name ?? ""}
@@ -231,7 +233,7 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                         />
                     </div>
 
-                    <Forms.FormTitle tag="h5" className={cl("section-title")}>Footer</Forms.FormTitle>
+                    <Heading tag="h5" className={cl("section-title")}>Footer</Heading>
                     <div className={cl("embed-row")}>
                         <TextInput
                             value={embed.footer?.text ?? ""}
@@ -251,7 +253,7 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                         />
                     </div>
 
-                    <Forms.FormTitle tag="h5" className={cl("section-title")}>Images</Forms.FormTitle>
+                    <Heading tag="h5" className={cl("section-title")}>Images</Heading>
                     <div className={cl("embed-row")}>
                         <TextInput
                             value={embed.image?.url ?? ""}
@@ -271,7 +273,7 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                         />
                     </div>
 
-                    <Forms.FormTitle tag="h5" className={cl("section-title")}>Fields</Forms.FormTitle>
+                    <Heading tag="h5" className={cl("section-title")}>Fields</Heading>
                     {embed.fields?.map((field, i) => (
                         <div key={i} className={cl("field-row")}>
                             <TextInput
@@ -306,9 +308,8 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                                 className={cl("field-inline-switch")}
                             />
                             <Button
-                                size={Button.Sizes.MIN}
-                                color={Button.Colors.RED}
-                                look={Button.Looks.LINK}
+                                size="min"
+                                variant="dangerPrimary"
                                 onClick={() => {
                                     const fields = embed.fields?.filter((_, j) => j !== i);
                                     onChange({ ...embed, fields: fields?.length ? fields : undefined });
@@ -319,8 +320,7 @@ function EmbedEditor({ embed, onChange, onRemove, index }: {
                         </div>
                     ))}
                     <Button
-                        size={Button.Sizes.SMALL}
-                        look={Button.Looks.LINK}
+                        size="small"
                         onClick={() => onChange({
                             ...embed,
                             fields: [...(embed.fields ?? []), { name: "", value: "", inline: false }]
@@ -352,7 +352,7 @@ function MessageTab({ content, setContent, username, setUsername, avatarUrl, set
                 rows={6}
                 onChange={setContent}
             />
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Overrides</Forms.FormTitle>
+            <Heading tag="h5" className={cl("section-title")}>Overrides</Heading>
             <TextInput
                 value={username}
                 placeholder="Username override"
@@ -416,14 +416,14 @@ function EmbedsTab({ embeds, setEmbeds }: {
                 onChange={handleFileImport}
             />
             <div className={cl("embed-actions")}>
-                <Button size={Button.Sizes.SMALL} onClick={() => setEmbeds([...embeds, { fields: [] }])}>
+                <Button size="small" onClick={() => setEmbeds([...embeds, { fields: [] }])}>
                     + Add embed
                 </Button>
-                <Button size={Button.Sizes.SMALL} onClick={importJson}>
+                <Button size="small" onClick={importJson}>
                     Import JSON
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => {
                         const json = JSON.stringify(embeds, null, 2);
                         navigator.clipboard.writeText(json);
@@ -461,43 +461,43 @@ function MentionsTab({ allowedMentionsJson, setAllowedMentionsJson }: {
 }) {
     return (
         <div className={cl("tab-content")}>
-            <Forms.FormText className={cl("mentions-hint")}>
+            <Paragraph className={cl("mentions-hint")}>
                 Leave empty to allow all mentions. Use JSON to restrict what can be mentioned.
-            </Forms.FormText>
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Quick Presets</Forms.FormTitle>
+            </Paragraph>
+            <Heading tag="h5" className={cl("section-title")}>Quick Presets</Heading>
             <div className={cl("preset-row")}>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => setAllowedMentionsJson("")}
                 >
                     Allow all
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => setAllowedMentionsJson(JSON.stringify({ parse: [] }))}
                 >
                     Block all
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => setAllowedMentionsJson(JSON.stringify({ parse: ["users", "roles"] }))}
                 >
                     Users & roles only
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => setAllowedMentionsJson(JSON.stringify({ parse: ["users"] }))}
                 >
                     Users only
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => setAllowedMentionsJson(JSON.stringify({ parse: ["roles"] }))}
                 >
                     Roles only
                 </Button>
             </div>
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Custom JSON</Forms.FormTitle>
+            <Heading tag="h5" className={cl("section-title")}>Custom JSON</Heading>
             <TextArea
                 value={allowedMentionsJson}
                 placeholder={'{"parse": ["users"], "replied_user": true}'}
@@ -522,7 +522,7 @@ function SettingsTab({ threadName, setThreadName, threadId, setThreadId, applied
 }) {
     return (
         <div className={cl("tab-content")}>
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Thread Options</Forms.FormTitle>
+            <Heading tag="h5" className={cl("section-title")}>Thread Options</Heading>
             <TextInput
                 value={threadId}
                 placeholder="Thread ID (send to existing thread)"
@@ -539,7 +539,7 @@ function SettingsTab({ threadName, setThreadName, threadId, setThreadId, applied
                 onChange={setAppliedTags}
             />
 
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Message Flags</Forms.FormTitle>
+            <Heading tag="h5" className={cl("section-title")}>Message Flags</Heading>
             <FormSwitch
                 title="Suppress embeds"
                 description="Hide embeds in the sent message"
@@ -553,7 +553,7 @@ function SettingsTab({ threadName, setThreadName, threadId, setThreadId, applied
                 onChange={v => setFlags(v ? flags | 16384 : flags & ~16384)}
             />
 
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Components</Forms.FormTitle>
+            <Heading tag="h5" className={cl("section-title")}>Components</Heading>
             <FormSwitch
                 title="Enable components"
                 description="Respect the components field (requires with_components query param)"
@@ -561,10 +561,10 @@ function SettingsTab({ threadName, setThreadName, threadId, setThreadId, applied
                 onChange={setWithComponents}
             />
 
-            <Forms.FormTitle tag="h5" className={cl("section-title")}>Raw JSON Override</Forms.FormTitle>
-            <Forms.FormText className={cl("mentions-hint")}>
+            <Heading tag="h5" className={cl("section-title")}>Raw JSON Override</Heading>
+            <Paragraph className={cl("mentions-hint")}>
                 Provide additional payload fields as JSON. These are merged with the form fields above.
-            </Forms.FormText>
+            </Paragraph>
         </div>
     );
 }
@@ -714,7 +714,7 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
             <ModalContent>
                 {history.length > 0 && (
                     <div className={cl("history-section")}>
-                        <Forms.FormTitle tag="h5" className={cl("history-title")}>Saved Webhooks</Forms.FormTitle>
+                        <Heading tag="h5" className={cl("history-title")}>Saved Webhooks</Heading>
                         <div className={cl("history-list")}>
                             {history.map(entry => {
                                 let host: string;
@@ -726,16 +726,15 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
                                 return (
                                     <div key={entry.url} className={cl("history-item")}>
                                         <Button
-                                            size={Button.Sizes.SMALL}
+                                            size="small"
                                             className={cl("history-btn")}
                                             onClick={() => setWebhookUrl(entry.url)}
                                         >
                                             {entry.name ? `${entry.name} (${host})` : host}
                                         </Button>
                                         <Button
-                                            size={Button.Sizes.MIN}
-                                            color={Button.Colors.RED}
-                                            look={Button.Looks.LINK}
+                                            size="min"
+                                            variant="dangerPrimary"
                                             onClick={() => onDeleteHistory(entry.url)}
                                         >
                                             ✕
@@ -809,10 +808,10 @@ function WebhookSendModal({ rootProps }: { rootProps: RenderModalProps; }) {
             </ModalContent>
 
             <ModalFooter>
-                <Button color={Button.Colors.PRIMARY} disabled={isSending} onClick={onSend}>
+                <Button variant="secondary" disabled={isSending} onClick={onSend}>
                     {isSending ? "Sending..." : "Send Webhook"}
                 </Button>
-                <Button color={Button.Colors.TRANSPARENT} look={Button.Looks.LINK} onClick={rootProps.onClose}>
+                <Button variant="none" onClick={rootProps.onClose}>
                     Cancel
                 </Button>
             </ModalFooter>

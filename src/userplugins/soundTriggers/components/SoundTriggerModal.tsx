@@ -8,7 +8,11 @@ import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
 import { DeleteIcon } from "@components/Icons";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
-import { Button, Forms, Slider, Switch, Text, TextInput, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Switch } from "@components/Switch";
+import { Text } from "@components/Text";
+import { Slider, TextInput, useEffect, useState } from "@webpack/common";
 
 import { classFactory, EMPTY_TRIGGER, settings, SoundTrigger } from "../index";
 import { failToast, successToast, triggersAreUnique, triggersEqual, validateAndFormatTrigger } from "../util";
@@ -57,13 +61,13 @@ export function SoundTriggerModal(props: SoundTriggerModalProps) {
     return (
         <ModalRoot {...props}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">{props.mode} Sound Trigger</Forms.FormTitle>
+                <Heading tag="h4">{props.mode} Sound Trigger</Heading>
             </ModalHeader>
 
             <ModalContent className={classFactory("modal-content")}>
                 <Flex flexDirection="column" style={{ gap: "10px" }}>
                     <div>
-                        <Forms.FormTitle tag="h5">Patterns</Forms.FormTitle>
+                        <Heading tag="h5">Patterns</Heading>
                         <EmojiTextInput
                             value={emojiTextInput}
                             onChange={setEmojiTextInput}
@@ -79,8 +83,8 @@ export function SoundTriggerModal(props: SoundTriggerModalProps) {
                                 <Flex key={t} flexDirection="row" className={classFactory("modal-body-text-entry")}>
                                     <Text style={{ overflowWrap: "anywhere" }}>{t}</Text>
                                     <Button
-                                        color={Button.Colors.RED}
-                                        size={Button.Sizes.SMALL}
+                                        variant="dangerPrimary"
+                                        size="small"
                                         onClick={() => setTrigger({ ...trigger, patterns: trigger.patterns.filter((_, idx) => i !== idx) })}
                                     >
                                         <DeleteIcon width={16} height={16} />
@@ -95,7 +99,7 @@ export function SoundTriggerModal(props: SoundTriggerModalProps) {
                         children: "Case Sensitive"
                     })}
                     <div>
-                        <Forms.FormTitle tag="h5">Sound URL</Forms.FormTitle>
+                        <Heading tag="h5">Sound URL</Heading>
                         <TextInput
                             type="text"
                             placeholder="Enter URL"
@@ -107,7 +111,7 @@ export function SoundTriggerModal(props: SoundTriggerModalProps) {
                         />
                     </div>
                     <div>
-                        <Forms.FormTitle tag="h5">Volume</Forms.FormTitle>
+                        <Heading tag="h5">Volume</Heading>
                         <Slider
                             minValue={0}
                             maxValue={1}
@@ -123,7 +127,7 @@ export function SoundTriggerModal(props: SoundTriggerModalProps) {
             <ModalFooter className={classFactory("modal-footer")}>
                 <Button
                     disabled={trigger.patterns.length === 0 || trigger.sound.trim() === ""}
-                    color={Button.Colors.GREEN}
+                    variant="positive"
                     onClick={() => {
                         const validationResult = validateAndFormatTrigger(trigger);
                         if (validationResult.error) {

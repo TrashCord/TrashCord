@@ -12,7 +12,8 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Forms, MediaEngineStore, Menu, React, showToast, UserStore, VoiceStateStore } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { MediaEngineStore, Menu, React, showToast, UserStore, VoiceStateStore } from "@webpack/common";
 
 type LoopbackActions = {
     setLoopback(tag: string, enabled: boolean): unknown;
@@ -27,7 +28,7 @@ function SectionSeparator({ title }: { title: string; }) {
     return (
         <>
             <hr style={{ width: "100%", borderColor: "var(--background-modifier-accent)", margin: "8px 0" }} />
-            <Forms.FormTitle tag="h5" style={{ margin: "4px 0", color: "var(--header-secondary)" }}>{title}</Forms.FormTitle>
+            <Heading tag="h5" style={{ margin: "4px 0", color: "var(--header-secondary)" }}>{title}</Heading>
             <hr style={{ width: "100%", borderColor: "var(--background-modifier-accent)", margin: "8px 0" }} />
         </>
     );

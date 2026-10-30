@@ -8,7 +8,7 @@ import { Devs } from "@utils/constants";
 import { proxyLazy } from "@utils/lazy";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Forms, useEffect, useRef } from "@webpack/common";
+import { useEffect, useRef } from "@webpack/common";
 import type { StoreApi, UseBoundStore } from "zustand";
 
 type Modal = {
@@ -17,13 +17,13 @@ type Modal = {
     backdropStyle?: "SUBTLE" | "DARK" | "BLUR",
 };
 
-const { useModalContext, useModalsStore } = proxyLazy(() => Forms as any as {
+const { useModalContext, useModalsStore } = findByPropsLazy("useModalContext", "useModalsStore") as {
     useModalContext(): "default" | "popout";
     useModalsStore: UseBoundStore<StoreApi<{
         default: Modal[];
         popout: Modal[];
     }>>,
-});
+};
 
 const { animated, useSpring, useTransition } = findByPropsLazy("a", "animated", "useTransition");
 // This doesn't seem to be necessary

@@ -10,7 +10,9 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { ApplicationAssetUtils, FluxDispatcher, Forms } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { ApplicationAssetUtils, FluxDispatcher } from "@webpack/common";
 
 const DISCORD_APP_ID = "1333493119525720082";
 const logger = new Logger("MediaStatus");
@@ -299,16 +301,16 @@ export default definePlugin({
 
     settingsAboutComponent: () => (
         <>
-            <Forms.FormTitle tag="h3">Setup Instructions</Forms.FormTitle>
-            <Forms.FormText>
+            <Heading tag="h3">Setup Instructions</Heading>
+            <Paragraph>
                 For detailed setup instructions including how to find your server URL and API keys/tokens, visit the <Link href="https://github.com/redbaron2k7/MediaStatus">Documentatiom</Link>
-            </Forms.FormText>
+            </Paragraph>
 
             <hr className="margin-top-8" />
 
-            <Forms.FormText>
+            <Paragraph>
                 Having issues? Check the common problems section in the documentation or open an issue on GitHub.
-            </Forms.FormText>
+            </Paragraph>
         </>
     ),
 

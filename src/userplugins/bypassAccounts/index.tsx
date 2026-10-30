@@ -8,7 +8,10 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Forms, React, showToast, TextInput, UserStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { React, showToast, TextInput, UserStore } from "@webpack/common";
 
 const Flex = ({ children, style, ...props }: React.PropsWithChildren<{ style?: React.CSSProperties; }>) => (
     <div style={{ display: "flex", ...style }} {...props}>{children}</div>
@@ -141,27 +144,27 @@ function PasswordConfigModal(modalProps: any & { onGenerate: (password: string) 
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Password Generator</Forms.FormTitle>
+                <Heading tag="h4">Password Generator</Heading>
             </ModalHeader>
             <ModalContent>
                 <Flex style={{ gap: "15px", flexDirection: "column" }}>
                     <div style={{ padding: "12px", backgroundColor: "var(--background-secondary)", borderRadius: "8px" }}>
-                        <Forms.FormTitle tag="h6">Generated Password</Forms.FormTitle>
+                        <Heading tag="h6">Generated Password</Heading>
                         <Flex style={{ gap: "8px", alignItems: "center" }}>
                             <TextInput value={generatedPassword} readOnly style={{ fontFamily: "monospace", flex: 1 }} />
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={copyToClipboard}>📋</Button>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={generatePassword} disabled={isGenerating}>🔄</Button>
+                            <Button size="small" variant="positive" onClick={copyToClipboard}>📋</Button>
+                            <Button size="small" variant="secondary" onClick={generatePassword} disabled={isGenerating}>🔄</Button>
                         </Flex>
                     </div>
 
                     <Flex style={{ gap: "15px" }}>
                         <div style={{ flex: 1 }}>
-                            <Forms.FormTitle tag="h6">Length: {config.length}</Forms.FormTitle>
+                            <Heading tag="h6">Length: {config.length}</Heading>
                             <input type="range" min="8" max="64" value={config.length} onChange={e => updateConfig("length", parseInt(e.target.value))} style={{ width: "100%" }} />
                         </div>
                         {config.specialChars && (
                             <div style={{ flex: 1 }}>
-                                <Forms.FormTitle tag="h6">Min Special: {config.minSpecialChars}</Forms.FormTitle>
+                                <Heading tag="h6">Min Special: {config.minSpecialChars}</Heading>
                                 <input type="range" min="0" max="10" value={config.minSpecialChars} onChange={e => updateConfig("minSpecialChars", parseInt(e.target.value))} style={{ width: "100%" }} />
                             </div>
                         )}
@@ -171,25 +174,25 @@ function PasswordConfigModal(modalProps: any & { onGenerate: (password: string) 
                         <Flex style={{ gap: "10px", flexDirection: "column", flex: 1 }}>
                             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <input type="checkbox" checked={config.upperCase} onChange={e => updateConfig("upperCase", e.target.checked)} />
-                                <Forms.FormText>Uppercase (A-Z)</Forms.FormText>
+                                <Paragraph>Uppercase (A-Z)</Paragraph>
                             </label>
                             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <input type="checkbox" checked={config.lowerCase} onChange={e => updateConfig("lowerCase", e.target.checked)} />
-                                <Forms.FormText>Lowercase (a-z)</Forms.FormText>
+                                <Paragraph>Lowercase (a-z)</Paragraph>
                             </label>
                             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <input type="checkbox" checked={config.unicodeChars} onChange={e => updateConfig("unicodeChars", e.target.checked)} />
-                                <Forms.FormText>Unicode (À,ñ,€,™...)</Forms.FormText>
+                                <Paragraph>Unicode (À,ñ,€,™...)</Paragraph>
                             </label>
                         </Flex>
                         <Flex style={{ gap: "10px", flexDirection: "column", flex: 1 }}>
                             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <input type="checkbox" checked={config.digits} onChange={e => updateConfig("digits", e.target.checked)} />
-                                <Forms.FormText>Digits (0-9)</Forms.FormText>
+                                <Paragraph>Digits (0-9)</Paragraph>
                             </label>
                             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <input type="checkbox" checked={config.specialChars} onChange={e => updateConfig("specialChars", e.target.checked)} />
-                                <Forms.FormText>Special (!@#$...)</Forms.FormText>
+                                <Paragraph>Special (!@#$...)</Paragraph>
                             </label>
                             <div style={{ height: "24px" }}></div> {/* Spacer for alignment */}
                         </Flex>
@@ -198,19 +201,19 @@ function PasswordConfigModal(modalProps: any & { onGenerate: (password: string) 
                     <Flex style={{ gap: "20px" }}>
                         <label style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
                             <input type="checkbox" checked={config.excludeSimilar} onChange={e => updateConfig("excludeSimilar", e.target.checked)} />
-                            <Forms.FormText>Exclude similar (i,l,1,L,o,0,O)</Forms.FormText>
+                            <Paragraph>Exclude similar (i,l,1,L,o,0,O)</Paragraph>
                         </label>
                         <label style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
                             <input type="checkbox" checked={config.excludeAmbiguous} onChange={e => updateConfig("excludeAmbiguous", e.target.checked)} />
-                            <Forms.FormText>Exclude ambiguous</Forms.FormText>
+                            <Paragraph>Exclude ambiguous</Paragraph>
                         </label>
                     </Flex>
                 </Flex>
             </ModalContent>
             <ModalFooter>
-                <Button color={Button.Colors.BRAND} onClick={usePassword} disabled={!generatedPassword}>Use Password</Button>
-                <Button color={Button.Colors.GREEN} onClick={generatePassword} disabled={isGenerating}>Generate New</Button>
-                <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Cancel</Button>
+                <Button variant="primary" onClick={usePassword} disabled={!generatedPassword}>Use Password</Button>
+                <Button variant="positive" onClick={generatePassword} disabled={isGenerating}>Generate New</Button>
+                <Button variant="secondary" onClick={modalProps.onClose}>Cancel</Button>
             </ModalFooter>
         </ModalRoot>
     );
@@ -445,35 +448,35 @@ function LoadAccountsModal(modalProps: any & { onAccountsLoaded: () => void; }) 
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Load Accounts File</Forms.FormTitle>
+                <Heading tag="h4">Load Accounts File</Heading>
             </ModalHeader>
             <ModalContent>
                 <Flex style={{ gap: "15px", flexDirection: "column" }}>
                     <div>
-                        <Forms.FormTitle tag="h6">Select File</Forms.FormTitle>
+                        <Heading tag="h6">Select File</Heading>
                         <input ref={fileInputRef} type="file" accept=".dct" onChange={handleFileSelect} style={{ display: "none" }} />
                         <Flex style={{ gap: "10px", alignItems: "center" }}>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => fileInputRef.current?.click()}>
+                            <Button size="small" variant="secondary" onClick={() => fileInputRef.current?.click()}>
                                 Choose File
                             </Button>
-                            <Forms.FormText>{selectedFile ? selectedFile.name : "No file selected"}</Forms.FormText>
+                            <Paragraph>{selectedFile ? selectedFile.name : "No file selected"}</Paragraph>
                         </Flex>
                     </div>
 
                     <div>
-                        <Forms.FormTitle tag="h6">Passphrase</Forms.FormTitle>
+                        <Heading tag="h6">Passphrase</Heading>
                         <Flex style={{ gap: "8px" }}>
                             <TextInput placeholder="Enter passphrase..." value={passphrase} onChange={setPassphrase} type="password" style={{ flex: 1 }} />
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={copyPassphrase} disabled={!passphrase}>📋</Button>
+                            <Button size="small" variant="positive" onClick={copyPassphrase} disabled={!passphrase}>📋</Button>
                         </Flex>
                     </div>
                 </Flex>
             </ModalContent>
             <ModalFooter>
-                <Button color={Button.Colors.BRAND} onClick={handleLoadAccounts} disabled={isLoading || !selectedFile || !passphrase.trim()}>
+                <Button variant="primary" onClick={handleLoadAccounts} disabled={isLoading || !selectedFile || !passphrase.trim()}>
                     {isLoading ? "Loading..." : "Load Accounts"}
                 </Button>
-                <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Cancel</Button>
+                <Button variant="secondary" onClick={modalProps.onClose}>Cancel</Button>
             </ModalFooter>
         </ModalRoot>
     );
@@ -500,24 +503,24 @@ function AddAccountModal(modalProps: any & { onAccountAdded: () => void; }) {
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Add New Account</Forms.FormTitle>
+                <Heading tag="h4">Add New Account</Heading>
             </ModalHeader>
             <ModalContent>
                 <Flex style={{ gap: "15px", flexDirection: "column" }}>
                     <div>
-                        <Forms.FormTitle tag="h6">Username</Forms.FormTitle>
+                        <Heading tag="h6">Username</Heading>
                         <TextInput placeholder="Enter username..." value={username} onChange={setUsername} />
                     </div>
                     <div>
-                        <Forms.FormTitle tag="h6">Discord Token</Forms.FormTitle>
+                        <Heading tag="h6">Discord Token</Heading>
                         <TextInput placeholder="Enter token..." value={token} onChange={setToken} type="password" />
                     </div>
-                    <Forms.FormText {...{ type: (Forms.FormText as any).Types?.WARNING } as any}>⚠️ Save your file after adding tokens!</Forms.FormText>
+                    <Paragraph {...{ type: (Paragraph as any).Types?.WARNING } as any}>⚠️ Save your file after adding tokens!</Paragraph>
                 </Flex>
             </ModalContent>
             <ModalFooter>
-                <Button color={Button.Colors.BRAND} onClick={handleAddAccount} disabled={!username.trim() || !token.trim()}>Add Account</Button>
-                <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Cancel</Button>
+                <Button variant="primary" onClick={handleAddAccount} disabled={!username.trim() || !token.trim()}>Add Account</Button>
+                <Button variant="secondary" onClick={modalProps.onClose}>Cancel</Button>
             </ModalFooter>
         </ModalRoot>
     );
@@ -590,37 +593,37 @@ function CreateAccountsFileModal(modalProps: any & { onFileCreated: () => void; 
     return (
         <ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Create New Accounts File</Forms.FormTitle>
+                <Heading tag="h4">Create New Accounts File</Heading>
             </ModalHeader>
             <ModalContent>
                 <Flex style={{ gap: "15px", flexDirection: "column" }}>
                     <div>
-                        <Forms.FormTitle tag="h6">File Name</Forms.FormTitle>
+                        <Heading tag="h6">File Name</Heading>
                         <TextInput value={fileName} onChange={setFileName} />
                     </div>
 
                     <div>
-                        <Forms.FormTitle tag="h6">Passphrase</Forms.FormTitle>
+                        <Heading tag="h6">Passphrase</Heading>
                         <Flex style={{ gap: "8px" }}>
                             <TextInput placeholder="Enter passphrase..." value={passphrase} onChange={setPassphrase} type="password" style={{ flex: 1 }} />
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={copyPassphrase} disabled={!passphrase}>📋</Button>
-                            <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={openPasswordGenerator}>🎲</Button>
+                            <Button size="small" variant="positive" onClick={copyPassphrase} disabled={!passphrase}>📋</Button>
+                            <Button size="small" variant="secondary" onClick={openPasswordGenerator}>🎲</Button>
                         </Flex>
                     </div>
 
                     <div>
-                        <Forms.FormTitle tag="h6">Confirm Passphrase</Forms.FormTitle>
+                        <Heading tag="h6">Confirm Passphrase</Heading>
                         <TextInput placeholder="Re-enter passphrase..." value={confirmPassphrase} onChange={setConfirmPassphrase} type="password" />
                     </div>
 
-                    <Forms.FormText {...{ type: (Forms.FormText as any).Types?.WARNING } as any}>🔒 Remember this passphrase!</Forms.FormText>
+                    <Paragraph {...{ type: (Paragraph as any).Types?.WARNING } as any}>🔒 Remember this passphrase!</Paragraph>
                 </Flex>
             </ModalContent>
             <ModalFooter>
-                <Button color={Button.Colors.BRAND} onClick={handleCreateFile} disabled={isCreating || !passphrase.trim() || passphrase !== confirmPassphrase}>
+                <Button variant="primary" onClick={handleCreateFile} disabled={isCreating || !passphrase.trim() || passphrase !== confirmPassphrase}>
                     {isCreating ? "Creating..." : "Create File"}
                 </Button>
-                <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Cancel</Button>
+                <Button variant="secondary" onClick={modalProps.onClose}>Cancel</Button>
             </ModalFooter>
         </ModalRoot>
     );
@@ -713,22 +716,22 @@ function AccountSwitcherModal(modalProps: any) {
     return (
         <ModalRoot {...modalProps} size={ModalSize.LARGE}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Account Switcher</Forms.FormTitle>
-                <Forms.FormText {...{ type: (Forms.FormText as any).Types?.DESCRIPTION } as any}>
+                <Heading tag="h4">Account Switcher</Heading>
+                <Paragraph {...{ type: (Paragraph as any).Types?.DESCRIPTION } as any}>
                     {FileAccountManager.hasAccountsLoaded()
                         ? `Loaded: ${FileAccountManager.getCurrentFilePath() || "accounts file"} (${FileAccountManager.getAccounts().length} accounts)`
                         : "No accounts file loaded"
                     }
-                </Forms.FormText>
+                </Paragraph>
             </ModalHeader>
             <ModalContent>
                 <Flex style={{ gap: "15px", flexDirection: "column" }}>
                     {!FileAccountManager.hasAccountsLoaded() ? (
                         <Flex style={{ justifyContent: "center", padding: "20px", flexDirection: "column", alignItems: "center" }}>
-                            <Forms.FormText>No accounts loaded</Forms.FormText>
-                            <Forms.FormText {...{ type: (Forms.FormText as any).Types?.DESCRIPTION } as any}>
+                            <Paragraph>No accounts loaded</Paragraph>
+                            <Paragraph {...{ type: (Paragraph as any).Types?.DESCRIPTION } as any}>
                                 Load an existing file or create a new one to get started
-                            </Forms.FormText>
+                            </Paragraph>
                         </Flex>
                     ) : (
                         <Flex style={{ flexDirection: "column", gap: "8px" }}>
@@ -753,28 +756,28 @@ function AccountSwitcherModal(modalProps: any) {
                                         alignItems: "center",
                                         justifyContent: "center"
                                     }}>
-                                        <Forms.FormText style={{ color: "white", fontWeight: "bold" }}>
+                                        <Paragraph style={{ color: "white", fontWeight: "bold" }}>
                                             {account.username.charAt(0).toUpperCase()}
-                                        </Forms.FormText>
+                                        </Paragraph>
                                     </div>
 
                                     <Flex style={{ flexDirection: "column", flex: 1 }}>
-                                        <Forms.FormTitle tag="h6" style={{ margin: 0 }}>
+                                        <Heading tag="h6" style={{ margin: 0 }}>
                                             {account.username}
-                                        </Forms.FormTitle>
-                                        <Forms.FormText {...{ type: account.isActive ? (Forms.FormText as any).Types?.SUCCESS : (Forms.FormText as any).Types?.DESCRIPTION } as any}>
+                                        </Heading>
+                                        <Paragraph {...{ type: account.isActive ? (Paragraph as any).Types?.SUCCESS : (Paragraph as any).Types?.DESCRIPTION } as any}>
                                             {account.isActive ? "Active Account" : "Ready to switch"}
-                                        </Forms.FormText>
+                                        </Paragraph>
                                     </Flex>
 
                                     <Flex style={{ gap: "6px" }}>
                                         {!account.isActive && (
                                             <>
-                                                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => switchToAccount(account)} disabled={isLoading}>
+                                                <Button size="small" variant="primary" onClick={() => switchToAccount(account)} disabled={isLoading}>
                                                     Switch
                                                 </Button>
                                                 {account.token !== "current" && (
-                                                    <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={() => removeAccount(account.id)} disabled={isLoading}>
+                                                    <Button size="small" variant="dangerPrimary" onClick={() => removeAccount(account.id)} disabled={isLoading}>
                                                         Remove
                                                     </Button>
                                                 )}
@@ -788,11 +791,11 @@ function AccountSwitcherModal(modalProps: any) {
                 </Flex>
             </ModalContent>
             <ModalFooter>
-                <Button color={Button.Colors.BRAND} onClick={openLoadModal}>Load File</Button>
-                <Button color={Button.Colors.PRIMARY} onClick={openCreateModal}>Create New</Button>
-                <Button color={Button.Colors.PRIMARY} onClick={openAddModal} disabled={!FileAccountManager.hasAccountsLoaded()}>Add Account</Button>
-                <Button color={Button.Colors.GREEN} onClick={saveAccountsFile} disabled={!FileAccountManager.hasAccountsLoaded()}>Save File</Button>
-                <Button color={Button.Colors.PRIMARY} onClick={modalProps.onClose}>Close</Button>
+                <Button variant="primary" onClick={openLoadModal}>Load File</Button>
+                <Button variant="secondary" onClick={openCreateModal}>Create New</Button>
+                <Button variant="secondary" onClick={openAddModal} disabled={!FileAccountManager.hasAccountsLoaded()}>Add Account</Button>
+                <Button variant="positive" onClick={saveAccountsFile} disabled={!FileAccountManager.hasAccountsLoaded()}>Save File</Button>
+                <Button variant="secondary" onClick={modalProps.onClose}>Close</Button>
             </ModalFooter>
         </ModalRoot>
     );

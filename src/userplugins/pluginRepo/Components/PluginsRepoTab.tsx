@@ -12,7 +12,10 @@ import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { PluginNative } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { Forms, React, Select, Text, TextInput, useEffect, useState } from "@webpack/common";
+import { Divider } from "@components/Divider";
+import { Heading } from "@components/Heading";
+import { Text } from "@components/Text";
+import { React, Select, TextInput, useEffect, useState } from "@webpack/common";
 
 import { PluginInfo, presetPlugins, SearchStatus } from "../types";
 import { AddonCard } from "./AddonCard";
@@ -86,12 +89,12 @@ function ExtraPluginsTab() {
                     <span>Third-party plugins are not maintained by Vencord, so they may not work as expected. Compatability is not guaranteed, although I'll do my best to ensure it. Use at your own risk.</span>
                 </Flex>
             </div>
-            <Text variant="text-md/normal" className={Margins.bottom8}>
+            <Text size="md" weight="normal" className={Margins.bottom8}>
                 This section allows you to add or remove third-party plugins for Vencord.
             </Text>
-            <Forms.FormTitle tag="h5" className={classes(Margins.top20, Margins.bottom8)}>
+            <Heading tag="h5" className={classes(Margins.top20, Margins.bottom8)}>
                 Filters
-            </Forms.FormTitle>
+            </Heading>
             <div className={cl("filter-controls")}>
                 <TextInput autoFocus value={searchValue.value} placeholder="Search for a plugin..." onChange={newValue => handleSearchChange(newValue, "value")} className={Margins.bottom20} />
                 <div className={InputStyles.inputWrapper}>
@@ -109,7 +112,7 @@ function ExtraPluginsTab() {
                     />
                 </div>
             </div>
-            <Forms.FormTitle className={Margins.top20}>Plugins</Forms.FormTitle>
+            <Heading className={Margins.top20}>Plugins</Heading>
             <div className={cl("grid")}>
                 {filteredPlugins.map(plugin => (
                     <AddonCard
@@ -133,7 +136,7 @@ function ExtraPluginsTab() {
                     />
                 ))}
             </div>
-            <Forms.FormDivider className={Margins.top20} />
+            <Divider className={Margins.top20} />
         </SettingsTab>
     );
 }

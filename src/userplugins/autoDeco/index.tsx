@@ -16,10 +16,21 @@ import { classes } from "@utils/misc";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import type { User } from "@vencord/discord-types";
 import { findByCodeLazy, findStoreLazy } from "@webpack";
+import { Button } from "@components/Button";
 import {
-    Button, ChannelActions, ChannelRouter, ChannelStore, FluxDispatcher,
-    GuildChannelStore, MediaEngineStore, Menu, PermissionsBits, PermissionStore,
-    showToast, UserStore, VoiceActions, VoiceStateStore,
+    ChannelActions,
+    ChannelRouter,
+    ChannelStore,
+    FluxDispatcher,
+    GuildChannelStore,
+    MediaEngineStore,
+    Menu,
+    PermissionsBits,
+    PermissionStore,
+    showToast,
+    UserStore,
+    VoiceActions,
+    VoiceStateStore,
 } from "@webpack/common";
 import type { PropsWithChildren, SVGProps } from "react";
 
@@ -421,8 +432,8 @@ function TrackedUsersList() {
                                             <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{id}</span>
                                         </div>
                                         <Button
-                                            size={Button.Sizes.SMALL}
-                                            color={Button.Colors.RED}
+                                            size="small"
+                                            variant="dangerPrimary"
                                             onClick={() => {
                                                 setIds(ids.filter(i => i !== id));
                                                 showToast({ text: `AutoDeco: removed ${user?.username ?? id}`, variant: "critical" });
@@ -434,8 +445,8 @@ function TrackedUsersList() {
                         </div>
                         <Button
                             style={{ marginTop: "4px" }}
-                            size={Button.Sizes.SMALL}
-                            color={Button.Colors.RED}
+                            size="small"
+                            variant="dangerPrimary"
                             onClick={() => {
                                 setIds([]);
                                 showToast({ text: "AutoDeco: all users cleared", variant: "critical" });

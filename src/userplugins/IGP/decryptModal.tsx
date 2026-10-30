@@ -5,13 +5,14 @@
  */
 
 import { ModalContent, ModalHeader, ModalProps, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { Forms, TextArea } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { TextArea } from "@webpack/common";
 
 function DecryptModal(props: ModalProps & { message: string; verified: boolean; }) {
     return (
         <ModalRoot {...props} size={ModalSize.LARGE}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Decrypted Message</Forms.FormTitle>
+                <Heading tag="h4">Decrypted Message</Heading>
                 <div style={{ color: props.verified ? "green" : "red", fontWeight: "bold", marginTop: "8px" }}>
                     {props.verified ? "Signature verified" : "Signature not verified"}
                 </div>

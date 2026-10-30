@@ -12,7 +12,9 @@ import SettingsPlugin from "@plugins/_core/settings";
 import { Devs } from "@utils/constants";
 import * as Modal from "@utils/modal";
 import definePlugin, { type IconProps } from "@utils/types";
-import { Button, React, Text, TextInput } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Text } from "@components/Text";
+import { React, TextInput } from "@webpack/common";
 
 function LockIcon({ height = 20, width = 20, className }: IconProps) {
     return (
@@ -220,11 +222,11 @@ const AddPasswordModal = ({ manager, onClose, ...props }: Modal.ModalProps & {
     return (
         <Modal.ModalRoot {...props}>
             <Modal.ModalHeader separator={false}>
-                <Text variant="heading-lg/semibold">Add Password</Text>
+                <Text size="xl" weight="semibold">Add Password</Text>
             </Modal.ModalHeader>
             <Modal.ModalContent className="password-modal-content">
                 <div className="password-modal-section">
-                    <Text variant="heading-sm/medium" style={{ marginBottom: "8px" }}>Title</Text>
+                    <Text size="md" weight="medium" style={{ marginBottom: "8px" }}>Title</Text>
                     <TextInput
                         placeholder="e.g., Discord Account"
                         value={title}
@@ -233,7 +235,7 @@ const AddPasswordModal = ({ manager, onClose, ...props }: Modal.ModalProps & {
                 </div>
                 <div className="password-modal-separator" />
                 <div className="password-modal-section">
-                    <Text variant="heading-sm/medium" style={{ marginBottom: "8px" }}>Login Details</Text>
+                    <Text size="md" weight="medium" style={{ marginBottom: "8px" }}>Login Details</Text>
                     <Flex direction={Flex.Direction.VERTICAL as any} gap={10} {...({} as any)}>
                         <TextInput
                             placeholder="Username or Email"
@@ -250,7 +252,7 @@ const AddPasswordModal = ({ manager, onClose, ...props }: Modal.ModalProps & {
                 </div>
                 <div className="password-modal-separator" />
                 <div className="password-modal-section">
-                    <Text variant="heading-sm/medium" style={{ marginBottom: "8px" }}>Two-Factor Authentication (Optional)</Text>
+                    <Text size="md" weight="medium" style={{ marginBottom: "8px" }}>Two-Factor Authentication (Optional)</Text>
                     <TextInput
                         placeholder="2FA Secret Key"
                         value={twoFactorSecret}
@@ -261,7 +263,7 @@ const AddPasswordModal = ({ manager, onClose, ...props }: Modal.ModalProps & {
             <Modal.ModalFooter className="password-modal-footer">
                 <Flex justify={Flex.Justify.END as any} gap={10} {...({} as any)}>
                     <Button
-                        color={Button.Colors.BRAND}
+                        variant="primary"
                         disabled={!title || !username || !password}
                         onClick={() => {
                             manager.addPassword({
@@ -277,7 +279,7 @@ const AddPasswordModal = ({ manager, onClose, ...props }: Modal.ModalProps & {
                         Save
                     </Button>
                     <Button
-                        color={Button.Colors.TRANSPARENT}
+                        variant="none"
                         onClick={onClose}
                     >
                         Cancel
@@ -302,7 +304,7 @@ const SetMasterPasswordModal = ({ manager, onSuccess, ...props }: Modal.ModalPro
     return (
         <Modal.ModalRoot {...props}>
             <Modal.ModalHeader separator={false}>
-                <Text variant="heading-lg/semibold">Set Master Password</Text>
+                <Text size="xl" weight="semibold">Set Master Password</Text>
             </Modal.ModalHeader>
             <Modal.ModalContent className="password-modal-content">
                 <div className="password-modal-section">
@@ -326,7 +328,7 @@ const SetMasterPasswordModal = ({ manager, onSuccess, ...props }: Modal.ModalPro
             <Modal.ModalFooter className="password-modal-footer">
                 <Flex justify={Flex.Justify.END as any} gap={10} {...({} as any)}>
                     <Button
-                        color={Button.Colors.BRAND}
+                        variant="primary"
                         disabled={!password || !confirmPassword}
                         onClick={async () => {
                             if (password !== confirmPassword) {
@@ -342,7 +344,7 @@ const SetMasterPasswordModal = ({ manager, onSuccess, ...props }: Modal.ModalPro
                         Save
                     </Button>
                     <Button
-                        color={Button.Colors.TRANSPARENT}
+                        variant="none"
                         onClick={props.onClose}
                     >
                         Cancel
@@ -374,7 +376,7 @@ const DeletePasswordModal = ({
     return (
         <Modal.ModalRoot {...props}>
             <Modal.ModalHeader separator={false}>
-                <Text variant="heading-lg/semibold">Delete Password</Text>
+                <Text size="xl" weight="semibold">Delete Password</Text>
             </Modal.ModalHeader>
             <Modal.ModalContent className="password-modal-content">
                 <div className="password-modal-section">
@@ -392,7 +394,7 @@ const DeletePasswordModal = ({
             <Modal.ModalFooter className="password-modal-footer">
                 <Flex justify={Flex.Justify.END as any} gap={10} {...({} as any)}>
                     <Button
-                        color={Button.Colors.RED}
+                        variant="dangerPrimary"
                         disabled={!masterPassword}
                         onClick={async () => {
                             const success = await manager.deletePassword(passwordId, masterPassword);
@@ -408,7 +410,7 @@ const DeletePasswordModal = ({
                         Delete
                     </Button>
                     <Button
-                        color={Button.Colors.TRANSPARENT}
+                        variant="none"
                         onClick={props.onClose}
                     >
                         Cancel
@@ -447,7 +449,7 @@ const ViewPasswordModal = ({
     return (
         <Modal.ModalRoot {...props}>
             <Modal.ModalHeader separator={false}>
-                <Text variant="heading-lg/semibold">View Password for {entry.title}</Text>
+                <Text size="xl" weight="semibold">View Password for {entry.title}</Text>
             </Modal.ModalHeader>
             <Modal.ModalContent className="password-modal-content">
                 <div className="password-modal-section">
@@ -465,16 +467,16 @@ const ViewPasswordModal = ({
                     ) : (
                         <Flex direction={Flex.Direction.VERTICAL as any} gap={10} {...({} as any)}>
                             <div className="password-view-section">
-                                <Text variant="heading-sm/medium">Username</Text>
+                                <Text size="md" weight="medium">Username</Text>
                                 <Text>{entry.username}</Text>
                             </div>
                             <div className="password-view-section">
-                                <Text variant="heading-sm/medium">Password</Text>
+                                <Text size="md" weight="medium">Password</Text>
                                 <Text>{entry.password}</Text>
                             </div>
                             {entry.twoFactorSecret && (
                                 <div className="password-view-section">
-                                    <Text variant="heading-sm/medium">2FA Secret</Text>
+                                    <Text size="md" weight="medium">2FA Secret</Text>
                                     <Text>{entry.twoFactorSecret}</Text>
                                 </div>
                             )}
@@ -486,7 +488,7 @@ const ViewPasswordModal = ({
                 <Flex justify={Flex.Justify.END as any} gap={10} {...({} as any)}>
                     {!showPassword ? (
                         <Button
-                            color={Button.Colors.BRAND}
+                            variant="primary"
                             disabled={!masterPassword}
                             onClick={verifyAndShow}
                         >
@@ -494,14 +496,14 @@ const ViewPasswordModal = ({
                         </Button>
                     ) : (
                         <Button
-                            color={Button.Colors.BRAND}
+                            variant="primary"
                             onClick={props.onClose}
                         >
                             Close
                         </Button>
                     )}
                     <Button
-                        color={Button.Colors.TRANSPARENT}
+                        variant="none"
                         onClick={props.onClose}
                     >
                         Cancel
@@ -549,13 +551,13 @@ const PasswordEntryComponent = ({ entry, manager, onDelete }: {
     return (
         <div className="password-entry" key={entry.id}>
             <div>
-                <Text variant="heading-sm/medium">{entry.title}</Text>
+                <Text size="md" weight="medium">{entry.title}</Text>
                 <Text>{entry.username}</Text>
             </div>
             <div className="password-actions">
                 <Button
-                    size={Button.Sizes.SMALL}
-                    color={Button.Colors.BRAND}
+                    size="small"
+                    variant="primary"
                     onClick={() => {
                         Modal.openModal((props: any) => (
                             <ViewPasswordModal
@@ -569,22 +571,22 @@ const PasswordEntryComponent = ({ entry, manager, onDelete }: {
                     View
                 </Button>
                 <Button
-                    size={Button.Sizes.SMALL}
+                    size="small"
                     onClick={() => copyToClipboard(entry.password)}
                 >
                     Copy Password
                 </Button>
                 {totpCode && (
                     <Button
-                        size={Button.Sizes.SMALL}
+                        size="small"
                         onClick={() => copyToClipboard(totpCode)}
                     >
                         2FA: {totpCode}
                     </Button>
                 )}
                 <Button
-                    size={Button.Sizes.SMALL}
-                    color={Button.Colors.RED}
+                    size="small"
+                    variant="dangerPrimary"
                     onClick={() => {
                         Modal.openModal((props: any) => (
                             <DeletePasswordModal
@@ -623,7 +625,7 @@ class PasswordManagerUI {
             return (
                 <div className="password-manager-container">
                     <Flex direction={Flex.Direction.VERTICAL as any} gap={10} {...({} as any)}>
-                        <Text variant="heading-lg/semibold">Password Manager Setup</Text>
+                        <Text size="xl" weight="semibold">Password Manager Setup</Text>
                         <Text>Please set a master password to start using the password manager.</Text>
                         <Button
                             onClick={() => {
@@ -649,7 +651,7 @@ class PasswordManagerUI {
         return (
             <div className="password-manager-container">
                 <Flex {...({ justify: Flex.Justify.BETWEEN as any, align: Flex.Align.CENTER as any } as any)}>
-                    <Text variant="heading-lg/semibold">Password Manager</Text>
+                    <Text size="xl" weight="semibold">Password Manager</Text>
                     <Button
                         onClick={() => {
                             Modal.openModal((props: any) => (

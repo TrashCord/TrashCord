@@ -8,7 +8,9 @@ import { CheckedTextInput } from "@components/CheckedTextInput";
 import { Margins } from "@utils/margins";
 import { ModalContent, ModalHeader, ModalRoot, openModalLazy } from "@utils/modal";
 import { Role } from "@vencord/discord-types";
-import { Forms, GuildStore, PermissionsBits, PermissionStore, React, Tooltip, UserStore } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { GuildStore, PermissionsBits, PermissionStore, React, Tooltip, UserStore } from "@webpack/common";
 
 import { createRole } from "./api";
 
@@ -40,7 +42,7 @@ function CloneModal({ role, icon }: { role: Role; icon?: string | null; }) {
 
     return (
         <>
-            <Forms.FormTitle className={Margins.top20}>Custom Name</Forms.FormTitle>
+            <Heading className={Margins.top20}>Custom Name</Heading>
             {React.createElement(CheckedTextInput as any, {
                 value: name,
                 onChange: (v: any) => {
@@ -103,7 +105,7 @@ function CloneModal({ role, icon }: { role: Role; icon?: string | null; }) {
                                         alt={g.name}
                                     />
                                 ) : (
-                                    <Forms.FormText
+                                    <Paragraph
                                         style={{
                                             fontSize: getFontSize((g as any).acronym),
                                             width: "100%",
@@ -114,7 +116,7 @@ function CloneModal({ role, icon }: { role: Role; icon?: string | null; }) {
                                         }}
                                     >
                                         {(g as any).acronym}
-                                    </Forms.FormText>
+                                    </Paragraph>
                                 )}
                             </div>
                         )}
@@ -138,7 +140,7 @@ export function openModal(role: Role, url?: string | null) {
                     width={24}
                     style={{ marginRight: "0.5em" }}
                 /> : null}
-                <Forms.FormText>Clone Role</Forms.FormText>
+                <Paragraph>Clone Role</Paragraph>
             </ModalHeader>
             <ModalContent>
                 <CloneModal role={role} icon={url} />

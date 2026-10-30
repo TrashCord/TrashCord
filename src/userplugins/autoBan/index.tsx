@@ -9,7 +9,9 @@ import { Devs } from "@utils/constants";
 import { showToast, FluxDispatcher, UserStore, GuildStore, GuildMemberStore } from "@webpack/common";
 import { definePluginSettings } from "@api/Settings";
 import { findStoreLazy } from "@webpack";
-import { Menu, RestAPI, React, Button, TextInput, ChannelStore, PermissionStore, Forms, GuildChannelStore } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
+import { Menu, RestAPI, React, TextInput, ChannelStore, PermissionStore, GuildChannelStore } from "@webpack/common";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal, ModalSize } from "@utils/modal";
 
@@ -407,7 +409,7 @@ function EncModals(props) {
     return (
         <ModalRoot {...props} size={ModalSize.DYNAMIC}>
             <ModalHeader>
-                <Forms.FormTitle tag="h4">Autoban Reason</Forms.FormTitle>
+                <Heading tag="h4">Autoban Reason</Heading>
             </ModalHeader>
             <ModalContent>
                 <TextInput
@@ -419,7 +421,7 @@ function EncModals(props) {
             </ModalContent>
             <ModalFooter>
                 <Button
-                    color={Button.Colors.GREEN}
+                    variant="positive"
                     onClick={() => {
                         const updatedReasons = currentReasons.filter(entry => !entry.startsWith(`${userId}/`));
                         updatedReasons.push(`${userId}/${reason}`);
@@ -431,8 +433,7 @@ function EncModals(props) {
                     Confirm reason
                 </Button>
                 <Button
-                    color={Button.Colors.TRANSPARENT}
-                    look={Button.Looks.LINK}
+                    variant="none"
                     onClick={props.onClose}
                 >
                     Close
