@@ -13,8 +13,8 @@ import { Devs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import definePlugin from "@utils/types";
 import { CloudUpload } from "@vencord/discord-types";
-import { findByCodeLazy, findByPropsLazy } from "@webpack";
-import { ChannelStore, DraftStore, DraftType, FluxDispatcher, Menu, PermissionsBits, PermissionStore, React, SelectedChannelStore, showToast, UploadAttachmentStore, useEffect, UserStore, useState } from "@webpack/common";
+import { findByPropsLazy } from "@webpack";
+import { ChannelStore, DraftStore, DraftType, FluxDispatcher, GuildStore, Menu, PermissionsBits, PermissionStore, React, SelectedChannelStore, showToast, UploadAttachmentStore, useEffect, UserStore, useState } from "@webpack/common";
 
 import { settings } from "./settings";
 import { serviceLabels, ServiceType } from "./types";
@@ -22,7 +22,6 @@ import { getMediaUrl } from "./utils/getMediaUrl";
 import { cancelCurrentUpload, getUploadState, isConfigured, isFileTypeAllowed, logger, subscribeUploadState, uploadFile, uploadPickedFile, uploadProvidedFiles } from "./utils/upload";
 const cl = classNameFactory("vc-file-upload-");
 const { getUserMaxFileSize } = findByPropsLazy("getUserMaxFileSize");
-const discordFilesExceedLimit = findByCodeLazy("web.filesExceedUploadLimits", "Array.from", ".size") as (files: readonly File[], guildId: string | null) => boolean;
 let uploadAddFilesInterceptor: ((event: unknown) => void) | null = null;
 let pasteEventListener: ((event: ClipboardEvent) => void) | null = null;
 let dragOverListener: ((event: Event) => void) | null = null;
@@ -48,14 +47,19 @@ function getGuildIdForChannel(channelId: string | null | undefined): string | nu
     }
 }
 
+function getGuildFileLimit(guildId: string | null): number {
+    const tier = guildId ? (GuildStore.getGuild(guildId) as { premiumTier?: number; } | undefined)?.premiumTier ?? 0 : 0;
+    return tier === 3 ? 104857600 : tier === 2 ? 52428800 : 0;
+}
+
 function shouldInterceptUploadFiles(files: readonly File[], guildId: string | null): boolean {
     if (!settings.store.bypassDiscordUploadOnlyOverLimit) return true;
 
     try {
-        return Boolean(discordFilesExceedLimit(files, guildId));
+        const limit = Math.max(getUserMaxFileSize(UserStore.getCurrentUser()), getGuildFileLimit(guildId));
+        return files.some(file => file.size > limit);
     } catch {
-        const fallbackLimit = getUserMaxFileSize(UserStore.getCurrentUser());
-        return files.some(file => file.size > Math.max(0, fallbackLimit));
+        return true;
     }
 }
 function extractFilesFromValue(value: unknown): File[] {
