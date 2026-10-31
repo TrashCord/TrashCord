@@ -1307,11 +1307,12 @@ function getMyCurrentStatus(): string {
 
 function startInvisibleWatcher() {
     if (invisibleWatchInterval !== null) return;
-    wasInvisible = getMyCurrentStatus() === "invisible";
+    wasInvisible = !!settings.store.noStartInvisible && getMyCurrentStatus() === "invisible";
     invisibleWatchInterval = setInterval(() => {
-        if (!pluginActive || !settings.store.stopOnInvisible) return;
+        if (!pluginActive) return;
         const nowInvis = getMyCurrentStatus() === "invisible";
         if (nowInvis && !wasInvisible) {
+            if (!settings.store.stopOnInvisible) return;
             wasInvisible = true;
             stopAllRotators();
             void applyOnCloseAll();
@@ -1574,6 +1575,7 @@ const settings = definePluginSettings({
     autoStart: { type: OptionType.BOOLEAN, default: true, description: "Auto-start all enabled rotators when Discord loads." },
     enableLogs: { type: OptionType.BOOLEAN, default: false, description: "Print rotator activity and errors to the console (F12)." },
     stopOnInvisible: { type: OptionType.BOOLEAN, default: true, description: "Pause all rotators automatically when status is set to invisible." },
+    noStartInvisible: { type: OptionType.BOOLEAN, default: true, description: "Do not start rotators on plugin start or enable if your status is invisible. They start automatically once you become visible." },
     _sNetGuard: { type: OptionType.COMPONENT, description: "", component: () => <SettingsSep title="Network Guard" color="#26c6da" /> },
     netGuardEnabled: { type: OptionType.BOOLEAN, default: true, description: "Throttle or pause rotators when RTT is high (bufferbloat protection)." },
     netGuardRttThreshold: { type: OptionType.NUMBER, default: 200, description: "RTT ms threshold. Above this → slow ×3/×5. Above 2.5× → full pause." },
@@ -4871,7 +4873,7 @@ function ConsoleCleanerCard({ forceUpdate }: { forceUpdate: () => void }) {
             <div className="rs-data-desc" style={{ marginBottom: 7 }}>
                 Clears the console when JS errors/warns (console.error/warn + unhandled rejections) exceed the threshold - prevents Discord crash from log overflow.
             </div>
-            <PanelToggle label="Auto-clear console" color="#66bb6a"
+            <PanelToggle label="Auto-Clear Console" color="#66bb6a"
                 description={enabled ? `Clears at ${th} JS errors/warns` : "Console grows unbounded"}
                 value={enabled}
                 onChange={v => {
@@ -5036,12 +5038,14 @@ function DataTab({ forceUpdate }: { forceUpdate: () => void }) {
                 <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: ".7px", color: "#9e9e9e", marginBottom: 5 }}>Misc</div>
                 <PanelToggle label="Show User Area Button" description="Show the Rotator Suite button in the bottom-left user area" value={settings.store.showButton}
                     onChange={v => { settings.store.showButton = v; forceUpdate(); }} />
-                <PanelToggle label="Show Header bar button" description="Show the Rotator Suite button in the Discord header bar (top-right, near inbox)" value={settings.store.showHeaderButton}
+                <PanelToggle label="Show Header Bar Button" description="Show the Rotator Suite button in the Discord header bar (top-right, near inbox)" value={settings.store.showHeaderButton}
                     onChange={v => { settings.store.showHeaderButton = v; forceUpdate(); }} />
                 <PanelToggle label="Console Logs" description="Print all rotator activity and errors to the browser console (F12)" value={settings.store.enableLogs}
                     onChange={v => { settings.store.enableLogs = v; }} />
                 <PanelToggle label="Stop When Invisible" description="Automatically pause all rotators when your status is set to Invisible (resumes on visible)" value={settings.store.stopOnInvisible}
-                    onChange={v => { settings.store.stopOnInvisible = v; if (v) startInvisibleWatcher(); else stopInvisibleWatcher(); forceUpdate(); }} />
+                    onChange={v => { settings.store.stopOnInvisible = v; if (v || settings.store.noStartInvisible) startInvisibleWatcher(); else stopInvisibleWatcher(); forceUpdate(); }} />
+                <PanelToggle label="Don't Start When Invisible" description="Do not start rotators on plugin start/enable while invisible (they start once you become visible)" value={settings.store.noStartInvisible}
+                    onChange={v => { settings.store.noStartInvisible = v; if (v) startInvisibleWatcher(); else if (!settings.store.stopOnInvisible) stopInvisibleWatcher(); forceUpdate(); }} />
                 {activeLabels.length > 0 && (
                     <div style={{ fontSize: 11, color: "#9e9e9e", marginTop: 8 }}>
                         Active: <b style={{ color: C.enabled }}>{activeLabels.join(" · ")}</b>
@@ -5548,7 +5552,7 @@ function RotatorSuiteModal({ modalProps }: { modalProps: ModalProps }) {
                                 </span>
                                 <span>Nicks: <b style={{ color: settings.store.nickEnabled ? C.nick : `${C.nick}80` }}>{settings.store.nickEnabled ? settings.store.nickIntervalSeconds + "s" : "off"}</b></span>
                                 <span>Pronouns: <b style={{ color: settings.store.serverPronounsEnabled ? C.pronoun : `${C.pronoun}80` }}>{settings.store.serverPronounsEnabled ? settings.store.serverPronounsIntervalSeconds + "s" : "off"}</b></span>
-                            </>
+                              </>
                         }
                     </div>
                     <Button variant="none" onClick={modalProps.onClose}>Close</Button>
@@ -5644,6 +5648,7 @@ export default definePlugin({
         statusLastVal = null; clanLastVal = null; bioLastVal = null; prLastVal = null;
         pluginActive = true;
         window.addEventListener("beforeunload", rsBeforeUnload);
+        if (settings.store.stopOnInvisible || settings.store.noStartInvisible) startInvisibleWatcher();
 
         const defaults: StoreData = {
             createdAt: new Date().toISOString(), globalNicks: [], guilds: [], bioEntries: [],
@@ -5700,13 +5705,13 @@ export default definePlugin({
         const arMeta: any = await DataStore.get(AR_SK + "_meta");
         arSeqIndex = arMeta?.seqIndex ?? arStored.seqIndex ?? 0;
         arShuffleQueue = arMeta?.shuffleQueue ?? arStored.shuffleQueue ?? [];
-        if (settings.store.avatarEnabled && arGetActive().length) arStartRotator(false);
+        if (settings.store.avatarEnabled && arGetActive().length && !wasInvisible) arStartRotator(false);
 
         const bcrStored: BcrStoreData = (await DataStore.get(BCR_SK)) ?? { favorites: [], usedFavs: [], wasRunning: false, currentColor: null };
         bcrFavorites = bcrStored.favorites ?? [];
         bcrUsedFavs = bcrStored.usedFavs ?? [];
         bcrCurrentColor = bcrStored.currentColor ?? null;
-        if (bcrStored.wasRunning || settings.store.bannerEnabled) bcrStartRotator(false);
+        if ((bcrStored.wasRunning || settings.store.bannerEnabled) && !wasInvisible) bcrStartRotator(false);
 
         const closeStored = (await DataStore.get(RS_CLOSE_SK)) ?? {};
         closeStatusEnabled = closeStored.closeStatusEnabled ?? false;
@@ -5725,7 +5730,6 @@ export default definePlugin({
             startAllRotators();
         }
 
-        if (settings.store.stopOnInvisible) startInvisibleWatcher();
         if (settings.store.bannerNitroCheck) startNitroWatcher();
         if (settings.store.avatarEnabled && settings.store.avatarNitroCheck) startAvatarNitroWatcher();
         startNetGuard();
