@@ -278,6 +278,32 @@ async function resolveMicId(pref: string): Promise<string | null> {
     }
 }
 
+export async function resolveSink(playback: string): Promise<string | undefined> {
+    try {
+        const outputs = (await navigator.mediaDevices.enumerateDevices())
+            .filter(d => d.kind === "audiooutput" && d.deviceId !== "default" && d.deviceId !== "communications");
+
+        if (playback.startsWith("out:")) {
+            const id = playback.slice(4);
+            return outputs.some(d => d.deviceId === id) ? id : undefined;
+        }
+
+        const store = MediaEngineStore as any;
+        const id = store?.getOutputDeviceId?.();
+        if (!id || id === "default") return undefined;
+
+        const name = String(store?.getOutputDevices?.()?.[id]?.name ?? "").toLowerCase();
+        if (!name) return undefined;
+
+        return outputs.find(d => {
+            const label = d.label.toLowerCase();
+            return label.includes(name) || name.includes(label);
+        })?.deviceId;
+    } catch {
+        return undefined;
+    }
+}
+
 export async function checkOutput(playback: string): Promise<string | null> {
     try {
         const outputs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audiooutput");

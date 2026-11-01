@@ -18,7 +18,7 @@ import { Avatar, ChannelStore, FluxDispatcher, IconUtils, React, RelationshipSto
 import { Button } from "@components/Button";
 import { SearchableSelect, TextInput } from "@webpack/common/components";
 
-import { checkOutput, getMicLabel, getRecordingKind, getRecordingStart, isCurrentlyRecording, onSaved, setLevels, startRecording, startReplay, stopAll, stopRecording, stopRecordingAll, stopReplay, testMic } from "./recorder";
+import { checkOutput, getMicLabel, getRecordingKind, getRecordingStart, isCurrentlyRecording, onSaved, resolveSink, setLevels, startRecording, startReplay, stopAll, stopRecording, stopRecordingAll, stopReplay, testMic } from "./recorder";
 import { buildClip, isRewinding, setRewindSeconds } from "./rewind";
 import { Common, emitState, getNative, Kind, Profile, SaveResult, subscribeState } from "./shared";
 import { playSound, type SoundKind } from "./sounds";
@@ -89,11 +89,16 @@ const volume = (description: string) => ({
 });
 
 function soundLevel(): number {
-    return clamp(Math.round(num(settings.store.soundVolume, 50)), 0, 100) / 100;
+    return clamp(Math.round(num(settings.store.soundVolume, 40)), 0, 100) / 100;
+}
+
+async function playEvent(kind: SoundKind) {
+    const sink = settings.store.soundsOnOutput ? await resolveSink(String(settings.store.playbackDevice)) : undefined;
+    await playSound(kind, soundLevel(), sink);
 }
 
 function sound(kind: SoundKind): Promise<void> {
-    return settings.store.sounds ? playSound(kind, soundLevel()) : Promise.resolve();
+    return settings.store.sounds ? playEvent(kind) : Promise.resolve();
 }
 
 function SoundPreview(_props: PluginSettingComponentProps): JSX.Element {
@@ -109,7 +114,7 @@ function SoundPreview(_props: PluginSettingComponentProps): JSX.Element {
             <div style={labelStyle}>Preview sounds</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {items.map(([label, kind]) => (
-                    <Button key={kind} size="small" onClick={() => { void playSound(kind, soundLevel()); }}>
+                    <Button key={kind} size="small" onClick={() => { void playEvent(kind); }}>
                         {label}
                     </Button>
                 ))}
@@ -474,10 +479,10 @@ const settings = definePluginSettings({
     recordTarget: screenField("record", "screen"),
     recordFolder: folderSelector("recordFolder", "Recordings folder", "Empty = Videos\\Discord\\Recordings"),
 
-    _sepAuto: separator("🔁 Auto-record", "Starts a recording by itself every time you join a call."),
+    _sepAuto: separator("🔁 Auto-record", "Starts a recording automatically every time you join a call. When you leave, it saves the recording automatically."),
     autoRecord: {
         type: OptionType.BOOLEAN,
-        description: "Record every call you join",
+        description: "Automatically records every call you join and saves the recording when you leave.",
         default: false
     },
     autoType: pick("auto", "Type", "Type", TYPES, "voice"),
@@ -538,11 +543,16 @@ const settings = definePluginSettings({
         description: "Sounds: a different one for record start, auto-record start, recording saved and clip saved (nothing plays when the replay buffer starts)",
         default: true
     },
+    soundsOnOutput: {
+        type: OptionType.BOOLEAN,
+        description: "Play sounds on the Output Device chosen above (when it is Default, on the device Discord plays on)",
+        default: true
+    },
     soundVolume: {
         type: OptionType.SLIDER as const,
         description: "Sound volume",
         markers: [0, 25, 50, 75, 100],
-        default: 50,
+        default: 36,
         stickToMarkers: false,
         componentProps: {
             onValueRender: (v: number) => `${Math.round(v)}%`,

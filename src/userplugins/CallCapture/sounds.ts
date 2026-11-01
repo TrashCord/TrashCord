@@ -24,28 +24,36 @@ function tone(ctx: AudioContext, out: AudioNode, type: OscillatorType, freq: num
     return osc;
 }
 
-function click(ctx: AudioContext, out: AudioNode, at: number, length: number, peak: number) {
-    const frames = Math.max(1, Math.floor(ctx.sampleRate * length));
-    const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
-
-    const source = ctx.createBufferSource();
-    const filter = ctx.createBiquadFilter();
+function sweep(ctx: AudioContext, out: AudioNode, from: number, to: number, at: number, length: number, peak: number): OscillatorNode {
+    const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    filter.type = "highpass";
-    filter.frequency.value = 1800;
-    gain.gain.value = peak;
-    source.buffer = buffer;
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(from, at);
+    osc.frequency.exponentialRampToValueAtTime(to, at + length * 0.6);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(peak, at + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
 
-    source.connect(filter);
-    filter.connect(gain);
+    osc.connect(gain);
     gain.connect(out);
-    source.start(at);
+    osc.start(at);
+    osc.stop(at + length + 0.02);
+
+    return osc;
 }
 
-export function playSound(kind: SoundKind, volume: number): Promise<void> {
+function createContext(sinkId?: string): AudioContext {
+    if (sinkId) {
+        try {
+            return new AudioContext({ latencyHint: "interactive", sinkId } as any);
+        } catch { }
+    }
+
+    return new AudioContext({ latencyHint: "interactive" });
+}
+
+export function playSound(kind: SoundKind, volume: number, sinkId?: string): Promise<void> {
     return new Promise<void>(resolve => {
         if (volume <= 0) {
             resolve();
@@ -53,7 +61,7 @@ export function playSound(kind: SoundKind, volume: number): Promise<void> {
         }
 
         try {
-            const ctx = new AudioContext({ latencyHint: "interactive" });
+            const ctx = createContext(sinkId);
             let done = false;
 
             const finish = () => {
@@ -64,7 +72,7 @@ export function playSound(kind: SoundKind, volume: number): Promise<void> {
             };
 
             const master = ctx.createGain();
-            master.gain.value = Math.min(1, volume);
+            master.gain.value = Math.min(1, volume) * 0.7;
             master.connect(ctx.destination);
 
             const t = ctx.currentTime + 0.02;
@@ -82,9 +90,7 @@ export function playSound(kind: SoundKind, volume: number): Promise<void> {
                 tone(ctx, master, "triangle", 659.25, t + 0.09, 0.1, 0.35);
                 last = tone(ctx, master, "triangle", 523.25, t + 0.18, 0.24, 0.35);
             } else {
-                click(ctx, master, t, 0.03, 0.5);
-                tone(ctx, master, "sine", 1567.98, t + 0.02, 0.09, 0.3);
-                last = tone(ctx, master, "sine", 2093, t + 0.07, 0.13, 0.3);
+                last = sweep(ctx, master, 300, 560, t, 0.16, 0.3);
             }
 
             last.onended = finish;
