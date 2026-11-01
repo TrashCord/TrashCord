@@ -50,7 +50,6 @@ export function updateShortcuts(iconPath: string, backupDir: string, restore: bo
         try {
             entries = readdirSync(directory, { withFileTypes: true });
         } catch {
-            failed++;
             return;
         }
         for (const entry of entries) {
@@ -62,7 +61,6 @@ export function updateShortcuts(iconPath: string, backupDir: string, restore: bo
             try {
                 shortcut = shell.readShortcutLink(path);
             } catch {
-                failed++;
                 continue;
             }
             if (!isCurrentClient(shortcut)) continue;
