@@ -21,6 +21,9 @@ function isCurrentClient(shortcut: ShortcutDetails) {
     if (!/^app-\d[\w.-]*$/i.test(basename(versionDir))) return false;
 
     const root = dirname(versionDir);
+    if (samePath(dirname(shortcut.target), root) && basename(shortcut.target).toLowerCase() === basename(executable).toLowerCase())
+        return true;
+
     const targetDir = dirname(shortcut.target);
     if (samePath(dirname(targetDir), root) && /^app-\d[\w.-]*$/i.test(basename(targetDir)))
         return basename(shortcut.target).toLowerCase() === basename(executable).toLowerCase();
