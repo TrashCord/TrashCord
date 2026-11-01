@@ -11,6 +11,7 @@ export default definePlugin({
     description: "Bypasses Discord’s age verification required under the UK Online Safety Act.",
     authors: [{ name: "Menhera.st Team", id: 1325012503419420734n }],
     tags: ["Privacy", "Utility"],
+    requiresRestart: true,
     enabledByDefault: false,
 
     start() {

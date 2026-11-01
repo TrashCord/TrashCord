@@ -5,62 +5,78 @@
  */
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
-import definePlugin from "@utils/types";
+import definePlugin, { PluginNative } from "@utils/types";
 import { Alerts, Menu } from "@webpack/common";
 import { Message } from "discord-types/general";
 
 const DOUBLECOUNTER_APP_ID = "703886990948565003";
-const VERIFICATION_LINK_REGEX = /https:\/\/verify.doublecounter.gg\/v\/[0-9a-z]{8,16}/g;
+const VERIFICATION_LINK_REGEX = /https:\/\/verify\.doublecounter\.gg\/v\/[0-9a-z]{8,16}/;
+
+const Native = VencordNative.pluginHelpers.DoubleCounterVerifyBypass as PluginNative<typeof import("./native")>;
+
+function getLink(message: any): string | null {
+    const field = message?.embeds?.[0]?.fields?.[1];
+    const value = field?.rawValue ?? field?.value;
+    if (typeof value !== "string") return null;
+    const match = VERIFICATION_LINK_REGEX.exec(value);
+    return match ? match[0] : null;
+}
+
+async function verify(link: string): Promise<boolean> {
+    try {
+        return await Native.verify(link);
+    } catch {
+        return false;
+    }
+}
+
+function showVerified() {
+    Alerts.show({
+        title: "Verified",
+        body: "You have been verified successfully, please wait a little bit for DoubleCounter to update your roles.",
+        confirmText: "Okay"
+    });
+}
 
 const patchMessageContextMenu: NavContextMenuPatchCallback = (children, { message }) => {
-    const { components } = message;
+    if (message?.author?.id !== DOUBLECOUNTER_APP_ID) return;
+    if (message.components?.length) return;
+    if ((message.embeds?.[0] as any)?.fields?.length !== 4) return;
 
-    if (message.author.id === DOUBLECOUNTER_APP_ID && components?.length === 0 && message.embeds?.map(embed => embed)[0].fields.length === 4) {
-        children.push((
-            <Menu.MenuItem
-                id="ml-dcvp"
-                key="ml-dcvp-verify"
-                label="Bypass Double Counter"
-                color="brand"
-                action={() => {
-                    const regex_link = VERIFICATION_LINK_REGEX.exec(message.embeds.map(embed => embed.fields.map(field => field))[0][1].rawValue);
-                    if (regex_link) {
-                        verify(regex_link[0]).then(() => {
-                            Alerts.show({
-                                title: "Verified",
-                                body: "You have been verified successfully, please wait a little bit for DoubleCounter to update your roles.",
-                                confirmText: "Okay",
-                            });
-                        });
-                    } else {
-                        Alerts.show({
-                            title: "Link not found",
-                            body: "The link has not been found in this message.",
-                            confirmText: "Okay"
-                        });
-                    }
-                }}
-            />
-        ));
-    }
+    children.push((
+        <Menu.MenuItem
+            id="ml-dcvp"
+            key="ml-dcvp-verify"
+            label="Bypass Double Counter"
+            color="brand"
+            action={async () => {
+                const link = getLink(message);
+                if (!link) {
+                    Alerts.show({
+                        title: "Link not found",
+                        body: "The link has not been found in this message.",
+                        confirmText: "Okay"
+                    });
+                    return;
+                }
+                if (await verify(link)) {
+                    showVerified();
+                } else {
+                    Alerts.show({
+                        title: "Verification failed",
+                        body: "The verification request did not go through, please try again.",
+                        confirmText: "Okay"
+                    });
+                }
+            }}
+        />
+    ));
 };
-
-async function verify(link) {
-    try {
-        const res = await fetch(link);
-        console.log(res.ok);
-    } catch { }
-}
 
 export default definePlugin({
     name: "DoubleCounterVerifyBypass",
     description: "Bypass Double Counter verifications easily.",
-    authors: [
-        {
-            id: 1181610810548686979n,
-            name: "verticalsync",
-        },
-    ],
+    authors: [{ name: "verticalsync", id: 1181610810548686979n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Privacy", "Utility"],
     enabledByDefault: false,
 
@@ -70,19 +86,10 @@ export default definePlugin({
 
     flux: {
         async MESSAGE_CREATE({ message }: { message: Message; }) {
-            if (message.author.id !== DOUBLECOUNTER_APP_ID || message.type !== 19 || message.embeds.length === 0) return;
-
-            // @ts-ignore
-            const link = VERIFICATION_LINK_REGEX.exec(message.embeds.map(embed => embed.fields.map(field => field))[0][1].value);
-            console.log(link);
-            await verify(link).then(() => {
-                Alerts.show({
-                    title: "Verified",
-                    body: "You have been verified successfully, please wait a little bit for DoubleCounter to update your roles.",
-                    confirmText: "Okay",
-                    onConfirm: () => { }
-                });
-            });
+            if (message?.author?.id !== DOUBLECOUNTER_APP_ID || message.type !== 19 || !message.embeds?.length) return;
+            const link = getLink(message);
+            if (!link) return;
+            if (await verify(link)) showVerified();
         }
     }
 });
