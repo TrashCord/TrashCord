@@ -56,6 +56,7 @@ export const CspPolicies: PolicyMap = {
     "cdn.jsdelivr.net": [...ImageScriptsAndCssSrc, "media-src"],
     "wttr.in": [...ImageScriptsAndCssSrc, "media-src"],
     "vsthemes.org": [...ImageScriptsAndCssSrc, "media-src"],
+    "s1.hostingkartinok.com": [...ImageScriptsAndCssSrc, "media-src"],
     
     // Function Specific
     "api.github.com": ConnectSrc, // used for updating Vencord itself
