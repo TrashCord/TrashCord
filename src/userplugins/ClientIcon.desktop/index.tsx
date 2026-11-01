@@ -112,9 +112,9 @@ function IconSettings() {
             <Paragraph>{client || "Current client"}</Paragraph>
         </Flex>
         <Flex flexWrap="wrap">
-            <Button disabled={busy} onClick={() => changeIcon("TrashCord")}>Use TrashCord icon</Button>
+            <Button disabled={busy} onClick={() => changeIcon("TrashCord")}>Use Client Icon</Button>
             <Button disabled={busy} onClick={() => changeIcon("custom")}>Choose PNG</Button>
-            <Button disabled={busy} onClick={() => changeIcon("original")}>Restore original</Button>
+            <Button disabled={busy} onClick={() => changeIcon("original")}>Restore Original</Button>
         </Flex>
         {message ? <Paragraph role="status">{message}</Paragraph> : null}
         <Paragraph>{IS_LINUX
