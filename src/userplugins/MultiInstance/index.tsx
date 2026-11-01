@@ -201,7 +201,7 @@ const settings = definePluginSettings({
     performanceMode: {
         type: OptionType.BOOLEAN,
         description: "Throttle background instances to reduce CPU usage.",
-        default: false
+        default: true
     },
     openManager: {
         type: OptionType.COMPONENT,
@@ -423,7 +423,7 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
                 />
                 <Menu.MenuItem
                     id="multi-instance-open-detached"
-                    label="Open separate Discord window"
+                    label="Open separate TrashCord window"
                     disabled={!!status || isBusy}
                     action={() => void openInstance(profile, "detached")}
                 />
@@ -522,8 +522,8 @@ function MultiInstanceModal({ rootProps }: { rootProps: RenderModalProps; }) {
                     <div className="vc-multi-instance-mode-card">
                         <div className="vc-multi-instance-mode-icon"><MultiInstanceIcon /></div>
                         <div className="vc-multi-instance-mode-copy">
-                            <strong>Separate Discord instance</strong>
-                            <span>Gets its own taskbar identity and the Discord app icon.</span>
+                            <strong>Separate TrashCord instance</strong>
+                            <span>Gets its own taskbar identity and the TrashCord app icon.</span>
                         </div>
                     </div>
                 </div>
@@ -667,7 +667,7 @@ const MultiInstanceButtonWithBoundary = ErrorBoundary.wrap(MultiInstanceButton, 
 
 export default definePlugin({
     name: "MultiInstance",
-    description: "Opens extra Discord windows with separate Discord sessions.",
+    description: "Opens extra TrashCord windows with separate Discord sessions.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Utility"],
     enabledByDefault: false,

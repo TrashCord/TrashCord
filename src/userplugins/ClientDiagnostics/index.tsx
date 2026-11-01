@@ -14,7 +14,10 @@ import { Button } from "@components/Button";
 import { CodeBlock } from "@components/CodeBlock";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { ClockIcon, CopyIcon, MagnifyingGlassIcon, ResetIcon } from "@components/Icons";
+// import { isGhostClientActive } from "../ghostClient/settings";
+const isGhostClientActive = () => false;
 import SettingsPlugin from "@plugins/_core/settings";
+import { IS_LINUX } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { copyWithToast } from "@utils/discord";
 import { Logger } from "@utils/Logger";
@@ -23,8 +26,12 @@ import { useFixedTimer } from "@utils/react";
 import definePlugin, { OptionType, type Plugin, StartAt } from "@utils/types";
 import { React, SettingsRouter, TabBar, TextInput, useState } from "@webpack/common";
 
+import { recordHealthCallback } from "./causes";
+import { ClientHealthPage, resetHealth, startHealth, stopHealth } from "./health";
+import { startResourceMonitor, stopResourceMonitor } from "./resourceMonitor";
+
 type SortBy = "impact" | "cpu" | "memory" | "calls" | "resources";
-type ClientDiagnosticsTab = "diagnostics" | "analysis" | "monitor" | "guide";
+type ClientDiagnosticsTab = "diagnostics" | "analysis" | "monitor" | "health" | "guide";
 type SettingKey = "sortBy" | "showDisabled" | "showApiPlugins" | "refreshMs";
 type ResourceKey = "intervals" | "pendingTimeouts" | "animationFrames" | "listeners";
 type AnyCallback = (this: unknown, ...args: never[]) => unknown;
@@ -103,8 +110,8 @@ interface ImpactAnalysisItem {
     snippets: SourceSnippet[];
 }
 
-const PLUGIN_NAME = "Client diagnostics";
-const ENTRY_KEY = "illegalcord_client_diagnostics";
+const PLUGIN_NAME = "ClientDiagnostics";
+const ENTRY_KEY = "TrashCord_client_diagnostics";
 const SETTINGS_KEYS: SettingKey[] = ["sortBy", "showDisabled", "showApiPlugins", "refreshMs"];
 const REFRESH_SETTING_KEYS: SettingKey[] = ["refreshMs"];
 const MONITOR_SETTING_KEYS: SettingKey[] = ["showDisabled", "showApiPlugins", "refreshMs"];
@@ -195,7 +202,7 @@ const settings = definePluginSettings({
     showApiPlugins: {
         type: OptionType.BOOLEAN,
         description: "Include internal API plugins in the table.",
-        default: true
+        default: false
     },
     refreshMs: {
         type: OptionType.SLIDER,
@@ -219,8 +226,65 @@ const settings = definePluginSettings({
         description: "Send a notification when a plugin may make Discord lag.",
         default: false,
         onChange: syncLagNotifications
+    },
+    autoRestart: {
+        type: OptionType.BOOLEAN,
+        displayName: "Automatic resource restarts",
+        description: "Automatically restart the desktop client after sustained high CPU or memory usage. Click the restart notification to cancel.",
+        default: false,
+        target: "DESKTOP",
+        onChange: syncResourceMonitor
+    },
+    restartCpuPercent: {
+        type: OptionType.NUMBER,
+        displayName: "CPU threshold (%)",
+        description: "Discord CPU usage as a percentage of total system capacity. Set to 0 to disable this threshold.",
+        default: 80,
+        target: "DESKTOP",
+        disabled: () => !settings.store.autoRestart,
+        isValid: (value: number) => Number.isFinite(value) && value >= 0 && value <= 100 || "Enter a percentage from 0 to 100.",
+        onChange: syncResourceMonitor
+    },
+    restartMemoryMb: {
+        type: OptionType.NUMBER,
+        displayName: "RAM threshold (MiB)",
+        description: "Combined RAM usage of Discord processes in MiB. Set to 0 to disable this threshold. Available on Windows and macOS.",
+        default: 4096,
+        target: "DESKTOP",
+        disabled: () => !settings.store.autoRestart || IS_LINUX,
+        isValid: (value: number) => Number.isInteger(value) && value >= 0 && value <= 65_536 || "Enter a whole number from 0 to 65536.",
+        onChange: syncResourceMonitor
+    },
+    restartAfterSeconds: {
+        type: OptionType.SLIDER,
+        displayName: "Time above threshold (seconds)",
+        description: "How long the same threshold must remain exceeded before a restart is scheduled. Monitoring skips the first minute after starting.",
+        markers: [10, 30, 60, 120],
+        default: 30,
+        target: "DESKTOP",
+        disabled: () => !settings.store.autoRestart,
+        onChange: syncResourceMonitor
+    },
+    restartCooldownMinutes: {
+        type: OptionType.SLIDER,
+        displayName: "Restart cooldown (minutes)",
+        description: "Minimum time between automatic restart attempts, including cancelled attempts. This limit survives client restarts.",
+        markers: [5, 15, 30, 60],
+        default: 15,
+        target: "DESKTOP",
+        disabled: () => !settings.store.autoRestart,
+        onChange: syncResourceMonitor
+    },
+    restartPauseDuringCalls: {
+        type: OptionType.BOOLEAN,
+        displayName: "Pause restarts during calls",
+        description: "Wait until your voice call or screen share ends before restarting automatically.",
+        default: true,
+        target: "DESKTOP",
+        disabled: () => !settings.store.autoRestart,
+        onChange: syncResourceMonitor
     }
-});
+}).withPrivateSettings<{ lastResourceRestartAt?: number; }>();
 
 const activeStack: ActiveContext[] = [];
 const stats = new Map<string, PluginStats>();
@@ -395,8 +459,10 @@ function runMeasured<T>(pluginName: string, surface: string, callback: () => T):
         failed = false;
         return result;
     } finally {
+        const end = performance.now();
         activeStack.pop();
-        recordCall(pluginName, surface, performance.now() - start, failed, beforeHeap, getHeapUsed());
+        if (activeStack.length === 0) recordHealthCallback(pluginName, surface, start, end);
+        recordCall(pluginName, surface, end - start, failed, beforeHeap, getHeapUsed());
     }
 }
 
@@ -736,6 +802,7 @@ function rebuildResourceCounters() {
 }
 
 function resetStats() {
+    resetHealth();
     stats.clear();
     lagNotificationTimes.clear();
     startedAt = Date.now();
@@ -1129,6 +1196,7 @@ function getLagNotificationCandidates() {
 
 function maybeSendLagNotification() {
     if (!settings.store.lagNotifications) return;
+    if (isGhostClientActive()) return;
     if (Date.now() - startedAt < LAG_NOTIFICATION_MIN_COLLECTION_MS) return;
 
     const now = Date.now();
@@ -1166,6 +1234,15 @@ function stopLagNotifications() {
 function syncLagNotifications() {
     if (pluginStarted && settings.store.lagNotifications) startLagNotifications();
     else stopLagNotifications();
+}
+
+function syncResourceMonitor() {
+    stopResourceMonitor();
+    if (IS_WEB || !pluginStarted || !settings.store.autoRestart) return;
+
+    startResourceMonitor(() => settings.store, (timestamp: number) => {
+        settings.store.lastResourceRestartAt = timestamp;
+    });
 }
 
 function getReportRows() {
@@ -1812,12 +1889,14 @@ function ClientDiagnosticsPage() {
                 <TabBar.Item id="diagnostics">Client Diagnostics</TabBar.Item>
                 <TabBar.Item id="analysis">Impact analysis</TabBar.Item>
                 <TabBar.Item id="monitor">Plugin monitor</TabBar.Item>
+                <TabBar.Item id="health">Client health</TabBar.Item>
                 <TabBar.Item id="guide">Guide</TabBar.Item>
             </TabBar>
 
             {tab === "diagnostics" && <DiagnosticsPage />}
             {tab === "analysis" && <ImpactAnalysisPage />}
             {tab === "monitor" && <PluginMonitorPage />}
+            {tab === "health" && <ClientHealthPage />}
             {tab === "guide" && <GuidePage />}
         </div>
     );
@@ -1827,7 +1906,7 @@ const DiagnosticsPageWrapped = ErrorBoundary.wrap(ClientDiagnosticsPage, { noop:
 
 export default definePlugin({
     name: "ClientDiagnostics",
-    description: "Profiles plugin callback time, heap deltas, and active resources to find laggy plugins.",
+    description: "Profiles plugins and monitors client memory growth, possible leaks, and responsiveness.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Performance", "Utility", "Developers"],
     enabledByDefault: false,
@@ -1839,10 +1918,12 @@ export default definePlugin({
     start() {
         try {
             startedAt = Date.now();
+            startHealth();
             installGlobalProbes();
             for (const plugin of Object.values(plugins)) instrumentPlugin(plugin);
             pluginStarted = true;
             syncLagNotifications();
+            syncResourceMonitor();
             if (!SettingsPlugin.customEntries.some(entry => entry.key === ENTRY_KEY)) {
                 SettingsPlugin.customEntries.push({
                     key: ENTRY_KEY,
@@ -1857,6 +1938,8 @@ export default definePlugin({
     },
 
     stop() {
+        stopResourceMonitor();
+        stopHealth();
         try {
             pluginStarted = false;
             syncLagNotifications();

@@ -10,15 +10,19 @@ import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { HeadphonesIcon, Microphone } from "@components/Icons";
+import { Paragraph } from "@components/Paragraph";
 import { settings as musicControlsSettings } from "@equicordplugins/musicControls/settings";
 import { SpotifyStore } from "@equicordplugins/musicControls/spotify/SpotifyStore";
 import { classNameFactory } from "@utils/css";
+import { Logger } from "@utils/Logger";
 import { useFixedTimer } from "@utils/react";
 import { formatDurationMs } from "@utils/text";
-import definePlugin, { OptionType } from "@utils/types";
+import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import type { Message, Stream } from "@vencord/discord-types";
-import { ApplicationStreamingStore, ChannelActions, ChannelStore, Clickable, FluxDispatcher, GuildMemberStore, IconUtils, MediaEngineStore, MessageStore, ReactDOM, Tooltip, useEffect, useRef, UserGuildSettingsStore, UserStore, useState, useStateFromStores, VoiceActions, VoiceStateStore } from "@webpack/common";
+import { ApplicationStreamingStore, ChannelActions, ChannelStore, Clickable, FluxDispatcher, GuildMemberStore, IconUtils, MaskedLink, MediaEngineStore, MessageStore, ReactDOM, showToast, Tooltip, useEffect, useLayoutEffect, useRef, UserGuildSettingsStore, UserStore, useState, useStateFromStores, VoiceActions, VoiceStateStore } from "@webpack/common";
 import type { MouseEvent, PointerEvent, ReactNode, SVGProps } from "react";
+
+import type { SoundCloudTrack } from "./native";
 
 interface ControlButtonProps {
     active?: boolean;
@@ -55,7 +59,14 @@ interface MessageWithMentions extends Omit<Message, "mentionEveryone" | "mention
     mentions: Array<string | { id: string; }>;
 }
 
+interface IslandPosition {
+    x: number;
+    y: number;
+}
+
 interface SwipeStart {
+    dragging: boolean;
+    position: IslandPosition | null;
     pointerId: number;
     startedAt: number;
     x: number;
@@ -64,18 +75,23 @@ interface SwipeStart {
 
 const IslandType = {
     ScreenShare: "screen-share",
+    SoundCloud: "soundcloud",
     Spotify: "spotify",
     Voice: "voice"
 } as const;
 
 type IslandType = typeof IslandType[keyof typeof IslandType];
 
-const cl = classNameFactory("vc-illegalcord-dynamic-island-");
+const cl = classNameFactory("vc-TrashCord-dynamic-island-");
+const logger = new Logger("DynamicIsland");
+const Native = IS_WEB ? undefined : VencordNative.pluginHelpers.DynamicIsland as PluginNative<typeof import("./native")> | undefined;
 const NOTIFICATION_DURATION = 5000;
-const RUNTIME_KEY = Symbol.for("IllegalcordDynamicIsland.runtime");
+const RUNTIME_KEY = Symbol.for("DynamicIsland.runtime");
 const SPOTIFY_IDLE_DURATION = 60_000;
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MIN_DURATION = 120;
+const DRAG_HOLD_DURATION = 350;
+const DRAG_MIN_DISTANCE = 6;
 const portalModule = Symbol();
 const runtime = (Reflect.get(globalThis, RUNTIME_KEY) as DynamicIslandRuntime | undefined) ?? {
     activeModule: portalModule,
@@ -107,10 +123,26 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         default: false
     },
+    enableDrag: {
+        description: "Hold the Island briefly, then drag to move it. Quick swipes still switch activities.",
+        type: OptionType.BOOLEAN,
+        default: true
+    },
+    resetPosition: {
+        type: OptionType.COMPONENT,
+        component: ResetPosition,
+        default: null
+    },
     showSpotifyIsland: {
         description: "Show Spotify activity in the Dynamic Island.",
         type: OptionType.BOOLEAN,
         default: true
+    },
+    showSoundCloudIsland: {
+        description: "Show SoundCloud playback from the WebNowPlaying browser extension.",
+        type: OptionType.BOOLEAN,
+        default: true,
+        target: "DESKTOP"
     },
     showVoiceIsland: {
         description: "Show Discord call controls in the Dynamic Island.",
@@ -133,8 +165,31 @@ const settings = definePluginSettings({
         default: false,
         onChange: value => { musicControlsSettings.store.showSpotifyControls = value; }
     }
-});
-const SETTINGS_KEYS = ["islandColor", "keepIslandVisible", "showSpotifyIsland", "showVoiceIsland", "showScreenShareIsland", "morphNotifications"] satisfies Array<keyof typeof settings.store>;
+}).withPrivateSettings<{ position?: IslandPosition; }>();
+const SETTINGS_KEYS = ["enableDrag", "position", "islandColor", "keepIslandVisible", "showSpotifyIsland", "showSoundCloudIsland", "showVoiceIsland", "showScreenShareIsland", "morphNotifications"] satisfies Array<keyof typeof settings.store>;
+
+function SoundCloudSetup() {
+    return (
+        <>
+            <Paragraph>
+                SoundCloud requires the TrashCord desktop client and the WebNowPlaying browser extension.
+                Playback and controls are available in your Dynamic Island.
+            </Paragraph>
+            <Paragraph>
+                Download for <MaskedLink href="https://addons.mozilla.org/en-US/firefox/addon/webnowplaying">Firefox / Waterfox</MaskedLink>
+                {" or "}<MaskedLink href="https://chrome.google.com/webstore/detail/webnowplaying/jfakgfcdgpghbbefmdfjkbdlibjgnbli">Chrome / Brave / Slap / Edge</MaskedLink>.
+            </Paragraph>
+            <Paragraph>
+                In WebNowPlaying settings, open Adapters and add an enabled custom adapter on port <strong>8975</strong>.
+                Keep Show SoundCloud Island enabled here, then play a track on SoundCloud. If you installed the extension while SoundCloud was open, reload that tab.
+            </Paragraph>
+        </>
+    );
+}
+
+function ResetPosition() {
+    return <Button onClick={() => { settings.store.position = undefined; }}>Reset position</Button>;
+}
 
 function setIslandNotification(notification: IslandNotification | null) {
     if (runtime.notificationTimeoutId !== undefined) clearTimeout(runtime.notificationTimeoutId);
@@ -242,6 +297,44 @@ function SpotifySection() {
     );
 }
 
+async function controlSoundCloud(action: "play" | "pause" | "previous" | "next") {
+    if (!Native) return;
+    try {
+        if (!await Native.control(action)) showToast({ text: "SoundCloud is no longer connected.", variant: "critical" });
+    } catch {
+        logger.error("Could not control SoundCloud playback through WebNowPlaying.");
+        showToast({ text: "Could not control SoundCloud playback.", variant: "critical" });
+    }
+}
+
+function SoundCloudSection({ track }: { track: SoundCloudTrack; }) {
+    return (
+        <section className={cl("section")} aria-label="SoundCloud playback">
+            <div className={cl("section-info")}>
+                {track.cover
+                    ? <img className={cl("cover")} src={track.cover} alt="" draggable={false} />
+                    : <IslandIcon className={cl("summary-icon")} />}
+                <div className={cl("copy")}>
+                    <strong>{track.title}</strong>
+                    <span>{track.artist || "SoundCloud"}</span>
+                    <span>{track.playing ? "Playing on SoundCloud" : "SoundCloud paused"}</span>
+                </div>
+            </div>
+            <div className={cl("controls")}>
+                <ControlButton label="Previous track" onClick={() => void controlSoundCloud("previous")}>
+                    <Glyph path="M6 5h2v14H6V5Zm3 7 9-7v14l-9-7Z" />
+                </ControlButton>
+                <ControlButton label={track.playing ? "Pause" : "Play"} active={track.playing} onClick={() => void controlSoundCloud(track.playing ? "pause" : "play")}>
+                    <Glyph path={track.playing ? "M6 5h4v14H6V5Zm8 0h4v14h-4V5Z" : "M8 5v14l11-7L8 5Z"} />
+                </ControlButton>
+                <ControlButton label="Next track" onClick={() => void controlSoundCloud("next")}>
+                    <Glyph path="M16 5h2v14h-2V5ZM6 5l9 7-9 7V5Z" />
+                </ControlButton>
+            </div>
+        </section>
+    );
+}
+
 function VoiceSection({ channelId }: { channelId: string; }) {
     const channel = useStateFromStores([ChannelStore], () => ChannelStore.getChannel(channelId), [channelId]);
     const participantCount = useStateFromStores(
@@ -304,9 +397,14 @@ function DynamicIsland() {
     const [primaryIsland, setPrimaryIsland] = useState<IslandType>(IslandType.ScreenShare);
     const [spotifyIdle, setSpotifyIdle] = useState(false);
     const [streamStartedAt, setStreamStartedAt] = useState(Date.now());
+    const [browserTrack, setBrowserTrack] = useState<SoundCloudTrack | null>(null);
+    const [dragPosition, setDragPosition] = useState<IslandPosition | null>(null);
+    const [size, setSize] = useState({ width: 0, height: 0 });
+    const islandRef = useRef<HTMLDivElement>(null);
     const swipeStartRef = useRef<SwipeStart | null>(null);
     const suppressClickRef = useRef(false);
-    const { islandColor, keepIslandVisible, morphNotifications, showScreenShareIsland, showSpotifyIsland, showVoiceIsland } = settings.use(SETTINGS_KEYS);
+    const { enableDrag, position, islandColor, keepIslandVisible, morphNotifications, showScreenShareIsland, showSpotifyIsland, showSoundCloudIsland, showVoiceIsland } = settings.use(SETTINGS_KEYS);
+    const soundCloudTrack = showSoundCloudIsland ? browserTrack : null;
     const spotifyTrack = useStateFromStores([SpotifyStore], () => SpotifyStore.device?.is_active ? SpotifyStore.track : null);
     const isPlaying = useStateFromStores([SpotifyStore], () => SpotifyStore.isPlaying);
     const spotifyTrackId = spotifyTrack?.id;
@@ -319,13 +417,70 @@ function DynamicIsland() {
     const streamKey = stream ? getStreamKey(stream) : null;
     const activeIslands: IslandType[] = [];
     if (stream) activeIslands.push(IslandType.ScreenShare);
+    if (soundCloudTrack) activeIslands.push(IslandType.SoundCloud);
     if (track) activeIslands.push(IslandType.Spotify);
     if (channelId) activeIslands.push(IslandType.Voice);
     const primary = activeIslands.includes(primaryIsland) ? primaryIsland : activeIslands[0];
     const primaryStream = primary === IslandType.ScreenShare ? stream : null;
     const primaryTrack = primary === IslandType.Spotify ? track : null;
+    const primarySoundCloud = primary === IslandType.SoundCloud ? soundCloudTrack : null;
+    const primaryPlaying = primaryTrack ? isPlaying : primarySoundCloud?.playing;
+    const primaryCover = primarySoundCloud?.cover || primaryTrack?.album.image.url;
     const primaryChannelId = primary === IslandType.Voice ? channelId : undefined;
-    const idle = !track && !channelId && !stream;
+    const idle = !track && !soundCloudTrack && !channelId && !stream;
+    const visible = !idle || notification != null || keepIslandVisible;
+    const currentPosition = dragPosition ?? position;
+
+    useEffect(() => {
+        setBrowserTrack(null);
+        if (!showSoundCloudIsland || IS_WEB) return;
+        if (!Native) {
+            showToast({ text: "Restart Discord completely to load SoundCloud support.", variant: "critical" });
+            return;
+        }
+
+        let disposed = false;
+        let timeoutId: number | undefined;
+        const update = async (starting: boolean) => {
+            try {
+                const state = await (starting ? Native.configure(true) : Native.getState());
+                if (disposed) return;
+                setBrowserTrack(state.track);
+                if (state.error) {
+                    showToast({ text: state.error, variant: "critical" });
+                    return;
+                }
+                timeoutId = window.setTimeout(() => void update(false), 1000);
+            } catch {
+                if (disposed) return;
+                setBrowserTrack(null);
+                logger.error("Could not read SoundCloud playback from WebNowPlaying.");
+                showToast({ text: "Could not connect to WebNowPlaying. Restart Discord and try again.", variant: "critical" });
+            }
+        };
+        void update(true);
+        return () => {
+            disposed = true;
+            clearTimeout(timeoutId);
+            void Native.configure(false).catch(() => logger.warn("Could not stop WebNowPlaying."));
+        };
+    }, [showSoundCloudIsland]);
+
+    useLayoutEffect(() => {
+        const island = islandRef.current;
+        if (!island) return;
+
+        const measure = () => setSize({ width: island.offsetWidth, height: island.offsetHeight });
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(island);
+        return () => observer.disconnect();
+    }, [visible]);
+
+    useEffect(() => {
+        swipeStartRef.current = null;
+        setDragPosition(null);
+    }, [enableDrag, visible]);
 
     useEffect(() => {
         if (streamKey) setStreamStartedAt(Date.now());
@@ -388,7 +543,7 @@ function DynamicIsland() {
         if (idle) setExpanded(false);
     }, [idle]);
 
-    if (idle && !notification && !keepIslandVisible) return null;
+    if (!visible) return null;
 
     const activateSummary = () => {
         if (suppressClickRef.current) {
@@ -409,8 +564,11 @@ function DynamicIsland() {
     };
 
     const beginSwipe = (event: PointerEvent<HTMLDivElement>) => {
-        if (event.button !== 0) return;
+        const island = islandRef.current;
+        if (event.button !== 0 || !event.isPrimary || !island) return;
         swipeStartRef.current = {
+            dragging: false,
+            position: enableDrag ? { x: island.offsetLeft, y: island.offsetTop } : null,
             pointerId: event.pointerId,
             startedAt: Date.now(),
             x: event.clientX,
@@ -420,10 +578,44 @@ function DynamicIsland() {
         event.currentTarget.setPointerCapture(event.pointerId);
     };
 
+    const moveIsland = (event: PointerEvent<HTMLDivElement>) => {
+        const start = swipeStartRef.current;
+        const island = islandRef.current;
+        if (!start || start.pointerId !== event.pointerId || !start.position || !island) return;
+
+        const distanceX = event.clientX - start.x;
+        const distanceY = event.clientY - start.y;
+        if (!start.dragging) {
+            if (Math.hypot(distanceX, distanceY) < DRAG_MIN_DISTANCE) return;
+            if (Date.now() - start.startedAt < DRAG_HOLD_DURATION) {
+                start.position = null;
+                return;
+            }
+            start.dragging = true;
+            suppressClickRef.current = true;
+        }
+
+        setDragPosition({
+            x: Math.max(island.offsetWidth / 2 + 8, Math.min(window.innerWidth - island.offsetWidth / 2 - 8, start.position.x + distanceX)),
+            y: Math.max(8, Math.min(window.innerHeight - island.offsetHeight - 8, start.position.y + distanceY))
+        });
+    };
+
+    const cancelSwipe = () => {
+        swipeStartRef.current = null;
+        setDragPosition(null);
+    };
+
     const finishSwipe = (event: PointerEvent<HTMLDivElement>) => {
         const start = swipeStartRef.current;
-        swipeStartRef.current = null;
         if (!start || start.pointerId !== event.pointerId) return;
+        swipeStartRef.current = null;
+
+        if (start.dragging) {
+            if (dragPosition) settings.store.position = dragPosition;
+            setDragPosition(null);
+            return;
+        }
 
         const distanceX = event.clientX - start.x;
         const distanceY = event.clientY - start.y;
@@ -434,40 +626,67 @@ function DynamicIsland() {
     };
 
     return (
-        <div className={cl("root", `color-${islandColor}`, {
+        <div ref={islandRef} style={currentPosition ? {
+            left: `clamp(${size.width / 2 + 8}px, ${currentPosition.x}px, calc(100vw - ${size.width / 2 + 8}px))`,
+            top: `clamp(8px, ${currentPosition.y}px, calc(100vh - ${size.height + 8}px))`
+        } : undefined} className={cl("root", `color-${islandColor}`, {
+            "root-draggable": enableDrag,
+            "root-dragging": dragPosition != null,
             "root-expanded": expanded,
             "root-idle": idle,
             "root-notification": notification != null,
-            "root-playing": isPlaying && primary === IslandType.Spotify,
+            "root-playing": primarySoundCloud ? primarySoundCloud.playing : isPlaying && primary === IslandType.Spotify,
             "root-sharing": primary === IslandType.ScreenShare
         })}>
             <Clickable
                 className={cl("summary")}
                 aria-expanded={expanded}
-                aria-label="Illegalcord Dynamic Island"
+                aria-label="TrashCord Dynamic Island"
                 onClick={activateSummary}
-                onPointerCancel={() => { swipeStartRef.current = null; }}
+                onLostPointerCapture={cancelSwipe}
+                onPointerCancel={cancelSwipe}
                 onPointerDown={beginSwipe}
+                onPointerMove={moveIsland}
                 onPointerUp={finishSwipe}
             >
                 {notification
                     ? <img key={notification.id} className={cl("notification-avatar")} src={notification.avatarUrl} alt="" draggable={false} />
                     : primaryStream
                         ? <ScreenShareIcon className={cl("summary-icon", "stream-icon")} />
-                        : primaryTrack
-                            ? <img key={primaryTrack.album.image.url} className={cl("summary-cover")} src={primaryTrack.album.image.url} alt="" draggable={false} />
+                        : primaryCover
+                            ? <img key={primaryCover} className={cl("summary-cover")} src={primaryCover} alt="" draggable={false} />
                             : <IslandIcon className={cl("summary-icon")} />}
                 <div key={notification?.id ?? primary ?? "idle"} className={cl("summary-copy")}>
-                    <strong>{notification?.title ?? (primaryStream ? "You are sharing your screen" : primaryTrack?.name ?? (primaryChannelId ? "Discord call" : "Illegalcord Dynamic Island"))}</strong>
+                    <strong>{notification?.title ?? (primaryStream ? "You are sharing your screen" : primarySoundCloud?.title ?? primaryTrack?.name ?? (primaryChannelId ? "Discord call" : "TrashCord Dynamic Island"))}</strong>
                     <span>{notification?.body ?? (primaryStream
                         ? <>Live for <ScreenShareTimer startedAt={streamStartedAt} /></>
-                        : primaryTrack
-                            ? primaryTrack.artists.map(artist => artist.name).join(", ")
-                            : primaryChannelId ? "Call controls available" : "Ready for your activities")}</span>
+                        : primarySoundCloud
+                            ? `${primarySoundCloud.artist || "SoundCloud"} · ${primarySoundCloud.playing ? "SoundCloud" : "SoundCloud paused"}`
+                            : primaryTrack
+                                ? primaryTrack.artists.map(artist => artist.name).join(", ")
+                                : primaryChannelId ? "Call controls available" : "Ready for your activities")}</span>
                 </div>
-                {!notification && primaryTrack && (
+                {!notification && expanded && primaryTrack && (
                     <span className={cl("visualizer")} aria-label={isPlaying ? "Spotify playing" : "Spotify paused"}>
                         <span /><span /><span />
+                    </span>
+                )}
+                {!notification && expanded && primarySoundCloud && (
+                    <span className={cl("visualizer")} aria-label={primarySoundCloud.playing ? "SoundCloud playing" : "SoundCloud paused"}>
+                        <span /><span /><span />
+                    </span>
+                )}
+                {!notification && !expanded && (primaryTrack || primarySoundCloud) && (
+                    <span className={cl("controls")}>
+                        <ControlButton compact label="Previous track" onClick={() => primaryTrack ? SpotifyStore.prev() : void controlSoundCloud("previous")}>
+                            <Glyph path="M6 5h2v14H6V5Zm3 7 9-7v14l-9-7Z" />
+                        </ControlButton>
+                        <ControlButton compact label={primaryPlaying ? "Pause" : "Play"} active={primaryPlaying} onClick={() => primaryTrack ? SpotifyStore.setPlaying(!isPlaying) : void controlSoundCloud(primaryPlaying ? "pause" : "play")}>
+                            <Glyph path={primaryPlaying ? "M6 5h4v14H6V5Zm8 0h4v14h-4V5Z" : "M8 5v14l11-7L8 5Z"} />
+                        </ControlButton>
+                        <ControlButton compact label="Next track" onClick={() => primaryTrack ? SpotifyStore.next() : void controlSoundCloud("next")}>
+                            <Glyph path="M16 5h2v14h-2V5ZM6 5l9 7-9 7V5Z" />
+                        </ControlButton>
                     </span>
                 )}
                 {!notification && primaryStream && (
@@ -488,6 +707,7 @@ function DynamicIsland() {
                     <div className={cl("panel")}>
                         {stream && <ScreenShareSection stream={stream} startedAt={streamStartedAt} />}
                         {track && <SpotifySection />}
+                        {soundCloudTrack && <SoundCloudSection track={soundCloudTrack} />}
                         {channelId && <VoiceSection channelId={channelId} />}
                         {idle && <div className={cl("empty")}>Enable an Island type, play music, or join a call to show controls.</div>}
                     </div>
@@ -526,13 +746,15 @@ const SafeDynamicIsland = ErrorBoundary.wrap(DynamicIslandPortal, { noop: true }
 
 export default definePlugin({
     name: "DynamicIsland",
-    description: "Adds a Dynamic Island for Spotify, calls, screen sharing, and notifications.",
+    description: "Adds a Dynamic Island for Spotify, SoundCloud, calls, screen sharing, and notifications.",
     authors: [{ name: "irritably", id: 928787166916640838n }],
     tags: ["Media", "Voice"],
     enabledByDefault: false,
     managedStyle,
     dependencies: ["HeaderBarAPI", "MusicControls"],
     settings,
+    settingsAboutComponent: SoundCloudSetup,
+
     start() {
         musicControlsSettings.store.showSpotifyControls = settings.store.showSpotifyPanel;
     },

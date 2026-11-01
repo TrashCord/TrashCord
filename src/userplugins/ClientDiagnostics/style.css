@@ -11,6 +11,32 @@
     min-width: 0;
 }
 
+.vc-client-diagnostics-tabs,
+.vc-client-diagnostics-table,
+.vc-client-diagnostics-monitor-results,
+.vc-client-diagnostics-surface-list,
+.vc-client-diagnostics-snippet-code {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thin-thumb, var(--interactive-muted)) var(--scrollbar-thin-track, transparent);
+}
+
+.vc-client-diagnostics-health-history {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-normal);
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+}
+
+.vc-client-diagnostics-health-history :where(th, td, caption) {
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.vc-client-diagnostics-health-history tbody tr {
+    border-top: 1px solid var(--border-subtle);
+}
+
 .vc-client-diagnostics-page {
     display: flex;
     flex-direction: column;
@@ -19,7 +45,7 @@
 }
 
 .vc-client-diagnostics-tabs {
-    overflow-x: auto;
+    overflow: auto hidden;
     margin-bottom: 4px;
 }
 

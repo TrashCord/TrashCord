@@ -8,7 +8,9 @@ import { EquicordDevs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findAll } from "@webpack";
 
-let globals: any[] = [];
+type SpringGlobals = { assign: (o: { skipAnimation: boolean }) => void };
+
+let globals: SpringGlobals[] = [];
 
 function setSkip(value: boolean) {
     for (const g of globals) g.assign({ skipAnimation: value });
@@ -21,7 +23,7 @@ export default definePlugin({
     tags: ["Appearance", "Accessibility", "Performance"],
     enabledByDefault: true,
     start() {
-        globals = findAll(m => typeof m?.Globals?.assign === "function" && typeof m.Springs === "object").map(m => m.Globals);
+        globals = findAll(m => typeof m?.Globals?.assign === "function").map(m => m.Globals);
         setSkip(true);
     },
     stop() {

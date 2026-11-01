@@ -6,6 +6,7 @@
 
 import { ApplicationCommandInputType, sendBotMessage } from "@api/Commands";
 import { definePluginSettings, migratePluginSetting } from "@api/Settings";
+import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import { ApplicationStreamingStore, RTCConnectionStore } from "@webpack/common";
 
@@ -14,6 +15,7 @@ import type { ImageAnimationPolicy, MemorySnapshot, OptimizationResult } from ".
 
 const Native = VencordNative.pluginHelpers.RamOptimizer as PluginNative<typeof import("./native")>;
 const CLEANUP_COOLDOWN_MS = 5 * 60_000;
+const logger = new Logger("RamOptimizer");
 
 let cleanupTimer: number | undefined;
 let lastCleanupAt = 0;
@@ -39,12 +41,11 @@ function scheduleCleanup(delayMs: number) {
     clearCleanupTimer();
     if (!started || !document.hidden) return;
 
-    cleanupTimer = window.setTimeout(runAutomaticCleanup, delayMs);
+    cleanupTimer = window.setTimeout(runAutomaticCleanup, Math.max(delayMs, lastCleanupAt + CLEANUP_COOLDOWN_MS - Date.now()));
 }
 
 function scheduleInitialCleanup() {
-    const cooldownRemaining = Math.max(0, lastCleanupAt + CLEANUP_COOLDOWN_MS - Date.now());
-    scheduleCleanup(Math.max(settings.store.backgroundDelaySeconds * 1000, cooldownRemaining));
+    scheduleCleanup(settings.store.backgroundDelaySeconds * 1000);
 }
 
 function scheduleNextCleanup() {
@@ -55,17 +56,27 @@ async function runAutomaticCleanup() {
     cleanupTimer = undefined;
     if (!started || !document.hidden) return;
 
-    if (!hasRealtimeActivity()) {
-        const result = await Native.optimize(
-            settings.store.minimumTotalMemoryMb,
-            settings.store.minimumSystemFreePercent,
-            false,
-            settings.store.aggressiveCleanup
-        );
-        if (result.status === "optimized") lastCleanupAt = Date.now();
+    if (Date.now() < lastCleanupAt + CLEANUP_COOLDOWN_MS) {
+        scheduleCleanup(0);
+        return;
     }
 
-    if (started && document.hidden) scheduleNextCleanup();
+    try {
+        if (!hasRealtimeActivity()) {
+            const result = await Native.optimize(
+                settings.store.minimumTotalMemoryMb,
+                settings.store.minimumSystemFreePercent,
+                false,
+                settings.store.aggressiveCleanup
+            );
+            if (result.status === "optimized") lastCleanupAt = Date.now();
+            else if (result.status === "error") logger.warn(result.error);
+        }
+    } catch (error) {
+        logger.error("Automatic memory cleanup failed.", error);
+    } finally {
+        if (started && document.hidden && cleanupTimer === undefined) scheduleNextCleanup();
+    }
 }
 
 function handleVisibilityChange() {
@@ -105,7 +116,7 @@ function formatSnapshot(snapshot: MemorySnapshot) {
 function formatResult(result: OptimizationResult) {
     switch (result.status) {
         case "optimized":
-            return `${result.aggressive ? "Aggressive" : "Adaptive"} memory cleanup completed.\n${formatSnapshot(result.snapshot)}`;
+            return `${result.aggressive ? "Aggressive" : "Adaptive"} memory cleanup completed.\n**Discord memory before and after:** ${result.beforeMb} MB → ${result.snapshot.totalMb} MB. Measurements may take time to reflect the cleanup.\n${formatSnapshot(result.snapshot)}`;
         case "belowThreshold":
             return `No cleanup was needed.\n${formatSnapshot(result.snapshot)}`;
         case "debuggerBusy":
@@ -162,7 +173,7 @@ const settings = definePluginSettings({
     disableSpellChecker: {
         type: OptionType.BOOLEAN,
         description: "Disable Electron's spell checker to save some memory.",
-        default: true,
+        default: false,
         onChange: applySettings
     }
 });

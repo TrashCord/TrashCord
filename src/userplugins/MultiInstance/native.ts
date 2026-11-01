@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { restrictWebPreferences } from "../DiscordHardened/nativeSecurity";
+import { prepareSession } from "../DiscordHardened/nativeSession";
+import { addContentPolicy } from "../DiscordHardened/policy";
+import { RendererSettings } from "@main/settings";
 import { app, BrowserWindow, nativeImage, session, shell } from "electron";
-import discordIcon from "file://../../../browser/icon.png?base64";
+import TrashCordIcon from "file://../../../browser/icon.png?base64";
 import { join } from "path";
 
 export interface NativeResult {
@@ -34,7 +38,7 @@ const DISCORD_ATTACHMENT_HOSTS = new Set(["cdn.discordapp.com", "media.discordap
 const EXTERNAL_HOSTS = new Set(["discord.com", "ptb.discord.com", "canary.discord.com", "support.discord.com", "discord.gg"]);
 const PROFILE_ID_RE = /^[a-z0-9_-]{1,32}$/i;
 const DISCORD_USER_ID_RE = /^\d{17,20}$/;
-const DISCORD_ICON = nativeImage.createFromDataURL(`data:image/png;base64,${discordIcon}`);
+const TrashCord_ICON = nativeImage.createFromDataURL(`data:image/png;base64,${TrashCordIcon}`);
 const openWindows = new Map<string, {
     ses: Electron.Session;
     win: BrowserWindow;
@@ -166,6 +170,8 @@ function isAllowedExternalUrl(url: string) {
 
 function removeBlockingHeaders(responseHeaders: Record<string, string[]> | undefined) {
     const headers = { ...(responseHeaders ?? {}) };
+    const hardening = RendererSettings.store.plugins?.DiscordHardened;
+    if (hardening?.enabled && hardening.preserveMultiInstancePolicies) return headers;
 
     for (const key of Object.keys(headers)) {
         const normalized = key.toLowerCase();
@@ -188,7 +194,10 @@ function configureSession(partition: string, ses: Electron.Session) {
     configuredSessions.add(partition);
 
     ses.webRequest.onHeadersReceived((details, callback) => {
-        callback({ responseHeaders: removeBlockingHeaders(details.responseHeaders) });
+        const responseHeaders = removeBlockingHeaders(details.responseHeaders);
+        if (details.resourceType === "mainFrame" && isDiscordUrl(details.url))
+            addContentPolicy(responseHeaders, RendererSettings.store.plugins?.DiscordHardened);
+        callback({ responseHeaders });
     });
 
     ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
@@ -279,7 +288,7 @@ export async function openInstance(
     }
 
     try {
-        const savedPartition = `persist:discord-mi-${profileId}`;
+        const savedPartition = `persist:TrashCord-mi-${profileId}`;
         if (blockExternalTokenAccess) {
             const savedSes = session.fromPartition(savedPartition, { cache: true });
             await savedSes.clearStorageData();
@@ -289,9 +298,22 @@ export async function openInstance(
 
         const partition = saveSession
             ? savedPartition
-            : `discord-mi-${profileId}-${Date.now()}`;
+            : `TrashCord-mi-${profileId}-${Date.now()}`;
         const ses = session.fromPartition(partition, { cache: !blockExternalTokenAccess });
+        if (!await prepareSession(ses).ready)
+            return { ok: false, error: "The desktop proxy could not be configured. Check DiscordHardened settings and restart Discord." };
         configureSession(partition, ses);
+
+        const webPreferences: Electron.WebPreferences = {
+            preload: join(__dirname, "preload.js"),
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: false,
+            backgroundThrottling: performanceMode,
+            session: ses,
+        };
+        const hardening = RendererSettings.store.plugins?.DiscordHardened;
+        if (hardening?.enabled && hardening.minimumPrivilege !== false) restrictWebPreferences(webPreferences);
 
         const win = new BrowserWindow({
             width: 1280,
@@ -302,16 +324,9 @@ export async function openInstance(
             autoHideMenuBar: true,
             backgroundColor: "#313338",
             darkTheme: true,
-            icon: mode === "detached" ? DISCORD_ICON : undefined,
+            icon: mode === "detached" ? TrashCord_ICON : undefined,
             show: false,
-            webPreferences: {
-                preload: join(__dirname, "preload.js"),
-                contextIsolation: true,
-                nodeIntegration: false,
-                sandbox: false,
-                backgroundThrottling: performanceMode,
-                session: ses
-            }
+            webPreferences,
         });
 
         const cleanupWindowControls = registerWindowControls(win);
@@ -432,7 +447,7 @@ export async function clearSavedSession(
     }
 
     try {
-        const partition = `persist:discord-mi-${profileId}`;
+        const partition = `persist:TrashCord-mi-${profileId}`;
         const ses = session.fromPartition(partition, { cache: true });
 
         await ses.clearStorageData();

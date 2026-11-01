@@ -1,0 +1,181 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { isSettingHidden } from "@api/PluginManager";
+import { useSettings } from "@api/Settings";
+import ErrorBoundary from "@components/ErrorBoundary";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { SettingsTab, wrapTab } from "@components/settings";
+import { OptionComponentMap } from "@components/settings/tabs/plugins/components";
+import { Margins } from "@utils/margins";
+import { React, TabBar, useState } from "@webpack/common";
+
+import { settings } from "./index";
+import { RequestPanel } from "./RequestPanel";
+import { SecurityPanel } from "./SecurityPanel";
+
+type SettingKey = keyof typeof settings.def;
+
+interface SettingsGroup {
+    title: string;
+    description: string;
+    keys: readonly SettingKey[];
+}
+
+const PLUGIN_SETTINGS_PATHS: Array<"plugins.DiscordHardened.*"> = ["plugins.DiscordHardened.*"];
+const REQUEST_SETTINGS = ["recordNetworkRequests", "recordWebSocketMessages", "recordLocalResources", "recordVoiceDiagnostics", "requestLogLimit", "requestLogRetention", "blockedRequestUrls", "allowedRequestUrls"] as const;
+const SETTINGS_GROUPS = [
+    {
+        title: "Embeds and autoplay",
+        description: "Unknown means outside your domain allowlist. Hidden embeds are not rendered, but Discord may already have fetched their metadata on its servers. Other plugins can render their own content separately.",
+        keys: ["warnSuspiciousAttachments", "blockUnknownEmbeds", "allowedEmbedDomains", "blockGifAutoplay", "blockVideoAutoplay", "blockThirdPartyScripts"],
+    },
+    {
+        title: "Network protection",
+        description: "Controls Discord telemetry, tracking endpoints, typing requests, and the additional GoofCord firewall.",
+        keys: [
+            "blockTelemetry",
+            "blockSentry",
+            "blockTracing",
+            "blockTypingIndicator",
+            "blockFingerprinting",
+            "goofCordFirewall",
+            "sessionFirewall",
+            "blockedRequestUrls",
+            "allowedRequestUrls",
+            "customFirewallRules",
+            "firewallBlocklist",
+            "firewallBlockedPatterns",
+            "firewallAllowedPatterns",
+            "logBlockedRequests",
+            "recordBlockedEvents",
+        ],
+    },
+    {
+        title: "Browser identity",
+        description: "Reduces the identifying information exposed by Chromium and Electron.",
+        keys: [
+            "hideElectronUserAgent",
+            "spoofChrome",
+            "spoofWindows",
+            "questCompatibility",
+            "reduceHardwareFingerprint",
+            "reduceGpuFingerprint",
+            "reduceClientHints",
+            "blockHardwareAccess",
+            "stripThirdPartyReferrers",
+            "disableWebGl",
+        ],
+    },
+    {
+        title: "Microphone and media",
+        description: "Protects microphone tracks, push-to-talk, media-device discovery, camera access, and screen capture.",
+        keys: [
+            "allowCamera",
+            "allowMicrophone",
+            "privatePushToTalk",
+            "lockMicrophoneWhenMuted",
+            "blockMicrophoneOutsideCalls",
+            "releaseMicrophoneOnDisconnect",
+            "lockPttOnWindowBlur",
+            "maximumPttSeconds",
+            "allowDisplayCapture",
+            "blockUnauthorizedLegacyCapture",
+            "allowDeviceEnumeration",
+            "allowSpeakerSelection",
+        ],
+    },
+    {
+        title: "Browser permissions",
+        description: "Restricts browser capabilities that Discord normally does not need for chat and voice.",
+        keys: [
+            "blockNotifications",
+            "allowFullscreen",
+            "allowBackgroundSync",
+            "allowClipboardWrite",
+            "allowClipboardRead",
+            "blockGeolocation",
+            "blockGamepadAccess",
+            "blockBatteryAccess",
+            "blockUnsafeExternalProtocols",
+            "isolateExternalWindows",
+        ],
+    },
+    {
+        title: "Electron security",
+        description: "Adds desktop permission and plugin IPC controls. Core settings IPC and the renderer sandbox still require loader changes. Updating Discord is required for Electron and Chromium security fixes.",
+        keys: ["minimumPrivilege", "electronPermissionControls", "preserveMultiInstancePolicies", "restrictElectronNavigation", "blockElectronWebviews", "browserSelection"],
+    },
+    {
+        title: "Desktop proxy",
+        description: "Optionally routes Chromium session traffic through a credential-free Electron proxy. Native Discord modules use their own networking. A proxy configuration failure blocks requests until recovery or restart.",
+        keys: ["proxy", "proxyBeforeLoad", "proxyRules", "proxyBypassRules"],
+    },
+] satisfies readonly SettingsGroup[];
+
+interface SettingRowProps {
+    settingKey: SettingKey;
+    pluginSettings: ReturnType<typeof useSettings>["plugins"][string];
+}
+
+function SettingRow({ settingKey, pluginSettings }: SettingRowProps) {
+    const setting = settings.def[settingKey];
+    if (isSettingHidden(settings, setting)) return null;
+
+    const Component = OptionComponentMap[setting.type];
+
+    return (
+        <ErrorBoundary noop>
+            <Component
+                id={settingKey}
+                setting={setting}
+                onChange={(value: unknown) => pluginSettings[settingKey] = value}
+                pluginSettings={pluginSettings}
+                definedSettings={settings}
+                closePluginSettings={() => undefined}
+            />
+        </ErrorBoundary>
+    );
+}
+
+function DiscordHardenedSettings() {
+    const pluginSettings = useSettings(PLUGIN_SETTINGS_PATHS).plugins.DiscordHardened;
+    const [tab, setTab] = useState<"settings" | "security" | "requests">("settings");
+
+    return (
+        <SettingsTab>
+            <Heading tag="h2">DiscordHardened</Heading>
+            <Paragraph className={Margins.bottom20}>
+                The best Discord plugin in the world for reducing tracking, improving privacy, offering advanced controls, and strengthening Discord&apos;s Electron security. Settings marked for restart take effect after Discord restarts.
+            </Paragraph>
+
+            <TabBar type="top" look="brand" selectedItem={tab} onItemSelect={setTab} className={Margins.bottom20}>
+                <TabBar.Item id="settings">Settings</TabBar.Item>
+                <TabBar.Item id="security">Security and logs</TabBar.Item>
+                <TabBar.Item id="requests">Request logs</TabBar.Item>
+            </TabBar>
+
+            {tab === "security" ? <ErrorBoundary noop>
+                <SecurityPanel />
+            </ErrorBoundary> : tab === "requests" ? <ErrorBoundary noop>
+                <RequestPanel controls={REQUEST_SETTINGS.map(settingKey => <SettingRow key={settingKey} settingKey={settingKey} pluginSettings={pluginSettings} />)} />
+            </ErrorBoundary> : SETTINGS_GROUPS.map(group => (
+                <section key={group.title} className={Margins.bottom20}>
+                    <Heading tag="h3">{group.title}</Heading>
+                    <Paragraph className={Margins.bottom8}>{group.description}</Paragraph>
+                    <div className="vc-plugins-settings">
+                        {group.keys.map(settingKey => (
+                            <SettingRow key={settingKey} settingKey={settingKey} pluginSettings={pluginSettings} />
+                        ))}
+                    </div>
+                </section>
+            ))}
+        </SettingsTab>
+    );
+}
+
+export default wrapTab(DiscordHardenedSettings, "DiscordHardened");

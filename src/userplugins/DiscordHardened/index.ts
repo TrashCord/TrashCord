@@ -1,0 +1,685 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { showNotification } from "@api/Notifications";
+import { isPluginEnabled } from "@api/PluginManager";
+import { definePluginSettings, migrateOldSettingToNewPlugin, migratePluginSetting, migratePluginSettings, PlainSettings, SettingsStore } from "@api/Settings";
+import { ShieldIcon } from "@components/Icons";
+import SettingsPlugin from "@plugins/_core/settings";
+import { LazyComponent } from "@utils/lazyReact";
+import { Logger } from "@utils/Logger";
+import { removeFromArray } from "@utils/misc";
+import definePlugin, { OptionType, type PluginNative } from "@utils/types";
+import type { Embed, VoiceState } from "@vencord/discord-types";
+import { SettingsRouter, showToast, UserStore } from "@webpack/common";
+
+import { refreshAttachmentWarnings, startAttachmentWarnings, stopAttachmentWarnings } from "./AttachmentWarnings";
+import { BrowserSettings } from "./BrowserSettings";
+import { refreshCameraPrivacy, refreshMicrophonePrivacy, scheduleMicrophonePrivacyRefresh, startMicrophonePrivacy, stopMicrophonePrivacy } from "./microphonePrivacy";
+import { DEFAULT_ALLOWED_PATTERNS, DEFAULT_BLOCKED_PATTERNS, DEFAULT_FIREWALL_URLS, validateRequestRuleList } from "./network";
+import { DEFAULT_EMBED_DOMAINS, isAllowedEmbed, parseDomainList, validateDomainList } from "./policy";
+import { browserRequestLog, refreshRequestLogging, startRequestLogging, stopRequestLogging } from "./requestCapture";
+import { startHardening, stopHardening } from "./runtime";
+import { getTemporaryPermissions, setBlockRecording, startPermissionSession, stopPermissionSession } from "./session";
+import managedStyle from "./style.css?managed";
+
+const logger = new Logger("DiscordHardened");
+const Native = VencordNative?.pluginHelpers?.DiscordHardened as PluginNative<typeof import("./native")> | undefined;
+const SETTINGS_ENTRY_KEY = "TrashCord_discord_hardened";
+const DiscordHardenedSettings = LazyComponent(() => require("./SettingsPage").default);
+
+function validateRegexList(value: string): true | string {
+    try {
+        for (const pattern of value.split("\n").map(item => item.trim()).filter(Boolean)) new RegExp(pattern, "i");
+        return true;
+    } catch {
+        return "Every firewall pattern must be a valid regular expression.";
+    }
+}
+
+function validateProxyRules(value: string): true | string {
+    if (!value.trim() || value.length > 4096 || /[\r\n\0@]/.test(value)) return "Enter credential-free Electron proxy rules.";
+    return true;
+}
+
+migratePluginSettings("DiscordHardened", "WebCordHardened");
+migrateOldSettingToNewPlugin("WebRTCLeakPrevent", "icePolicy", "DiscordHardened", "webRtcIcePolicy");
+migratePluginSetting("DiscordHardened", "questifyCompatibility", "questCompatibility");
+
+const currentSettings = PlainSettings.plugins.DiscordHardened as Record<string, unknown> | undefined;
+if (currentSettings && !currentSettings.migrationVersion) {
+    currentSettings.hideElectronUserAgent = false;
+    currentSettings.spoofChrome = false;
+
+    if (typeof currentSettings.firewallBlocklist === "string") {
+        currentSettings.firewallBlocklist = currentSettings.firewallBlocklist
+            .split("\n")
+            .filter(rule => rule.trim() !== "https://cdn.discordapp.com/bad-domains/*")
+            .join("\n");
+    }
+
+    currentSettings.migrationVersion = 1;
+    SettingsStore.markAsChanged();
+}
+
+if (currentSettings && currentSettings.migrationVersion !== 2) {
+    currentSettings.blockUnknownEmbeds = false;
+    currentSettings.migrationVersion = 2;
+    SettingsStore.markAsChanged();
+}
+
+export const settings = definePluginSettings({
+    warnSuspiciousAttachments: {
+        type: OptionType.BOOLEAN,
+        description: "Warn about executable attachments, deceptive double extensions and invisible filename characters. Checks names only and does not scan file contents.",
+        default: true,
+        onChange: refreshAttachmentWarnings,
+    },
+    blockUnknownEmbeds: {
+        type: OptionType.BOOLEAN,
+        description: "Hide embeds from domains outside your allowlist. Also restrict desktop embedded frames after restarting.",
+        default: false,
+        restartNeeded: true,
+    },
+    allowedEmbedDomains: {
+        type: OptionType.STRING,
+        description: "Trusted embed domains, one per line. Each entry also allows its subdomains. Restart to update desktop frame restrictions.",
+        default: DEFAULT_EMBED_DOMAINS,
+        multiline: true,
+        restartNeeded: true,
+        isValid: validateDomainList,
+    },
+    blockGifAutoplay: {
+        type: OptionType.BOOLEAN,
+        description: "Disable automatic GIF playback locally while keeping manual interaction available.",
+        default: true,
+        restartNeeded: true,
+    },
+    blockVideoAutoplay: {
+        type: OptionType.BOOLEAN,
+        description: "Disable automatic and hover playback in Discord's video component. Manual playback remains available.",
+        default: true,
+    },
+    blockThirdPartyScripts: {
+        type: OptionType.BOOLEAN,
+        description: "Block external script files from other origins in Discord desktop pages. Plugins that load libraries from external CDNs may stop working.",
+        default: false,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    externalBrowser: {
+        type: OptionType.STRING,
+        description: "The installed browser used to open web links.",
+        default: "system",
+        hidden: true,
+    },
+    browserSelection: {
+        type: OptionType.COMPONENT,
+        description: "Choose an installed browser for web links and inspect the current Electron protections.",
+        default: null,
+        component: BrowserSettings,
+        target: "DESKTOP",
+    },
+    minimumPrivilege: {
+        type: OptionType.BOOLEAN,
+        displayName: "Plugin IPC protection and minimum privilege",
+        description: "Restrict plugin IPC to Discord main frames with a trusted security origin and enforce available Electron protections. Core settings IPC and the renderer sandbox require loader changes.",
+        default: true,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    electronPermissionControls: {
+        type: OptionType.BOOLEAN,
+        description: "Enforce browser permissions in Electron using your permission settings. Only Discord main frames can request access. Existing Discord permission checks still apply.",
+        default: true,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    proxyBeforeLoad: {
+        type: OptionType.BOOLEAN,
+        description: "Wait for the proxy before allowing Chromium session requests and close previous connections. Configuration failures keep requests blocked. Native Discord modules use their own networking.",
+        default: true,
+        restartNeeded: true,
+        target: "DESKTOP",
+        hidden() { return !this.store.proxy; },
+    },
+    sessionFirewall: {
+        type: OptionType.BOOLEAN,
+        description: "Apply the network filters to Chromium session requests, including workers, frames and resource loads. This can block CAPTCHA providers, embeds or plugin services.",
+        default: false,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    preserveMultiInstancePolicies: {
+        type: OptionType.BOOLEAN,
+        description: "Preserve original Content Security Policy and Permissions Policy headers in MultiInstance windows. Some plugins or external resources may stop working. Reopen instances after changing this setting.",
+        default: false,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    reduceGpuFingerprint: {
+        type: OptionType.BOOLEAN,
+        description: "Hide WebGL debug renderer details and WebGPU adapter identity while preserving graphics rendering.",
+        default: true,
+    },
+    reduceClientHints: {
+        type: OptionType.BOOLEAN,
+        description: "Withhold detailed operating system versions, CPU architecture and browser versions from JavaScript client hints. The operating system family remains visible.",
+        default: true,
+    },
+    blockHardwareAccess: {
+        type: OptionType.BOOLEAN,
+        description: "Block WebUSB, WebHID, serial port and Bluetooth device discovery and access.",
+        default: true,
+    },
+    migrationVersion: {
+        type: OptionType.NUMBER,
+        description: "The current settings migration version.",
+        default: 2,
+        hidden: true,
+    },
+    blockTelemetry: {
+        type: OptionType.BOOLEAN,
+        description: "Provide request-level telemetry blocking when NoTrack is unavailable.",
+        default: true,
+        hidden: () => isPluginEnabled("NoTrack"),
+    },
+    blockSentry: {
+        type: OptionType.BOOLEAN,
+        description: "Provide request-level Sentry blocking when NoTrack is unavailable.",
+        default: true,
+        hidden: () => isPluginEnabled("NoTrack"),
+    },
+    blockTracing: {
+        type: OptionType.BOOLEAN,
+        description: "Block Discord tracing requests not owned by NoTrack.",
+        default: true,
+    },
+    blockTypingIndicator: {
+        type: OptionType.BOOLEAN,
+        description: "Block only your outgoing typing requests. Incoming TypingIndicator displays continue to work.",
+        default: false,
+    },
+    blockFingerprinting: {
+        type: OptionType.BOOLEAN,
+        description: "Block the fingerprinting endpoints used by WebCord's privacy filter.",
+        default: true,
+    },
+    hideElectronUserAgent: {
+        type: OptionType.BOOLEAN,
+        description: "Hide Electron and Discord version tokens from browser identification.",
+        default: false,
+        restartNeeded: true,
+    },
+    spoofChrome: {
+        type: OptionType.BOOLEAN,
+        description: "Use GoofCord's reduced Chrome identity for browser APIs and desktop request headers.",
+        default: false,
+        restartNeeded: true,
+    },
+    spoofWindows: {
+        type: OptionType.BOOLEAN,
+        description: "Report Windows instead of the current operating system. This can help with some VPN restrictions.",
+        default: false,
+        restartNeeded: true,
+        hidden() { return !this.store.spoofChrome; },
+    },
+    questCompatibility: {
+        type: OptionType.BOOLEAN,
+        description: "Use Discord's original desktop request identity for Quest requests and allow hCaptcha frames and scripts.",
+        default: true,
+        restartNeeded: true,
+    },
+    goofCordFirewall: {
+        type: OptionType.BOOLEAN,
+        description: "Enable GoofCord's additional tracker and telemetry firewall rules.",
+        default: true,
+    },
+    customFirewallRules: {
+        type: OptionType.BOOLEAN,
+        description: "Show and customize the GoofCord firewall rule lists.",
+        default: false,
+    },
+    blockedRequestUrls: {
+        type: OptionType.STRING,
+        description: "Exact URLs to block for every request method, one per line. Query strings are ignored. Rules stay active while request logging is paused.",
+        default: "",
+        multiline: true,
+        isValid: validateRequestRuleList,
+    },
+    allowedRequestUrls: {
+        type: OptionType.STRING,
+        description: "Exact URL exceptions for this plugin's request filters, one per line. Query strings are ignored. Other plugins and browser policies can still block these requests.",
+        default: "",
+        multiline: true,
+        isValid: validateRequestRuleList,
+    },
+    firewallBlocklist: {
+        type: OptionType.STRING,
+        description: "URL wildcard patterns blocked by the GoofCord firewall, one per line.",
+        default: DEFAULT_FIREWALL_URLS,
+        multiline: true,
+        hidden() { return !this.store.customFirewallRules; },
+    },
+    firewallBlockedPatterns: {
+        type: OptionType.STRING,
+        description: "Regular expressions blocked by the GoofCord firewall, one per line.",
+        default: DEFAULT_BLOCKED_PATTERNS,
+        multiline: true,
+        isValid: validateRegexList,
+        hidden() { return !this.store.customFirewallRules; },
+    },
+    firewallAllowedPatterns: {
+        type: OptionType.STRING,
+        description: "Regular expressions allowed through the GoofCord firewall, one per line.",
+        default: DEFAULT_ALLOWED_PATTERNS,
+        multiline: true,
+        isValid: validateRegexList,
+        hidden() { return !this.store.customFirewallRules; },
+    },
+    disableWebGl: {
+        type: OptionType.BOOLEAN,
+        description: "Disable WebGL contexts to reduce graphics fingerprinting. This can break hardware-accelerated content.",
+        default: false,
+    },
+    allowCamera: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to request camera access.",
+        default: true,
+        onChange: refreshCameraPrivacy,
+    },
+    allowMicrophone: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to request microphone access.",
+        default: true,
+        onChange: refreshMicrophonePrivacy,
+    },
+    privatePushToTalk: {
+        type: OptionType.BOOLEAN,
+        description: "Keep microphone tracks physically disabled unless push-to-talk is actively pressed.",
+        default: true,
+        onChange: refreshMicrophonePrivacy,
+    },
+    lockMicrophoneWhenMuted: {
+        type: OptionType.BOOLEAN,
+        description: "Keep microphone tracks disabled while your Discord microphone is muted.",
+        default: true,
+        onChange: refreshMicrophonePrivacy,
+    },
+    blockMicrophoneOutsideCalls: {
+        type: OptionType.BOOLEAN,
+        description: "Block microphone tracks outside calls. This also prevents voice message recording and microphone tests.",
+        default: false,
+        onChange: refreshMicrophonePrivacy,
+    },
+    releaseMicrophoneOnDisconnect: {
+        type: OptionType.BOOLEAN,
+        description: "Stop call microphone tracks when leaving voice so Chromium releases the capture device.",
+        default: true,
+        onChange: refreshMicrophonePrivacy,
+    },
+    lockPttOnWindowBlur: {
+        type: OptionType.BOOLEAN,
+        description: "Immediately lock push-to-talk when the Discord window loses focus.",
+        default: true,
+        onChange: refreshMicrophonePrivacy,
+    },
+    maximumPttSeconds: {
+        type: OptionType.NUMBER,
+        description: "Automatically lock the microphone after this many continuous push-to-talk seconds.",
+        default: 60,
+        isValid: (value: number) => value >= 5 && value <= 600 || "Enter a timeout between 5 and 600 seconds.",
+        onChange: refreshMicrophonePrivacy,
+    },
+    allowDisplayCapture: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to request screen sharing.",
+        default: true,
+    },
+    blockUnauthorizedLegacyCapture: {
+        type: OptionType.BOOLEAN,
+        description: "Reject legacy mandatory capture constraints. Enable only if screen sharing still works on your Discord build.",
+        default: false,
+    },
+    allowDeviceEnumeration: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to list all media devices. Permitted cameras and microphones remain visible so they can be used.",
+        default: false,
+    },
+    allowSpeakerSelection: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to request access to an audio output device.",
+        default: false,
+    },
+    blockNotifications: {
+        type: OptionType.BOOLEAN,
+        description: "Block notification permission requests.",
+        default: true,
+    },
+    allowFullscreen: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to enter fullscreen mode.",
+        default: true,
+    },
+    allowBackgroundSync: {
+        type: OptionType.BOOLEAN,
+        description: "Allow service workers to register background synchronization tasks.",
+        default: false,
+    },
+    allowClipboardWrite: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to write to the clipboard.",
+        default: true,
+    },
+    allowClipboardRead: {
+        type: OptionType.BOOLEAN,
+        description: "Allow web content to read the clipboard without using the normal paste action.",
+        default: false,
+    },
+    blockGeolocation: {
+        type: OptionType.BOOLEAN,
+        description: "Block browser geolocation requests.",
+        default: true,
+    },
+    reduceHardwareFingerprint: {
+        type: OptionType.BOOLEAN,
+        description: "Report generic CPU and memory values to reduce hardware fingerprinting.",
+        default: true,
+    },
+    blockGamepadAccess: {
+        type: OptionType.BOOLEAN,
+        description: "Prevent web content from enumerating connected gamepads.",
+        default: true,
+    },
+    blockBatteryAccess: {
+        type: OptionType.BOOLEAN,
+        description: "Block access to battery status information.",
+        default: true,
+    },
+    stripThirdPartyReferrers: {
+        type: OptionType.BOOLEAN,
+        description: "Omit referrers from fetch requests and external windows. Restart Discord to also apply the desktop document policy to resource loads.",
+        default: true,
+    },
+    isolateExternalWindows: {
+        type: OptionType.BOOLEAN,
+        description: "Prevent external web pages opened with window.open from accessing the opener. Some login popups may require this to be disabled along with referrer protection.",
+        default: true,
+    },
+    blockUnsafeExternalProtocols: {
+        type: OptionType.BOOLEAN,
+        description: "Block window requests that use unsafe protocols or URLs containing credentials.",
+        default: true,
+    },
+    restrictElectronNavigation: {
+        type: OptionType.BOOLEAN,
+        description: "Block navigation and redirects to external sites inside the Discord desktop window. Normal links can still open in your browser.",
+        default: true,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    blockElectronWebviews: {
+        type: OptionType.BOOLEAN,
+        description: "Prevent the Discord desktop window from creating Electron webviews. Plugins that embed websites using webviews may stop working.",
+        default: true,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    logBlockedRequests: {
+        type: OptionType.BOOLEAN,
+        description: "Log requests blocked by this plugin without logging message or account data.",
+        default: false,
+    },
+    recordBlockedEvents: {
+        type: OptionType.BOOLEAN,
+        description: "Keep a bounded block log in memory with categories, times and counts only. Disabling recording clears the log.",
+        default: true,
+        onChange: setBlockRecording,
+    },
+    recordNetworkRequests: {
+        type: OptionType.BOOLEAN,
+        description: "Record network request metadata in memory. Request bodies, headers, URL queries and credentials are excluded. May increase CPU and memory usage and cause lag.",
+        default: true,
+        onChange: refreshRequestLogging,
+    },
+    recordWebSocketMessages: {
+        type: OptionType.BOOLEAN,
+        description: "Record each observed WebSocket message with its direction, size and opcode. Message payloads are excluded. May increase CPU and memory usage and cause lag.",
+        default: false,
+        target: "DESKTOP",
+        onChange: refreshRequestLogging,
+    },
+    recordLocalResources: {
+        type: OptionType.BOOLEAN,
+        description: "Observe local blob and data resource loads through desktop network instrumentation. Embedded data and blob identifiers are excluded. Resources Chromium does not report remain unavailable. May increase CPU and memory usage and cause lag.",
+        default: false,
+        target: "DESKTOP",
+        onChange: refreshRequestLogging,
+    },
+    recordVoiceDiagnostics: {
+        type: OptionType.BOOLEAN,
+        description: "Listen for voice engine connection events and supported traffic counters. Audio, addresses and credentials are excluded. This does not capture every native module request or packet. May increase CPU and memory usage and cause lag.",
+        default: false,
+        target: "DESKTOP",
+        onChange: refreshRequestLogging,
+    },
+    requestLogLimit: {
+        type: OptionType.NUMBER,
+        description: "Maximum retained requests per log source. Older entries are removed automatically.",
+        default: 2000,
+        isValid: (value: number) => Number.isInteger(value) && value >= 100 && value <= 10_000 || "Enter a whole number between 100 and 10000.",
+    },
+    requestLogRetention: {
+        type: OptionType.SELECT,
+        description: "Automatically remove requests older than this duration. The entry limit always applies.",
+        options: [
+            { label: "5 minutes", value: 5 },
+            { label: "15 minutes", value: 15, default: true },
+            { label: "1 hour", value: 60 },
+            { label: "6 hours", value: 360 },
+            { label: "24 hours", value: 1440 },
+            { label: "Until cleared or the entry limit is reached", value: 0 },
+        ],
+    },
+    proxy: {
+        type: OptionType.BOOLEAN,
+        description: "Route Discord traffic through an Electron proxy. Restart Discord after changing this setting.",
+        default: false,
+        restartNeeded: true,
+        target: "DESKTOP",
+    },
+    proxyRules: {
+        type: OptionType.STRING,
+        description: "Electron proxy rules. Credentials are rejected and this value is excluded from shared configurations.",
+        default: "127.0.0.1:8080",
+        restartNeeded: true,
+        target: "DESKTOP",
+        isValid: validateProxyRules,
+        hidden() { return !this.store.proxy; },
+    },
+    proxyBypassRules: {
+        type: OptionType.STRING,
+        description: "Electron proxy bypass rules. This value is excluded from shared configurations.",
+        default: "<local>",
+        restartNeeded: true,
+        target: "DESKTOP",
+        isValid: (value: string) => value.length <= 4096 && !/[\r\n\0@]/.test(value) || "Enter valid proxy bypass rules.",
+        hidden() { return !this.store.proxy; },
+    },
+});
+
+let nativeConfigured = false;
+let lifecycleId = 0;
+let nativeOperation = Promise.resolve();
+
+function runNativeOperation(operation: () => Promise<void>): Promise<void> {
+    nativeOperation = nativeOperation.then(operation, operation);
+    return nativeOperation;
+}
+
+async function configureNative(currentLifecycleId: number): Promise<void> {
+    if (!Native) return;
+
+    await runNativeOperation(async () => {
+        if (currentLifecycleId !== lifecycleId) return;
+
+        try {
+            const configured = await Native.configure(
+                settings.store.hideElectronUserAgent,
+                settings.store.spoofChrome,
+                settings.store.spoofWindows,
+                settings.store.questCompatibility,
+                settings.store.proxy,
+                settings.store.proxyRules,
+                settings.store.proxyBypassRules,
+                settings.store.restrictElectronNavigation,
+                settings.store.blockElectronWebviews,
+                settings.store.minimumPrivilege
+            );
+            if (currentLifecycleId !== lifecycleId) {
+                if (configured) await Native.restore();
+                return;
+            }
+
+            nativeConfigured = configured;
+            const status = await Native.getSecurityStatus();
+            if (currentLifecycleId === lifecycleId && status?.proxyStatus === "Failed")
+                showNotification({ title: "Desktop proxy failed", body: "Requests remain blocked. Check the proxy settings and restart Discord." });
+        } catch (error) {
+            logger.warn("Could not apply desktop privacy settings.", error);
+        }
+    });
+}
+
+export default definePlugin({
+    name: "DiscordHardened",
+    description: "The best Discord plugin in the world for reducing tracking, improving privacy, offering advanced controls, and strengthening Discord's Electron security.",
+    authors: [{ name: "irritably", id: 928787166916640838n }],
+    tags: ["Privacy", "Utility", "Voice"],
+    enabledByDefault: false,
+    managedStyle,
+    dependencies: ["WebRTCLeakPrevent", "UserSettingsAPI", "MessageAccessoriesAPI"],
+    settings,
+    patches: [
+        {
+            find: "maxThumbnailWidth:80",
+            replacement: {
+                match: /(?<=render\(\)\{)(?=let\{embed:)/,
+                replace: "if($self.shouldBlockEmbed(this.props.embed))return null;",
+            },
+        },
+        {
+            find: 'displayName="Video"',
+            replacement: {
+                match: /(?<=\{\.\.\.)(\i)(?=,ref:\i,useReducedMotion:)/,
+                replace: "$self.videoProps($1)",
+            },
+        },
+        {
+            find: ".isPlatformEmbedded)window.open(",
+            replacement: {
+                match: /(?<=async function \i\(\i,\i\)\{)/,
+                replace: "if($self.openLink(arguments[0]))return;",
+            },
+        },
+        {
+            find: "trackAnnouncementMessageLinkClicked({",
+            replacement: {
+                match: /(?<=return void\(null==)(\i)(?=\|\|null!=\i&&\i\?\i\(\):)/,
+                replace: "$1||$self.useExternalBrowser()&&($1.preventDefault(),!0)",
+            },
+        },
+    ],
+    shouldBlockEmbed(embed: Embed) {
+        const { blockUnknownEmbeds, allowedEmbedDomains } = settings.store;
+        return blockUnknownEmbeds && !isAllowedEmbed(embed, parseDomainList(allowedEmbedDomains));
+    },
+    videoProps<T extends { autoPlay?: boolean; playOnHover?: boolean; srcObject?: MediaStream; }>(props: T): T {
+        return settings.store.blockVideoAutoplay && !props.srcObject ? { ...props, autoPlay: false, playOnHover: false } : props;
+    },
+    useExternalBrowser() {
+        return !IS_WEB && Boolean(Native) && settings.store.externalBrowser !== "system";
+    },
+    openLink(url: string): boolean {
+        if (!this.useExternalBrowser() || !/^https?:\/\//i.test(url)) return false;
+        if (!Native) return false;
+        void Native.openInBrowser(settings.store.externalBrowser, url).then(opened => {
+            if (!opened) showToast({ text: "Could not open the selected browser. Check DiscordHardened settings.", variant: "critical" });
+        }).catch(() => showToast({ text: "Could not open the selected browser.", variant: "critical" }));
+        return true;
+    },
+    toolboxActions: {
+        "Open DiscordHardened": () => SettingsRouter.openUserSettings(`${SETTINGS_ENTRY_KEY}_panel`),
+    },
+
+    async start() {
+        const currentLifecycleId = ++lifecycleId;
+
+        if (!SettingsPlugin.customEntries.some(entry => entry.key === SETTINGS_ENTRY_KEY)) {
+            SettingsPlugin.customEntries.push({
+                key: SETTINGS_ENTRY_KEY,
+                title: "DiscordHardened",
+                Component: DiscordHardenedSettings,
+                Icon: ShieldIcon,
+            });
+        }
+
+        setBlockRecording(settings.store.recordBlockedEvents);
+        startPermissionSession(() => {
+            refreshCameraPrivacy();
+            refreshMicrophonePrivacy();
+            if (Native) void Native.setTemporaryPermissions(getTemporaryPermissions()).catch(() => logger.warn("Could not update desktop temporary permissions."));
+        });
+        startAttachmentWarnings();
+        startMicrophonePrivacy(settings.store);
+        startRequestLogging(settings.store, Boolean(Native), Native ? (webSockets: boolean, localResources: boolean) => Native.configureRequestCapture(webSockets, localResources) : undefined);
+        startHardening(settings.store, url => this.openLink(url), browserRequestLog.record);
+
+        await configureNative(currentLifecycleId);
+    },
+
+    async stop() {
+        lifecycleId++;
+        removeFromArray(SettingsPlugin.customEntries, entry => entry.key === SETTINGS_ENTRY_KEY);
+        stopAttachmentWarnings();
+        stopPermissionSession();
+        stopHardening();
+        stopMicrophonePrivacy();
+        await stopRequestLogging();
+
+        if (!Native) return;
+
+        await runNativeOperation(async () => {
+            if (!nativeConfigured) return;
+
+            nativeConfigured = false;
+            try {
+                await Native.restore();
+            } catch (error) {
+                logger.warn("Could not restore desktop privacy settings.", error);
+            }
+        });
+    },
+
+    flux: {
+        AUDIO_SET_MODE() {
+            scheduleMicrophonePrivacyRefresh();
+        },
+        AUDIO_SET_SELF_MUTE() {
+            scheduleMicrophonePrivacyRefresh();
+        },
+        AUDIO_TOGGLE_SELF_MUTE() {
+            scheduleMicrophonePrivacyRefresh();
+        },
+        VOICE_CHANNEL_SELECT() {
+            scheduleMicrophonePrivacyRefresh();
+        },
+        VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
+            const userId = UserStore.getCurrentUser().id;
+            if (voiceStates.some(state => state.userId === userId)) scheduleMicrophonePrivacyRefresh();
+        },
+    },
+});
