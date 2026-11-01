@@ -10,7 +10,7 @@ import { ChannelToolbarButton } from "@api/HeaderBar";
 import { popNotice, showNotice } from "@api/Notices";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings, useSettings } from "@api/Settings";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { classes } from "@utils/misc";
 import definePlugin, { makeRange, OptionType } from "@utils/types";

@@ -8,7 +8,7 @@ import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessa
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
-import { HeadingTertiary } from "@components/Heading";
+import { HeadingTertiary } from "@components/LegacyHeading";
 import { getCurrentChannel, sendMessage } from "@utils/discord";
 import { Logger } from "@utils/Logger";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";

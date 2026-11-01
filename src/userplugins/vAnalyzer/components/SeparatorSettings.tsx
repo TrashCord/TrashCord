@@ -5,7 +5,7 @@
  */
 
 import { Divider } from "@components/Divider";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { Margins } from "@components/margins";
 import { React } from "@webpack/common";
 

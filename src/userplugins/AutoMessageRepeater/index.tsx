@@ -9,7 +9,7 @@ import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
-import { HeadingTertiary } from "@components/Heading";
+import { HeadingTertiary } from "@components/LegacyHeading";
 import { Devs } from "@utils/constants";
 import { getCurrentChannel, sendMessage } from "@utils/discord";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";

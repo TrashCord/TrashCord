@@ -8,7 +8,7 @@ import managedStyle from "./styles.css?managed";
 
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { Paragraph } from "@components/Paragraph";
 import { classNameFactory } from "@utils/css";
 import { Logger } from "@utils/Logger";

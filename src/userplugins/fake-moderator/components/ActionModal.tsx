@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { Margins } from "@components/margins";
 import { RenderModalProps } from "@vencord/discord-types";
 import { Modal, openModal, Select, TextArea, TextInput, useState } from "@webpack/common";

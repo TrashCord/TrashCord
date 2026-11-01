@@ -7,7 +7,7 @@
 import "./styles.css";
 
 import * as DataStore from "@api/DataStore";
-import { HeadingPrimary, HeadingTertiary } from "@components/Heading";
+import { HeadingPrimary, HeadingTertiary } from "@components/LegacyHeading";
 import { SettingsTab, wrapTab } from "@components/settings";
 import { classNameFactory } from "@utils/css";
 import { copyWithToast, openUserProfile } from "@utils/discord";

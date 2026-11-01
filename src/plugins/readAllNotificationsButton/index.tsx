@@ -30,7 +30,7 @@ import { ActiveJoinedThreadsStore, FluxDispatcher, GuildChannelStore, GuildStore
 const settings = definePluginSettings({
     compact: {
         type: OptionType.BOOLEAN,
-        default: false,
+        default: true,
         description: "Show a small text button instead of a server list icon"
     }
 });

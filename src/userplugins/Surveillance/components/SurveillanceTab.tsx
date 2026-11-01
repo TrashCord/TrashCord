@@ -7,7 +7,7 @@
 /* import "./styles.css"; */
 
 import ErrorBoundary from "@components/ErrorBoundary";
-import { HeadingPrimary, HeadingTertiary } from "@components/Heading";
+import { HeadingPrimary, HeadingTertiary } from "@components/LegacyHeading";
 import { SettingsTab, wrapTab } from "@components/settings";
 import { copyToClipboard } from "@utils/clipboard";
 import { classNameFactory } from "@utils/css";

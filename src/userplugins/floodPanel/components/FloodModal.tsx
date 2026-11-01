@@ -6,7 +6,7 @@
 
 import { Button } from "@components/Button";
 import { Divider } from "@components/Divider";
-import { HeadingPrimary, HeadingSecondary } from "@components/Heading";
+import { HeadingPrimary, HeadingSecondary } from "@components/LegacyHeading";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot } from "@utils/modal";
 import { RestAPI, SearchableSelect, useEffect, useMemo, useRef, useState } from "@webpack/common";

@@ -10,7 +10,7 @@ import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton } from "@api/UserArea";
 import ErrorBoundary from "@components/ErrorBoundary";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, PluginSettingComponentProps } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
@@ -18,9 +18,10 @@ import { Avatar, ChannelStore, FluxDispatcher, IconUtils, React, RelationshipSto
 import { Button } from "@components/Button";
 import { SearchableSelect, TextInput } from "@webpack/common/components";
 
-import { checkOutput, getMicLabel, getRecordingStart, isCurrentlyRecording, onSaved, setLevels, startRecording, startReplay, stopAll, stopRecording, testMic } from "./recorder";
+import { checkOutput, getMicLabel, getRecordingKind, getRecordingStart, isCurrentlyRecording, onSaved, setLevels, startRecording, startReplay, stopAll, stopRecording, stopRecordingAll, stopReplay, testMic } from "./recorder";
 import { buildClip, isRewinding, setRewindSeconds } from "./rewind";
 import { Common, emitState, getNative, Kind, Profile, SaveResult, subscribeState } from "./shared";
+import { playSound, type SoundKind } from "./sounds";
 
 type ButtonId = "clip" | "record";
 type Item = [string, string | number];
@@ -86,6 +87,36 @@ const volume = (description: string) => ({
     },
     onChange: () => pushLevels()
 });
+
+function soundLevel(): number {
+    return clamp(Math.round(num(settings.store.soundVolume, 50)), 0, 100) / 100;
+}
+
+function sound(kind: SoundKind): Promise<void> {
+    return settings.store.sounds ? playSound(kind, soundLevel()) : Promise.resolve();
+}
+
+function SoundPreview(_props: PluginSettingComponentProps): JSX.Element {
+    const items: Array<[string, SoundKind]> = [
+        ["Record start", "recordStart"],
+        ["Auto-record start", "autoStart"],
+        ["Recording saved", "recordSaved"],
+        ["Clip saved", "clipSaved"]
+    ];
+
+    return (
+        <div style={{ marginBottom: 12 }}>
+            <div style={labelStyle}>Preview sounds</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {items.map(([label, kind]) => (
+                    <Button key={kind} size="small" onClick={() => { void playSound(kind, soundLevel()); }}>
+                        {label}
+                    </Button>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 const BlacklistSelector = (props: PluginSettingComponentProps) => {
     const options = React.useMemo(
@@ -385,8 +416,15 @@ const settings = definePluginSettings({
     _sepReplay: separator("⚡ Shadowplay", "Keeps the last seconds of every call in memory. Press the clip button to save them as a file. Changes apply from the next call."),
     replayEnabled: {
         type: OptionType.BOOLEAN,
-        description: "Keep the replay buffer during calls",
-        default: true
+        description: "Keep the replay buffer running",
+        default: true,
+        onChange: () => { void syncCapture(); }
+    },
+    replayOutsideCalls: {
+        type: OptionType.BOOLEAN,
+        description: "Keep the replay buffer running when you are not in a voice call, and after you leave one",
+        default: true,
+        onChange: () => { void syncCapture(); emitState(); }
     },
     replaySeconds: {
         type: OptionType.NUMBER,
@@ -411,7 +449,19 @@ const settings = definePluginSettings({
         default: false
     },
 
-    _sepRecord: separator("⏺ Recording", "Records the call from when you press the record button (or hotkey, or /record) until you press it again."),
+    _sepRecord: separator("⏺ Recording", "Records the call from when you press the record button (or hotkey, or /record) until you press it again. Turn it on to use it."),
+    recordEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Enable the record button, hotkey and /record (off = nothing is shown or registered)",
+        default: false,
+        onChange: () => { void syncCapture(); emitState(); }
+    },
+    recordOutsideCalls: {
+        type: OptionType.BOOLEAN,
+        description: "Allow recording outside voice calls: the record button works anywhere and recordings keep going after you leave a call",
+        default: true,
+        onChange: () => { void syncCapture(); emitState(); }
+    },
     recordType: pick("record", "Type", "Type", TYPES, "video"),
     recordSources: pick("record", "Sources", "Audio sources", SOURCES, "both"),
     recordAudio: pick("record", "Audio", "Voice format", REC_AUDIO, "ogg", "voice"),
@@ -452,7 +502,7 @@ const settings = definePluginSettings({
         onChange: () => syncButtons()
     },
 
-    _sepHotkeys: separator("⌨ Hotkeys", "Global shortcuts that work even when Discord is not focused. Active only during a call."),
+    _sepHotkeys: separator("⌨ Hotkeys", "Global shortcuts that work even when Discord is not focused, while the replay buffer or recording is allowed to run."),
     hotkeys: {
         type: OptionType.BOOLEAN,
         description: "Enable global hotkeys (the keys are captured by CallCapture)",
@@ -482,6 +532,26 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Notifications (click opens the folder)",
         default: false
+    },
+    sounds: {
+        type: OptionType.BOOLEAN,
+        description: "Sounds: a different one for record start, auto-record start, recording saved and clip saved (nothing plays when the replay buffer starts)",
+        default: true
+    },
+    soundVolume: {
+        type: OptionType.SLIDER as const,
+        description: "Sound volume",
+        markers: [0, 25, 50, 75, 100],
+        default: 50,
+        stickToMarkers: false,
+        componentProps: {
+            onValueRender: (v: number) => `${Math.round(v)}%`,
+            onMarkerRender: (v: number) => `${v}%`
+        }
+    },
+    soundPreview: {
+        type: OptionType.COMPONENT as const,
+        component: SoundPreview
     }
 });
 
@@ -491,6 +561,18 @@ const accountAdded: Record<ButtonId, boolean> = { clip: false, record: false };
 let lastChannelId: string | null | undefined = null;
 let busy = false;
 let unsubscribe: (() => void) | null = null;
+
+function allowedReplay(): boolean {
+    return !!lastChannelId || !!settings.store.replayOutsideCalls;
+}
+
+function allowedRecord(): boolean {
+    return !!lastChannelId || !!settings.store.recordOutsideCalls;
+}
+
+function canRecord(): boolean {
+    return !!settings.store.recordEnabled && allowedRecord();
+}
 
 function getBlacklist(): string[] {
     const v = settings.store.blacklist as unknown;
@@ -654,6 +736,7 @@ async function clip(channelId?: string) {
         }
 
         say("Clip saved", fmtDuration(res.seconds), path);
+        void sound("clipSaved");
 
         if (settings.store.replayUpload) {
             const channel = ChannelStore.getChannel(channelId ?? SelectedChannelStore.getChannelId());
@@ -667,6 +750,7 @@ async function clip(channelId?: string) {
 }
 
 async function record(kind: "record" | "auto") {
+    await sound(kind === "auto" ? "autoStart" : "recordStart");
     if (await startRecording(kind, readCommon(), readProfile(kind))) say("Recording started", getMicLabel());
 }
 
@@ -676,12 +760,17 @@ async function toggleRecord() {
         return;
     }
 
-    if (!lastChannelId) {
-        fail("Join a voice call first.");
+    if (!settings.store.recordEnabled) {
+        fail("Recording is turned off. Enable it in the Recording settings.");
         return;
     }
 
-    if (isBlacklistedUserInChannel(lastChannelId)) {
+    if (!allowedRecord()) {
+        fail("Join a voice call first, or allow recording outside calls in the Recording settings.");
+        return;
+    }
+
+    if (lastChannelId && isBlacklistedUserInChannel(lastChannelId)) {
         fail("Blacklisted user in channel.");
         return;
     }
@@ -690,7 +779,10 @@ async function toggleRecord() {
 }
 
 function handleSaved(result: SaveResult) {
-    if (result.status === "saved") say("Recording saved", "", result.path);
+    if (result.status === "saved") {
+        say("Recording saved", "", result.path);
+        void sound("recordSaved");
+    }
     else if (result.status === "error") fail("Failed to save the recording.");
 }
 
@@ -713,15 +805,15 @@ function bind(id: ButtonId, key: string) {
 
 function syncHotkeys() {
     const s = settings.store;
-    const on = !!s.hotkeys && !!lastChannelId;
+    const on = !!s.hotkeys;
     bind("clip", on && isRewinding() ? (s.clipKey || "").trim() : "");
-    bind("record", on ? (s.recordKey || "").trim() : "");
+    bind("record", on && canRecord() ? (s.recordKey || "").trim() : "");
 }
 
 function useCallState() {
     const [, setTick] = useState(0);
     useEffect(() => subscribeState(() => setTick(n => n + 1)), []);
-    return { inCall: !!lastChannelId, rewinding: isRewinding(), recording: isCurrentlyRecording(), since: getRecordingStart() };
+    return { ready: canRecord(), rewinding: isRewinding(), recording: isCurrentlyRecording(), since: getRecordingStart() };
 }
 
 function ClipIcon() {
@@ -778,10 +870,10 @@ function ClipButtonAccount() {
 }
 
 function RecordButtonAccount() {
-    const { inCall, recording, since } = useCallState();
+    const { ready, recording, since } = useCallState();
     const { recordKey, hotkeys } = settings.use(["recordKey", "hotkeys"]);
 
-    if (!inCall) return null;
+    if (!ready && !recording) return null;
 
     return (
         <UserAreaButton
@@ -799,7 +891,7 @@ const ClipButtonAccountWrapped = ErrorBoundary.wrap(ClipButtonAccount, { noop: t
 const RecordButtonAccountWrapped = ErrorBoundary.wrap(RecordButtonAccount, { noop: true });
 
 function HeaderButtons() {
-    const { inCall, rewinding, recording, since } = useCallState();
+    const { ready, rewinding, recording, since } = useCallState();
     const { clipButton, recordButton, replaySeconds, replayType, clipKey, recordKey, hotkeys } = settings.use(["clipButton", "recordButton", "replaySeconds", "replayType", "clipKey", "recordKey", "hotkeys"]);
 
     return (
@@ -813,7 +905,7 @@ function HeaderButtons() {
                     />
                 </div>
             )}
-            {recordButton === "header" && inCall && (
+            {recordButton === "header" && (ready || recording) && (
                 <div onContextMenu={onSettingsMenu} style={{ display: "flex", alignItems: "center" }}>
                     <HeaderBarButton
                         icon={RecordIcon}
@@ -845,16 +937,35 @@ function syncButtons() {
     setAccountButton("record", settings.store.recordButton === "account");
 }
 
+async function ensureReplay() {
+    const s = settings.store;
+    if (s.replayEnabled && !isRewinding()) await startReplay(readCommon(), readProfile("replay"), s.replaySeconds);
+}
+
+async function syncCapture() {
+    if (!settings.store.replayEnabled || !allowedReplay()) stopReplay();
+    else await ensureReplay();
+
+    if (!allowedRecord() || (!settings.store.recordEnabled && getRecordingKind() === "record")) await stopRecordingAll();
+}
+
 async function beginCall(channelId: string) {
     if (isBlacklistedUserInChannel(channelId)) {
         fail("Blacklisted user in channel.");
+        await stopAll();
         return;
     }
 
-    const s = settings.store;
+    await ensureReplay();
 
-    if (s.replayEnabled) await startReplay(readCommon(), readProfile("replay"), s.replaySeconds);
-    if (s.autoRecord && lastChannelId === channelId) await record("auto");
+    if (settings.store.autoRecord && lastChannelId === channelId && !isCurrentlyRecording()) await record("auto");
+}
+
+async function recover() {
+    if (isCurrentlyRecording()) return;
+
+    const files: string[] = (await Promise.resolve(getNative()?.recoverRecordings?.()).catch(() => [])) ?? [];
+    if (files.length) say("Recovered recordings", `${files.length} from the last session`, files[0]);
 }
 
 async function handleVoiceChannelSelect(e: any) {
@@ -865,9 +976,17 @@ async function handleVoiceChannelSelect(e: any) {
     lastChannelId = next;
     emitState();
 
-    if (previous) await stopAll();
+    if (previous) {
+        const s = settings.store;
+        if (!s.replayOutsideCalls) stopReplay();
+        if (!s.recordOutsideCalls) await stopRecordingAll();
+    }
 
     if (next && lastChannelId === next) await beginCall(next);
+}
+
+function handleRtcState(e: any) {
+    if (e?.state === "RTC_CONNECTED" && lastChannelId) void ensureReplay();
 }
 
 async function handleVoiceStateUpdates(e: any) {
@@ -879,7 +998,8 @@ async function handleVoiceStateUpdates(e: any) {
 
     for (const update of updates) {
         if (update.userId === me) {
-            if ((update.channelId ?? null) !== lastChannelId) {
+            const sameGuild = (update.guildId ?? null) === (ChannelStore.getChannel(lastChannelId)?.guild_id ?? null);
+            if (sameGuild && (update.channelId ?? null) !== lastChannelId) {
                 await handleVoiceChannelSelect({ channelId: update.channelId ?? null });
                 return;
             }
@@ -944,14 +1064,19 @@ const CallCapturePlugin = definePlugin({
 
         lastChannelId = getConnectedVoiceChannelId();
         if (lastChannelId) void beginCall(lastChannelId);
+        else if (settings.store.replayOutsideCalls) void ensureReplay();
+
+        void recover();
 
         FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", handleVoiceChannelSelect);
         FluxDispatcher.subscribe("VOICE_STATE_UPDATES", handleVoiceStateUpdates);
+        FluxDispatcher.subscribe("RTC_CONNECTION_STATE", handleRtcState);
     },
 
     stop() {
         FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", handleVoiceChannelSelect);
         FluxDispatcher.unsubscribe("VOICE_STATE_UPDATES", handleVoiceStateUpdates);
+        FluxDispatcher.unsubscribe("RTC_CONNECTION_STATE", handleRtcState);
         unsubscribe?.();
         unsubscribe = null;
         lastChannelId = null;

@@ -7,7 +7,7 @@
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
-import { HeadingSecondary, HeadingTertiary } from "@components/Heading";
+import { HeadingSecondary, HeadingTertiary } from "@components/LegacyHeading";
 import { Margins } from "@components/margins";
 import { Paragraph } from "@components/Paragraph";
 import { Switch } from "@components/Switch";

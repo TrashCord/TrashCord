@@ -8,7 +8,7 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { HeaderBarButton } from "@api/HeaderBar";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { Button } from "@components/Button";

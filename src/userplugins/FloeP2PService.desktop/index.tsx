@@ -8,7 +8,7 @@ import { ApplicationCommandInputType, ApplicationCommandOptionType, findOption, 
 import type { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { CloudDownloadIcon, CloudIcon, CloudUploadIcon, FolderIcon, UpdaterIcon } from "@components/Icons";
 import { Paragraph } from "@components/Paragraph";
 import { insertTextIntoChatInputBox } from "@utils/discord";

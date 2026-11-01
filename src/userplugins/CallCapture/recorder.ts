@@ -23,6 +23,7 @@ interface Input {
 }
 
 interface Recording {
+    kind: "record" | "auto";
     recorder: MediaRecorder;
     input: Input;
     profile: Profile;
@@ -86,9 +87,10 @@ const inputs = new Set<Input>();
 let gateUrl = "";
 let replay: Input | null = null;
 let rec: Recording | null = null;
-let epoch = 0;
-let startingReplay = false;
-let startingRec = false;
+let replayEpoch = 0;
+let recEpoch = 0;
+let replayTask: Promise<boolean> | null = null;
+let recTask: Promise<boolean> | null = null;
 let stopping = false;
 let testing = false;
 let chunks: Blob[] = [];
@@ -105,6 +107,10 @@ export function onSaved(fn: ((result: SaveResult) => void) | null) {
 
 export function getMicLabel(): string {
     return rec?.input.label ?? replay?.input.label ?? "";
+}
+
+export function getRecordingKind(): "record" | "auto" | null {
+    return rec?.kind ?? null;
 }
 
 export function getRecordingStart(): number {
@@ -400,8 +406,7 @@ async function addGate(ctx: AudioContext): Promise<AudioWorkletNode | null> {
     }
 }
 
-async function openInput(common: Common, p: Profile, rate: number): Promise<Input | null> {
-    const my = epoch;
+async function openInput(common: Common, p: Profile, rate: number, alive: () => boolean): Promise<Input | null> {
     const streams: Array<MediaStream | null> = [];
     let ctx: AudioContext | null = null;
 
@@ -421,23 +426,23 @@ async function openInput(common: Common, p: Profile, rate: number): Promise<Inpu
 
         const mic = p.mic ? await captureMic(common) : null;
         streams.push(mic);
-        if (my !== epoch) return abort();
+        if (!alive()) return abort();
 
         const loopback = p.others && (common.playback === "system" || common.playback.startsWith("out:"));
         const desktop = loopback || p.video ? await captureDesktop(p.video ? p.target : "screen", p.video ? p : VOICE_DIMS) : null;
         streams.push(desktop);
-        if (my !== epoch) return abort();
+        if (!alive()) return abort();
 
         if (loopback && !warnedOutput) {
             warnedOutput = true;
             void checkOutput(common.playback).then(msg => {
-                if (msg && my === epoch) showToast({ text: msg, variant: "critical" });
+                if (msg && alive()) showToast({ text: msg, variant: "critical" });
             });
         }
 
         const device = p.others && !loopback ? await captureInput(common.playback) : null;
         streams.push(device);
-        if (my !== epoch) return abort();
+        if (!alive()) return abort();
 
         desktop?.getVideoTracks().forEach(tr => {
             if (p.video) tr.contentHint = "motion";
@@ -456,7 +461,7 @@ async function openInput(common: Common, p: Profile, rate: number): Promise<Inpu
 
         if (mic) {
             gate = common.gateDb < 0 ? await addGate(audioCtx) : null;
-            if (my !== epoch) return abort();
+            if (!alive()) return abort();
 
             micGain = audioCtx.createGain();
             const source = audioCtx.createMediaStreamSource(mic);
@@ -508,7 +513,7 @@ export async function testMic(common: Common, p: Profile): Promise<string> {
     let input: Input | null = null;
 
     try {
-        input = await openInput(common, { ...p, video: false, mic: true, others: false }, 48000);
+        input = await openInput(common, { ...p, video: false, mic: true, others: false }, 48000, () => true);
         if (!input) return "Microphone unavailable";
 
         input.micGain?.gain.setValueAtTime(levels.micVolume / 100, input.ctx.currentTime);
@@ -528,9 +533,14 @@ export async function testMic(common: Common, p: Profile): Promise<string> {
         await finished;
 
         const url = URL.createObjectURL(new Blob(parts, { type: "audio/webm" }));
+        const release = () => URL.revokeObjectURL(url);
         const player = new Audio(url);
-        player.onended = () => URL.revokeObjectURL(url);
-        await player.play();
+        player.onended = release;
+        player.onerror = release;
+        await player.play().catch(err => {
+            release();
+            throw err;
+        });
 
         return input.label;
     } catch {
@@ -542,16 +552,26 @@ export async function testMic(common: Common, p: Profile): Promise<string> {
 }
 
 export async function startReplay(common: Common, p: Profile, seconds: number): Promise<boolean> {
-    if (replay || startingReplay) return false;
-    startingReplay = true;
+    while (replayTask) await replayTask.catch(() => false);
+    if (replay) return true;
 
-    const my = epoch;
+    replayTask = runReplay(common, p, seconds);
+    try {
+        return await replayTask;
+    } finally {
+        replayTask = null;
+    }
+}
+
+async function runReplay(common: Common, p: Profile, seconds: number): Promise<boolean> {
+    const my = replayEpoch;
+    const alive = () => my === replayEpoch;
     let input: Input | null = null;
     let ok = false;
 
     try {
-        input = await openInput(common, p, p.khz === 44100 ? 48000 : p.khz);
-        if (!input || my !== epoch) return false;
+        input = await openInput(common, p, p.khz === 44100 ? 48000 : p.khz, alive);
+        if (!input || !alive()) return false;
 
         if (p.video && !input.video) showToast({ text: "Video capture unavailable, shadowplay is audio only.", variant: "critical" });
 
@@ -576,12 +596,12 @@ export async function startReplay(common: Common, p: Profile, seconds: number): 
     } catch {
         return false;
     } finally {
-        startingReplay = false;
         if (!ok) closeInput(input);
     }
 }
 
-function stopReplay() {
+export function stopReplay() {
+    replayEpoch++;
     stopRewind();
     const r = replay;
     replay = null;
@@ -604,10 +624,20 @@ function handleChunk(blob: Blob, streamMode: boolean, native: any) {
 }
 
 export async function startRecording(kind: "record" | "auto", common: Common, p: Profile): Promise<boolean> {
-    if (rec || startingRec) return false;
-    startingRec = true;
+    while (recTask) await recTask.catch(() => false);
+    if (rec) return false;
 
-    const my = epoch;
+    recTask = runRecording(kind, common, p);
+    try {
+        return await recTask;
+    } finally {
+        recTask = null;
+    }
+}
+
+async function runRecording(kind: "record" | "auto", common: Common, p: Profile): Promise<boolean> {
+    const my = recEpoch;
+    const alive = () => my === recEpoch;
     const native = getNative();
     let input: Input | null = null;
     let streamMode = false;
@@ -616,8 +646,8 @@ export async function startRecording(kind: "record" | "auto", common: Common, p:
     try {
         const { mimeType, ext } = getRecordingConfig(p);
 
-        input = await openInput(common, p, mimeType.includes("mp4") && p.khz < 44100 ? 44100 : p.khz);
-        if (!input || my !== epoch) return false;
+        input = await openInput(common, p, mimeType.includes("mp4") && p.khz < 44100 ? 44100 : p.khz, alive);
+        if (!input || !alive()) return false;
 
         if (p.video && !input.video) showToast({ text: "Video capture unavailable, recording audio only.", variant: "critical" });
 
@@ -645,7 +675,7 @@ export async function startRecording(kind: "record" | "auto", common: Common, p:
             } catch {
                 streamMode = false;
             }
-            if (my !== epoch) return false;
+            if (!alive()) return false;
         }
 
         chunks = [];
@@ -657,14 +687,13 @@ export async function startRecording(kind: "record" | "auto", common: Common, p:
         };
         recorder.start(input.video ? 5000 : 10000);
 
-        rec = { recorder, input, profile: p, ask: common.ask, sub: SUBS[kind], filename, streamMode, startMs: Date.now() };
+        rec = { kind, recorder, input, profile: p, ask: common.ask, sub: SUBS[kind], filename, streamMode, startMs: Date.now() };
         ok = true;
         emitState();
         return true;
     } catch {
         return false;
     } finally {
-        startingRec = false;
         if (!ok) {
             if (streamMode) Promise.resolve(native?.abortStreamRecording?.()).catch(() => { });
             closeInput(input);
@@ -729,11 +758,15 @@ export function stopRecording(): Promise<void> {
     });
 }
 
-export async function stopAll(): Promise<void> {
-    epoch++;
-    warnedOutput = false;
+export async function stopRecordingAll(): Promise<void> {
+    recEpoch++;
     await stopRecording();
+}
+
+export async function stopAll(): Promise<void> {
+    warnedOutput = false;
     stopReplay();
+    await stopRecordingAll();
 }
 
 async function saveBlob(blob: Blob, r: Recording, durationMs: number): Promise<SaveResult> {

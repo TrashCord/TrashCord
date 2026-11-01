@@ -8,7 +8,8 @@ import "./styles.css";
 
 import { Button, TextButton } from "@components/Button";
 import { Card } from "@components/Card";
-import { Heading, HeadingTertiary } from "@components/Heading";
+import { HeadingTertiary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { ClockIcon, CogWheel, ComponentsIcon, LogIcon, MagnifyingGlassIcon, Microphone } from "@components/Icons";
 import { Notice } from "@components/Notice";
 import { Paragraph } from "@components/Paragraph";

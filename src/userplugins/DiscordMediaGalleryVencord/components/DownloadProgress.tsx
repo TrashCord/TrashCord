@@ -5,7 +5,7 @@
  */
 
 import { Button } from "@components/Button";
-import { HeadingSecondary } from "@components/Heading";
+import { HeadingSecondary } from "@components/LegacyHeading";
 import { Paragraph } from "@components/Paragraph";
 
 import { DownloadProgressState } from "../types";

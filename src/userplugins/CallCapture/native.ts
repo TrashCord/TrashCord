@@ -5,7 +5,7 @@
  */
 
 import { createReadStream, createWriteStream, WriteStream } from "node:fs";
-import { copyFile, type FileHandle, mkdir, open, rename, unlink, writeFile } from "node:fs/promises";
+import { copyFile, type FileHandle, mkdir, open, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { pipeline } from "node:stream/promises";
 
@@ -266,6 +266,45 @@ export async function finalizeStreamRecording(
     } catch {
         return { status: "error" };
     }
+}
+
+export async function recoverRecordings(_event: IpcMainInvokeEvent): Promise<string[]> {
+    const recovered: string[] = [];
+
+    try {
+        const stale = activeStream;
+        activeStream = null;
+        activeTempPath = null;
+        await closeStream(stale);
+
+        const dir = path.join(app.getPath("temp"), "callcapture-recordings");
+        const names = await readdir(dir).catch(() => [] as string[]);
+        const now = Date.now();
+
+        for (const name of names) {
+            const file = path.join(dir, name);
+            const info = await stat(file).catch(() => null);
+            if (!info || !info.isFile()) continue;
+
+            if (info.size < 2048) {
+                await unlink(file).catch(() => { });
+                continue;
+            }
+
+            if (now - info.mtimeMs < 20000) continue;
+
+            try {
+                const folder = resolveFolder("", "Recovered");
+                await mkdir(folder, { recursive: true });
+                const dest = path.join(folder, `Recovered_${name}`);
+                const duration = info.birthtimeMs > 0 ? Math.max(0, info.mtimeMs - info.birthtimeMs) : 0;
+                await placeFile(file, dest, Math.round(duration));
+                recovered.push(dest);
+            } catch { }
+        }
+    } catch { }
+
+    return recovered;
 }
 
 export async function saveRecording(_event: IpcMainInvokeEvent, buffer: Uint8Array, folderPath: string, filename: string, sub = "Recordings"): Promise<SaveResult> {
