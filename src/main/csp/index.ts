@@ -55,7 +55,8 @@ export const CspPolicies: PolicyMap = {
     "cdnjs.cloudflare.com": ImageScriptsAndCssSrc,
     "cdn.jsdelivr.net": [...ImageScriptsAndCssSrc, "media-src"],
     "wttr.in": [...ImageScriptsAndCssSrc, "media-src"],
-
+    "vsthemes.org": [...ImageScriptsAndCssSrc, "media-src"],
+    
     // Function Specific
     "api.github.com": ConnectSrc, // used for updating Vencord itself
     "rdap.org": ConnectSrc,
