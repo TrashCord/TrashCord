@@ -28,6 +28,7 @@ export const CspPolicies: PolicyMap = {
     "ws://localhost:*": ConnectSrc,
     "ws://127.0.0.1:*": ConnectSrc,
 
+    
     "*.github.io": ImageAndCssSrc, // GitHub pages, used by most themes
     "github.com": ImageMediaAndCssSrc, // GitHub content (stuff uploaded to markdown forms), used by most themes
     "raw.githubusercontent.com": ImageMediaAndCssSrc, // GitHub raw, used by some themes
@@ -53,6 +54,7 @@ export const CspPolicies: PolicyMap = {
     // CDNs used for some things by Vencord.
     // FIXME: we really should not be using CDNs anymore
     "cdnjs.cloudflare.com": ImageScriptsAndCssSrc,
+    "discord.com": [...ImageScriptsAndCssSrc, "media-src"],
     "cdn.jsdelivr.net": [...ImageScriptsAndCssSrc, "media-src"],
     "wttr.in": [...ImageScriptsAndCssSrc, "media-src"],
     "vsthemes.org": [...ImageScriptsAndCssSrc, "media-src"],
