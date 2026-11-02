@@ -27,7 +27,6 @@ export const CspPolicies: PolicyMap = {
     "127.0.0.1:*": ImageAndCssSrc,
     "ws://localhost:*": ConnectSrc,
     "ws://127.0.0.1:*": ConnectSrc,
-
     
     "*.github.io": ImageAndCssSrc, // GitHub pages, used by most themes
     "github.com": ImageMediaAndCssSrc, // GitHub content (stuff uploaded to markdown forms), used by most themes
@@ -54,11 +53,11 @@ export const CspPolicies: PolicyMap = {
     // CDNs used for some things by Vencord.
     // FIXME: we really should not be using CDNs anymore
     "cdnjs.cloudflare.com": ImageScriptsAndCssSrc,
-    "discord.com": [...ImageScriptsAndCssSrc, "media-src"],
-    "cdn.jsdelivr.net": [...ImageScriptsAndCssSrc, "media-src"],
-    "wttr.in": [...ImageScriptsAndCssSrc, "media-src"],
-    "vsthemes.org": [...ImageScriptsAndCssSrc, "media-src"],
-    "s1.hostingkartinok.com": [...ImageScriptsAndCssSrc, "media-src"],
+    "discord.com": [...ImageScriptsAndCssSrc, "media-src"], // Added by TrashCord -
+    "cdn.jsdelivr.net": [...ImageScriptsAndCssSrc, "media-src"], // Added by TrashCord -
+    "wttr.in": [...ImageScriptsAndCssSrc, "media-src"], // Added by TrashCord -
+    "vsthemes.org": [...ImageScriptsAndCssSrc, "media-src"], // Added by TrashCord -
+    "s1.hostingkartinok.com": [...ImageScriptsAndCssSrc, "media-src"], // Added by TrashCord -
     
     // Function Specific
     "api.github.com": ConnectSrc, // used for updating Vencord itself
@@ -173,7 +172,7 @@ const patchCsp = (headers: PolicyMap) => {
         // HOWEVER, at the time of writing (24 Jan 2025), Discord is INSANE and also uses unsafe-inline
         // Once they stop using it, we also should
         pushDirective("script-src", "'unsafe-inline'", "'unsafe-eval'");
-        pushDirective("media-src", "https:");
+        pushDirective("media-src", "https:"); // Added by TrashCord -
 
         for (const directive of ["style-src", "connect-src", "img-src", "font-src", "media-src", "worker-src"]) {
             pushDirective(directive, "blob:", "data:", "vencord:", "vesktop:", "equicord:", "equibop:");
