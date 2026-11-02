@@ -644,7 +644,7 @@ function canvasToBlob(c: HTMLCanvasElement, q: number): Promise<Blob | null> {
     return new Promise(res => c.toBlob(res, "image/jpeg", q));
 }
 
-async function encodeUnderLimit(src: CanvasImageSource, w0: number, h0: number, qualities = [0.7, 0.5, 0.35]): Promise<string> {
+async function encodeUnderLimit(src: CanvasImageSource, w0: number, h0: number, qualities = [0.7, 0.5, 0.3]): Promise<string> {
     const sizes: [number, number][] = [[1280, 720], [960, 540], [640, 360], [512, 288]];
     let last: Blob | null = null;
     for (const [w, h] of sizes) {
