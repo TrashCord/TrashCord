@@ -480,7 +480,7 @@ function playSuccessSound() {
         successAudio ??= new Audio("https://cdn.jsdelivr.net/gh/d3ad-d3sc3nt/d3ad-d3sc3nt@main/files/omg-poco_ykiLtXO.mp3");
         successAudio.currentTime = 0;
         successAudio.play().catch(() => {});
-    } catch { /* audio is optional */ }
+    } catch { /**/ }
 }
 
 function buildSummary(...parts: (string | null | undefined)[]): string {
@@ -548,12 +548,10 @@ async function precheck(code: string): Promise<{ ok: boolean; reason?: string; g
 const MAX_RATE_LIMIT_RETRIES = 3;
 const CAPTCHA_WAIT_MS = 120_000;
 
-// Keeps the queue (and `current`) alive until Discord's own captcha flow reports back,
-// so the result is always attributed to the right request.
 function waitForCaptchaFlow(request: ClaimRequest, giftType: Promise<string | null>): Promise<void> {
     return new Promise<void>(done => {
         let finished = false;
-        let cancelled = false; // set only when the plugin is stopped/reset, not on timeout
+        let cancelled = false;
         const timer = setTimeout(() => finish(), CAPTCHA_WAIT_MS);
         const finish = () => {
             if (finished) return;

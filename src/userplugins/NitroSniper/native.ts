@@ -428,8 +428,6 @@ async function readNewLogEntries() {
             await file.close();
         }
     } catch (error) {
-        // Only start over if the log vanished (rotated/deleted); on transient errors keep
-        // the offset so old codes are never replayed.
         if ((error as { code?: string; })?.code === "ENOENT") {
             logOffset = 0;
             pendingText = "";
