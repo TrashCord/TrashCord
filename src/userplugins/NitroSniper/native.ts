@@ -351,7 +351,8 @@ export async function sendWebhook(_: IpcMainInvokeEvent, webhookUrl: string, pay
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: payload
+            body: payload,
+            signal: AbortSignal.timeout(30_000)
         });
 
         return { status: response.status, data: await response.text() };
@@ -376,6 +377,7 @@ const waiters: Array<(detection: NightyGiftDetection | null) => void> = [];
 function enqueueGift(detection: NightyGiftDetection) {
     if (seenCodes.has(detection.code)) return;
     seenCodes.add(detection.code);
+    if (seenCodes.size > 500) seenCodes.delete(seenCodes.values().next().value!);
 
     const waiter = waiters.shift();
     if (waiter) waiter(detection);
@@ -425,9 +427,13 @@ async function readNewLogEntries() {
         } finally {
             await file.close();
         }
-    } catch {
-        logOffset = 0;
-        pendingText = "";
+    } catch (error) {
+        // Only start over if the log vanished (rotated/deleted); on transient errors keep
+        // the offset so old codes are never replayed.
+        if ((error as { code?: string; })?.code === "ENOENT") {
+            logOffset = 0;
+            pendingText = "";
+        }
     } finally {
         reading = false;
         if (readAgain) {

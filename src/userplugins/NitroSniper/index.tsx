@@ -32,6 +32,7 @@ interface ClaimRequest {
     guildId?: string;
     guildName?: string;
     messageId?: string;
+    task?: VoidSolverTaskResult;
 }
 
 interface NightyGiftDetection {
@@ -100,7 +101,8 @@ let attempts = 0;
 let successes = 0;
 let successAudio: HTMLAudioElement | null = null;
 let altListenerId = 0;
-let voidSolverTask: VoidSolverTaskResult | undefined;
+let current: ClaimRequest | undefined;
+let releaseCaptchaWait: (() => void) | undefined;
 const queue: ClaimRequest[] = [];
 
 function log(...a: any[]) { if (settings.store.debugLogs) console.log("[NitroSniper]", ...a); }
@@ -133,7 +135,7 @@ function parseWebhookUrl(webhookUrl: string) {
     catch { throw new Error("Webhook URL is invalid."); }
 }
 
-function escapeMarkdown(v: string) { return v.replace(/([\\`*_{}[\]()#+.!|>~-])/g, "\\$1"); }
+function escapeMarkdown(v: string) { return v.replace(/[\r\n]+/g, " ").replace(/([\\`*_{}[\]()#+.!|>~-])/g, "\\$1"); }
 
 function buildGiftTypeField(giftType: string | null): WebhookField | null {
     if (!giftType) return null;
@@ -152,11 +154,10 @@ function buildDetectionField(r: ClaimRequest): WebhookField {
 }
 
 function buildServerField(r: ClaimRequest): WebhookField {
-    return {
-        name: "Server:",
-        value: escapeMarkdown(r.guildName ?? r.guildId ?? (r.guildId === undefined && r.source === "discord" ? "Direct message" : "Unknown server")),
-        inline: true
-    };
+    const label = r.guildName
+        ?? r.guildId
+        ?? (r.source === "discord" ? "Direct message" : "Unknown server");
+    return { name: "Server:", value: escapeMarkdown(label), inline: true };
 }
 
 function buildChannelField(r: ClaimRequest): WebhookField {
@@ -182,7 +183,11 @@ function buildMessageField(r: ClaimRequest): WebhookField {
         const url = `https://discord.com/channels/${r.guildId ?? "@me"}/${r.channelId}/${r.messageId}`;
         return { name: "Jump to message:", value: `[Open original message](${url})`, inline: false };
     }
-    return { name: "Jump to message:", value: "Unavailable for Nighty alt detections.", inline: false };
+    return {
+        name: "Jump to message:",
+        value: r.source === "nighty" ? "Unavailable for Nighty alt detections." : "Message reference unavailable.",
+        inline: false
+    };
 }
 
 function buildClaimLinkField(r: ClaimRequest): WebhookField {
@@ -236,7 +241,8 @@ function buildClaimFields(request: ClaimRequest, giftType: string | null, task?:
         buildMessageField(request),
         buildClaimLinkField(request),
         ...buildVoidSolverFields(task)
-    ].filter((f): f is WebhookField => f != null);
+    ].filter((f): f is WebhookField => f != null)
+        .map(f => ({ ...f, value: f.value.slice(0, 1024) }));
 }
 
 function getResultPresentation(result: WebhookResult) {
@@ -462,9 +468,19 @@ function resetState() {
     seen.clear();
     attempts = successes = 0;
     claiming = false;
-    voidSolverTask = undefined;
-    successAudio = new Audio("https://github.com/d3ad-d3sc3nt/d3ad-d3sc3nt/raw/refs/heads/main/files/omg-poco_ykiLtXO.mp3");
-    successAudio.preload = "auto";
+    current = undefined;
+    releaseCaptchaWait?.();
+    successAudio?.pause();
+    successAudio = null;
+}
+
+function playSuccessSound() {
+    if (!settings.store.playSound) return;
+    try {
+        successAudio ??= new Audio("https://cdn.jsdelivr.net/gh/d3ad-d3sc3nt/d3ad-d3sc3nt@main/files/omg-poco_ykiLtXO.mp3");
+        successAudio.currentTime = 0;
+        successAudio.play().catch(() => {});
+    } catch { /* audio is optional */ }
 }
 
 function buildSummary(...parts: (string | null | undefined)[]): string {
@@ -479,7 +495,7 @@ function buildLocationLabel(r: ClaimRequest): string {
     return buildSummary(r.guildName ?? "Unknown Server", r.channelName ? `#${r.channelName}` : undefined);
 }
 
-function notifySuccess(request: ClaimRequest, giftType: string | null, task?: VoidSolverTaskResult) {
+function notifySuccess(request: ClaimRequest, giftType: string | null) {
     successes++;
     const location = buildLocationLabel(request);
     log(`Redeemed ${request.code} (${successes}/${attempts})`);
@@ -489,19 +505,16 @@ function notifySuccess(request: ClaimRequest, giftType: string | null, task?: Vo
     if (settings.store.notifyNative) {
         showNotification({ title: "NitroSniper - Claimed!", body: buildSummary(`Code: ${request.code.slice(0, 16)}`, giftType, location) });
     }
-    if (settings.store.playSound && successAudio) {
-        successAudio.currentTime = 0;
-        successAudio.play().catch(() => {});
-    }
-    void sendClaimWebhook(settings.store.webhookUrl, "claimed", request, giftType, task).catch(e => err("claim webhook failed", e));
+    playSuccessSound();
+    void sendClaimWebhook(settings.store.webhookUrl, "claimed", request, giftType, request.task).catch(e => err("claim webhook failed", e));
 }
 
-function notifyFailure(request: ClaimRequest, reason: string, giftType: string | null = null, task?: VoidSolverTaskResult) {
+function notifyFailure(request: ClaimRequest, reason: string, giftType: string | null = null) {
     log(`Failed ${request.code}: ${reason}`);
     if (settings.store.notifyFail) {
         showToast({ text: `Failed | ${buildSummary(request.code.slice(0, 16), giftType, reason)}`, variant: "critical" });
     }
-    void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType, task).catch(e => err("failure webhook failed", e));
+    void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType, request.task).catch(e => err("failure webhook failed", e));
 }
 
 function extractGiftType(body: any): string | null {
@@ -532,14 +545,62 @@ async function precheck(code: string): Promise<{ ok: boolean; reason?: string; g
     }
 }
 
-async function redeemCode(request: ClaimRequest, isRetry = false, giftTypePromise?: Promise<string | null>) {
-    if (!isRetry) attempts++;
-    let resolvedGiftType: string | null = null;
+const MAX_RATE_LIMIT_RETRIES = 3;
+const CAPTCHA_WAIT_MS = 120_000;
+
+// Keeps the queue (and `current`) alive until Discord's own captcha flow reports back,
+// so the result is always attributed to the right request.
+function waitForCaptchaFlow(request: ClaimRequest, giftType: Promise<string | null>): Promise<void> {
+    return new Promise<void>(done => {
+        let finished = false;
+        let cancelled = false; // set only when the plugin is stopped/reset, not on timeout
+        const timer = setTimeout(() => finish(), CAPTCHA_WAIT_MS);
+        const finish = () => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            if (releaseCaptchaWait === cancel) releaseCaptchaWait = undefined;
+            done();
+        };
+        const cancel = () => { cancelled = true; finish(); };
+        releaseCaptchaWait = cancel;
+
+        if (!GiftActions?.redeemGiftCode) {
+            void giftType.then(t => notifyFailure(request, "captcha handler unavailable", t)).finally(finish);
+            return;
+        }
+
+        try {
+            GiftActions.redeemGiftCode({
+                code: request.code,
+                onRedeemed: async () => {
+                    try {
+                        if (!cancelled) notifySuccess(request, await giftType);
+                    } finally {
+                        finish();
+                    }
+                },
+                onError: async () => {
+                    try {
+                        if (!cancelled) notifyFailure(request, "failed after captcha", await giftType);
+                    } finally {
+                        finish();
+                    }
+                }
+            });
+        } catch (e) {
+            err("captcha flow failed", e);
+            void giftType.then(t => { if (!cancelled) notifyFailure(request, "captcha flow failed", t); }).finally(finish);
+        }
+    });
+}
+
+async function redeemCode(request: ClaimRequest, retries = 0, giftTypePromise?: Promise<string | null>) {
+    if (retries === 0) attempts++;
     let pendingGiftType: Promise<string | null>;
 
-    if (settings.store.prevalidate) {
+    if (retries === 0 && settings.store.prevalidate) {
         const pre = await precheck(request.code);
-        resolvedGiftType = pre.giftType;
         pendingGiftType = Promise.resolve(pre.giftType);
         if (!pre.ok) { notifyFailure(request, pre.reason ?? "invalid", pre.giftType); return; }
     } else {
@@ -550,36 +611,35 @@ async function redeemCode(request: ClaimRequest, isRetry = false, giftTypePromis
         pendingGiftType = giftTypePromise ?? (needsGiftType ? fetchGiftType(request.code) : Promise.resolve(null));
     }
 
-    if (settings.store.delay > 0) await sleep(settings.store.delay);
+    if (retries === 0 && settings.store.delay > 0) await sleep(settings.store.delay);
+
+    let redeemed = false;
     try {
         await RestAPI.post({
             url: `/entitlements/gift-codes/${request.code}/redeem`,
             body: request.channelId ? { channel_id: request.channelId } : {}
         });
-        resolvedGiftType = resolvedGiftType ?? await pendingGiftType;
-        notifySuccess(request, resolvedGiftType, voidSolverTask);
+        redeemed = true;
     } catch (e: any) {
         if (isCaptchaError(e?.body)) {
-            warn(`captcha detected for ${request.code}`);
-            showToast({ text: "NitroSniper: captcha - solving automatically...", variant: "critical" });
-            GiftActions?.redeemGiftCode?.({
-                code: request.code,
-                onRedeemed: async () => notifySuccess(request, resolvedGiftType ?? await pendingGiftType, voidSolverTask),
-                onError: async () => notifyFailure(request, "failed after captcha", resolvedGiftType ?? await pendingGiftType, voidSolverTask)
-            });
+            warn(`captcha required for ${request.code}`);
+            showToast({ text: "NitroSniper: captcha required...", variant: "critical" });
+            await waitForCaptchaFlow(request, pendingGiftType);
             return;
         }
-        if (e?.status === 429) {
+        if (e?.status === 429 && retries < MAX_RATE_LIMIT_RETRIES) {
             const retryAfter = ((e?.body?.retry_after ?? 5) * 1000) + 250;
-            warn(`rate limited, retrying ${request.code} in ${retryAfter}ms`);
+            warn(`rate limited, retry ${retries + 1}/${MAX_RATE_LIMIT_RETRIES} for ${request.code} in ${retryAfter}ms`);
             showToast({ text: `NitroSniper: rate limited, retrying in ${Math.ceil(retryAfter / 1000)}s...`, variant: "critical" });
             await sleep(retryAfter);
-            await redeemCode(request, true, pendingGiftType);
+            await redeemCode(request, retries + 1, pendingGiftType);
             return;
         }
-        resolvedGiftType = resolvedGiftType ?? await pendingGiftType;
-        notifyFailure(request, e?.body?.message ?? "unknown error", resolvedGiftType);
+        notifyFailure(request, e?.body?.message ?? (e?.status === 429 ? "rate limited" : "unknown error"), await pendingGiftType);
+        return;
     }
+
+    if (redeemed) notifySuccess(request, await pendingGiftType);
 }
 
 async function processQueue() {
@@ -588,7 +648,14 @@ async function processQueue() {
     try {
         while (queue.length) {
             const item = queue.shift()!;
-            await redeemCode(item);
+            current = item;
+            try {
+                await redeemCode(item);
+            } catch (e) {
+                err("redeem crashed", e);
+            } finally {
+                current = undefined;
+            }
             if (queue.length) await sleep(jitter(5, 25));
         }
     } finally {
@@ -622,6 +689,10 @@ async function listenForNightyAltGifts() {
         while (listenerId === altListenerId) {
             const detection = await native.waitForNightyGiftCode();
             if (!detection || listenerId !== altListenerId) return;
+            if (!settings.store.nightyDetection) {
+                void native.stopNightyAltDetection();
+                return;
+            }
             enqueueNightyDetection(detection);
         }
     } catch (e) {
@@ -654,20 +725,27 @@ export default definePlugin({
             : captchaProvider === "voidsolver"
                 ? settings.store.voidSolverApiKey.trim()
                 : settings.store.noneCapApiKey.trim();
-        if (!claiming || !apiKey || props.captchaService !== "hcaptcha" || !native) {
+        const request = current;
+        if (!request || !apiKey || props.captchaService !== "hcaptcha" || !native) {
             return showCaptcha(props);
         }
 
-        const result = await native.solveCaptcha(
-            captchaProvider,
-            apiKey,
-            captchaProvider === "voidsolver" ? settings.store.voidSolverProxy.trim() || undefined : undefined,
-            props.sitekey,
-            props.options.rqdata,
-            `${location.origin}/channels/@me`,
-            navigator.userAgent
-        );
-        voidSolverTask = result.task;
+        let result: Awaited<ReturnType<typeof native.solveCaptcha>>;
+        try {
+            result = await native.solveCaptcha(
+                captchaProvider,
+                apiKey,
+                captchaProvider === "voidsolver" ? settings.store.voidSolverProxy.trim() || undefined : undefined,
+                props.sitekey,
+                props.options.rqdata,
+                `${location.origin}/channels/@me`,
+                navigator.userAgent
+            );
+        } catch (e) {
+            err("native captcha call failed", e);
+            return showCaptcha(props);
+        }
+        request.task = result.task;
         if (!result.success || !result.token) {
             warn(result.error ?? "captcha solve failed");
             return showCaptcha(props);
@@ -682,10 +760,25 @@ export default definePlugin({
 
     start() {
         resetState();
+        (globalThis as any).NitroSniper = {
+            stats: () => ({
+                attempts,
+                successes,
+                queued: queue.length,
+                seen: seen.size,
+                processing: claiming,
+                current: current ? `${current.code.slice(0, 6)}...` : null,
+                uptimeSeconds: Math.round((Date.now() - startTime) / 1000)
+            }),
+            queue: () => queue.map(q => `${q.code.slice(0, 6)}...`),
+            clearSeen: () => seen.clear(),
+            logs: (on = true) => { settings.store.debugLogs = !!on; }
+        };
         void listenForNightyAltGifts();
     },
 
     stop() {
+        delete (globalThis as any).NitroSniper;
         altListenerId++;
         const native = getNative();
         void native?.stopNightyAltDetection();
