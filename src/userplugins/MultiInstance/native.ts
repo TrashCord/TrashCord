@@ -9,7 +9,7 @@ import { prepareSession } from "../DiscordHardened/nativeSession";
 import { addContentPolicy } from "../DiscordHardened/policy";
 import { RendererSettings } from "@main/settings";
 import { app, BrowserWindow, nativeImage, session, shell } from "electron";
-import TrashCordIcon from "file://../../../browser/icon.png?base64";
+import DiscordIcon from "file://../../../browser/icon.png?base64";
 import { join } from "path";
 
 export interface NativeResult {
@@ -38,7 +38,7 @@ const DISCORD_ATTACHMENT_HOSTS = new Set(["cdn.discordapp.com", "media.discordap
 const EXTERNAL_HOSTS = new Set(["discord.com", "ptb.discord.com", "canary.discord.com", "support.discord.com", "discord.gg"]);
 const PROFILE_ID_RE = /^[a-z0-9_-]{1,32}$/i;
 const DISCORD_USER_ID_RE = /^\d{17,20}$/;
-const TrashCord_ICON = nativeImage.createFromDataURL(`data:image/png;base64,${TrashCordIcon}`);
+const Discord_ICON = nativeImage.createFromDataURL(`data:image/png;base64,${DiscordIcon}`);
 const openWindows = new Map<string, {
     ses: Electron.Session;
     win: BrowserWindow;
@@ -288,7 +288,7 @@ export async function openInstance(
     }
 
     try {
-        const savedPartition = `persist:TrashCord-mi-${profileId}`;
+        const savedPartition = `persist:Discord-mi-${profileId}`;
         if (blockExternalTokenAccess) {
             const savedSes = session.fromPartition(savedPartition, { cache: true });
             await savedSes.clearStorageData();
@@ -298,7 +298,7 @@ export async function openInstance(
 
         const partition = saveSession
             ? savedPartition
-            : `TrashCord-mi-${profileId}-${Date.now()}`;
+            : `Discord-mi-${profileId}-${Date.now()}`;
         const ses = session.fromPartition(partition, { cache: !blockExternalTokenAccess });
         if (!await prepareSession(ses).ready)
             return { ok: false, error: "The desktop proxy could not be configured. Check DiscordHardened settings and restart Discord." };
@@ -324,7 +324,7 @@ export async function openInstance(
             autoHideMenuBar: true,
             backgroundColor: "#313338",
             darkTheme: true,
-            icon: mode === "detached" ? TrashCord_ICON : undefined,
+            icon: mode === "detached" ? Discord_ICON : undefined,
             show: false,
             webPreferences,
         });
@@ -447,7 +447,7 @@ export async function clearSavedSession(
     }
 
     try {
-        const partition = `persist:TrashCord-mi-${profileId}`;
+        const partition = `persist:Discord-mi-${profileId}`;
         const ses = session.fromPartition(partition, { cache: true });
 
         await ses.clearStorageData();
