@@ -19,13 +19,24 @@ interface ThreadFilters {
     tagMode: "or" | "and";
 }
 
+interface Suggestion {
+    value: string;
+    count: number;
+}
+
 const DEFAULT_FILTERS: ThreadFilters = { sort: "native", status: "all", author: "", query: "", tags: [], tagMode: "or" };
+const SORTS: [SortMode, string][] = [["native", "Default"], ["newest", "Newest"], ["oldest", "Oldest"], ["active", "Recently active"]];
 
 let state: ThreadFilters = DEFAULT_FILTERS;
-const listeners = new Set<() => void>();
-
-const counts = { raw: [0, 0, 0], shown: [0, 0, 0] };
+let countsVersion = 0;
 let loadMore: (() => void) | null = null;
+
+const listeners = new Set<() => void>();
+const countListeners = new Set<() => void>();
+const counts = { raw: [0, 0, 0], shown: [0, 0, 0] };
+
+const getState = () => state;
+const getVersion = () => countsVersion;
 
 function setLoader(fn: any) {
     loadMore = typeof fn === "function" ? fn : null;
@@ -33,7 +44,9 @@ function setLoader(fn: any) {
 }
 
 function setFilters(changes: Partial<ThreadFilters>) {
-    state = { ...state, ...changes };
+    const next = { ...state, ...changes };
+    if ((Object.keys(next) as (keyof ThreadFilters)[]).every(k => next[k] === state[k])) return;
+    state = next;
     listeners.forEach(l => l());
 }
 
@@ -42,8 +55,13 @@ function subscribe(listener: () => void) {
     return () => { listeners.delete(listener); };
 }
 
+function subscribeCounts(listener: () => void) {
+    countListeners.add(listener);
+    return () => { countListeners.delete(listener); };
+}
+
 function useFilters(): ThreadFilters {
-    return (React as any).useSyncExternalStore(subscribe, () => state);
+    return (React as any).useSyncExternalStore(subscribe, getState);
 }
 
 function snowflakeTime(id?: string | null): number {
@@ -55,140 +73,152 @@ function snowflakeTime(id?: string | null): number {
     }
 }
 
-function matchesAuthor(thread: any, search: string): boolean {
-    const term = search.trim().toLowerCase();
-    if (!term) return true;
-
-    const id = String(thread.ownerId ?? thread.owner_id ?? "");
-    if (!id) return false;
-
-    const me = UserStore.getCurrentUser()?.id;
-    if ((term === "me" || term === "@me") && me) return id === me;
-
-    if (id.includes(term)) return true;
-
-    const user: any = UserStore.getUser(id);
-    const guildId = String(thread.guild_id ?? thread.guildId ?? "");
-    const member: any = guildId ? (GuildMemberStore as any).getMember?.(guildId, id) : null;
-
-    return [user?.username, user?.globalName, member?.nick].some(v => String(v ?? "").toLowerCase().includes(term));
-}
-
-function matchesThread(threadId: string, f: ThreadFilters): boolean {
-    const thread: any = ChannelStore.getChannel(threadId);
-    if (!thread) return false;
-
-    if (!matchesAuthor(thread, f.author)) return false;
-
-    const locked = thread.threadMetadata?.locked === true;
-    if (f.status === "locked" && !locked) return false;
-    if (f.status === "open" && locked) return false;
-
-    const q = f.query.trim().toLowerCase();
-    if (q && !String(thread.name ?? "").toLowerCase().includes(q)) return false;
-
-    if (f.tags.length) {
-        const applied: string[] = thread.appliedTags ?? [];
-        const ok = f.tagMode === "and"
-            ? f.tags.every(t => applied.includes(t))
-            : f.tags.some(t => applied.includes(t));
-        if (!ok) return false;
-    }
-
-    return true;
-}
-
-function isPinned(id: string): boolean {
-    const c: any = ChannelStore.getChannel(id);
-    return ((c?.flags ?? 0) & 2) !== 0;
-}
-
 function isDefaultFilters(f: ThreadFilters) {
     return f.sort === "native" && f.status === "all" && !f.author.trim() && !f.query.trim() && !f.tags.length;
 }
 
-function processList(list: string[], f: ThreadFilters): string[] {
+function makePredicate(f: ThreadFilters) {
+    const q = f.query.trim().toLowerCase();
+    const a = f.author.trim().toLowerCase();
+    const me = a === "me" || a === "@me" ? UserStore.getCurrentUser()?.id : null;
+    const all = f.tagMode === "and";
+
+    return (id: string): boolean => {
+        const t: any = ChannelStore.getChannel(id);
+        if (!t) return false;
+
+        if (f.status !== "all" && (t.threadMetadata?.locked === true) !== (f.status === "locked")) return false;
+        if (q && !String(t.name ?? "").toLowerCase().includes(q)) return false;
+
+        if (f.tags.length) {
+            const applied: string[] = t.appliedTags ?? [];
+            if (!(all ? f.tags.every(x => applied.includes(x)) : f.tags.some(x => applied.includes(x)))) return false;
+        }
+
+        if (a) {
+            const owner = String(t.ownerId ?? t.owner_id ?? "");
+            if (!owner) return false;
+            if (me) return owner === me;
+            if (!owner.includes(a)) {
+                const u: any = UserStore.getUser(owner);
+                const gid = String(t.guild_id ?? t.guildId ?? "");
+                const m: any = gid ? (GuildMemberStore as any).getMember?.(gid, owner) : null;
+                if (![u?.username, u?.globalName, m?.nick].some(v => String(v ?? "").toLowerCase().includes(a))) return false;
+            }
+        }
+
+        return true;
+    };
+}
+
+function processList(list: any[], f: ThreadFilters): any[] {
     if (isDefaultFilters(f)) return list;
 
-    let out = list.filter(id => typeof id !== "string" || matchesThread(id, f));
+    const ok = makePredicate(f);
+    const out = list.filter(id => typeof id !== "string" || ok(id));
+    if (f.sort === "native") return out;
 
-    if (f.sort !== "native") {
-        out = [...out].sort((a, b) => {
-            const pa = isPinned(a), pb = isPinned(b);
-            if (pa !== pb) return pa ? -1 : 1;
-            if (f.sort === "newest") return snowflakeTime(b) - snowflakeTime(a);
-            if (f.sort === "oldest") return snowflakeTime(a) - snowflakeTime(b);
-            const ca: any = ChannelStore.getChannel(a);
-            const cb: any = ChannelStore.getChannel(b);
-            return snowflakeTime(cb?.lastMessageId ?? b) - snowflakeTime(ca?.lastMessageId ?? a);
-        });
-    }
+    const keyed = out.map(id => {
+        const c: any = typeof id === "string" ? ChannelStore.getChannel(id) : null;
+        return {
+            id,
+            pin: ((c?.flags ?? 0) & 2) !== 0,
+            time: snowflakeTime(f.sort === "active" ? c?.lastMessageId ?? id : id)
+        };
+    });
 
-    return out;
+    const dir = f.sort === "oldest" ? 1 : -1;
+    keyed.sort((x, y) => x.pin !== y.pin ? (x.pin ? -1 : 1) : (x.time - y.time) * dir);
+    return keyed.map(k => k.id);
 }
 
 function useFiltered(list: any, slot: number) {
     const f = useFilters();
     const out: any = React.useMemo(() => Array.isArray(list) ? processList(list, f) : list, [list, f]);
-    if (Array.isArray(list)) {
-        counts.raw[slot] = list.length;
-        counts.shown[slot] = out.length;
-    }
+    const rawLen = Array.isArray(list) ? list.length : -1;
+    const shownLen = Array.isArray(out) ? out.length : -1;
+
+    React.useEffect(() => {
+        if (rawLen < 0) return;
+        if (counts.raw[slot] === rawLen && counts.shown[slot] === shownLen) return;
+        counts.raw[slot] = rawLen;
+        counts.shown[slot] = shownLen;
+        countsVersion++;
+        countListeners.forEach(l => l());
+    }, [rawLen, shownLen, slot]);
+
     return out;
 }
 
+function getSuggestions(channelId: string, kind: "author" | "title", query: string): Suggestion[] {
+    const term = query.trim().toLowerCase();
+    if (term.length < 2) return [];
+
+    const threads: any[] = (ChannelStore as any).getAllThreadsForParent?.(channelId) ?? [];
+    const entries = new Map<string, number>();
+
+    for (const thread of threads) {
+        if (!thread) continue;
+
+        let value: string;
+        if (kind === "title") {
+            value = String(thread.name ?? "").trim();
+        } else {
+            const id = String(thread.ownerId ?? "");
+            const user: any = id ? UserStore.getUser(id) : null;
+            value = String(user?.username ?? user?.globalName ?? id).trim();
+        }
+        if (!value) continue;
+
+        const key = value.toLowerCase();
+        if (key.includes(term)) entries.set(key, (entries.get(key) ?? 0) + 1);
+    }
+
+    return [...entries.entries()]
+        .sort((a, b) => {
+            const aStarts = a[0].startsWith(term);
+            const bStarts = b[0].startsWith(term);
+            if (aStarts !== bStarts) return aStarts ? -1 : 1;
+            return b[1] - a[1] || a[0].localeCompare(b[0]);
+        })
+        .slice(0, 5)
+        .map(([value, count]) => ({ value, count }));
+}
+
 const CSS = `
-.ftt-root{position:sticky;top:0;z-index:20;max-height:60vh;overflow-y:auto!important;background:var(--background-base-lowest,#121214);border:1px solid rgba(255,255,255,0.08);border-radius:16px;margin:8px 0 14px;color:#f2f3f5;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.25)}
-@keyframes ftt-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-@keyframes ftt-spin{to{transform:rotate(360deg)}}
-.ftt-spin{animation:ftt-spin .9s linear infinite}
-.ftt-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;transition:background .15s}
-.ftt-head:hover{background:rgba(255,255,255,0.04)}
+.ftt-root{position:sticky;top:0;z-index:20;max-height:60vh;overflow-y:auto;background:var(--background-base-lowest,#121214);border:1px solid rgba(255,255,255,.08);border-radius:16px;margin:8px 0 14px;color:#f2f3f5}
+.ftt-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.ftt-head:hover{background:rgba(255,255,255,.04)}
 .ftt-title{font-weight:700;font-size:15px}
-.ftt-badge{background:#5865f2;color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;animation:ftt-pop .2s ease both}
-@keyframes ftt-pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
-.ftt-summary{margin-left:auto;color:#b5bac1;font-size:13px}
-.ftt-chev{transition:transform .25s ease;color:#b5bac1}
+.ftt-badge{background:#5865f2;color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700}
+.ftt-summary{margin-left:auto;display:inline-flex;align-items:center;color:#b5bac1;font-size:13px;font-variant-numeric:tabular-nums}
+.ftt-summary.busy{color:#dbdee1}
+.ftt-dot{width:7px;height:7px;border-radius:50%;background:#5865f2;margin-right:7px}
+.ftt-chev{display:flex;color:#b5bac1}
 .ftt-chev.closed{transform:rotate(-90deg)}
-.ftt-collapse{display:grid;grid-template-rows:1fr;transition:grid-template-rows .28s ease}
-.ftt-collapse.closed{grid-template-rows:0fr}
-.ftt-collapse>div{overflow:hidden;min-height:0}
+.ftt-progress{height:2px;background:linear-gradient(90deg,transparent,#5865f2,transparent)}
 .ftt-body{padding:4px 16px 16px;display:flex;flex-direction:column;gap:12px}
 .ftt-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ftt-label{display:flex;align-items:center;gap:6px;color:#b5bac1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;min-width:64px}
-.ftt-input{flex:1 1 200px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0 10px;height:38px;color:#b5bac1;transition:border-color .15s,box-shadow .15s,background .15s}
-.ftt-input:focus-within{border-color:#5865f2;box-shadow:0 0 0 3px rgba(88,101,242,.28);color:#fff;background:rgba(0,0,0,0.5)}
+.ftt-input{flex:1 1 200px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:0 10px;height:38px;color:#b5bac1}
+.ftt-input:focus-within{border-color:#5865f2;color:#fff;background:rgba(0,0,0,.5)}
 .ftt-input input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:#f2f3f5;font-size:14px;height:100%}
 .ftt-input input::placeholder{color:#80848e}
-.ftt-x{display:flex;background:transparent;border:none;color:#b5bac1;cursor:pointer;border-radius:50%;padding:3px;transition:background .15s,color .15s}
+.ftt-x{display:flex;color:#b5bac1;cursor:pointer;border-radius:50%;padding:3px}
 .ftt-x:hover{background:rgba(255,255,255,.12);color:#fff}
-.ftt-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.07);color:#f2f3f5;border:1px solid rgba(255,255,255,0.06);border-radius:999px;padding:5px 13px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .18s,color .18s,transform .1s,box-shadow .18s,border-color .18s}
-.ftt-btn:hover{background:rgba(255,255,255,0.14)}
-.ftt-btn:active{transform:scale(.95)}
-.ftt-btn.on{background:#5865f2;border-color:#5865f2;color:#fff;box-shadow:0 2px 8px rgba(88,101,242,.4)}
-.ftt-btn.on:hover{background:#4752c4}
-.ftt-btn.primary{background:#5865f2;border-color:#5865f2;color:#fff}
-.ftt-btn.primary:hover{background:#4752c4}
+.ftt-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);color:#f2f3f5;border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:5px 13px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;user-select:none}
+.ftt-btn:hover{background:rgba(255,255,255,.14)}
+.ftt-btn.on,.ftt-btn.primary{background:#5865f2;border-color:#5865f2;color:#fff}
+.ftt-btn.on:hover,.ftt-btn.primary:hover{background:#4752c4}
 .ftt-btn.danger:hover{background:rgba(218,55,60,.85)}
 .ftt-tagimg{width:16px;height:16px;border-radius:3px;object-fit:contain}
-.ftt-summary{display:inline-flex;align-items:center;font-variant-numeric:tabular-nums;transition:color .2s}
-.ftt-summary.busy{color:#dbdee1}
-.ftt-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#5865f2;margin-right:7px;animation:ftt-pulse 1s ease-in-out infinite}
-@keyframes ftt-pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
-.ftt-progress{height:2px;overflow:hidden;opacity:0;transition:opacity .3s ease;background:rgba(255,255,255,.05)}
-.ftt-progress.on{opacity:1}
-.ftt-progress>span{display:block;height:100%;width:35%;background:linear-gradient(90deg,transparent,#5865f2,transparent);animation:ftt-slide 1.1s ease-in-out infinite}
-@keyframes ftt-slide{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
-@media (prefers-reduced-motion:reduce){.ftt-dot,.ftt-progress>span{animation:none!important}}
-
-.ftt-autocomplete{position:relative;flex:0 1 240px;width:240px;min-width:180px;max-width:240px;box-sizing:border-box;display:flex;flex-direction:column}
+.ftt-autocomplete{flex:0 1 240px;width:240px;min-width:180px;max-width:240px;box-sizing:border-box;display:flex;flex-direction:column}
 .ftt-autocomplete>.ftt-input{flex:none;width:100%;box-sizing:border-box}
-.ftt-suggestions{position:static;width:100%;box-sizing:border-box;max-height:132px;overflow-y:auto;overscroll-behavior:contain;margin-top:4px;padding:2px 0;background:transparent;border:0;border-top:1px solid rgba(255,255,255,.08);scrollbar-width:thin}
-.ftt-suggestion{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:4px 8px;border:0;border-radius:5px;background:transparent;color:#b5bac1;text-align:left;cursor:pointer;font:inherit;font-size:12px;line-height:16px}
-.ftt-suggestion:hover,.ftt-suggestion.active{background:rgba(255,255,255,.07);color:#fff}
+.ftt-suggestions{width:100%;box-sizing:border-box;max-height:132px;overflow-y:auto;overscroll-behavior:contain;margin-top:4px;padding:2px 0;border-top:1px solid rgba(255,255,255,.08);scrollbar-width:thin}
+.ftt-suggestion{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:4px 8px;border-radius:5px;color:#b5bac1;cursor:pointer;font-size:12px;line-height:16px;box-sizing:border-box}
+.ftt-suggestion.active{background:rgba(255,255,255,.07);color:#fff}
 .ftt-suggestion-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ftt-suggestion-count{flex-shrink:0;color:#80848e;font-size:10px}
-@media (prefers-reduced-motion:reduce){.ftt-root,.ftt-badge,.ftt-collapse,.ftt-chev,.ftt-btn{animation:none!important;transition:none!important}}
 `;
 
 function Icon({ children, size = 16 }: { children: React.ReactNode; size?: number; }) {
@@ -209,80 +239,37 @@ const XIcon = () => <Icon size={14}><path d="M6 6l12 12M18 6L6 18" /></Icon>;
 const ChevIcon = () => <Icon size={18}><path d="M6 9l6 6 6-6" /></Icon>;
 const FilterIcon = () => <Icon size={18}><path d="M3 5h18l-7 8v6l-4 2v-8z" /></Icon>;
 const DownloadIcon = () => <Icon><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></Icon>;
-const LoaderIcon = () => <span className="ftt-spin" style={{ display: "inline-flex" }}><Icon><path d="M21 12a9 9 0 11-6.2-8.6" /></Icon></span>;
+const LoaderIcon = () => <Icon><path d="M21 12a9 9 0 11-6.2-8.6" /></Icon>;
+
+function press(onClick: () => void) {
+    return (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+        }
+    };
+}
 
 function Btn({ active, onClick, className = "", children }: { active?: boolean; onClick: () => void; className?: string; children: React.ReactNode; }) {
     return (
-        <button type="button" className={"ftt-btn " + (active ? "on " : "") + className} onClick={onClick}>
+        <div role="button" tabIndex={0} className={"ftt-btn " + (active ? "on " : "") + className} onClick={onClick} onKeyDown={press(onClick)}>
             {children}
-        </button>
+        </div>
     );
 }
 
-interface Suggestion {
-    value: string;
-    count: number;
-}
-
-function getSuggestions(channelId: string, kind: "author" | "title", query: string): Suggestion[] {
-    const channelStore: any = ChannelStore;
-    const threads: any[] = channelStore.getAllThreadsForParent?.(channelId) ?? [];
-    const entries = new Map<string, number>();
-    const term = query.trim().toLowerCase();
-    if (term.length < 2) return [];
-
-    for (const thread of threads) {
-        if (!thread) continue;
-
-        let value = "";
-
-        if (kind === "title") {
-            value = String(thread.name ?? "").trim();
-        } else {
-            const id = String(thread.ownerId ?? "");
-            const user: any = id ? UserStore.getUser(id) : null;
-            value = String(user?.username ?? user?.globalName ?? id).trim();
-        }
-
-        if (!value) continue;
-
-        const key = value.toLowerCase();
-        entries.set(key, (entries.get(key) ?? 0) + 1);
-    }
-
-    return [...entries.entries()]
-        .filter(([key]) => !term || key.includes(term))
-        .sort((a, b) => {
-            const aStarts = a[0].startsWith(term);
-            const bStarts = b[0].startsWith(term);
-            if (aStarts !== bStarts) return aStarts ? -1 : 1;
-            return b[1] - a[1] || a[0].localeCompare(b[0]);
-        })
-        .slice(0, 5)
-        .map(([value, count]) => ({ value, count }));
-}
-
-function AutoCompleteField({
-    icon, value, placeholder, label, onChange, suggestions
-}: {
+function Field({ icon, value, placeholder, label, channelId, kind, raw, onChange }: {
     icon: React.ReactNode;
     value: string;
     placeholder: string;
     label: string;
+    channelId: string;
+    kind: "author" | "title";
+    raw: number;
     onChange: (v: string) => void;
-    suggestions: Suggestion[];
 }) {
     const [open, setOpen] = React.useState(false);
     const [active, setActive] = React.useState(0);
-    const [ready, setReady] = React.useState(false);
-
-    React.useEffect(() => {
-        setReady(false);
-        if (value.trim().length < 2) return;
-
-        const timer = setTimeout(() => setReady(true), 300);
-        return () => clearTimeout(timer);
-    }, [value]);
 
     const choose = (item: Suggestion) => {
         onChange(item.value);
@@ -290,10 +277,28 @@ function AutoCompleteField({
         setActive(0);
     };
 
-    const visible = open && ready && value.trim().length >= 2 && suggestions.length > 0 && !(suggestions.length === 1 && suggestions[0].value === value.trim().toLowerCase());
+    const suggestions = React.useMemo(() => open ? getSuggestions(channelId, kind, value) : [], [open, channelId, kind, value, raw]);
+    const visible = open && suggestions.length > 0 && !(suggestions.length === 1 && suggestions[0].value === value.trim().toLowerCase());
+
+    const onKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "ArrowDown" && suggestions.length) {
+            e.preventDefault();
+            setOpen(true);
+            setActive(n => (n + 1) % suggestions.length);
+        } else if (e.key === "ArrowUp" && suggestions.length) {
+            e.preventDefault();
+            setOpen(true);
+            setActive(n => (n - 1 + suggestions.length) % suggestions.length);
+        } else if (e.key === "Enter" && visible) {
+            e.preventDefault();
+            choose(suggestions[active] ?? suggestions[0]);
+        } else if (e.key === "Escape") {
+            setOpen(false);
+        }
+    };
 
     return (
-        <div className="ftt-autocomplete">
+        <div className="ftt-autocomplete" onMouseLeave={() => setOpen(false)}>
             <label className="ftt-input">
                 {icon}
                 <input
@@ -308,147 +313,72 @@ function AutoCompleteField({
                         setActive(0);
                         setOpen(true);
                     }}
-                    onKeyDown={e => {
-                        if (e.key === "ArrowDown" && suggestions.length) {
-                            e.preventDefault();
-                            setOpen(true);
-                            setActive(n => (n + 1) % suggestions.length);
-                        } else if (e.key === "ArrowUp" && suggestions.length) {
-                            e.preventDefault();
-                            setOpen(true);
-                            setActive(n => (n - 1 + suggestions.length) % suggestions.length);
-                        } else if (e.key === "Enter" && visible) {
-                            e.preventDefault();
-                            choose(suggestions[active] ?? suggestions[0]);
-                        } else if (e.key === "Escape") {
-                            setOpen(false);
-                        }
-                    }}
+                    onKeyDown={onKeyDown}
                 />
                 {value && (
-                    <button type="button" className="ftt-x" aria-label="Clear"
-                        onClick={() => { onChange(""); setOpen(true); }}>
+                    <div role="button" tabIndex={0} className="ftt-x" aria-label="Clear"
+                        onClick={() => onChange("")}
+                        onKeyDown={press(() => onChange(""))}>
                         <XIcon />
-                    </button>
+                    </div>
                 )}
             </label>
 
             {visible && (
                 <div className="ftt-suggestions" role="listbox">
                     {suggestions.map((item, index) => (
-                        <button
-                            type="button"
+                        <div
                             role="option"
                             aria-selected={index === active}
                             className={"ftt-suggestion" + (index === active ? " active" : "")}
                             key={item.value}
                             onMouseEnter={() => setActive(index)}
-                            onMouseDown={e => e.preventDefault()}
                             onClick={() => choose(item)}
                         >
                             <span className="ftt-suggestion-name">{item.value}</span>
                             <span className="ftt-suggestion-count">{item.count}</span>
-                        </button>
+                        </div>
                     ))}
                 </div>
             )}
         </div>
     );
 }
-const toolbarMemory = { channelId: "", open: true, loading: false, done: false };
 
-function Toolbar({ channelId }: { channelId: string; }) {
+function ToolbarBody({ channelId }: { channelId: string; }) {
     const f = useFilters();
-    if (toolbarMemory.channelId !== channelId) {
-        toolbarMemory.channelId = channelId;
-        toolbarMemory.loading = false;
-        toolbarMemory.done = false;
-    }
+    (React as any).useSyncExternalStore(subscribeCounts, getVersion);
 
-    const [open, setOpenState] = React.useState(toolbarMemory.open);
-    const setOpen = (fn: (o: boolean) => boolean) => setOpenState(o => {
-        const next = fn(o);
-        toolbarMemory.open = next;
-        return next;
-    });
-
-    const [loading, setLoadingState] = React.useState(toolbarMemory.loading);
-    const setLoading = (v: boolean | ((l: boolean) => boolean)) => setLoadingState(prev => {
-        const next = typeof v === "function" ? v(prev) : v;
-        toolbarMemory.loading = next;
-        return next;
-    });
-
-    const [doneAll, setDoneAllState] = React.useState(toolbarMemory.done);
-    const setDoneAll = (v: boolean) => {
-        toolbarMemory.done = v;
-        setDoneAllState(v);
-    };
-    const [, force] = React.useState(0);
+    const [open, setOpen] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
+    const [done, setDone] = React.useState(false);
 
     const channel: any = ChannelStore.getChannel(channelId);
     const availableTags: any[] = channel?.availableTags ?? [];
-    const threadCount: number = ((ChannelStore as any).getAllThreadsForParent?.(channelId) ?? []).length;
-    const authorSuggestions = React.useMemo(() => getSuggestions(channelId, "author", f.author), [channelId, f.author, threadCount]);
-    const titleSuggestions = React.useMemo(() => getSuggestions(channelId, "title", f.query), [channelId, f.query, threadCount]);
-
-    const lastChange = React.useRef(0);
-
-    React.useEffect(() => {
-        let lastRaw = counts.raw[0] + counts.raw[1];
-        let lastShown = counts.shown[0] + counts.shown[1];
-        let wasBusy = false;
-
-        const t = setInterval(() => {
-            const rawNow = counts.raw[0] + counts.raw[1];
-            const shownNow = counts.shown[0] + counts.shown[1];
-            let changed = false;
-
-            if (rawNow !== lastRaw) {
-                lastRaw = rawNow;
-                lastChange.current = Date.now();
-                toolbarMemory.done = false;
-                setDoneAllState(false);
-                changed = true;
-            }
-            if (shownNow !== lastShown) {
-                lastShown = shownNow;
-                changed = true;
-            }
-
-            const busyNow = Date.now() - lastChange.current < 2000;
-            if (busyNow !== wasBusy) {
-                wasBusy = busyNow;
-                changed = true;
-            }
-
-            if (changed) force(n => n + 1);
-        }, 400);
-
-        return () => clearInterval(t);
-    }, []);
+    const raw = counts.raw[0] + counts.raw[1];
+    const shown = counts.shown[0] + counts.shown[1];
 
     React.useEffect(() => {
         if (!loading) return;
-        let last = counts.raw[0] + counts.raw[1];
-        let stale = 0;
-        const t = setInterval(() => {
-            const now = counts.raw[0] + counts.raw[1];
-            stale = now === last ? stale + 1 : 0;
-            last = now;
-            if (stale >= 4 || !loadMore) {
-                setDoneAll(stale >= 4);
-                setLoading(false);
-                return;
-            }
-            try { loadMore(); } catch { setLoading(false); }
-        }, 700);
-        return () => clearInterval(t);
-    }, [loading]);
+        if (!loadMore) {
+            setLoading(false);
+            return;
+        }
 
-    const raw = counts.raw[0] + counts.raw[1];
-    const shown = counts.shown[0] + counts.shown[1];
-    const busy = loading || Date.now() - lastChange.current < 2000;
+        const timer = setTimeout(() => {
+            setDone(true);
+            setLoading(false);
+        }, 2500);
+
+        try {
+            loadMore();
+        } catch {
+            clearTimeout(timer);
+            setLoading(false);
+        }
+
+        return () => clearTimeout(timer);
+    }, [loading, raw]);
 
     const activeCount =
         (f.query.trim() ? 1 : 0) + (f.author.trim() ? 1 : 0) + f.tags.length +
@@ -458,77 +388,76 @@ function Toolbar({ channelId }: { channelId: string; }) {
         tags: f.tags.includes(id) ? f.tags.filter(t => t !== id) : [...f.tags, id]
     });
 
-    const sorts: [SortMode, string][] = [["native", "Default"], ["newest", "Newest"], ["oldest", "Oldest"], ["active", "Recently active"]];
-
     return (
         <div className="ftt-root">
             <style>{CSS}</style>
 
-            <div className="ftt-head" onClick={() => setOpen(o => !o)}>
+            <div className="ftt-head" onClick={() => setOpen(!open)}>
                 <FilterIcon />
                 <span className="ftt-title">Thread tools</span>
-                {activeCount > 0 && <span className="ftt-badge" key={activeCount}>{activeCount}</span>}
-                <span className={"ftt-summary" + (busy ? " busy" : "")}>
-                    {busy && <span className="ftt-dot" />}
-                    {busy ? "Loading" : doneAll ? "✓ All loaded" : "Loaded"}
-                    {" · "}
+                {activeCount > 0 && <span className="ftt-badge">{activeCount}</span>}
+                <span className={"ftt-summary" + (loading ? " busy" : "")}>
+                    {loading && <span className="ftt-dot" />}
+                    {loading ? "Loading · " : done ? "✓ All loaded · " : ""}
                     {shown === raw ? `${raw} loaded` : `${shown} matching · ${raw} loaded`}
                 </span>
                 <span className={"ftt-chev" + (open ? "" : " closed")}><ChevIcon /></span>
             </div>
 
-            <div className={"ftt-progress" + (busy ? " on" : "")}><span /></div>
+            {loading && <div className="ftt-progress" />}
 
-            <div className={"ftt-collapse" + (open ? "" : " closed")}>
-                <div>
-                    <div className="ftt-body">
-                        <div className="ftt-row">
-                            <AutoCompleteField icon={<SearchIcon />} label="Search thread titles" placeholder="Search titles" value={f.query} onChange={v => setFilters({ query: v })} suggestions={titleSuggestions} />
-                            <AutoCompleteField icon={<UserIcon />} label="Filter by author" placeholder="Author name or user ID" value={f.author} onChange={v => setFilters({ author: v })} suggestions={authorSuggestions} />
-                        </div>
+            {open && (
+                <div className="ftt-body">
+                    <div className="ftt-row">
+                        <Field icon={<SearchIcon />} label="Search thread titles" placeholder="Search titles" value={f.query} channelId={channelId} kind="title" raw={raw} onChange={v => setFilters({ query: v })} />
+                        <Field icon={<UserIcon />} label="Filter by author" placeholder="Author name or user ID" value={f.author} channelId={channelId} kind="author" raw={raw} onChange={v => setFilters({ author: v })} />
+                    </div>
 
+                    <div className="ftt-row">
+                        <span className="ftt-label"><SortIcon /> Sort</span>
+                        {SORTS.map(([mode, text]) => (
+                            <Btn key={mode} active={f.sort === mode} onClick={() => setFilters({ sort: mode })}>{text}</Btn>
+                        ))}
+                    </div>
+
+                    <div className="ftt-row">
+                        <span className="ftt-label"><LockIcon /> Status</span>
+                        <Btn active={f.status === "all"} onClick={() => setFilters({ status: "all" })}>All</Btn>
+                        <Btn active={f.status === "open"} onClick={() => setFilters({ status: "open" })}><UnlockIcon /> Unlocked</Btn>
+                        <Btn active={f.status === "locked"} onClick={() => setFilters({ status: "locked" })}><LockIcon /> Locked</Btn>
+                    </div>
+
+                    {availableTags.length > 0 && (
                         <div className="ftt-row">
-                            <span className="ftt-label"><SortIcon /> Sort</span>
-                            {sorts.map(([mode, text]) => (
-                                <Btn key={mode} active={f.sort === mode} onClick={() => setFilters({ sort: mode })}>{text}</Btn>
+                            <span className="ftt-label"><TagIcon /> Tags</span>
+                            {availableTags.map(tag => (
+                                <Btn key={tag.id} active={f.tags.includes(tag.id)} onClick={() => toggleTag(tag.id)}>
+                                    {tag.emojiId
+                                        ? <img className="ftt-tagimg" src={`https://cdn.discordapp.com/emojis/${tag.emojiId}.webp?size=32`} alt="" />
+                                        : tag.emojiName ? <span>{tag.emojiName}</span> : null}
+                                    {tag.name}
+                                </Btn>
                             ))}
+                            <span className="ftt-label" style={{ minWidth: 0, marginLeft: 8 }}>Match</span>
+                            <Btn active={f.tagMode === "or"} onClick={() => setFilters({ tagMode: "or" })}>Any</Btn>
+                            <Btn active={f.tagMode === "and"} onClick={() => setFilters({ tagMode: "and" })}>All</Btn>
                         </div>
+                    )}
 
-                        <div className="ftt-row">
-                            <span className="ftt-label"><LockIcon /> Status</span>
-                            <Btn active={f.status === "all"} onClick={() => setFilters({ status: "all" })}>All</Btn>
-                            <Btn active={f.status === "open"} onClick={() => setFilters({ status: "open" })}><UnlockIcon /> Unlocked</Btn>
-                            <Btn active={f.status === "locked"} onClick={() => setFilters({ status: "locked" })}><LockIcon /> Locked</Btn>
-                        </div>
-
-                        {availableTags.length > 0 && (
-                            <div className="ftt-row">
-                                <span className="ftt-label"><TagIcon /> Tags</span>
-                                {availableTags.map(tag => (
-                                    <Btn key={tag.id} active={f.tags.includes(tag.id)} onClick={() => toggleTag(tag.id)}>
-                                        {tag.emojiId
-                                            ? <img className="ftt-tagimg" src={`https://cdn.discordapp.com/emojis/${tag.emojiId}.webp?size=32`} alt="" />
-                                            : tag.emojiName ? <span>{tag.emojiName}</span> : null}
-                                        {tag.name}
-                                    </Btn>
-                                ))}
-                                <span className="ftt-label" style={{ minWidth: 0, marginLeft: 8 }}>Match</span>
-                                <Btn active={f.tagMode === "or"} onClick={() => setFilters({ tagMode: "or" })}>Any</Btn>
-                                <Btn active={f.tagMode === "and"} onClick={() => setFilters({ tagMode: "and" })}>All</Btn>
-                            </div>
-                        )}
-
-                        <div className="ftt-row">
-                            <Btn className="primary" onClick={() => { setDoneAll(false); setLoading(l => !l); }}>
-                                {loading ? <><LoaderIcon /> Stop loading</> : <><DownloadIcon /> Load all posts</>}
-                            </Btn>
-                            <Btn className="danger" onClick={() => setFilters(DEFAULT_FILTERS)}><XIcon /> Clear all</Btn>
-                        </div>
+                    <div className="ftt-row">
+                        <Btn className="primary" onClick={() => { setDone(false); setLoading(!loading); }}>
+                            {loading ? <><LoaderIcon /> Stop loading</> : <><DownloadIcon /> Load all posts</>}
+                        </Btn>
+                        <Btn className="danger" onClick={() => setFilters(DEFAULT_FILTERS)}><XIcon /> Clear all</Btn>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
+}
+
+function Toolbar({ channelId }: { channelId: string; }) {
+    return <ToolbarBody key={channelId} channelId={channelId} />;
 }
 
 export default definePlugin({
@@ -552,7 +481,6 @@ export default definePlugin({
             ]
         },
         {
-            // optional: grab Discord's own "load more posts" function so "Load all posts" can use it
             find: "threadIdsBySection",
             replacement: {
                 match: /(&&(\i)\(\)\},\[\i,\i,\i\.guild_id,\i\.id,\i,\2\]\)),/,
@@ -565,7 +493,3 @@ export default definePlugin({
     setLoader,
     Toolbar
 });
-
-
-
-
