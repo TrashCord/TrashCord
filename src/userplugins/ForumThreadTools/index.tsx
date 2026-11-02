@@ -463,7 +463,7 @@ function Toolbar({ channelId }: { channelId: string; }) {
 export default definePlugin({
     name: "ForumThreadTools",
     description: "Local sorting, author filtering, tag filtering, status filtering and title search for forum channels.",
-    authors: [{ name: "Bakhishov", id: 386421496463097857n }],
+    authors: [{ name: "Bakhishov", id: 386421496463097857n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Servers", "Organisation", "Utility"],
     enabledByDefault: false,
     patches: [
