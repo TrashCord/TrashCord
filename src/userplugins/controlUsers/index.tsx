@@ -647,7 +647,7 @@ function ToolbarButton() {
 export default definePlugin({
     name: "ControlUsers",
     description: "Allows you to make other users do specific prebuilt actions when sending message. (requires other user to have this plugin enabled)",
-    authors: [Devs.RoScripter999, { name: "zFrxncesck1", id: 456195985404592149n }],
+    authors: [Devs.RoScripter999, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Commands", "Voice", "Chat", "Utility"],
     enabledByDefault: false,
     managedStyle,
