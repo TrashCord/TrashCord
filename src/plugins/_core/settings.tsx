@@ -216,12 +216,12 @@ export default definePlugin({
                 Component: UpdaterTab,
                 Icon: UpdaterIcon
             }),
-            buildEntry({
-                key: "equicord_changelog",
-                title: "Changelog",
-                Component: ChangelogTab,
-                Icon: LogIcon,
-            }),
+            // buildEntry({
+            //     key: "equicord_changelog",
+            //     title: "Changelog",
+            //     Component: ChangelogTab,
+            //     Icon: LogIcon,
+            // }),
             buildEntry({
                 key: "equicord_cloud",
                 title: "Cloud",
@@ -235,12 +235,12 @@ export default definePlugin({
                 Component: BackupAndRestoreTab,
                 Icon: BackupRestoreIcon
             }),
-            !IS_STANDALONE && PatchHelperTab && buildEntry({
-                key: "equicord_patch_helper",
-                title: "Patch Helper",
-                Component: PatchHelperTab,
-                Icon: PatchHelperIcon
-            }),
+            // !IS_STANDALONE && PatchHelperTab && buildEntry({
+            //     key: "equicord_patch_helper",
+            //     title: "Patch Helper",
+            //     Component: PatchHelperTab,
+            //     Icon: PatchHelperIcon
+            // }),
             ...this.customEntries.map(buildEntry)
         ].filter(isTruthy);
 
