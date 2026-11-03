@@ -43,103 +43,35 @@ const settings = definePluginSettings({
 });
 
 interface TimerEntry {
-    channelId: string;
-    messageId: string;
     expiresAt: number;
     timerId: ReturnType<typeof setTimeout>;
 }
 
 const activeTimers = new Map<string, TimerEntry>();
-const timerListeners = new Set<() => void>();
-let listenerInterval: ReturnType<typeof setInterval> | null = null;
-
-function notifyListeners() {
-    for (const fn of timerListeners) {
-        try { fn(); } catch { }
-    }
-}
-
-function addTimerListener(listener: () => void) {
-    timerListeners.add(listener);
-    if (!listenerInterval) listenerInterval = setInterval(notifyListeners, 1000);
-}
-
-function removeTimerListener(listener: () => void) {
-    timerListeners.delete(listener);
-    if (timerListeners.size === 0 && listenerInterval) {
-        clearInterval(listenerInterval);
-        listenerInterval = null;
-    }
-}
 
 function scheduleDelete(channelId: string, messageId: string, delaySec: number) {
-    const expiresAt = Date.now() + delaySec * 1000;
-
     const timerId = setTimeout(() => {
+        activeTimers.delete(messageId);
         try {
             MessageActions?.deleteMessage(channelId, messageId);
         } catch (e) {
             console.error("[SelfDestruct] Delete failed:", e);
         }
-        activeTimers.delete(messageId);
-        notifyListeners();
     }, delaySec * 1000);
 
-    activeTimers.set(messageId, { channelId, messageId, expiresAt, timerId });
-    notifyListeners();
-}
-
-function cancelTimer(messageId: string) {
-    const entry = activeTimers.get(messageId);
-    if (entry) {
-        clearTimeout(entry.timerId);
-        activeTimers.delete(messageId);
-        notifyListeners();
-    }
+    activeTimers.set(messageId, { expiresAt: Date.now() + delaySec * 1000, timerId });
 }
 
 function cleanup() {
-    for (const [, entry] of activeTimers) {
-        clearTimeout(entry.timerId);
-    }
+    for (const entry of activeTimers.values()) clearTimeout(entry.timerId);
     activeTimers.clear();
-    timerListeners.clear();
-    if (listenerInterval) {
-        clearInterval(listenerInterval);
-        listenerInterval = null;
-    }
 }
 
 function TimerBadge({ messageId }: { messageId: string; }) {
-    const [remaining, setRemaining] = React.useState<number | null>(null);
+    const entry = activeTimers.get(messageId);
+    if (!entry) return null;
 
-    React.useEffect(() => {
-        function update() {
-            const entry = activeTimers.get(messageId);
-            if (!entry) {
-                setRemaining(null);
-                return;
-            }
-            const left = Math.max(0, Math.ceil((entry.expiresAt - Date.now()) / 1000));
-            setRemaining(left);
-        }
-
-        update();
-        const listener = () => update();
-        addTimerListener(listener);
-
-        return () => {
-            removeTimerListener(listener);
-        };
-    }, [messageId]);
-
-    if (remaining === null) return null;
-
-    const minutes = Math.floor(remaining / 60);
-    const seconds = remaining % 60;
-    const timeStr = minutes > 0
-        ? `${minutes}:${seconds.toString().padStart(2, "0")}`
-        : `${seconds}s`;
+    const timeStr = new Date(entry.expiresAt).toLocaleTimeString();
 
     return (
         <div
@@ -159,7 +91,7 @@ function TimerBadge({ messageId }: { messageId: string; }) {
                 userSelect: "none",
                 width: "fit-content",
             }}
-            title="SelfDestruct — this message will be deleted automatically"
+            title={`SelfDestruct - this message will be deleted automatically at ${timeStr}`}
         >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="#ed4245" strokeWidth="2" fill="none" />
@@ -182,7 +114,6 @@ function SelfDestructIcon({ active, width = 20, height = 20 }: { active?: boolea
             viewBox="0 0 24 24"
             style={{ color: active ? "#ed4245" : "currentColor" }}
         >
-            {/* Bombe / timer icon */}
             <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
             <path d="M12 9v4l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             <path d="M12 5V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -195,6 +126,11 @@ function SelfDestructIcon({ active, width = 20, height = 20 }: { active?: boolea
             )}
         </svg>
     );
+}
+
+function ReactiveIcon() {
+    const { active } = settings.use(["active"]);
+    return <SelfDestructIcon active={active} />;
 }
 
 const SelfDestructButton: ChatBarButtonFactory = ({ isMainChat }) => {
@@ -211,8 +147,8 @@ const SelfDestructButton: ChatBarButtonFactory = ({ isMainChat }) => {
     const delayStr = delaySec >= 60 ? `${Math.floor(delaySec / 60)}m${delaySec % 60 ? (delaySec % 60) + "s" : ""}` : `${delaySec}s`;
 
     const tooltip = active
-        ? `SelfDestruct: ON (${delayStr}) — click to disable`
-        : "SelfDestruct: OFF — click to enable";
+        ? `SelfDestruct: ON (${delayStr}) - click to disable`
+        : "SelfDestruct: OFF - click to enable";
 
     return (
         <ChatBarButton tooltip={tooltip} onClick={toggle}>
@@ -224,13 +160,13 @@ const SelfDestructButton: ChatBarButtonFactory = ({ isMainChat }) => {
 export default definePlugin({
     name: "SelfDestruct",
     description: "Sends messages that are automatically deleted after a configurable delay. Red timer visible on each message.",
-    authors: [{ name: "Nightcord", id: 0n }],
+    authors: [{ name: "Nightcord", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Chat", "Utility", "Privacy"],
     enabledByDefault: false,
     dependencies: ["ChatInputButtonAPI", "MessageAccessoriesAPI", "HeaderBarAPI"],
     settings,
     chatBarButton: {
-        icon: () => <SelfDestructIcon active={settings.store.active} />,
+        icon: ReactiveIcon,
         render: SelfDestructButton,
     },
 
@@ -245,12 +181,12 @@ export default definePlugin({
             if (optimistic) return;
             if (!settings.store.active) return;
             if (!message?.id || !message?.channel_id) return;
+            if (activeTimers.has(message.id)) return;
 
             const currentUser = UserStore?.getCurrentUser?.();
             if (!currentUser || message.author?.id !== currentUser.id) return;
 
-            const delaySec = settings.store.delay ?? 30;
-            scheduleDelete(message.channel_id, message.id, delaySec);
+            scheduleDelete(message.channel_id, message.id, settings.store.delay ?? 30);
         },
     },
 
@@ -259,7 +195,7 @@ export default definePlugin({
         if (location === "headerbar") {
             addHeaderBarButton("SelfDestruct", () => (
                 <HeaderBarButton
-                    icon={() => <SelfDestructIcon active={settings.store.active} />}
+                    icon={ReactiveIcon}
                     tooltip="SelfDestruct"
                     onClick={() => { settings.store.active = !settings.store.active; }}
                 />
@@ -267,7 +203,7 @@ export default definePlugin({
         } else if (location === "channeltoolbar") {
             addChannelToolbarButton("SelfDestruct", () => (
                 <ChannelToolbarButton
-                    icon={() => <SelfDestructIcon active={settings.store.active} />}
+                    icon={ReactiveIcon}
                     tooltip="SelfDestruct"
                     onClick={() => { settings.store.active = !settings.store.active; }}
                 />

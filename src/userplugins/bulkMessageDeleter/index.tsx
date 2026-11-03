@@ -19,9 +19,9 @@ const cl = classNameFactory("vc-bmd-");
 const settings = definePluginSettings({
     deleteDelay: {
         type: OptionType.SLIDER,
-        description: "Base delay between deletions (ms) - auto-retries on rate limits",
-        default: 429,
-        markers: [0, 1, 50, 100, 200, 350, 429, 500, 750, 1000],
+        description: "Extra minimum delay between deletions (ms). Rate limits are handled automatically from Discord's response headers, so 0 is fine.",
+        default: 0,
+        markers: [0, 50, 100, 250, 500, 1000],
     },
     showProgressBar: {
         type: OptionType.BOOLEAN,
@@ -59,14 +59,57 @@ const store = {
     cancelled: false,
 };
 
+let runId = 0;
+
 const subs = new Set<() => void>();
-const notify = () => subs.forEach(fn => fn());
 const busy = () => store.deleting || store.background;
+
+function notify() {
+    if (sheetDirty) flushSheet();
+    subs.forEach(fn => fn());
+}
 
 function useStore() {
     const [, bump] = useReducer((n: number) => n + 1, 0);
     useEffect(() => { subs.add(bump); return () => void subs.delete(bump); }, []);
     return store;
+}
+
+const LAYOUT_CSS = `[data-list-id="chat-messages"]{padding-bottom:64px;-webkit-user-select:none;user-select:none}`;
+const OWN_CSS = `{background:rgba(255,0,0,.12)!important;box-shadow:inset 3px 0 0 #f00!important;border-radius:4px}`;
+const OTHERS_CSS = `{background:rgba(250,166,26,.12)!important;box-shadow:inset 3px 0 0 #faa61a!important;border-radius:4px}`;
+
+let sheet: CSSStyleSheet | null = null;
+let sheetDirty = false;
+
+const markDirty = () => { sheetDirty = true; };
+
+function buildCss(): string {
+    const ch = store.channelId;
+    if (!store.active || !ch) return "";
+    const prefix = `#chat-messages-${ch}-`;
+    const own: string[] = [];
+    const oth: string[] = [];
+    for (const id of store.selected) (store.others.has(id) ? oth : own).push(prefix + id);
+    let css = LAYOUT_CSS;
+    if (own.length) css += own.join(",") + OWN_CSS;
+    if (oth.length) css += oth.join(",") + OTHERS_CSS;
+    return css;
+}
+
+function flushSheet() {
+    sheetDirty = false;
+    if (store.active) {
+        if (!sheet) {
+            sheet = new CSSStyleSheet();
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+        }
+        sheet.replaceSync(buildCss());
+    } else if (sheet) {
+        const s = sheet;
+        sheet = null;
+        document.adoptedStyleSheets = document.adoptedStyleSheets.filter(x => x !== s);
+    }
 }
 
 const myId = () => UserStore.getCurrentUser()?.id;
@@ -81,8 +124,11 @@ function canManage(channelId: string) {
 const canSelect = (msg: any) =>
     !!msg && !isLoggerDeleted(msg) && (isOwn(msg) || (settings.store.allowOthers && canManage(msg.channel_id)));
 
-const canBulk = (msg: any) =>
-    !!msg && !isLoggerDeleted(msg) && (isOwn(msg) || (store.includeOthers && settings.store.allowOthers && canManage(msg.channel_id)));
+function bulkPredicate(channelId: string) {
+    const me = myId();
+    const others = store.includeOthers && settings.store.allowOthers && canManage(channelId);
+    return (m: any) => !!m?.id && !isLoggerDeleted(m) && (m.author?.id === me || others);
+}
 
 function getMsgs(channelId: string): any[] {
     try {
@@ -91,30 +137,47 @@ function getMsgs(channelId: string): any[] {
     } catch { return []; }
 }
 
-function paint(channelId: string, id: string, value: string | null) {
-    const el = document.getElementById(`chat-messages-${channelId}-${id}`);
-    if (!el) return;
-    if (value) el.setAttribute("data-bmd-sel", value);
-    else el.removeAttribute("data-bmd-sel");
-}
-
-function clearAllDomSel() {
-    if (!store.channelId) return;
-    for (const id of store.selected) paint(store.channelId, id, null);
-}
-
-function select(channelId: string, msg: any) {
-    const mine = isOwn(msg);
+function select(msg: any) {
     store.selected.add(msg.id);
-    if (mine) store.others.delete(msg.id);
+    if (isOwn(msg)) store.others.delete(msg.id);
     else store.others.add(msg.id);
-    paint(channelId, msg.id, mine ? "1" : "2");
+    markDirty();
 }
 
-function unselect(channelId: string, id: string) {
+function unselect(id: string) {
     store.selected.delete(id);
     store.others.delete(id);
-    paint(channelId, id, null);
+    markDirty();
+}
+
+const IGNORE_SELECTOR = "a, button, [role=\"button\"], img, video, audio, input, textarea, [class*=\"reaction\"], [class*=\"embed\"], [class*=\"attachment\"], .vc-bmd-panel";
+let listening = false;
+
+function onDocumentClick(e: MouseEvent) {
+    const ch = store.channelId;
+    if (!store.active || !ch || busy()) return;
+    const target = e.target as Element | null;
+    if (!target || target.closest(IGNORE_SELECTOR)) return;
+    const msgEl = target.closest("[id^=\"chat-messages-\"]");
+    if (!msgEl) return;
+    const prefix = `chat-messages-${ch}-`;
+    if (!msgEl.id.startsWith(prefix)) return;
+    const msgId = msgEl.id.slice(prefix.length);
+    const msg = MessageStore.getMessage(ch, msgId);
+    if (!canSelect(msg)) return;
+    toggle(msgId, e.shiftKey, ch);
+}
+
+function attach() {
+    if (listening) return;
+    listening = true;
+    document.addEventListener("click", onDocumentClick, true);
+}
+
+function detach() {
+    if (!listening) return;
+    listening = false;
+    document.removeEventListener("click", onDocumentClick, true);
 }
 
 function activate(channelId?: string) {
@@ -126,12 +189,13 @@ function activate(channelId?: string) {
     store.channelId = channelId ?? store.channelId;
     store.selected.clear();
     store.others.clear();
-    document.documentElement.setAttribute("data-bmd-active", "1");
+    attach();
+    markDirty();
     notify();
 }
 
 function deactivate() {
-    clearAllDomSel();
+    detach();
     store.active = false;
     store.background = false;
     store.deleting = false;
@@ -143,7 +207,7 @@ function deactivate() {
     store.channelId = null;
     store.selected.clear();
     store.others.clear();
-    document.documentElement.removeAttribute("data-bmd-active");
+    markDirty();
     notify();
 }
 
@@ -154,8 +218,9 @@ function toggle(id: string, shift: boolean, channelId: string) {
         const a = msgs.findIndex((m: any) => m.id === store.lastSelected);
         const b = msgs.findIndex((m: any) => m.id === id);
         if (a !== -1 && b !== -1) {
+            const ok = bulkPredicate(channelId);
             const [lo, hi] = a < b ? [a, b] : [b, a];
-            for (let i = lo; i <= hi; i++) if (canBulk(msgs[i])) select(channelId, msgs[i]);
+            for (let i = lo; i <= hi; i++) if (ok(msgs[i])) select(msgs[i]);
             store.lastSelected = id;
             notify();
             return;
@@ -163,63 +228,58 @@ function toggle(id: string, shift: boolean, channelId: string) {
     }
     const msg = MessageStore.getMessage(channelId, id);
     if (!msg) return;
-    if (store.selected.has(id)) unselect(channelId, id);
-    else select(channelId, msg);
+    if (store.selected.has(id)) unselect(id);
+    else select(msg);
     store.lastSelected = id;
     notify();
 }
 
 function selectAll(channelId: string) {
-    for (const m of getMsgs(channelId)) if (m?.id && canBulk(m)) select(channelId, m);
+    const ok = bulkPredicate(channelId);
+    for (const m of getMsgs(channelId)) if (ok(m)) select(m);
     notify();
 }
 
 function deselectAll() {
-    clearAllDomSel();
     store.selected.clear();
     store.others.clear();
     store.lastSelected = null;
+    markDirty();
     notify();
 }
 
 function selectByKeyword(channelId: string, kw: string) {
     const k = kw.toLowerCase().trim();
     if (!k) return;
+    const ok = bulkPredicate(channelId);
     for (const m of getMsgs(channelId))
-        if (m?.id && canBulk(m) && (m.content ?? "").toLowerCase().includes(k)) select(channelId, m);
+        if (ok(m) && (m.content ?? "").toLowerCase().includes(k)) select(m);
     notify();
 }
 
-function onDocumentClick(e: MouseEvent) {
-    if (!store.active || !store.channelId || busy()) return;
-    const target = e.target as Element;
-    if (target.closest("a, button, [role=\"button\"], img, video, audio, input, textarea, [class*=\"reaction\"], [class*=\"embed\"], [class*=\"attachment\"], .vc-bmd-cb, .vc-bmd-panel")) return;
-    const msgEl = target.closest("[id^=\"chat-messages-\"]") as HTMLElement | null;
-    if (!msgEl) return;
-    const match = msgEl.id.match(/^chat-messages-\d+-(\d+)$/);
-    if (!match) return;
-    const msgId = match[1];
-    const msg = MessageStore.getMessage(store.channelId, msgId);
-    if (!canSelect(msg)) return;
-    toggle(msgId, e.shiftKey, store.channelId);
-}
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-async function deleteOne(channelId: string, id: string): Promise<boolean> {
+async function deleteOne(channelId: string, id: string): Promise<{ ok: boolean; wait: number; }> {
     for (let i = 0; i < 4; i++) {
         try {
-            await RestAPI.del({ url: Constants.Endpoints.MESSAGE(channelId, id) });
-            return true;
+            const res: any = await RestAPI.del({ url: Constants.Endpoints.MESSAGE(channelId, id) });
+            const h = res?.headers;
+            const wait = h?.["x-ratelimit-remaining"] === "0"
+                ? (Math.ceil(parseFloat(h["x-ratelimit-reset-after"] ?? "0") * 1000) || 0)
+                : 0;
+            return { ok: true, wait };
         } catch (e: any) {
             if (e?.status === 429)
-                await new Promise<void>(r => setTimeout(r, ((e?.body?.retry_after ?? 1) * 1000) + 200));
-            else return false;
+                await sleep(((e?.body?.retry_after ?? 1) * 1000) + 100);
+            else return { ok: e?.status === 404, wait: 0 };
         }
     }
-    return false;
+    return { ok: false, wait: 0 };
 }
 
 async function runDelete(ids: string[], channelId: string) {
     if (store.deleting) return;
+    const my = ++runId;
     store.deleting = true;
     store.cancelled = false;
     store.total = ids.length;
@@ -227,12 +287,15 @@ async function runDelete(ids: string[], channelId: string) {
     notify();
     let deleted = 0, failed = 0;
     for (const id of ids) {
-        if (store.cancelled) break;
-        (await deleteOne(channelId, id)) ? deleted++ : failed++;
+        if (store.cancelled || my !== runId) break;
+        const r = await deleteOne(channelId, id);
+        if (r.ok) deleted++; else failed++;
         store.progress++;
         notify();
-        if (!store.cancelled) await new Promise<void>(r => setTimeout(r, settings.store.deleteDelay));
+        const wait = Math.max(r.wait, settings.store.deleteDelay);
+        if (wait > 0 && !store.cancelled && my === runId) await sleep(wait);
     }
+    if (my !== runId) return;
     const wasCancelled = store.cancelled;
     const wasBackground = store.background;
     deactivate();
@@ -268,12 +331,10 @@ function Toolbar({ channelId }: { channelId: string; }) {
     const [step, setStep] = useState<Step>("");
     const [kw, setKw] = useState("");
     const [filterOpen, setFilterOpen] = useState(false);
-    useEffect(() => { if (!s.active) { setStep(""); setFilterOpen(false); setKw(""); } }, [s.active]);
     if (!s.active) return null;
 
     const n = s.selected.size;
     const othersN = s.others.size;
-    const total = s.deleting ? 0 : getMsgs(channelId).filter(canBulk).length;
     const showOthers = settings.store.allowOthers && canManage(channelId);
 
     if (s.deleting) {
@@ -293,6 +354,10 @@ function Toolbar({ channelId }: { channelId: string; }) {
             </div>
         );
     }
+
+    const ok = bulkPredicate(channelId);
+    let total = 0;
+    for (const m of getMsgs(channelId)) if (ok(m)) total++;
 
     if (step === "selectAll") return (
         <div className={cl("panel") + " " + cl("confirm-panel")}>
@@ -414,10 +479,10 @@ const ChatBarRender: ChatBarButtonFactory = ({ isAnyChat, channel }) => {
 function onChannelSelect({ channelId }: { channelId: string; }) {
     if (!store.active || !store.channelId || store.channelId === channelId) return;
     if (store.deleting) {
-        clearAllDomSel();
         store.active = false;
         store.background = true;
-        document.documentElement.removeAttribute("data-bmd-active");
+        detach();
+        markDirty();
         notify();
     } else {
         deactivate();
@@ -457,6 +522,7 @@ export default definePlugin({
                 message: msg,
                 channel: ChannelStore.getChannel(msg.channel_id),
                 onClick: () => {
+                    if (store.active && store.channelId !== msg.channel_id) deactivate();
                     if (!store.active) activate(msg.channel_id);
                     toggle(msg.id, false, msg.channel_id);
                 },
@@ -464,13 +530,12 @@ export default definePlugin({
         });
 
         FluxDispatcher.subscribe("CHANNEL_SELECT", onChannelSelect);
-        document.addEventListener("click", onDocumentClick, true);
     },
 
     stop() {
+        runId++;
         removeMessagePopoverButton("vc-bmd-select");
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", onChannelSelect);
-        document.removeEventListener("click", onDocumentClick, true);
         deactivate();
     },
 });

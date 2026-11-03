@@ -1586,7 +1586,7 @@ const settings = definePluginSettings({
     weatherEnabled: { type: OptionType.BOOLEAN, default: false, description: "Enable weather data polling (used in eval and standalone status)." },
     weatherCity: { type: OptionType.STRING, default: "", description: "City for weather data (e.g. Rome, New York, Tokyo)." },
     weatherUnit: { type: OptionType.STRING, default: "C", description: "Temperature unit: C or F." },
-    weatherIntervalMin: { type: OptionType.NUMBER, default: 15, description: "Minutes between weather data refreshes." },
+    weatherIntervalMin: { type: OptionType.NUMBER, default: 25, description: "Minutes between weather data refreshes." },
     weatherStandaloneEnabled: { type: OptionType.BOOLEAN, default: false, description: "Apply weather as standalone Discord status (independent from rotator)." },
     weatherTemplate: { type: OptionType.STRING, default: "{emoji} {temp} · {city}", description: "Standalone weather status template. Tokens: {emoji} {temp} {city} {condition}" },
 });
