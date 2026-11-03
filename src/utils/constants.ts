@@ -723,6 +723,11 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "Nays",
         id: 344871509677965313n
     },
+    RoScripter999: {
+        name: "RoScripter999",
+        id: 1352787303168344095n,
+        github: "RoScripter999"
+    },
     NiNoX: {
         name: "NiNoX",
         id: 123435354958200833n
