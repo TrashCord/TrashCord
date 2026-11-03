@@ -1,0 +1,275 @@
+.vc-cu-modal-top {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.vc-cu-modal-search {
+    flex: 1;
+    min-width: 0;
+}
+
+input.vc-cu-modal-search,
+input.vc-cu-users-search {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    height: 40px !important;
+    padding: 0 12px !important;
+    border: 1px solid var(--border-muted) !important;
+    border-radius: 8px !important;
+    background: var(--background-base-lowest) !important;
+    color: var(--text-default) !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+}
+
+input.vc-cu-modal-search:focus,
+input.vc-cu-users-search:focus {
+    border-color: var(--brand-500) !important;
+}
+
+.vc-cu-modal-no-search {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 0;
+}
+
+.vc-cu-modal-category {
+    margin-top: 8px;
+}
+
+.vc-cu-modal-action-text {
+    min-width: 0;
+    flex: 1;
+}
+
+button.vc-cu-btn.vc-cu-btn {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 12px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    background: var(--brand-500) !important;
+    color: var(--white, #fff) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+
+button.vc-cu-btn.vc-cu-btn-secondary {
+    padding: 0 8px !important;
+    background: var(--background-mod-strong) !important;
+    color: var(--text-default) !important;
+}
+
+button.vc-cu-btn.vc-cu-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+button.vc-cu-btn.vc-cu-btn-primary:hover:not(:disabled) {
+    background: var(--brand-560, var(--brand-500)) !important;
+}
+
+button.vc-cu-btn.vc-cu-btn-secondary:hover {
+    background: var(--background-mod-subtle) !important;
+}
+
+.vc-cu-modal-chevron-expanded svg {
+    transform: rotate(90deg);
+}
+
+.vc-cu-modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--background-modifier-accent);
+}
+
+.vc-cu-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.vc-cu-modal-grid-full {
+    grid-column: span 2;
+}
+
+.vc-cu-perms-container {
+    display: flex;
+    gap: 16px;
+    background: var(--background-base-low);
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.vc-cu-perms-left {
+    width: 200px;
+    height: 350px;
+    padding-right: 12px;
+    border-right: 4px solid var(--border-muted);
+}
+
+.vc-cu-perms-right {
+    flex: 1;
+    height: 350px
+}
+
+
+.vc-cu-perms-scroller {
+    height: 100%;
+    overflow: auto
+}
+
+.vc-cu-perms-item-bttn {
+    cursor: pointer;
+    width: 100%;
+    min-width: 0;
+}
+
+.vc-cu-perms-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 5px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.vc-cu-perms-item-avatar {
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.vc-cu-perms-item-active {
+    background-color: var(--background-mod-strong);
+}
+
+.vc-cu-perms-item:not(.vc-cu-perms-item-active):hover {
+    background-color: var(--background-mod-subtle);
+}
+
+.vc-cu-perms-item-text {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+}
+
+.vc-cu-perm-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 4px;
+    cursor: pointer;
+}
+
+.vc-cu-perm-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.vc-cu-users-search {
+    width: 100%;
+}
+
+.vc-cu-users-list {
+    height: 220px;
+    margin-top: 6px;
+    padding: 8px;
+    border-radius: 4px;
+    background: var(--background-base-low);
+    box-sizing: border-box;
+}
+
+.vc-cu-user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 4px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.vc-cu-user-row:hover {
+    background-color: var(--background-mod-subtle);
+}
+
+.vc-cu-user-row input[type="checkbox"],
+.vc-cu-perm-row input[type="checkbox"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    flex-shrink: 0 !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 2px solid var(--text-muted) !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 12px 12px !important;
+    cursor: pointer !important;
+}
+
+.vc-cu-perm-row input[type="checkbox"] {
+    margin-top: 3px !important;
+}
+
+.vc-cu-user-row input[type="checkbox"]:checked,
+.vc-cu-perm-row input[type="checkbox"]:checked {
+    border-color: var(--brand-500) !important;
+    background-color: var(--brand-500) !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3 8.5l3 3 7-7' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+}
+
+.vc-cu-users-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.vc-cu-perms-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.vc-cu-perms-head-btns {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+button.vc-cu-btn.vc-cu-perms-item-remove {
+    height: 22px !important;
+    min-width: 22px !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    flex-shrink: 0 !important;
+}
