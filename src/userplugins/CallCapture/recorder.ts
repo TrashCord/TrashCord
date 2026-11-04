@@ -20,6 +20,7 @@ interface Input {
     video: MediaStream | null;
     streams: Array<MediaStream | null>;
     label: string;
+    unlock: () => void;
 }
 
 interface Recording {
@@ -70,7 +71,8 @@ const GATE_CODE = `class Gate extends AudioWorkletProcessor {
             }
 
             this.env = peak > this.env ? peak : this.env * this.decay;
-            const target = this.env > threshold ? 1 : 0;
+            const limit = this.gain > 0.5 ? threshold * 0.5 : threshold;
+            const target = this.env > limit ? 1 : 0;
             this.gain += (target - this.gain) * (target > this.gain ? this.open : this.close);
 
             for (let c = 0; c < input.length; c++) output[c][i] = input[c][i] * this.gain;
@@ -177,6 +179,7 @@ function closeInput(input: Input | null | undefined) {
     if (!input) return;
     inputs.delete(input);
     watch();
+    input.unlock();
     input.streams.forEach(stopTracks);
     if (input.ctx.state !== "closed") input.ctx.close().catch(() => { });
 }
@@ -432,11 +435,17 @@ async function addGate(ctx: AudioContext): Promise<AudioWorkletNode | null> {
     }
 }
 
+function clampMs(value: number): number {
+    return Number.isFinite(value) ? Math.min(1000, Math.max(0, Math.round(value))) : 0;
+}
+
 async function openInput(common: Common, p: Profile, rate: number, alive: () => boolean): Promise<Input | null> {
     const streams: Array<MediaStream | null> = [];
     let ctx: AudioContext | null = null;
+    let unlock = () => { };
 
     const abort = (): null => {
+        unlock();
         streams.forEach(stopTracks);
         if (ctx && ctx.state !== "closed") ctx.close().catch(() => { });
         return null;
@@ -446,9 +455,35 @@ async function openInput(common: Common, p: Profile, rate: number, alive: () => 
         const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
         const audioCtx: AudioContext = new AudioCtxClass({ latencyHint: "playback", sampleRate: rate });
         ctx = audioCtx;
+
+        const wake = () => { audioCtx.resume().catch(() => { }); };
+        unlock = () => {
+            window.removeEventListener("pointerdown", wake, true);
+            window.removeEventListener("keydown", wake, true);
+        };
+        audioCtx.onstatechange = () => {
+            if (audioCtx.state === "suspended") wake();
+            else if (audioCtx.state === "running") unlock();
+        };
+
         audioCtx.resume().catch(() => { });
 
+        if (navigator.userActivation && !navigator.userActivation.hasBeenActive) {
+            window.addEventListener("pointerdown", wake, true);
+            window.addEventListener("keydown", wake, true);
+            showToast({ text: "Audio capture is waiting for a click inside Discord.", variant: "critical" });
+        }
+
         const dest = audioCtx.createMediaStreamDestination();
+
+        let bus: AudioNode = dest;
+        const delayMs = p.video ? clampMs(common.syncMs) : 0;
+        if (delayMs > 0) {
+            const delay = audioCtx.createDelay(1);
+            delay.delayTime.value = delayMs / 1000;
+            delay.connect(dest);
+            bus = delay;
+        }
 
         const mic = p.mic ? await captureMic(common) : null;
         streams.push(mic);
@@ -486,7 +521,7 @@ async function openInput(common: Common, p: Profile, rate: number, alive: () => 
         let gate: AudioWorkletNode | null = null;
 
         if (mic) {
-            gate = common.gateDb < 0 ? await addGate(audioCtx) : null;
+            gate = common.gateDb < 0 && !(navigator.userActivation && !navigator.userActivation.hasBeenActive) ? await addGate(audioCtx) : null;
             if (!alive()) return abort();
 
             micGain = audioCtx.createGain();
@@ -499,13 +534,13 @@ async function openInput(common: Common, p: Profile, rate: number, alive: () => 
                 source.connect(micGain);
             }
 
-            micGain.connect(dest);
+            micGain.connect(bus);
         }
 
         if (sys) {
             sysGain = audioCtx.createGain();
             audioCtx.createMediaStreamSource(sys).connect(sysGain);
-            sysGain.connect(dest);
+            sysGain.connect(bus);
         }
 
         if (!mic && !sys) {
@@ -522,7 +557,7 @@ async function openInput(common: Common, p: Profile, rate: number, alive: () => 
             sys ? "others on" : p.others ? "no others audio" : "others off"
         ].join(" · ");
 
-        const input: Input = { ctx: audioCtx, dest, micGain, sysGain, gate, video, streams, label };
+        const input: Input = { ctx: audioCtx, dest, micGain, sysGain, gate, video, streams, label, unlock };
         inputs.add(input);
         watch();
         applyLevels();

@@ -401,6 +401,11 @@ const settings = definePluginSettings({
     },
     inputVolume: volume("Input Volume"),
     outputVolume: volume("Output Volume"),
+    syncDelay: {
+        type: OptionType.NUMBER,
+        description: "Video sync: delay the audio by this many milliseconds when video is on (raise it if the sound comes before the picture, 0 = off)",
+        default: 0
+    },
     silenceWhenMuted: {
         type: OptionType.BOOLEAN,
         description: "Silence the microphone while you are muted or deafened in Discord",
@@ -616,7 +621,8 @@ function readCommon(): Common {
         othersVolume: Math.round(clamp(num(s.outputVolume, 100), 0, 200)),
         follow: s.silenceWhenMuted,
         gateDb: Math.round(clamp(num(s.noiseGate, -50), -90, 0)),
-        ask: s.askBeforeSave
+        ask: s.askBeforeSave,
+        syncMs: Math.round(clamp(num(s.syncDelay, 0), 0, 1000))
     };
 }
 

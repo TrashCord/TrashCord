@@ -35,6 +35,7 @@ export interface Common extends Levels {
     echo: boolean;
     noise: boolean;
     ask: boolean;
+    syncMs: number;
 }
 
 export interface SaveResult {

@@ -139,7 +139,10 @@ let vWidth = 0;
 let vHeight = 0;
 let channels = 2;
 let sampleRate = 48000;
-let nextAudioUs = 0;
+let aBase = 0;
+let aAnchor = 0;
+let vBase = 0;
+let vAnchor = 0;
 let newestVideo = 0;
 let limitUs = 60000000;
 let origin = 0;
@@ -176,8 +179,7 @@ function onAudioPacket(chunk: EncodedAudioChunk, meta?: EncodedAudioChunkMetadat
     if (desc && !head) head = toBytes(desc);
 
     const dur = chunk.duration ?? 20000;
-    audio.push(chunk, nextAudioUs, dur, true);
-    nextAudioUs += dur;
+    audio.push(chunk, aAnchor + (chunk.timestamp - aBase), dur, true);
 
     if (limitUs > 0) audio.trim(i => audio.total - audio.durs[i] > limitUs);
 }
@@ -188,8 +190,9 @@ function onVideoChunk(chunk: EncodedVideoChunk, meta?: EncodedVideoChunkMetadata
     const desc = meta?.decoderConfig?.description;
     if (desc && !vDesc) vDesc = toBytes(desc);
 
-    video.push(chunk, chunk.timestamp, 0, chunk.type === "key");
-    newestVideo = chunk.timestamp;
+    const time = vAnchor + (chunk.timestamp - vBase);
+    video.push(chunk, time, 0, chunk.type === "key");
+    newestVideo = time;
 
     video.trim(i => video.bytes > MAX_VIDEO_BYTES || (limitUs > 0 && newestVideo - video.times[i] > limitUs + KEEP_US));
 }
@@ -255,6 +258,8 @@ async function pumpAudio(my: number, rd: ReadableStreamDefaultReader<any>, bitra
             }
 
             if (!enc) {
+                aBase = value.timestamp;
+                aAnchor = nowUs();
                 sampleRate = value.sampleRate;
                 channels = value.numberOfChannels;
                 enc = createAudioEncoder(my, sampleRate, channels, bitrate);
@@ -264,7 +269,6 @@ async function pumpAudio(my: number, rd: ReadableStreamDefaultReader<any>, bitra
                     break;
                 }
                 aEncoder = enc;
-                nextAudioUs = nowUs();
             }
 
             enc.encode(value);
@@ -291,6 +295,8 @@ async function pumpVideo(my: number, rd: ReadableStreamDefaultReader<any>, cfg: 
             }
 
             if (!enc) {
+                vBase = value.timestamp;
+                vAnchor = nowUs();
                 enc = await createVideoEncoder(my, value, cfg);
                 if (!enc || my !== token) {
                     value.close();
@@ -306,10 +312,8 @@ async function pumpVideo(my: number, rd: ReadableStreamDefaultReader<any>, cfg: 
                 continue;
             }
 
-            const frame = new VideoFrame(value, { timestamp: nowUs() });
+            enc.encode(value, { keyFrame: count++ % every === 0 });
             value.close();
-            enc.encode(frame, { keyFrame: count++ % every === 0 });
-            frame.close();
         }
     } catch {
         if (my === token) dropVideo();
@@ -346,7 +350,7 @@ export function startRewind(cfg: ReplayConfig): boolean {
         vFormat = cfg.format;
         setRewindSeconds(cfg.seconds);
         audio.reset(1 << 20);
-        aReader = new Processor({ track }).readable.getReader();
+        aReader = new Processor({ track, maxBufferSize: 256 }).readable.getReader();
 
         const my = ++token;
         void pumpAudio(my, aReader!, cfg.kbps * 1000);
@@ -354,7 +358,7 @@ export function startRewind(cfg: ReplayConfig): boolean {
         const videoTrack = cfg.video?.getVideoTracks()[0];
         if (videoTrack && typeof VideoEncoder !== "undefined") {
             video.reset(1 << 22);
-            vReader = new Processor({ track: videoTrack }).readable.getReader();
+            vReader = new Processor({ track: videoTrack, maxBufferSize: 3 }).readable.getReader();
             void pumpVideo(my, vReader!, cfg);
         }
 
@@ -384,7 +388,6 @@ export function stopRewind() {
     dropVideo();
     audio.reset(0);
     head = undefined;
-    nextAudioUs = 0;
 
     if (rd) emitState();
 }
