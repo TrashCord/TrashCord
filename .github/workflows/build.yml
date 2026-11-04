@@ -6,7 +6,6 @@ on:
 
 env:
     FORCE_COLOR: true
-    # Rimosso GITHUB_TOKEN globale (usato solo nello step)
 
 permissions:
     contents: write
