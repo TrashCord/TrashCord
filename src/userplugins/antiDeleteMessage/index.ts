@@ -8,13 +8,22 @@ import * as DataStore from "@api/DataStore";
 import { addChannelToolbarButton, ChannelToolbarButton, removeChannelToolbarButton } from "@api/HeaderBar";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { Constants, React, RestAPI, SelectedChannelStore, UserStore, useStateFromStores } from "@webpack/common";
+import { ChannelStore, Constants, React, RestAPI, SelectedChannelStore, UserStore, useStateFromStores } from "@webpack/common";
 
 const settings = definePluginSettings({
     maxCacheSize: {
         type: OptionType.NUMBER,
         description: "Maximum number of messages kept in cache",
         default: 500,
+    },
+    scope: {
+        type: OptionType.SELECT,
+        description: "Where the toolbar button is shown and messages are protected",
+        options: [
+            { label: "Servers only", value: "guilds", default: true },
+            { label: "DMs and group DMs only", value: "dms" },
+            { label: "Servers and DMs", value: "all" },
+        ],
     },
     channels: {
         type: OptionType.CUSTOM,
@@ -56,6 +65,11 @@ function persist() {
 
 function isChannelEnabled(channelId: string | undefined | null) {
     return !!channelId && settings.store.channels.includes(channelId);
+}
+
+function isInScope(inGuild: boolean) {
+    const { scope } = settings.store;
+    return scope === "all" || (scope === "guilds") === inGuild;
 }
 
 function toggleChannel(channelId: string) {
@@ -102,7 +116,7 @@ async function resendMessage(cached: CachedMessage) {
 
 function AntiDeleteIcon({ on }: { on: boolean; }) {
     const color = on ? "#3ba55c" : "#72767d";
-    return React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, color } },
+    return React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, marginRight: 12, color } },
         React.createElement("svg", { width: 18, height: 18, viewBox: "0 0 24 24", fill: "currentColor" },
             React.createElement("path", { d: "M19.73 4.87l-1.52-1.52L12 9.43 5.79 3.35 4.27 4.87 10.41 11H2v2h20V9h-8.41l6.14-6.13zM4 15h16v2H4v-2z" }),
             on ? null : React.createElement("path", { d: "M21.178 1.707 22.592 3.12 4.12 21.593l-1.414-1.415L21.178 1.707Z", fill: "#ed4245" })
@@ -116,7 +130,9 @@ const IconOff = () => React.createElement(AntiDeleteIcon, { on: false });
 
 function AntiDeleteButton() {
     const channelId = useStateFromStores([SelectedChannelStore], () => SelectedChannelStore.getChannelId());
-    const { channels } = settings.use(["channels"]);
+    const inGuild = useStateFromStores([ChannelStore], () => !!ChannelStore.getChannel(channelId ?? "")?.guild_id, [channelId]);
+    const { channels, scope } = settings.use(["channels", "scope"]);
+    if (scope !== "all" && (scope === "guilds") !== inGuild) return null;
     const on = !!channelId && channels.includes(channelId);
 
     return React.createElement(ChannelToolbarButton, {
@@ -133,7 +149,7 @@ function AntiDeleteButton() {
 
 export default definePlugin({
     name: "AntiDeleteMessage",
-    description: "Automatically resends your messages if someone deletes them, only in channels and DMs you enable with the toolbar button. Cache persisted across restarts.",
+    description: "Automatically resends your messages if someone deletes them, only in the channels you enable with the toolbar button. Cache persisted across restarts.",
     authors: [{ name: "Nightcord", id: 0n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Chat", "Utility"],
     enabledByDefault: false,
@@ -141,16 +157,19 @@ export default definePlugin({
     settings,
 
     flux: {
-        MESSAGE_CREATE({ message }: {
+        MESSAGE_CREATE({ message, guildId }: {
             message: {
                 id: string;
                 author?: { id: string; };
                 content: string;
                 channel_id: string;
+                guild_id?: string;
                 message_reference?: any;
             };
+            guildId?: string;
         }) {
             if (!dbLoaded || !isChannelEnabled(message.channel_id)) return;
+            if (!isInScope(!!(guildId ?? message.guild_id))) return;
 
             const currentUser = UserStore.getCurrentUser();
             if (!currentUser || message.author?.id !== currentUser.id) return;
@@ -174,6 +193,7 @@ export default definePlugin({
             persist();
 
             if (!isChannelEnabled(cached.channelId)) return;
+            if (!isInScope(!!ChannelStore.getChannel(cached.channelId)?.guild_id)) return;
 
             resendMessage(cached);
         },

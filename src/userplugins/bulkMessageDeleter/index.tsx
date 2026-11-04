@@ -19,9 +19,9 @@ const cl = classNameFactory("vc-bmd-");
 const settings = definePluginSettings({
     deleteDelay: {
         type: OptionType.SLIDER,
-        description: "Extra minimum delay between deletions (ms). Rate limits are handled automatically from Discord's response headers, so 0 is fine.",
-        default: 0,
-        markers: [0, 50, 100, 250, 500, 1000],
+        description: "Minimum delay between deletions (ms). Higher is smoother on slow PCs. Rate limits are handled automatically.",
+        default: 300,
+        markers: [0, 100, 200, 300, 500, 750, 1000],
     },
     showProgressBar: {
         type: OptionType.BOOLEAN,
@@ -60,9 +60,14 @@ const store = {
 };
 
 let runId = 0;
+let sheet: CSSStyleSheet | null = null;
+let sheetDirty = false;
+let listening = false;
 
 const subs = new Set<() => void>();
 const busy = () => store.deleting || store.background;
+const markDirty = () => { sheetDirty = true; };
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 function notify() {
     if (sheetDirty) flushSheet();
@@ -75,14 +80,9 @@ function useStore() {
     return store;
 }
 
-const LAYOUT_CSS = `[data-list-id="chat-messages"]{padding-bottom:64px;-webkit-user-select:none;user-select:none}`;
+const LAYOUT_CSS = `[data-list-id="chat-messages"]{padding-bottom:40px}`;
 const OWN_CSS = `{background:rgba(255,0,0,.12)!important;box-shadow:inset 3px 0 0 #f00!important;border-radius:4px}`;
 const OTHERS_CSS = `{background:rgba(250,166,26,.12)!important;box-shadow:inset 3px 0 0 #faa61a!important;border-radius:4px}`;
-
-let sheet: CSSStyleSheet | null = null;
-let sheetDirty = false;
-
-const markDirty = () => { sheetDirty = true; };
 
 function buildCss(): string {
     const ch = store.channelId;
@@ -112,9 +112,11 @@ function flushSheet() {
     }
 }
 
+const DELETABLE_TYPES = new Set([0, 19, 20, 23]);
 const myId = () => UserStore.getCurrentUser()?.id;
 const isOwn = (msg: any) => msg?.author?.id === myId();
 const isLoggerDeleted = (msg: any) => !!(msg?.deleted || msg?.messageLogger?.deleted);
+const isDeletable = (msg: any) => !!msg?.id && DELETABLE_TYPES.has(msg.type) && !isLoggerDeleted(msg);
 
 function canManage(channelId: string) {
     const channel = ChannelStore.getChannel(channelId);
@@ -122,12 +124,12 @@ function canManage(channelId: string) {
 }
 
 const canSelect = (msg: any) =>
-    !!msg && !isLoggerDeleted(msg) && (isOwn(msg) || (settings.store.allowOthers && canManage(msg.channel_id)));
+    isDeletable(msg) && (isOwn(msg) || (settings.store.allowOthers && canManage(msg.channel_id)));
 
 function bulkPredicate(channelId: string) {
     const me = myId();
     const others = store.includeOthers && settings.store.allowOthers && canManage(channelId);
-    return (m: any) => !!m?.id && !isLoggerDeleted(m) && (m.author?.id === me || others);
+    return (m: any) => isDeletable(m) && (m.author?.id === me || others);
 }
 
 function getMsgs(channelId: string): any[] {
@@ -151,7 +153,7 @@ function unselect(id: string) {
 }
 
 const IGNORE_SELECTOR = "a, button, [role=\"button\"], img, video, audio, input, textarea, [class*=\"reaction\"], [class*=\"embed\"], [class*=\"attachment\"], .vc-bmd-panel";
-let listening = false;
+const FLUX_EVENTS = ["MESSAGE_DELETE", "MESSAGE_DELETE_BULK", "MESSAGE_CREATE", "LOAD_MESSAGES_SUCCESS"];
 
 function onDocumentClick(e: MouseEvent) {
     const ch = store.channelId;
@@ -159,25 +161,38 @@ function onDocumentClick(e: MouseEvent) {
     const target = e.target as Element | null;
     if (!target || target.closest(IGNORE_SELECTOR)) return;
     const msgEl = target.closest("[id^=\"chat-messages-\"]");
-    if (!msgEl) return;
     const prefix = `chat-messages-${ch}-`;
-    if (!msgEl.id.startsWith(prefix)) return;
+    if (!msgEl || !msgEl.id.startsWith(prefix)) return;
     const msgId = msgEl.id.slice(prefix.length);
-    const msg = MessageStore.getMessage(ch, msgId);
-    if (!canSelect(msg)) return;
+    if (!canSelect(MessageStore.getMessage(ch, msgId))) return;
+    if (e.shiftKey) window.getSelection()?.removeAllRanges();
     toggle(msgId, e.shiftKey, ch);
+}
+
+function onMessageEvent(e: any) {
+    if (!store.active || store.deleting || e.channelId !== store.channelId) return;
+    if (e.type === "MESSAGE_DELETE") {
+        if (store.selected.has(e.id)) unselect(e.id);
+    } else if (e.type === "MESSAGE_DELETE_BULK") {
+        for (const id of e.ids) if (store.selected.has(id)) unselect(id);
+    }
+    notify();
 }
 
 function attach() {
     if (listening) return;
     listening = true;
     document.addEventListener("click", onDocumentClick, true);
+    FluxDispatcher.subscribe("CHANNEL_SELECT", onChannelSelect);
+    for (const t of FLUX_EVENTS) FluxDispatcher.subscribe(t, onMessageEvent);
 }
 
 function detach() {
     if (!listening) return;
     listening = false;
     document.removeEventListener("click", onDocumentClick, true);
+    FluxDispatcher.unsubscribe("CHANNEL_SELECT", onChannelSelect);
+    for (const t of FLUX_EVENTS) FluxDispatcher.unsubscribe(t, onMessageEvent);
 }
 
 function activate(channelId?: string) {
@@ -257,9 +272,9 @@ function selectByKeyword(channelId: string, kw: string) {
     notify();
 }
 
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+type DeleteResult = { status: "ok" | "gone" | "fail"; wait: number; };
 
-async function deleteOne(channelId: string, id: string): Promise<{ ok: boolean; wait: number; }> {
+async function deleteOne(channelId: string, id: string): Promise<DeleteResult> {
     for (let i = 0; i < 4; i++) {
         try {
             const res: any = await RestAPI.del({ url: Constants.Endpoints.MESSAGE(channelId, id) });
@@ -267,19 +282,19 @@ async function deleteOne(channelId: string, id: string): Promise<{ ok: boolean; 
             const wait = h?.["x-ratelimit-remaining"] === "0"
                 ? (Math.ceil(parseFloat(h["x-ratelimit-reset-after"] ?? "0") * 1000) || 0)
                 : 0;
-            return { ok: true, wait };
+            return { status: "ok", wait };
         } catch (e: any) {
-            if (e?.status === 429)
-                await sleep(((e?.body?.retry_after ?? 1) * 1000) + 100);
-            else return { ok: e?.status === 404, wait: 0 };
+            if (e?.status === 429) await sleep(((e?.body?.retry_after ?? 1) * 1000) + 100);
+            else return { status: e?.status === 404 ? "gone" : "fail", wait: 0 };
         }
     }
-    return { ok: false, wait: 0 };
+    return { status: "fail", wait: 0 };
 }
 
 async function runDelete(ids: string[], channelId: string) {
     if (store.deleting) return;
     const my = ++runId;
+    ids = ids.filter(id => isDeletable(MessageStore.getMessage(channelId, id)));
     store.deleting = true;
     store.cancelled = false;
     store.total = ids.length;
@@ -289,7 +304,8 @@ async function runDelete(ids: string[], channelId: string) {
     for (const id of ids) {
         if (store.cancelled || my !== runId) break;
         const r = await deleteOne(channelId, id);
-        if (r.ok) deleted++; else failed++;
+        if (r.status === "ok") deleted++;
+        else if (r.status === "fail") failed++;
         store.progress++;
         notify();
         const wait = Math.max(r.wait, settings.store.deleteDelay);
@@ -307,19 +323,12 @@ async function runDelete(ids: string[], channelId: string) {
     });
 }
 
-function PopoverIconUnchecked() {
+function SelectIcon({ id }: { id: string; }) {
+    const checked = useStore().selected.has(id);
     return (
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="3.5" stroke="currentColor" strokeWidth="2" />
-        </svg>
-    );
-}
-
-function PopoverIconChecked() {
-    return (
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="3.5" fill="var(--brand-500)" stroke="var(--brand-500)" strokeWidth="2" />
-            <path d="M7 12l4 4 6-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <rect x="3" y="3" width="18" height="18" rx="3.5" fill={checked ? "var(--brand-500)" : "none"} stroke={checked ? "var(--brand-500)" : "currentColor"} strokeWidth="2" />
+            {checked && <path d="M7 12l4 4 6-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
         </svg>
     );
 }
@@ -327,6 +336,33 @@ function PopoverIconChecked() {
 type Step = "" | "selectAll" | "delete";
 
 function Toolbar({ channelId }: { channelId: string; }) {
+    const ref = React.useRef<HTMLDivElement>(null);
+
+    React.useLayoutEffect(() => {
+        const el = ref.current;
+        const form = el?.closest("form");
+        if (!el || !form) return;
+        const place = () => {
+            const r = form.getBoundingClientRect();
+            el.style.left = r.left + "px";
+            el.style.width = r.width + "px";
+            el.style.right = "auto";
+            el.style.bottom = window.innerHeight - r.top + 6 + "px";
+        };
+        place();
+        const ro = new ResizeObserver(place);
+        ro.observe(form);
+        return () => ro.disconnect();
+    }, []);
+
+    return (
+        <div ref={ref} className={cl("anchor")}>
+            <ToolbarBody channelId={channelId} />
+        </div>
+    );
+}
+
+function ToolbarBody({ channelId }: { channelId: string; }) {
     const s = useStore();
     const [step, setStep] = useState<Step>("");
     const [kw, setKw] = useState("");
@@ -340,7 +376,7 @@ function Toolbar({ channelId }: { channelId: string; }) {
     if (s.deleting) {
         const pct = s.total > 0 ? Math.round((s.progress / s.total) * 100) : 0;
         return (
-            <div className={cl("panel")}>
+            <div className={cl("panel") + " " + cl("panel-wide")}>
                 <div className={cl("del-row")}>
                     <span className={cl("del-label")}>🗑 Deleting {s.progress}/{s.total}</span>
                     {settings.store.showProgressBar && (
@@ -357,7 +393,8 @@ function Toolbar({ channelId }: { channelId: string; }) {
 
     const ok = bulkPredicate(channelId);
     let total = 0;
-    for (const m of getMsgs(channelId)) if (ok(m)) total++;
+    for (const m of getMsgs(channelId)) if (ok(m) || s.selected.has(m.id)) total++;
+    total = Math.max(total, n);
 
     if (step === "selectAll") return (
         <div className={cl("panel") + " " + cl("confirm-panel")}>
@@ -374,7 +411,7 @@ function Toolbar({ channelId }: { channelId: string; }) {
         <div className={cl("panel") + " " + cl("confirm-panel")}>
             <span className={cl("warn-icon")}>⚠</span>
             <span className={cl("warn-text") + (othersN > 0 ? ` ${cl("warn-text-others")}` : "")}>
-                Delete {n} message{n !== 1 ? "s" : ""}{othersN > 0 ? ` (${othersN} from other users)` : ""} permanently?
+                Delete {n} message{n !== 1 ? "s" : ""}{othersN > 0 ? ` (${n - othersN} yours, ${othersN} from other users)` : ""} permanently?
             </span>
             <button className={cl("btn-del-confirm")} onClick={() => { const ids = [...s.selected]; setStep(""); runDelete(ids, channelId); }}>Delete</button>
             <button className={cl("btn-no")} onClick={() => setStep("")}>Cancel</button>
@@ -403,8 +440,8 @@ function Toolbar({ channelId }: { channelId: string; }) {
             <div className={cl("row")}>
                 <div className={cl("badge")}>
                     {n}<span className={cl("sep")}>/</span>{total}
-                    {othersN > 0 && <span className={cl("others-count")}>👥{othersN}</span>}
                 </div>
+                {othersN > 0 && <div className={cl("others-count")}>👥 {othersN} from others</div>}
                 <div className={cl("vline")} />
                 <button className={cl("pill")} onClick={() => settings.store.confirmSelectAll ? setStep("selectAll") : selectAll(channelId)}>Select All</button>
                 <button className={cl("pill")} disabled={n === 0} onClick={deselectAll}>Deselect All</button>
@@ -428,12 +465,12 @@ function Toolbar({ channelId }: { channelId: string; }) {
     );
 }
 
-function BulkDeleteIcon() {
+function BulkDeleteIcon({ stroke = "currentColor" }: { stroke?: string; }) {
     return (
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden>
-            <rect x="3" y="3" width="13" height="13" rx="2.5" stroke="currentColor" strokeWidth="2" />
-            <path d="m5.5 9.5 3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <line x1="20" y1="4" x2="10" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <rect x="3" y="3" width="13" height="13" rx="2.5" stroke={stroke} strokeWidth="2" />
+            <path d="m5.5 9.5 3 3 5-5" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <line x1="20" y1="4" x2="10" y2="20" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
         </svg>
     );
 }
@@ -455,11 +492,7 @@ function BackgroundStopButton({ progress, total }: { progress: number; total: nu
             onClick={() => setConfirming(true)}
             buttonProps={{ "aria-label": "Stop background deletion" }}
         >
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden>
-                <rect x="3" y="3" width="13" height="13" rx="2.5" stroke="var(--status-warning, #faa61a)" strokeWidth="2" />
-                <path d="m5.5 9.5 3 3 5-5" stroke="var(--status-warning, #faa61a)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="20" y1="4" x2="10" y2="20" stroke="var(--status-warning, #faa61a)" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <BulkDeleteIcon stroke="var(--status-warning, #faa61a)" />
         </ChatBarButton>
     );
 }
@@ -515,10 +548,9 @@ export default definePlugin({
     start() {
         addMessagePopoverButton("vc-bmd-select", msg => {
             if (busy() || !canSelect(msg)) return null;
-            const checked = store.selected.has(msg.id);
             return {
-                label: checked ? "Deselect" : "Select for bulk delete",
-                icon: checked ? PopoverIconChecked : PopoverIconUnchecked,
+                label: "Bulk select",
+                icon: () => <SelectIcon id={msg.id} />,
                 message: msg,
                 channel: ChannelStore.getChannel(msg.channel_id),
                 onClick: () => {
@@ -529,13 +561,11 @@ export default definePlugin({
             };
         });
 
-        FluxDispatcher.subscribe("CHANNEL_SELECT", onChannelSelect);
     },
 
     stop() {
         runId++;
         removeMessagePopoverButton("vc-bmd-select");
-        FluxDispatcher.unsubscribe("CHANNEL_SELECT", onChannelSelect);
         deactivate();
     },
 });
