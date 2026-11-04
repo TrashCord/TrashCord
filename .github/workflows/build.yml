@@ -74,9 +74,9 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  git push origin --delete latest || true
-                  gh release delete latest --yes || true
-                  gh release create latest --title "Latest" --notes "Latest development build" --latest
+                  # Crea la release 'latest' solo se non esiste (evita errori se esiste già)
+                  gh release view latest > /dev/null 2>&1 || gh release create latest --title "Latest" --notes "Latest development build" --latest
+                  # Carica o sovrascrive i file. Se fallisce, la release vecchia rimane intatta!
                   gh release upload latest --clobber dist/release/*
 
             - name: Upload Plugin JSONs to Equibored repo
