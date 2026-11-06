@@ -471,7 +471,6 @@ async function openInput(common: Common, p: Profile, rate: number, alive: () => 
         if (navigator.userActivation && !navigator.userActivation.hasBeenActive) {
             window.addEventListener("pointerdown", wake, true);
             window.addEventListener("keydown", wake, true);
-            showToast({ text: "Audio capture is waiting for a click inside Discord.", variant: "critical" });
         }
 
         const dest = audioCtx.createMediaStreamDestination();

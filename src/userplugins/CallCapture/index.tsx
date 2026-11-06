@@ -402,9 +402,15 @@ const settings = definePluginSettings({
     inputVolume: volume("Input Volume"),
     outputVolume: volume("Output Volume"),
     syncDelay: {
-        type: OptionType.NUMBER,
-        description: "Video sync: delay the audio by this many milliseconds when video is on (raise it if the sound comes before the picture, 0 = off)",
-        default: 0
+        type: OptionType.SLIDER as const,
+        description: "Video sync: delay the audio when video is on (raise it if you hear the sound before the picture)",
+        markers: [0, 50, 100, 150, 200, 300, 400, 500],
+        default: 150,
+        stickToMarkers: false,
+        componentProps: {
+            onValueRender: (v: number) => `${Math.round(v)} ms`,
+            onMarkerRender: (v: number) => `${v}`
+        }
     },
     silenceWhenMuted: {
         type: OptionType.BOOLEAN,
@@ -423,7 +429,7 @@ const settings = definePluginSettings({
         default: []
     },
 
-    _sepReplay: separator("⚡ Shadowplay", "Keeps the last seconds of every call in memory. Press the clip button to save them as a file. Changes apply from the next call."),
+    _sepReplay: separator("⚡ Shadowplay", "Keeps the last seconds of every call in memory. Press the clip button to save them as a file. After launching Discord, audio capture only starts once you have clicked inside Discord, for example by joining a voice call. Changes apply from the next call."),
     replayEnabled: {
         type: OptionType.BOOLEAN,
         description: "Keep the replay buffer running",
@@ -622,7 +628,7 @@ function readCommon(): Common {
         follow: s.silenceWhenMuted,
         gateDb: Math.round(clamp(num(s.noiseGate, -50), -90, 0)),
         ask: s.askBeforeSave,
-        syncMs: Math.round(clamp(num(s.syncDelay, 0), 0, 1000))
+        syncMs: Math.round(clamp(num(s.syncDelay, 150), 0, 1000))
     };
 }
 
