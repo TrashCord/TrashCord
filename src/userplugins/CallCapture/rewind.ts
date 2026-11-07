@@ -181,7 +181,7 @@ function onAudioPacket(chunk: EncodedAudioChunk, meta?: EncodedAudioChunkMetadat
     const dur = chunk.duration ?? 20000;
     audio.push(chunk, aAnchor + (chunk.timestamp - aBase), dur, true);
 
-    if (limitUs > 0) audio.trim(i => audio.total - audio.durs[i] > limitUs);
+    if (limitUs > 0) audio.trim(i => audio.total - audio.durs[i] > limitUs + (vReader ? KEEP_US : 0));
 }
 
 function onVideoChunk(chunk: EncodedVideoChunk, meta?: EncodedVideoChunkMetadata) {
@@ -416,9 +416,17 @@ function buildVideoClip(): ClipResult | null {
     const audioPackets: MuxPacket[] = as.filter(e => e.time + e.dur > startUs).map(e => ({ data: e.data, time: e.time, key: true, dur: e.dur }));
 
     const mp4 = vCodec === "avc" && vFormat === "mp4";
-    const mux = mp4 ? muxMp4 : muxMatroska;
-    const blob = mux({ codec: vCodec, width: vWidth, height: vHeight, description: vDesc }, videoPackets, audioPackets, head, channels, startUs);
-    return { blob, ext: vCodec === "avc" ? (mp4 ? "mp4" : "mkv") : "webm", seconds: (end - startUs) / 1000000 };
+    const info = { codec: vCodec, width: vWidth, height: vHeight, description: vDesc };
+
+    if (mp4) {
+        return { blob: muxMp4(info, videoPackets, audioPackets, head, channels, startUs, wanted), ext: "mp4", seconds: (end - Math.max(startUs, wanted)) / 1000000 };
+    }
+
+    return {
+        blob: muxMatroska(info, videoPackets, audioPackets, head, channels, startUs),
+        ext: vCodec === "avc" ? "mkv" : "webm",
+        seconds: (end - startUs) / 1000000
+    };
 }
 
 export async function buildClip(format: "ogg" | "wav"): Promise<ClipResult | null> {
@@ -427,8 +435,12 @@ export async function buildClip(format: "ogg" | "wav"): Promise<ClipResult | nul
     const withVideo = buildVideoClip();
     if (withVideo) return withVideo;
 
-    const list: OpusPacket[] = audio.entries().map(e => ({ data: e.data, duration: e.dur }));
-    const seconds = audio.total / 1000000;
+    const entries = audio.entries();
+    let total = audio.total;
+    while (limitUs > 0 && entries.length > 1 && total - entries[0].dur > limitUs) total -= entries.shift()!.dur;
+
+    const list: OpusPacket[] = entries.map(e => ({ data: e.data, duration: e.dur }));
+    const seconds = total / 1000000;
     const ogg = muxOggOpus(list, channels, head);
 
     if (format !== "wav") return { blob: ogg, ext: "ogg", seconds };

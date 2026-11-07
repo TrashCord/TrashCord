@@ -18,6 +18,9 @@ interface Track {
     entry: Uint8Array;
     width: number;
     height: number;
+    empty: number;
+    skip: number;
+    seg: number;
 }
 
 const textEncoder = new TextEncoder();
@@ -83,9 +86,9 @@ function stts(deltas: number[]): Uint8Array {
     return full("stts", 0, u32(runs.length / 2), u32s(runs));
 }
 
-function trak(t: Track, movieMs: number): Uint8Array {
+function trak(t: Track): Uint8Array {
     const media = t.deltas.reduce((n, d) => n + d, 0);
-    const mediaMs = Math.round(media * 1000 / t.timescale);
+    const edits = [...(t.empty > 0 ? [t.empty, 0xFFFFFFFF, 0x00010000] : []), t.seg, t.skip, 0x00010000];
 
     const stbl = box(
         "stbl",
@@ -113,7 +116,8 @@ function trak(t: Track, movieMs: number): Uint8Array {
 
     return box(
         "trak",
-        full("tkhd", 3, u32(0), u32(0), u32(t.id), u32(0), u32(Math.max(movieMs, mediaMs)), zeros(8), u16(0), u16(0), u16(t.video ? 0 : 0x0100), u16(0), u32s(MATRIX), u32(t.width * 65536), u32(t.height * 65536)),
+        full("tkhd", 3, u32(0), u32(0), u32(t.id), u32(0), u32(t.empty + t.seg), zeros(8), u16(0), u16(0), u16(t.video ? 0 : 0x0100), u16(0), u32s(MATRIX), u32(t.width * 65536), u32(t.height * 65536)),
+        box("edts", full("elst", 0, u32(edits.length / 3), u32s(edits))),
         mdia
     );
 }
@@ -124,7 +128,8 @@ export function muxMp4(
     audioPackets: MuxPacket[],
     head: Uint8Array | undefined,
     channels: number,
-    startUs: number
+    startUs: number,
+    clipStartUs = startUs
 ): Blob {
     const opus = head && head.length >= 19 ? head : opusHead(channels, 312);
     const preSkip = new DataView(opus.buffer, opus.byteOffset, opus.byteLength).getUint16(10, true);
@@ -143,6 +148,9 @@ export function muxMp4(
         offsets: [],
         width: video.width,
         height: video.height,
+        empty: 0,
+        skip: 0,
+        seg: 0,
         entry: box(
             "avc1",
             zeros(6), u16(1), zeros(16), u16(video.width), u16(video.height),
@@ -161,6 +169,9 @@ export function muxMp4(
         offsets: [],
         width: 0,
         height: 0,
+        empty: 0,
+        skip: 0,
+        seg: 0,
         entry: box(
             "Opus",
             zeros(6), u16(1), zeros(8), u16(channels), u16(16), u16(0), u16(0), u32(48000 * 65536),
@@ -169,6 +180,18 @@ export function muxMp4(
     };
 
     const tracks = audioPackets.length ? [videoTrack, audioTrack] : [videoTrack];
+    const present = Math.max(startUs, clipStartUs);
+
+    const plan = (t: Track, first: number) => {
+        const mediaUs = t.deltas.reduce((n, d) => n + d, 0) * 1000000 / t.timescale;
+        const lead = Math.max(0, present - first);
+        t.empty = Math.round(Math.max(0, first - present) / 1000);
+        t.skip = Math.round(lead * t.timescale / 1000000);
+        t.seg = Math.max(1, Math.round((mediaUs - lead) / 1000));
+    };
+
+    plan(videoTrack, videoPackets[0].time);
+    if (audioPackets.length) plan(audioTrack, audioPackets[0].time);
 
     const order: Array<{ track: Track; data: Uint8Array; }> = [];
     let a = 0;
@@ -185,7 +208,7 @@ export function muxMp4(
         position += item.data.length;
     }
 
-    const movieMs = Math.max(...tracks.map(t => Math.round(t.deltas.reduce((n, d) => n + d, 0) * 1000 / t.timescale)));
+    const movieMs = Math.max(...tracks.map(t => t.empty + t.seg));
 
     const ftyp = box("ftyp", ascii("isom"), u32(512), ascii("isom"), ascii("iso2"), ascii("avc1"), ascii("mp41"));
 
@@ -194,7 +217,7 @@ export function muxMp4(
         return box(
             "moov",
             full("mvhd", 0, u32(0), u32(0), u32(1000), u32(movieMs), u32(0x00010000), u16(0x0100), zeros(10), u32s(MATRIX), zeros(24), u32(tracks.length + 1)),
-            ...tracks.map(t => trak(t, movieMs))
+            ...tracks.map(trak)
         );
     };
 
