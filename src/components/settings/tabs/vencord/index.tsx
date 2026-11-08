@@ -23,7 +23,6 @@ import NoTrack from "@plugins/_core/noTrack";
 import SettingsPlugin from "@plugins/_core/settings";
 import { gitRemote } from "@shared/vencordUserAgent";
 import { DONOR_ROLE_ID, GUILD_ID, IS_WINDOWS, VC_DONOR_ROLE_ID, VC_GUILD_ID } from "@utils/constants";
-import { classNameFactory } from "@utils/css";
 import { Margins } from "@utils/margins";
 import { isAnyPluginDev } from "@utils/misc";
 import { relaunch } from "@utils/native";
@@ -43,8 +42,6 @@ const COZY_CONTRIB_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host
 
 const DONOR_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?quality=40";
 const CONTRIB_BACKGROUND_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/images/urumagod.jpg?quality=40";
-
-const cl = classNameFactory("vc-vencord-tab-");
 
 type KeysOfType<Object, Type> = {
     [K in keyof Object]: Object[K] extends Type ? K : never;
