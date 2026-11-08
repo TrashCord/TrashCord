@@ -17,7 +17,7 @@ export async function analyzeWithFishFish(url: string, silent = false): Promise<
     const result = await Native.queryFishFish(domain);
 
     if (result.error) {
-        if (!silent) safeToast(`FishFish lookup failed: ${result.error}`, "failure");
+        if (!silent) safeToast(`FishFish lookup failed: ${result.error}`, "critical");
         return null;
     }
 
@@ -31,7 +31,7 @@ export async function analyzeWithFishFish(url: string, silent = false): Promise<
 
     if (!silent) {
         if (result.found) {
-            safeToast(`WARNING: ${domain} is a known phishing domain!`, "failure");
+            safeToast(`WARNING: ${domain} is a known phishing domain!`, "critical");
         } else {
             safeToast(`${domain} not found in FishFish database`, "success");
         }

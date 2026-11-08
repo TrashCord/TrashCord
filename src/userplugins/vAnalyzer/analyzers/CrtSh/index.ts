@@ -17,7 +17,7 @@ export async function analyzeWithCrtSh(url: string, silent = false): Promise<Ana
     const result = await Native.queryCrtSh(domain);
 
     if (result.status !== 200 || !result.data) {
-        if (!silent) safeToast(`Certificate lookup failed: ${result.error ?? "unknown error"}`, "failure");
+        if (!silent) safeToast(`Certificate lookup failed: ${result.error ?? "unknown error"}`, "critical");
         return null;
     }
 

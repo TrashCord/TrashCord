@@ -5,13 +5,14 @@
  */
 
 import { classNameFactory } from "@utils/css";
+import type { ToastVariant } from "@vencord/discord-types";
 import { showToast } from "@webpack/common";
 
 export const cl = classNameFactory("vc-analyze-");
 
-export function safeToast(message: string, type: string = "message") {
+export function safeToast(message: string, variant: ToastVariant = "default") {
     try {
-        showToast({ text: message, variant: type });
+        showToast({ text: message, variant });
     } catch { }
 }
 
@@ -50,7 +51,7 @@ export function extractCdnFileUrls(urls: string[]): CdnFileInfo[] {
     for (const url of urls) {
         if (!DISCORD_CDN_FILE_REGEX.test(url)) continue;
         try {
-            const { pathname } = new URL(url);
+            const pathname = new URL(url).pathname;
             const lastSegment = pathname.split("/").pop() ?? "";
             const fileName = decodeURIComponent(lastSegment);
             if (fileName && fileName.includes(".")) {
@@ -86,45 +87,30 @@ export interface AnalysisValue {
     timestamp: number;
 }
 
-interface QueuedTask {
-    run(): Promise<void>;
-    reject(error: unknown): void;
-}
-
 export class ConcurrencyLimiter {
-    private queue: QueuedTask[] = [];
+    private queue: (() => Promise<any>)[] = [];
     private running = 0;
     private readonly maxConcurrent: number;
-    private readonly maxQueue: number;
 
-    constructor(maxConcurrent: number = 3, maxQueue: number = 500) {
+    constructor(maxConcurrent: number = 3) {
         this.maxConcurrent = maxConcurrent;
-        this.maxQueue = maxQueue;
     }
 
     async run<T>(task: () => Promise<T>): Promise<T> {
         return new Promise((resolve, reject) => {
-            if (this.queue.length >= this.maxQueue) {
-                reject(new Error("Analysis queue is full."));
-                return;
-            }
-
-            const queuedTask: QueuedTask = {
-                reject,
-                run: async () => {
-                    try {
-                        const result = await task();
-                        resolve(result);
-                    } catch (error) {
-                        reject(error);
-                    } finally {
-                        this.running--;
-                        this.processQueue();
-                    }
+            const wrappedTask = async () => {
+                try {
+                    const result = await task();
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                } finally {
+                    this.running--;
+                    this.processQueue();
                 }
             };
 
-            this.queue.push(queuedTask);
+            this.queue.push(wrappedTask);
             this.processQueue();
         });
     }
@@ -134,7 +120,7 @@ export class ConcurrencyLimiter {
             this.running++;
             const task = this.queue.shift();
             if (task) {
-                task.run().catch(() => {
+                task().catch(() => {
                     // error already handled in run()
                 });
             }
@@ -142,10 +128,8 @@ export class ConcurrencyLimiter {
     }
 
     clear() {
-        for (const task of this.queue) {
-            task.reject(new Error("Analysis queue was cleared."));
-        }
         this.queue = [];
+        this.running = 0;
     }
 }
 

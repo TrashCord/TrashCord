@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Divider } from "@components/Divider";
-import { HeadingSecondary } from "@components/LegacyHeading";
 import { Margins } from "@components/margins";
 import { React } from "@webpack/common";
+import { Heading } from "@components/Heading";
+import { Divider } from "@components/Divider";
 
 export default function SeparatorSettings({ label }: { label: string; }) {
     return (
         <div className={Margins.top20}>
-            <HeadingSecondary className={Margins.bottom8}>{label}</HeadingSecondary>
+            <Heading tag="h3" className={Margins.bottom8}>{label}</Heading>
             <Divider className={Margins.bottom8} />
         </div>
     );

@@ -1,0 +1,45 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+const GAP_PX = 8;
+const EDGE_PX = 8;
+/** Discord's title bar sits above everything. */
+const TOP_RESERVED_PX = 40;
+const ARROW_INSET_PX = 12;
+
+export interface HintPlacement {
+    left: number;
+    top: number;
+    below: boolean;
+    arrow: number;
+}
+
+export function placeHint(
+    anchor: { left: number; top: number; width: number; height: number; },
+    size: { width: number; height: number; },
+    viewportWidth: number,
+    viewportHeight = Infinity,
+    zoom = 1
+): HintPlacement {
+    const roomAbove = anchor.top - GAP_PX - TOP_RESERVED_PX;
+    const roomBelow = viewportHeight - (anchor.top + anchor.height + GAP_PX) - EDGE_PX;
+    // Above when it fits, otherwise on whichever side has more room.
+    const below = size.height > roomAbove && roomBelow > roomAbove;
+    const centre = anchor.left + anchor.width / 2;
+
+    const left = Math.max(EDGE_PX, Math.min(centre - size.width / 2, viewportWidth - size.width - EDGE_PX));
+    const arrow = Math.min(Math.max(centre - left, ARROW_INSET_PX), Math.max(ARROW_INSET_PX, size.width - ARROW_INSET_PX));
+    const top = below ? anchor.top + anchor.height + GAP_PX : anchor.top - GAP_PX - size.height;
+
+    // Measured in screen pixels, placed in the hint's own scaled ones.
+    return {
+        left: left / zoom,
+        // A hint taller than either side is pushed back inside the window.
+        top: Math.max(TOP_RESERVED_PX, Math.min(top, viewportHeight - size.height - EDGE_PX)) / zoom,
+        below,
+        arrow: arrow / zoom
+    };
+}

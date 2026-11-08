@@ -44,7 +44,7 @@ export async function analyzeWithSucuriDetailed(
     const result = await Native.querySucuri(url);
 
     if (result.error) {
-        if (!silent) safeToast(`Sucuri scan failed: ${result.error}`, "failure");
+        if (!silent) safeToast(`Sucuri scan failed: ${result.error}`, "critical");
         return { analysis: null, domainResolved: null };
     }
 
@@ -63,7 +63,7 @@ export async function analyzeWithSucuriDetailed(
 
     // if IP is unknown
     if (ip === "Unknown") {
-        if (!silent) safeToast(`Sucuri: ${url} could not be resolved`, "failure");
+        if (!silent) safeToast(`Sucuri: ${url} could not be resolved`, "critical");
 
         if (suppressUnresolvedResult) {
             return { analysis: null, domainResolved: false };
@@ -124,7 +124,7 @@ export async function analyzeWithSucuriDetailed(
         if (isSafe) {
             safeToast(`Sucuri: ${url} looks safe.`, "success");
         } else {
-            safeToast(`Sucuri: Issues found on ${url}!`, "failure");
+            safeToast(`Sucuri: Issues found on ${url}!`, "critical");
         }
     }
 

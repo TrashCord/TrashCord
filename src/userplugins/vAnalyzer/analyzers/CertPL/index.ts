@@ -17,7 +17,7 @@ export async function analyzeWithCertPL(url: string, silent = false): Promise<An
     const result = await Native.queryCertPL(domain);
 
     if (result.error) {
-        if (!silent) safeToast(`CERT.PL lookup failed: ${result.error}`, "failure");
+        if (!silent) safeToast(`CERT.PL lookup failed: ${result.error}`, "critical");
         return null;
     }
 
@@ -31,7 +31,7 @@ export async function analyzeWithCertPL(url: string, silent = false): Promise<An
 
     if (!silent) {
         if (result.found) {
-            safeToast(`WARNING: ${domain} is on CERT.PL blocklist!`, "failure");
+            safeToast(`WARNING: ${domain} is on CERT.PL blocklist!`, "critical");
         } else {
             safeToast(`${domain} not found in CERT.PL blocklist`, "success");
         }

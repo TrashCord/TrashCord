@@ -11,9 +11,6 @@ import { settings } from "./settings";
 const STORE_KEY_CUSTOM_WHITELIST = "vAnalyzer_customWhitelist";
 const STORE_KEY_CUSTOM_BLOCKLIST = "vAnalyzer_customBlocklist";
 const STORE_KEY_FMHY_CACHE = "vAnalyzer_fmhyBlocklist";
-const FMHY_FILTERLIST_URL = "https://cdn.jsdelivr.net/gh/fmhy/FMHYFilterlist@main/filterlist.txt";
-const FETCH_TIMEOUT_MS = 15_000;
-const MAX_FILTERLIST_BYTES = 2 * 1024 * 1024;
 
 const BUILTIN_WHITELIST = new Set([
     "discord.com",
@@ -72,15 +69,6 @@ function extractHostname(url: string): string | null {
     } catch {
         return null;
     }
-}
-
-async function readCappedText(response: Response) {
-    const length = Number(response.headers.get("content-length"));
-    if (Number.isFinite(length) && length > MAX_FILTERLIST_BYTES) throw new Error("Filterlist was too large.");
-
-    const text = await response.text();
-    if (new TextEncoder().encode(text).byteLength > MAX_FILTERLIST_BYTES) throw new Error("Filterlist was too large.");
-    return text;
 }
 
 function getDomainVariants(hostname: string): string[] {
@@ -149,7 +137,7 @@ export async function setCustomBlocklist(domains: string[]): Promise<void> {
     customBlocklist = new Set(normalized);
 }
 
-// FMHY filterlist
+// FMHY filterlist 
 function parseFmhyFilterlist(text: string): string[] {
     const domains: string[] = [];
     for (const line of text.split("\n")) {
@@ -176,9 +164,9 @@ export async function loadFmhyBlocklist(): Promise<void> {
 
 export async function fetchFmhyBlocklist(): Promise<number> {
     try {
-        const res = await fetch(FMHY_FILTERLIST_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+        const res = await fetch("https://raw.githubusercontent.com/fmhy/FMHYFilterlist/main/filterlist.txt");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await readCappedText(res);
+        const text = await res.text();
         const domains = parseFmhyFilterlist(text);
         fmhyBlocklist = new Set(domains);
         await DataStore.set(STORE_KEY_FMHY_CACHE, { domains, fetchedAt: Date.now() });
@@ -203,7 +191,7 @@ export async function initFilters(): Promise<void> {
     if (settings.store.enableFmhyBlocklist) {
         const cached = await DataStore.get<{ domains: string[]; fetchedAt: number; }>(STORE_KEY_FMHY_CACHE);
         const fourDays = 4 * 24 * 60 * 60 * 1000;
-        if (!cached?.domains?.length || (Date.now() - cached.fetchedAt > fourDays)) {
+        if (!cached || !cached.domains.length || (Date.now() - cached.fetchedAt > fourDays)) {
             fetchFmhyBlocklist();
         }
     }

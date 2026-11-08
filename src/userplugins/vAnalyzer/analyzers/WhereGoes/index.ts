@@ -101,7 +101,7 @@ export async function analyzeWithWhereGoes(url: string, silent = false): Promise
     }
 
     if (result.status !== 200 || !result.html) {
-        if (!silent) safeToast(`Trace failed: ${result.error ?? "unknown error"}`, "failure");
+        if (!silent) safeToast(`Trace failed: ${result.error ?? "unknown error"}`, "critical");
         return null;
     }
 

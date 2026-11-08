@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { sleep } from "@utils/misc";
 import { PluginNative } from "@utils/types";
 
 import { settings } from "../../settings";
@@ -40,7 +39,7 @@ function buildDetails(stats: any): AnalysisValue["details"] {
 async function waitForVirusTotalReport(apiKey: string, analysisId: string, silent: boolean): Promise<any | null> {
     for (let i = 0; i < 8; i++) {
         if (i > 0) {
-            await sleep(2500);
+            await new Promise(resolve => setTimeout(resolve, 2500));
         }
 
         const reportResult = await Native.getVirusTotalFileReport(apiKey, analysisId);
@@ -75,7 +74,7 @@ export async function analyzeWithVirusTotal(messageId: string, url: string, sile
 
         // NEED APIKEY TO UPLOAD, FILE NOT FOUND
         if (!apiKey) {
-            if (!silent) safeToast("File not found on VirusTotal. Set an API key in settings to upload & scan.", "failure");
+            if (!silent) safeToast("File not found on VirusTotal. Set an API key in settings to upload & scan.", "critical");
             return null;
         }
 
@@ -87,13 +86,13 @@ export async function analyzeWithVirusTotal(messageId: string, url: string, sile
     const uploadResult = await Native.makeVirusTotalRequest(apiKey, url);
 
     if (uploadResult.status !== 200) {
-        if (!silent) safeToast("Failed to upload file to VirusTotal.", "failure");
+        if (!silent) safeToast("Failed to upload file to VirusTotal.", "critical");
         return null;
     }
 
-    const { analysisId } = uploadResult;
+    const analysisId = uploadResult.analysisId;
     if (!analysisId) {
-        if (!silent) safeToast("Could not get analysis ID from VirusTotal.", "failure");
+        if (!silent) safeToast("Could not get analysis ID from VirusTotal.", "critical");
         return null;
     }
 
@@ -112,7 +111,7 @@ export async function analyzeWithVirusTotal(messageId: string, url: string, sile
 
     const stats = reportData?.data?.attributes?.last_analysis_stats;
     if (!stats) {
-        if (!silent) safeToast("Could not parse VirusTotal report.", "failure");
+        if (!silent) safeToast("Could not parse VirusTotal report.", "critical");
         return null;
     }
 

@@ -31,6 +31,7 @@ function containsKeywords(text: string, keywords: string[]): string[] {
     return keywords.filter(kw => text.includes(kw));
 }
 
+
 export function isDiscordInvite(url: string): boolean {
     return extractInviteCode(url) !== null;
 }
@@ -38,7 +39,7 @@ export function isDiscordInvite(url: string): boolean {
 export async function analyzeDiscordInvite(url: string, silent = false): Promise<AnalysisValue | null> {
     const inviteCode = extractInviteCode(url);
     if (!inviteCode) {
-        if (!silent) safeToast("Could not extract invite code from URL", "failure");
+        if (!silent) safeToast("Could not extract invite code from URL", "critical");
         return null;
     }
 
@@ -47,12 +48,12 @@ export async function analyzeDiscordInvite(url: string, silent = false): Promise
     const result = await Native.queryDiscordInvite(inviteCode);
 
     if (result.status !== 200 || !result.data) {
-        if (!silent) safeToast(`Invite lookup failed: ${result.error ?? "invalid or expired invite"}`, "failure");
+        if (!silent) safeToast(`Invite lookup failed: ${result.error ?? "invalid or expired invite"}`, "critical");
         return null;
     }
 
     const { data } = result;
-    const { guild } = data;
+    const guild = data.guild;
     const details: AnalysisValue["details"] = [];
 
     if (!guild) {
@@ -62,7 +63,7 @@ export async function analyzeDiscordInvite(url: string, silent = false): Promise
 
     const memberCount = data.approximate_member_count ?? 0;
     const onlineCount = data.approximate_presence_count ?? 0;
-    const { name } = guild;
+    const name = guild.name;
     const description = guild.description ?? "";
     const vanityCode = guild.vanity_url_code ?? "";
     const channelName = data.channel?.name ?? "";

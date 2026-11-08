@@ -1,0 +1,17 @@
+div[class^="base_"] {
+    grid-template-rows: [top] 0 [titleBarEnd] min-content [noticeEnd] 1fr [end];
+}
+
+div[class^="tutorialContainer_"] {
+    margin-top: var(--space-md);
+}
+
+div[class^="toolbar_"] div[class^="clickable_"] {
+    width: 32px;
+    height: 32px;
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+}

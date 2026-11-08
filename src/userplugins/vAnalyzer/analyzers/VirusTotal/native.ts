@@ -7,59 +7,6 @@
 import { createHash } from "crypto";
 import { IpcMainInvokeEvent } from "electron";
 
-const FETCH_TIMEOUT_MS = 30_000;
-const MAX_FILE_BYTES = 32 * 1024 * 1024;
-const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
-const ALLOWED_FILE_HOSTS = new Set([
-    "cdn.discordapp.com",
-    "media.discordapp.net",
-    "cdn.discord.com",
-    "media.discord.com"
-]);
-
-interface VirusTotalLookupData {
-    data?: {
-        attributes?: {
-            last_analysis_stats?: {
-                malicious: number;
-                suspicious: number;
-                harmless: number;
-                undetected: number;
-            };
-        };
-    };
-}
-
-interface VirusTotalUploadData {
-    data?: {
-        id?: string;
-    };
-}
-
-function assertAllowedFileUrl(fileUrl: string) {
-    const url = new URL(fileUrl);
-    if (url.protocol !== "https:" || !ALLOWED_FILE_HOSTS.has(url.hostname) || !url.pathname.startsWith("/attachments/")) {
-        throw new Error("File URL is not allowed.");
-    }
-}
-
-async function readCappedBuffer(response: Response, maxBytes: number) {
-    const length = Number(response.headers.get("content-length"));
-    if (Number.isFinite(length) && length > maxBytes) throw new Error("Response was too large.");
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    if (buffer.byteLength > maxBytes) throw new Error("Response was too large.");
-    return buffer;
-}
-
-async function readCappedText(response: Response) {
-    return (await readCappedBuffer(response, MAX_RESPONSE_BYTES)).toString("utf8");
-}
-
-async function readCappedJson<T>(response: Response): Promise<T> {
-    return JSON.parse(await readCappedText(response)) as T;
-}
-
 function generateAntiAbuseHeader(): string {
     const inner = Buffer.from("dont be evil").toString("base64");
     const timestamp = Date.now() / 1000;
@@ -68,11 +15,10 @@ function generateAntiAbuseHeader(): string {
 
 export async function lookupVirusTotalFile(_: IpcMainInvokeEvent, fileUrl: string) {
     try {
-        assertAllowedFileUrl(fileUrl);
-        const fileResponse = await fetch(fileUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+        const fileResponse = await fetch(fileUrl);
         if (!fileResponse.ok) throw new Error(`Failed to fetch file: ${fileUrl}`);
 
-        const buffer = await readCappedBuffer(fileResponse, MAX_FILE_BYTES);
+        const buffer = Buffer.from(await fileResponse.arrayBuffer());
         const sha256 = createHash("sha256").update(buffer).digest("hex");
 
         const vtUrl = `https://www.virustotal.com/ui/files/${sha256}`;
@@ -87,30 +33,27 @@ export async function lookupVirusTotalFile(_: IpcMainInvokeEvent, fileUrl: strin
                 "x-vt-anti-abuse-header": generateAntiAbuseHeader(),
                 "referer": "https://www.virustotal.com/",
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
-            },
-            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+            }
         });
 
         if (!res.ok) {
-            const errorBody = await readCappedText(res);
+            const errorBody = await res.text();
             return { status: res.status, data: null, sha256, errorBody };
         }
 
-        const data = await readCappedJson<VirusTotalLookupData>(res);
+        const data = await res.json();
         return { status: 200, data, sha256 };
     } catch (e) {
-        return { status: -1, data: null, sha256: null, error: String(e) };
+        return { status: -1, data: String(e), sha256: null };
     }
 }
 
 export async function makeVirusTotalRequest(_: IpcMainInvokeEvent, apiKey: string, fileUrl: string) {
     try {
-        assertAllowedFileUrl(fileUrl);
-        const fileResponse = await fetch(fileUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+        const fileResponse = await fetch(fileUrl);
         if (!fileResponse.ok) throw new Error(`Failed to fetch file: ${fileUrl}`);
 
-        const fileBuffer = await readCappedBuffer(fileResponse, MAX_FILE_BYTES);
-        const fileBlob = new Blob([fileBuffer]);
+        const fileBlob = await fileResponse.blob();
         const file = new File([fileBlob], "uploaded-file", { type: fileBlob.type });
 
         const formData = new FormData();
@@ -119,14 +62,13 @@ export async function makeVirusTotalRequest(_: IpcMainInvokeEvent, apiKey: strin
         const res = await fetch("https://www.virustotal.com/api/v3/files", {
             method: "POST",
             headers: { "x-apikey": apiKey },
-            body: formData,
-            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+            body: formData
         });
 
-        const data = await readCappedJson<VirusTotalUploadData>(res);
+        const data = await res.json();
         return { status: res.status, data, analysisId: data?.data?.id };
     } catch (e) {
-        return { status: -1, data: {}, error: String(e) };
+        return { status: -1, data: String(e) };
     }
 }
 
@@ -135,16 +77,15 @@ export async function getVirusTotalFileReport(_: IpcMainInvokeEvent, apiKey: str
         const decodedString = Buffer.from(fileId, "base64").toString("utf-8");
         const md5 = decodedString.split(":")[0];
 
-        const res = await fetch(`https://www.virustotal.com/api/v3/files/${encodeURIComponent(md5)}`, {
-            headers: { "x-apikey": apiKey },
-            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+        const res = await fetch(`https://www.virustotal.com/api/v3/files/${md5}`, {
+            headers: { "x-apikey": apiKey }
         });
 
         if (!res.ok) throw new Error(`Failed to fetch file report: ${res.statusText}`);
 
-        const data = await readCappedJson<VirusTotalLookupData>(res);
+        const data = await res.json();
         return { status: res.status, data };
     } catch (e) {
-        return { status: -1, data: {}, error: String(e) };
+        return { status: -1, data: String(e) };
     }
 }

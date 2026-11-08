@@ -7,29 +7,33 @@
 import managedStyle from "./style/styles.css?managed";
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { Button, TextButton } from "@components/Button";
-import { LinkIcon, OpenExternalIcon, SafetyIcon } from "@components/Icons";
-import { ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { Alerts, Menu, React, TextInput, useState } from "@webpack/common";
+import { Alerts, Menu, React } from "@webpack/common";
+
+import { LinkIcon, OpenExternalIcon, SafetyIcon } from "@components/Icons";
 
 import { AnalysisAccessory, handleAnalysis } from "./AnalysisAccesory";
-import { analyzeWithCertPL } from "./analyzers/CertPL";
+import { getThreat } from "./threatStore";
 import { analyzeUserWithCordCat } from "./analyzers/CordCat";
-import { analyzeWithCrtSh } from "./analyzers/CrtSh";
 import { analyzeDiscordInvite, isDiscordInvite } from "./analyzers/DiscordInvite";
-import { analyzeWithFishFish } from "./analyzers/FishFish";
 import { analyzeFileWithHybridAnalysis, analyzeUrlWithHybridAnalysis } from "./analyzers/HybridAnalysis";
-import { runModularScan } from "./analyzers/ModularScan";
+import { analyzeWithCertPL } from "./analyzers/CertPL";
+import { analyzeWithCrtSh } from "./analyzers/CrtSh";
+import { analyzeWithFishFish } from "./analyzers/FishFish";
 import { analyzeWithSucuri } from "./analyzers/Sucuri";
+import { analyzeFileWithRatterScanner, isJarFile } from "./analyzers/RatterScanner";
+import { analyzeUserReputation, getEnabledReputationServices, isUnifiedMode } from "./analyzers/userReputation";
+import { analyzeUserReputationEntry } from "./analyzers/reputationEntry";
+import { openFindUserByIdModal } from "./components/modals/FindUserByIdModal";
+import { openUbfbReportModal } from "./components/modals/UbfbReportModal";
 import { analyzeWithVirusTotal } from "./analyzers/VirusTotal";
 import { analyzeWithWhereGoes } from "./analyzers/WhereGoes";
+import { runModularScan } from "./analyzers/ModularScan";
 import { autoAnalyzeMessage, extractUrlsFromMessage, manualAnalyzeUrls } from "./autoAnalyze";
-import { getModulesSync } from "./modularScanStore";
 import { settings } from "./settings";
-import { getThreat } from "./threatStore";
-import { initFilters, setCustomBlocklist, setCustomWhitelist } from "./urlFilter";
+import { getModulesSync } from "./modularScanStore";
+import { initFilters, setCustomWhitelist, setCustomBlocklist } from "./urlFilter";
 import { extractCdnFileUrls, truncateUrl } from "./utils";
 
 async function genericAnalyze(messageId: string, url: string, analyzer: (url: string, silent: boolean) => Promise<any>, silent = false) {
@@ -46,6 +50,34 @@ async function genericAnalyzeFile(messageId: string, fileUrl: string, fileName: 
     }
 }
 
+/** Builds the reputation menu entries one combined, or one per enabled service. */
+function buildReputationMenuItems(messageId: string | undefined, userId: string, userName: string, prefix: string) {
+    const services = getEnabledReputationServices();
+    if (!services.length) return [];
+
+    if (isUnifiedMode()) {
+        return [(
+            <Menu.MenuItem
+                id={`${prefix}-reputation`}
+                key="reputation"
+                label="Scan user reputation"
+                icon={SafetyIcon}
+                action={() => analyzeUserReputationEntry(messageId, userId, userName, analyzeUserReputation, "User Reputation", true)}
+            />
+        )];
+    }
+
+    return services.map(service => (
+        <Menu.MenuItem
+            id={`${prefix}-reputation-${service.id}`}
+            key={service.id}
+            label={`Scan user with ${service.label}`}
+            icon={SafetyIcon}
+            action={() => analyzeUserReputationEntry(messageId, userId, userName, service.run, `${service.label} Analysis`, true, service)}
+        />
+    ));
+}
+
 function openExternal(url: string) {
     VencordNative.native.openExternal(url);
 }
@@ -60,52 +92,13 @@ function extractUserIdFromContext(context: any): string | undefined {
     return undefined;
 }
 
-function FindUserByIdModal({ modalProps }: { modalProps: any; }) {
-    const [userId, setUserId] = useState("");
-
-    function submit() {
-        const id = userId.trim();
-        if (!id) return;
-        modalProps.onClose();
-        analyzeUserWithCordCat(id, id);
-    }
-
-    return (
-        <ModalRoot {...modalProps} size={ModalSize.SMALL}>
-            <ModalHeader>
-                <span style={{ fontWeight: 700, fontSize: "16px", color: "var(--white-500, #fff)" }}>Find User by ID — CordCat</span>
-            </ModalHeader>
-            <ModalContent style={{ padding: "16px" }}>
-                <p style={{ marginBottom: "10px", color: "var(--text-muted)", fontSize: "13px" }}>
-                    Enter a Discord User ID to query CordCat:
-                </p>
-                <TextInput
-                    autoFocus
-                    placeholder="447812212241989632"
-                    value={userId}
-                    onChange={setUserId}
-                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") submit(); }}
-                />
-            </ModalContent>
-            <ModalFooter>
-                <Button onClick={submit} disabled={!userId.trim()}>Look Up</Button>
-                <TextButton variant="link" onClick={modalProps.onClose} style={{ marginLeft: "8px" }}>
-                    Cancel
-                </TextButton>
-            </ModalFooter>
-        </ModalRoot>
-    );
-}
-
-function openFindUserByIdModal() {
-    openModal(modalProps => <FindUserByIdModal modalProps={modalProps} />);
-}
-
 function getUserSearchLinks(userId: string) {
     const encodedId = encodeURIComponent(userId);
     return [
         { id: "top-gg", label: "top.gg", url: `https://top.gg/user/${encodedId}` },
-        { id: "discordhub", label: "DiscordHub", url: `https://discordhub.com/profile/${encodedId}` }
+        { id: "discordhub", label: "DiscordHub", url: `https://discordhub.com/profile/${encodedId}` },
+        { id: "cordcat", label: "CordCat", url: `https://cord.cat/${encodedId}` }
+
     ];
 }
 
@@ -113,7 +106,9 @@ function getServerSearchLinks(guildId: string) {
     const encodedId = encodeURIComponent(guildId);
     return [
         { id: "disboard", label: "Disboard", url: `https://disboard.org/es/server/${encodedId}` },
-        { id: "discordservers", label: "DiscordServers", url: `https://discordservers.com/server/${encodedId}` }
+        { id: "discordservers", label: "DiscordServers", url: `https://discordservers.com/server/${encodedId}` },
+        { id: "discordplace", label: "DiscordPlace", url: `https://discordplace.com/servers/${encodedId}` },
+        { id: "discords", label: "Discords", url: `https://discords.com/servers/${encodedId}` }
     ];
 }
 
@@ -130,7 +125,14 @@ const urlAnalyzers = [
 const fileAnalyzers = [
     { id: "vt", label: "Scan file with VirusTotal", fn: (msgId: string, url: string, _name: string) => genericAnalyze(msgId, url, (u, s) => analyzeWithVirusTotal(msgId, u, s)) },
     { id: "ha-file", label: "Scan file with Hybrid Analysis", fn: (msgId: string, url: string, name: string) => genericAnalyzeFile(msgId, url, name, analyzeFileWithHybridAnalysis) },
+    { id: "ratterscanner", label: "Scan file with Ratter Scanner", fn: (msgId: string, url: string, name: string) => genericAnalyzeFile(msgId, url, name, analyzeFileWithRatterScanner), enabled: () => settings.store.autoScanFilesRatterScanner, accepts: isJarFile },
 ];
+
+function getFileAnalyzers(fileNames: string[]) {
+    return fileAnalyzers.filter(a =>
+        (a.enabled?.() ?? true) && (!a.accepts || fileNames.some(a.accepts))
+    );
+}
 
 const messageCtxPatch: NavContextMenuPatchCallback = (children, { message }: { message: Message; }) => {
     const hasAttachments = !!message.attachments?.length;
@@ -158,11 +160,32 @@ const messageCtxPatch: NavContextMenuPatchCallback = (children, { message }: { m
         );
     }
 
+    {
+        const authorName = message.author.username || message.author.id;
+        group.push(...buildReputationMenuItems(message.id, message.author.id, authorName, "vc-analyze-author"));
+
+        if (settings.store.enableUbfb && settings.store.enableUbfbReporting) {
+            const imageProofs = (message.attachments ?? [])
+                .filter(a => a.content_type?.toLowerCase().startsWith("image/"))
+                .map(a => a.url);
+
+            group.push(
+                <Menu.MenuItem
+                    id="vc-analyze-author-ubfb-report"
+                    label="Report author to UBFB..."
+                    icon={SafetyIcon}
+                    color="danger"
+                    action={() => openUbfbReportModal(message.author.id, authorName, imageProofs)}
+                />
+            );
+        }
+    }
+
     if (settings.store.enableFindUserById) {
         group.push(
             <Menu.MenuItem
                 id="vc-analyze-find-user-by-id"
-                label="Find User by ID"
+                label="Find User by ID (deprecated)"
                 icon={SafetyIcon}
                 action={openFindUserByIdModal}
             />
@@ -172,14 +195,18 @@ const messageCtxPatch: NavContextMenuPatchCallback = (children, { message }: { m
     if (!hasAttachments && !hasUrls && !hasInvites && !hasCdnFiles) return;
 
     if (hasAttachments) {
-        for (const analyzer of fileAnalyzers) {
-            if (message.attachments.length === 1) {
+        for (const analyzer of getFileAnalyzers(message.attachments.map(a => a.filename))) {
+            const attachments = analyzer.accepts
+                ? message.attachments.filter(a => analyzer.accepts!(a.filename))
+                : message.attachments;
+
+            if (attachments.length === 1) {
                 group.push(
                     <Menu.MenuItem
                         id={`vc-analyze-${analyzer.id}`}
                         label={analyzer.label}
                         icon={SafetyIcon}
-                        action={() => analyzer.fn(message.id, message.attachments[0].url, message.attachments[0].filename)}
+                        action={() => analyzer.fn(message.id, attachments[0].url, attachments[0].filename)}
                     />
                 );
             } else {
@@ -189,7 +216,7 @@ const messageCtxPatch: NavContextMenuPatchCallback = (children, { message }: { m
                         label={analyzer.label}
                         icon={SafetyIcon}
                     >
-                        {message.attachments.map((attachment, i) => (
+                        {attachments.map((attachment, i) => (
                             <Menu.MenuItem
                                 id={`vc-analyze-${analyzer.id}-${i}`}
                                 key={attachment.id}
@@ -204,14 +231,18 @@ const messageCtxPatch: NavContextMenuPatchCallback = (children, { message }: { m
     }
 
     if (hasCdnFiles) {
-        for (const analyzer of fileAnalyzers) {
-            if (cdnFiles.length === 1) {
+        for (const analyzer of getFileAnalyzers(cdnFiles.map(f => f.fileName))) {
+            const files = analyzer.accepts
+                ? cdnFiles.filter(f => analyzer.accepts!(f.fileName))
+                : cdnFiles;
+
+            if (files.length === 1) {
                 group.push(
                     <Menu.MenuItem
                         id={`vc-analyze-cdn-${analyzer.id}`}
-                        label={`${analyzer.label} (${cdnFiles[0].fileName})`}
+                        label={`${analyzer.label} (${files[0].fileName})`}
                         icon={SafetyIcon}
-                        action={() => analyzer.fn(message.id, cdnFiles[0].url, cdnFiles[0].fileName)}
+                        action={() => analyzer.fn(message.id, files[0].url, files[0].fileName)}
                     />
                 );
             } else {
@@ -221,7 +252,7 @@ const messageCtxPatch: NavContextMenuPatchCallback = (children, { message }: { m
                         label={analyzer.label}
                         icon={SafetyIcon}
                     >
-                        {cdnFiles.map((file, i) => (
+                        {files.map((file, i) => (
                             <Menu.MenuItem
                                 id={`vc-analyze-cdn-${analyzer.id}-${i}`}
                                 key={file.url}
@@ -399,31 +430,65 @@ const userContextPatch: NavContextMenuPatchCallback = (children, { user, id }: {
             />
         );
     }
+
+    if (userId) {
+        const username = user?.username || userId;
+        children.push(...buildReputationMenuItems(undefined, userId, username, "vc-analyze-user"));
+
+        if (settings.store.enableUbfb && settings.store.enableUbfbReporting) {
+            children.push(
+                <Menu.MenuItem
+                    id="vc-analyze-user-ubfb-report"
+                    label="Report User to UBFB..."
+                    icon={SafetyIcon}
+                    color="danger"
+                    action={() => openUbfbReportModal(userId, username)}
+                />
+            );
+        }
+    }
 };
 
 const devContextPatch: NavContextMenuPatchCallback = (children, context: any) => {
-    if (!settings.store.enableCordCat) return;
-
     const userId = extractUserIdFromContext(context);
 
+    if (settings.store.enableCordCat) {
+        if (userId) {
+            children.push(
+                <Menu.MenuItem
+                    id="vc-analyze-dev-context-cordcat"
+                    label="Analyze User with CordCat"
+                    icon={SafetyIcon}
+                    action={() => analyzeUserWithCordCat(userId, userId)}
+                />
+            );
+        } else {
+            children.push(
+                <Menu.MenuItem
+                    id="vc-analyze-dev-context-cordcat"
+                    label="Find User by ID (deprecated)"
+                    icon={SafetyIcon}
+                    action={openFindUserByIdModal}
+                />
+            );
+        }
+    }
+
+    // an unknown user still has a usable ID, so the reputation lookups apply
     if (userId) {
-        children.push(
-            <Menu.MenuItem
-                id="vc-analyze-dev-context-cordcat"
-                label="Analyze User with CordCat"
-                icon={SafetyIcon}
-                action={() => analyzeUserWithCordCat(userId, userId)}
-            />
-        );
-    } else {
-        children.push(
-            <Menu.MenuItem
-                id="vc-analyze-dev-context-cordcat"
-                label="Find User by ID (CordCat)"
-                icon={SafetyIcon}
-                action={openFindUserByIdModal}
-            />
-        );
+        children.push(...buildReputationMenuItems(undefined, userId, userId, "vc-analyze-dev-context"));
+
+        if (settings.store.enableUbfb && settings.store.enableUbfbReporting) {
+            children.push(
+                <Menu.MenuItem
+                    id="vc-analyze-dev-context-ubfb-report"
+                    label="Report User to UBFB..."
+                    icon={SafetyIcon}
+                    color="danger"
+                    action={() => openUbfbReportModal(userId, userId)}
+                />
+            );
+        }
     }
 };
 
@@ -531,10 +596,7 @@ export default definePlugin({
     flux: {
         MESSAGE_CREATE({ message, optimistic }: { message: Message; optimistic: boolean; }) {
             if (optimistic) return;
-            if ((message as any).__vaAnalyzed) return;
-            if (!message.content && !message.embeds?.length && !message.components?.length && !message.attachments?.length) return;
-            (message as any).__vaAnalyzed = true;
-            setTimeout(() => autoAnalyzeMessage(message), 0);
+            autoAnalyzeMessage(message);
         }
     },
 
@@ -549,5 +611,8 @@ export default definePlugin({
         "guild-header-popout": guildContextPatch
     },
 
-    renderMessageAccessory: props => <AnalysisAccessory message={props.message} />,
+    renderMessageAccessory: props => {
+        autoAnalyzeMessage(props.message);
+        return <AnalysisAccessory message={props.message} />;
+    },
 });

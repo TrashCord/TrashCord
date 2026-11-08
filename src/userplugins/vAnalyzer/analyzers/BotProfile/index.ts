@@ -39,7 +39,7 @@ export function analyzeBotProfile(user: User): AnalysisValue | null {
 
     const details: AnalysisValue["details"] = [];
     const isVerifiedBot = typeof user.isVerifiedBot === "function" && user.isVerifiedBot();
-    const { createdAt } = user;
+    const createdAt = user.createdAt;
     const accountAgeMs = createdAt instanceof Date ? Date.now() - createdAt.getTime() : Number.POSITIVE_INFINITY;
 
     if (isVerifiedBot) {

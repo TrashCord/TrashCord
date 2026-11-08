@@ -8,27 +8,26 @@ import { Message } from "@vencord/discord-types";
 import { ChannelStore, RelationshipStore } from "@webpack/common";
 
 import { handleAnalysis } from "./AnalysisAccesory";
-import { analyzeBotProfile } from "./analyzers/BotProfile";
 import { analyzeWithCertPL } from "./analyzers/CertPL";
 import { analyzeDiscordInvite, isDiscordInvite } from "./analyzers/DiscordInvite";
 import { analyzeWithFishFish } from "./analyzers/FishFish";
 import { analyzeFileWithHybridAnalysis, analyzeUrlWithHybridAnalysis } from "./analyzers/HybridAnalysis";
+import { analyzeBotProfile } from "./analyzers/BotProfile";
 import { runModularScan } from "./analyzers/ModularScan";
 import { analyzeWithSucuriDetailed } from "./analyzers/Sucuri";
+import { analyzeFileWithRatterScanner, isJarFile } from "./analyzers/RatterScanner";
 import { analyzeWithVirusTotal } from "./analyzers/VirusTotal";
 import { analyzeWithWhereGoes } from "./analyzers/WhereGoes";
 import { getModulesSync, ModularScanModule } from "./modularScanStore";
 import { settings } from "./settings";
 import { getBlocklistReason, isBlocklisted, isWhitelisted } from "./urlFilter";
-import { type AnalysisValue, analyzerLimiter, extractCdnFileUrls, pruneMap } from "./utils";
+import { analyzerLimiter, extractCdnFileUrls, pruneMap } from "./utils";
 
 const URL_REGEX = /\b(?:https?:\/\/|www\.)[^\s<>"')\]]+|\b[a-z0-9][a-z0-9-]*\.[a-z]{2,}(?:\/[^\s<>"')\]]*)?\b/gi;
 const MARKDOWN_LINK_REGEX = /\[[^\]]+\]\((?:<)?([^\s)<>]+)(?:>)?\)/gi;
 const EPHEMERAL_MESSAGE_FLAG = 1 << 6;
 const ANALYZED_MESSAGE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_ANALYZED_MESSAGES = 1000;
-const MAX_URLS_PER_MESSAGE = 25;
-const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 const AUTO_ANALYZED_MESSAGE_IDS = new Map<string, number>();
 const NON_SCANNABLE_ATTACHMENT_EXTENSIONS = new Set([
     "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "tif", "tiff",
@@ -36,10 +35,7 @@ const NON_SCANNABLE_ATTACHMENT_EXTENSIONS = new Set([
     "mp3", "wav", "ogg", "flac", "aac", "m4a"
 ]);
 
-let lastPrune = 0;
 function pruneAnalyzedMessages(now: number) {
-    if (now - lastPrune < 30_000) return;
-    lastPrune = now;
     pruneMap(AUTO_ANALYZED_MESSAGE_IDS, expiresAt => expiresAt <= now, MAX_ANALYZED_MESSAGES);
 }
 
@@ -57,12 +53,7 @@ export function extractUrls(content: string): string[] {
         .filter(u => u.length > 0);
 }
 
-export function clearAutoAnalyzeState() {
-    AUTO_ANALYZED_MESSAGE_IDS.clear();
-    analyzerLimiter.clear();
-}
-
-function runScan(messageId: string, url: string, task: () => Promise<AnalysisValue | null | undefined>, label: string) {
+function runScan(messageId: string, url: string, task: () => Promise<any>, label: string) {
     analyzerLimiter.run(task)
         .then(r => r && handleAnalysis(messageId, r, url))
         .catch(error => console.error(`[vAnalyzer] ${label}:`, error));
@@ -150,7 +141,7 @@ function walkMessageValue(value: unknown, urls: Set<string>, seen: WeakSet<objec
     }
 
     for (const [key, nestedValue] of Object.entries(value)) {
-        // skip CDN URLs
+        // skip CDN URLs 
         if (/^(image|thumbnail|cdn|media)/.test(key)) continue;
 
         if (typeof nestedValue === "string" && /url|href|link/i.test(key)) {
@@ -167,13 +158,7 @@ function walkMessageValue(value: unknown, urls: Set<string>, seen: WeakSet<objec
     }
 }
 
-const urlExtractCache = new Map<string, string[]>();
-const MAX_URL_CACHE = 2000;
-
 export function extractUrlsFromMessage(message: Message): string[] {
-    const cached = urlExtractCache.get(message.id);
-    if (cached) return cached;
-
     const urls = new Set<string>(extractUrls(message.content ?? ""));
 
     if (settings.store.checkEmbeds) {
@@ -188,17 +173,7 @@ export function extractUrlsFromMessage(message: Message): string[] {
         walkMessageValue(component, urls, new WeakSet<object>());
     }
 
-    const result = [...urls].slice(0, MAX_URLS_PER_MESSAGE);
-    urlExtractCache.set(message.id, result);
-    if (urlExtractCache.size > MAX_URL_CACHE) {
-        const first = urlExtractCache.keys().next().value;
-        if (first) urlExtractCache.delete(first);
-    }
-    return result;
-}
-
-export function clearUrlExtractCache() {
-    urlExtractCache.clear();
+    return [...urls];
 }
 
 export function extractUrlsFromEmbeds(message: Message): string[] {
@@ -211,7 +186,7 @@ export function extractUrlsFromEmbeds(message: Message): string[] {
         walkMessageValue(embed, urls, new WeakSet<object>());
     }
 
-    return [...urls].slice(0, MAX_URLS_PER_MESSAGE);
+    return [...urls];
 }
 
 function analyzeUrlsAndInvites(
@@ -342,7 +317,7 @@ function isScannableAttachment(attachment: Message["attachments"][number]): bool
 }
 
 function matchesFilter(module: ModularScanModule, target: string): boolean {
-    const { filter } = module;
+    const filter = module.filter;
     if (!filter || filter.type === "none") return true;
 
     if (filter.type === "contains") {
@@ -412,7 +387,7 @@ export function autoAnalyzeMessage(message: Message) {
 
     const urls = ephemeralMessage ? extractUrlsFromEmbeds(message) : extractUrlsFromMessage(message);
     const canScanFiles = !ephemeralMessage;
-    const scannableAttachments = (message.attachments ?? []).filter(isScannableAttachment).slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
+    const scannableAttachments = (message.attachments ?? []).filter(isScannableAttachment);
     if (urls.length === 0 && (!canScanFiles || scannableAttachments.length === 0)) return;
 
     const normalUrls = analyzeUrlsAndInvites(message, urls, {
@@ -438,10 +413,17 @@ export function autoAnalyzeMessage(message: Message) {
                     runScan(message.id, attachment.url, () => analyzeFileWithHybridAnalysis(attachment.url, attachment.filename, true), "Auto file scan error");
                 }
             }
+
+            // ratterscanner (.jar only)
+            if (s.autoScanFilesRatterScanner) {
+                for (const attachment of scannableAttachments.filter(a => isJarFile(a.filename))) {
+                    runScan(message.id, attachment.url, () => analyzeFileWithRatterScanner(attachment.url, attachment.filename, true), "Auto file scan error");
+                }
+            }
         }
     }
 
-    // auto-scan CDN file URLs
+    // auto-scan CDN file URLs 
     if (s.autoScanFiles) {
         const skipFiles = s.autoScanFilesDirectMessageOnly && !isDM(message.channel_id);
         if (!skipFiles) {
@@ -457,6 +439,11 @@ export function autoAnalyzeMessage(message: Message) {
                 if (s.autoScanFilesHybridAnalysis) {
                     for (const file of cdnFiles) {
                         runScan(message.id, file.url, () => analyzeFileWithHybridAnalysis(file.url, file.fileName, true), "CDN file scan error");
+                    }
+                }
+                if (s.autoScanFilesRatterScanner) {
+                    for (const file of cdnFiles.filter(f => isJarFile(f.fileName))) {
+                        runScan(message.id, file.url, () => analyzeFileWithRatterScanner(file.url, file.fileName, true), "CDN file scan error");
                     }
                 }
             }

@@ -4,14 +4,18 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+export { lookupDangeCordProfile } from "./analyzers/Dangercord/native";
 export { queryCertPL } from "./analyzers/CertPL/native";
-export { queryCordCat } from "./analyzers/CordCat/native";
 export { queryCrtSh } from "./analyzers/CrtSh/native";
-export { queryDiscordGuildWidget,queryDiscordInvite } from "./analyzers/DiscordInvite/native";
+export { queryDiscordInvite, queryDiscordGuildWidget } from "./analyzers/DiscordInvite/native";
 export { queryFishFish } from "./analyzers/FishFish/native";
 export { hybridAnalysisGetScan, hybridAnalysisHashFile, hybridAnalysisQuickScanFile, hybridAnalysisQuickScanUrl, hybridAnalysisSearchHash } from "./analyzers/HybridAnalysis/native";
-export { executeModularScan } from "./analyzers/ModularScan/native";
-export { querySucuri } from "./analyzers/Sucuri/native";
 export { getVirusTotalFileReport, lookupVirusTotalFile, makeVirusTotalRequest } from "./analyzers/VirusTotal/native";
 export { queryWayback } from "./analyzers/WaybackMachine/native";
+export { querySucuri } from "./analyzers/Sucuri/native";
 export { traceUrl } from "./analyzers/WhereGoes/native";
+export { executeModularScan } from "./analyzers/ModularScan/native";
+export { queryCordCat } from "./analyzers/CordCat/native";
+export { queryRatterScanner } from "./analyzers/RatterScanner/native";
+export { queryUbfb, submitUbfbReport } from "./analyzers/UBFB/native";
+export { queryXnProtect } from "./analyzers/XNProtect/native";

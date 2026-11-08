@@ -1,0 +1,731 @@
+/*
+ * TrashCord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { pluralEn } from "./plural";
+
+/** The English dictionary is the type every other language must match. */
+const duration = (minutes: number) => minutes < 1
+    ? "under a minute"
+    : minutes < 60
+        ? `${minutes} min`
+        : `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ""}`;
+const together = (minutes: number) => `together ${duration(minutes)}`;
+
+export const en = {
+    /* ── plugin card ─────────────────────────────────────────────────────────────────────── */
+    pluginDescription: "Voice radar. Recent and pinned people with live voice info, quick join, auto-follow and join notifications. GitHub https://github.com/MrTopQ/VoiceRadar-Discord",
+
+    /* ── settings ────────────────────────────────────────────────────────────────────────── */
+    settingLanguage: "Language of the plugin's own text. Auto follows the language Discord is set to",
+    settingLanguageAuto: "Auto (follow Discord)",
+    settingPluginSize: "How large the plugin's windows, hints and menus are, in percent of their original size. The button in the radar's title changes this too and shows the result at once",
+    sizeTitle: "Plugin size",
+    sizeSmaller: "Smaller",
+    sizeLarger: "Larger",
+    sizeReset: "Back to 100%",
+    settingHistoryLimit: "How many people the list keeps (pinned users take slots too)",
+    settingHotkey: "Hotkey that opens Voice Radar (e.g. Alt+2, Ctrl+Shift+V)",
+    settingHotkeyInvalid: "That needs a key of its own, not only modifiers. For example Alt+2 or Ctrl+Shift+V",
+    settingSilentJoin: "Mute your mic on auto-join. Covers every join the plugin makes for you, whether that is a quick jump, an auto-join, or a slot you queued for",
+    settingAutoJoinOnlyWhenIdle: "Only follow the auto-join target when you are not in a voice channel yourself (never yanks you out of a call you are already in)",
+    settingAutoJoinCooldown: "Cooldown between auto-joins, in seconds, from 0 to 300. 0 joins at once",
+    settingJoinAlert: "When somebody with a bell joins a voice channel. While you are in Discord a card shows in the corner, and while Discord is in the background a Windows notification comes too. The sound is heard over a fullscreen game",
+    joinAlertChime: "Notification with the plugin chime",
+    joinAlertCustom: "Notification with your own sound",
+    joinAlertOff: "Off",
+    settingJoinSoundVolume: "How loud that sound is, in percent",
+    customSoundTitle: "Your own sound",
+    customSoundHint: "mp3, ogg, wav or m4a up to 2 MB, plays for 5 seconds at most. Until there is a file, the plugin chime plays",
+    customSoundNone: "No file chosen",
+    customSoundPick: "Choose file",
+    customSoundRemove: "Remove",
+    customSoundTooBig: "The file is over 2 MB. Pick a shorter one",
+    customSoundNotAudio: "That does not look like a sound. mp3, ogg, wav or m4a will do",
+    customSoundFailed: "Could not save the file",
+    settingRecentMarkMinutes: "For how many minutes the radar highlights people who just joined or left your voice channel",
+    badgeRecentJoined: (ago: string) => `joined ${ago}`,
+    badgeRecentLeft: (ago: string) => `left ${ago}`,
+    joinTestTitle: "Test",
+    joinTestHint: "Shows the card and plays the chosen sound, as if somebody with a bell joined",
+    joinTestButton: "Test a join",
+    joinPreviewBody: "This is how a join looks",
+    cardJoin: "Join",
+    cardDismiss: "Dismiss",
+    settingQueueForFullChannels: "Auto-join only. When the person you follow sits in a full channel, the plugin waits in a hidden queue and jumps in the moment a slot frees up. Queueing by hand from the join button or the right-click menu works either way",
+    settingTrackAutomatically: "Automatically remember everyone you share a voice channel with",
+    settingWatchedServerLimit: "How many servers are watched for voice. Discord only sends voice states for servers the client is subscribed to, and a server past this number is one nobody can be seen joining. Servers your people were last seen in are always asked for first",
+    settingKeepTimersAwake: "Keep Discord's timers running at their normal pace while it sits in the background. On, a join reaches you in seconds. Off, Chromium slows the whole window down after a few minutes in the background and a notification can be minutes late. This is the one setting that changes Discord as a whole rather than only this plugin, so turn it off if you would rather Discord stayed out of the way while you are in a game",
+    settingMovePace: "How fast group moves run. Every move is one line in the server's audit log, and a whole channel arriving in a second looks like a raid tool rather than a moderator. Careful sends one at a time, instant sends eight at once",
+    movePaceCareful: "Careful (one at a time)",
+    movePaceFast: "Fast (four at once)",
+    movePaceInstant: "Instant (eight at once)",
+    settingModeratorMode: "Moderator actions. Pull somebody into your channel, bring a whole channel over, put a magnet on one person, and undo any of it. Beside the people with you it adds server mute, server deafen and disconnect. Each one only shows up where you actually hold its permission",
+    settingOpenInOwnWindow: "Open the radar straight in its own window. The hotkey and the panel button then open and close it there instead of inside Discord",
+    settingHideOwnWindow: "While the radar opens straight in its own window, the hotkey, the panel button and the close button hide it instead of closing it. It comes back at once but stays in memory the whole time",
+    settingShowPanelButton: "Show the Voice Radar button in the account panel (next to mic/headphones)",
+    settingGlobalHotkey: "Lets the hotkey work while Discord is in the background, in a game, in another window or closed to the tray. It brings Discord up and opens the radar, and pressing it again closes the radar and puts Discord back where it was. While this is on, the combination is taken from every other program, and Discord itself has to be running",
+
+    /* ── what the plugin is doing, in the corner of the window ───────────────────────────── */
+    statusTitle: "Voice Radar right now",
+    statusLoading: "starting up",
+    statusReady: "ready",
+    statusProblems: (count: number) => `${count} ${pluralEn(count, "part is", "parts are")} broken`,
+    statusDegraded: (count: number) => `${count} ${pluralEn(count, "part is", "parts are")} missing`,
+    statusDegradedLine: (problems: string) =>
+        `A Discord update moved these, and the plugin carries on without them. ${problems}`,
+    statusListLost: "list not read",
+    statusListLostLine: "The saved list could not be read, so it is empty this session. Nothing is written back, so the stored one is safe.",
+    statusSubscribing: (done: number, total: number) =>
+        `Going through your servers, ${done} of ${total}, asking Discord to send who joins voice in them.`,
+    statusNeedsRestart: "restart needed",
+    statusHotkeyTaken: "hotkey taken",
+    statusStoreLoading: "Reading the saved list from the database.",
+    statusStoreLoaded: (people: number, live: number) =>
+        `${people} ${pluralEn(people, "person", "people")} in the list, ${live} in voice right now.`,
+    statusServersWaiting: "Servers have not been asked to keep sending voice states yet.",
+    statusServersFirstPass: "This is the first pass since startup, and it has not finished yet.",
+    statusServers: (guilds: number, when: string) =>
+        `${guilds} ${pluralEn(guilds, "server is", "servers are")} being watched for voice. `
+        + `Last checked ${when}, whether Discord has dropped those subscriptions, and taking them again if it has.`,
+    statusHotkey: {
+        global: "The hotkey works everywhere, even while Discord is in the background.",
+        window: "The hotkey works while Discord is focused.",
+        "needs-restart": "The system wide hotkey is on but needs a full restart of Discord.",
+        taken: "You asked for the hotkey everywhere and another program already holds that"
+            + " combination, so it only works while Discord is focused. Pick another one.",
+        asking: "Asking the system for the combination."
+    } as Record<string, string>,
+    statusBroken: (problems: string) => `A Discord update moved these. ${problems}`,
+
+    /* ── the window behind the status chip ───────────────────────────────────────────────── */
+    healthTitle: "What is working",
+
+    healthRecheck: "Check again",
+    healthChecked: (when: string) => `Checked ${when}`,
+    healthSummaryGood: "Everything works",
+    healthSummaryStarting: "Almost there, the plugin is still starting",
+    healthSummaryIssues: (count: number) => `${count} ${pluralEn(count, "item needs", "items need")} a look`,
+    healthSummaryCounts: (counts: Record<"good" | "off" | "pending" | "waiting" | "bad", number>) => [
+        counts.good && `${counts.good} working`,
+        counts.off && `${counts.off} off in the settings`,
+        counts.pending && `${counts.pending} waiting`,
+        counts.waiting && `${counts.waiting} partly working`,
+        counts.bad && `${counts.bad} broken`
+    ].filter(Boolean).join(", "),
+    healthAttention: "Needs a look",
+    healthGroups: {
+        voice: "Voice",
+        people: "People",
+        join: "Joining channels",
+        windows: "Windows and menus",
+        moderation: "Moderation",
+        alerts: "Notifications",
+        system: "Discord and the system"
+    } as Record<string, string>,
+    healthGroupCount: (working: number, total: number) => `${working} of ${total}`,
+    healthPill: {
+        good: "working",
+        off: "off",
+        pending: "waiting",
+        waiting: "partly",
+        bad: "broken"
+    } as Record<string, string>,
+    healthOpenSetting: "Open the setting",
+    healthFixUpdate: "Most likely Discord updated and moved what this relies on. Update the plugin and restart Discord, and if that does not help, tell the author.",
+    healthFixServersCapped: "Raise the limit of servers the plugin watches in the settings.",
+    healthFixNotifyDenied: "Open Windows Settings, Notifications, and turn them on for Discord, then press Check again. "
+        + "Or keep the alert inside Discord only.",
+    healthFixVoiceQuiet: "If nobody joined or left in that time, all is well. If people are moving and no events come in, restart Discord.",
+    healthFixListLost: "Restart Discord and the saved list is read again. It has not been touched.",
+
+    healthFeatureBroken: (parts: string) => `Does not work, a Discord update moved this. ${parts}`,
+    healthFeatureWeak: (parts: string) => `Weaker than it should be, a Discord update moved this. ${parts}`,
+    healthFeatureOff: "Switched off in the settings, so there is nothing here to go wrong.",
+    healthFeatureUnchecked: "Not checked. The check itself did not run, which usually means a Discord update took it down too. The console has the reason.",
+
+    healthWhoIsWhereTitle: "Who is in which voice channel",
+    healthWhoIsWhereOk: "Voice channels are readable, along with who is sitting in them and how many.",
+    healthTrackerTitle: "Being told when somebody moves",
+    healthTrackerOk: "Every join, move and leave reaches the plugin, which is what fills the list and fires everything else.",
+    healthNamesTitle: "Names and avatars",
+    healthNamesOk: "Names and avatars load even for people Discord has not cached yet.",
+    healthPresenceTitle: "Statuses and devices",
+    healthPresenceOk: "The status dot and the per device icons come straight from Discord.",
+    healthJoinTitle: "Joining a channel",
+    healthJoinOk: "The join button, auto join and the queue for a full channel all go through this.",
+    healthSilentJoinTitle: "Mute mic on auto-join",
+    healthSilentJoinOk: "The mic goes off on every join the plugin makes for you.",
+    healthOpenChannelTitle: "Highlighting a channel from the chip",
+    healthOpenChannelOk: "Clicking the chip moves Discord to the channel without connecting you, and highlights it in the list.",
+    healthUserMenuTitle: "Discord's right-click menu",
+    healthUserMenuOk: "Right-clicking a row opens Discord's own menu for that person.",
+    healthMenuEntriesTitle: "Entries in the right-click menus",
+    healthMenuEntriesOk: "Voice Radar is in Discord's menus on people and on voice channels. Checked when you open those menus.",
+    healthLookupTitle: "Site in the info window",
+    healthLookupOk: "The info window button opens the site in a window inside Discord, and your sign-in there is remembered.",
+    healthSpeakingTitle: "Ring around speakers",
+    healthSpeakingOk: "A green ring around whoever is speaking in your channel.",
+    healthMutualTitle: "Shared servers in the info window",
+    healthMutualOk: "The full list of shared servers comes from Discord when you open the info window.",
+    healthModViewTitle: "Mod View",
+    healthModViewOk: "The button opens Discord's Mod View panel for the person on any shared server, moderator rights or not.",
+    healthMainProcessTitle: "Main process part",
+    healthMainProcessOk: "Loaded, so the system-wide hotkey, background timers and the site window work.",
+    healthMainProcessMissing: "Not loaded yet. Discord hands it over only on a full start, and a page reload is not enough. Until then the system-wide hotkey, background timers and the site window wait.",
+    healthLookupNeedsRestart: "Starts working after a full Discord restart, until then the site opens in the browser.",
+    healthJoinCardTitle: "Join card",
+    healthJoinCardOk: "The card in the corner of Discord waits until you come back to it, with a button to join.",
+    healthJoinCardWindows: "While Discord is in the background, a Windows notification comes too.",
+    healthPermissionsTitle: "Channel permissions",
+    healthPermissionsOk: "The padlock, the full channel and the ones you cannot see are read from your own rights.",
+    healthStreamsTitle: "Stream preview",
+    healthStreamsOk: "The LIVE badge, the thumbnail on hover and the full size one on click.",
+    healthModerationTitle: "Moderator actions",
+    healthModerationOk: "Pulling somebody over, putting them back and the magnet.",
+    healthWindowTitle: "The radar window",
+    healthWindowOk: "It opens from the hotkey, from every right click menu and from the account panel.",
+    healthPanelButtonTitle: "The account panel button",
+    healthPanelButtonOk: "The button with the counter sits next to the mic and the headphones.",
+    healthJoinSoundTitle: "Sound when somebody joins",
+    healthJoinSoundCustom: "Your own file, played by the plugin itself, so a Discord update cannot move it.",
+    healthJoinSoundChime: "The plugin's own chime, which stands on nothing of Discord's and cannot be moved by an update.",
+    healthToastsTitle: "The plugin's own messages",
+    healthToastsOk: "The little messages saying what the plugin has just done.",
+
+    healthServersTitle: "Asking servers for voice",
+    healthServersLine: (watched: number, mine: number, skipped: number, when: string) =>
+        `Watching voice on ${watched} servers out of your ${mine}, ${skipped} skipped for having no voice channels. Last request ${when}.`,
+    healthServersCapped: (count: number) =>
+        `${count} ${pluralEn(count, "server with voice channels is", "servers with voice channels are")} `
+        + "over the limit and not watched, so somebody joining voice there will not be noticed. "
+        + "Raise the watched servers limit in the settings.",
+    healthServersGuard: "Every minute the subscriptions are checked and taken again if Discord dropped them.",
+    healthServersGuardOff: "There is nothing left to ask Discord whether the subscriptions are alive, so they are refreshed on a timer.",
+
+    healthListTitle: "The saved list",
+    healthHotkeyTitle: "Hotkey",
+    healthNotifyTitle: "Notifications",
+    healthNotifyReady: "Windows lets Discord show them, so a join reaches you outside the app.",
+    healthNotifyDenied: "Notifications are blocked, so nothing reaches you outside Discord.",
+    healthNotifyAsk: "Permission has not been asked for yet. The first notification will ask.",
+    healthNotifyToastOnly: "Shown inside Discord only, so the operating system has no say in it.",
+    healthNotifyStyle: (label: string) => `Shown as ${label}.`,
+    healthNotifyLast: (count: number, when: string) =>
+        `${count} joins announced since start, the last one ${when}.`,
+    healthNotifyNone: "None sent so far.",
+    healthTimersTitle: "Timers while Discord is in the background",
+    healthTimers: {
+        awake: "Kept running, so a join is announced in seconds rather than minutes.",
+        off: "Left to Chromium on purpose, so a notification can be minutes late while Discord is in the background. That is the switch in the settings, not a fault.",
+        "needs-restart": "The switch is on, but this page never received the plugin's main-process half, so nothing has asked Chromium to stop slowing the window down. Discord hands that half over while it starts, so a full restart fixes it and reloading the page does not. This is the same restart the system wide hotkey asks for.",
+        refused: "The switch is on and the main process was asked, and it could not do it, so Chromium is still slowing the window down and a notification can be minutes late. The reason is in the console. A restart is worth trying and is not promised to help.",
+        asking: "Asking the main process."
+    } as Record<string, string>,
+    healthVoiceTitle: "Voice data arriving",
+    healthVoiceLine: (guilds: number, states: number, when: string) =>
+        `Somebody is in voice on ${guilds} ${pluralEn(guilds, "server", "servers")} right now, ${states} people in total. `
+        + `Last event ${when}.`,
+    healthVoiceQuiet: (guilds: number, states: number) =>
+        `Somebody is in voice on ${guilds} ${pluralEn(guilds, "server", "servers")} right now, ${states} people in total. `
+        + "Nothing has come in yet.",
+    healthVoiceNone: "Discord has not handed over a single voice state yet.",
+    healthBuildLine: (channel: string, build: string) => `Channel ${channel}, build ${build}.`,
+
+    /* ── radar window ────────────────────────────────────────────────────────────────────── */
+    searchPlaceholder: "Search people…",
+    pressKeys: "press keys…",
+    hotkeyLabel: "Hotkey",
+    settingsButton: "Settings",
+    settingsUnavailable: "Could not open the plugin settings, open them from Vencord, Plugins tab",
+    hotkeyHint: "Click, then press the new combination. Esc leaves it as it is",
+    searchClear: "Clear the search",
+    everywhereLabel: "All voice",
+    everywhereOffHint: "Also find people outside the radar, in every voice channel on the servers the plugin watches",
+    everywhereOnHint: "Searching every voice channel. Click to search only the list",
+    foundTitle: "In voice anywhere",
+    foundTooShort: "Type at least two letters of a name or an ID to search every voice channel",
+    foundNone: "Nobody else with that name is in a voice channel",
+    foundMore: (count: number) => `${count} more ${pluralEn(count, "person", "people")}, narrow the name down`,
+    badgeTracked: "IN RADAR",
+    foundPull: "Pull into your channel and add to the radar",
+    closeWindow: "Close",
+    windowCrashed: "The Voice Radar window ran into an error and closed. The details are in the console (Ctrl+Shift+I)",
+    filterLabel: "Who to show",
+    filterAll: "Everybody",
+    filterLive: "In voice",
+    hotkeySaved: (combo: string) => `Voice Radar hotkey is now ${combo}`,
+    globalHotkeyNeedsRestart: "The system wide hotkey needs a full restart of Discord, not a reload. Quit it from the tray and start it again.",
+    globalHotkeyTaken: (combo: string) =>
+        `${combo} is already held by another program, so it only works while Discord is focused.`,
+    infoButton: "info",
+    infoWindowLabel: "Info",
+    infoButtonHint: "Everything about them, where they go and when",
+    infoWithYou: "Last seen together",
+    infoWithYouNow: "right now, you are together",
+    infoWithYouNever: "never shared a channel with you",
+    infoWeek: "Last 7 days",
+    infoWeekValue: (joins: number, moves: number) =>
+        `${joins} ${pluralEn(joins, "join", "joins")} · ${moves} ${pluralEn(moves, "move", "moves")}`,
+    infoStatus: "Status",
+    infoStatusUnknown: "Discord has not said",
+    infoLogTitle: (count: number, limit: number) => `Log, ${count} of ${limit} ${pluralEn(limit, "line", "lines")}`,
+    infoLogOrder: "newest on top, the arrows show the order",
+    infoPause: (minutes: number) => `not seen in voice for ${duration(minutes)}`,
+    infoLogEmpty: "Nothing yet. Every join, move and leave from now on lands here.",
+    infoKindJoined: "Joined",
+    infoKindMovedFrom: (place: string) => `Came here from ${place}`,
+    infoKindMovedTo: (place: string) => `Went from here to ${place}`,
+    infoKindLeft: "Left",
+    youTag: "You",
+    infoKindYouJoined: "joined",
+    infoKindYouLeft: "left",
+    infoCameToYou: "to you",
+    infoTogether: together,
+    infoTogetherSince: (time: string, minutes: number) => `together since ${time} · ${duration(minutes)}`,
+    infoKindSeen: "Already there",
+    infoKindSeenAgain: "Still there",
+    infoKindStreamOn: "Stream",
+    infoKindStreamOff: "Stream ended",
+    infoKindVideoOn: "Camera on",
+    infoKindVideoOff: "Camera off",
+    infoSeenWithYou: "with you",
+    infoAfterConnect: "after Discord connected",
+    infoBetween: (from: string, to: string) => `between ${from} and ${to}`,
+    infoGoneTitle: (noticed: string) => `The exact moment is unknown. The plugin noticed they were gone at ${noticed}`,
+    infoLateTitle: "Discord sent this after the connection dropped, so the exact moment is unknown",
+    infoLasted: duration,
+    infoShowMore: (count: number) => `Show more, ${count} ${pluralEn(count, "line", "lines")} hidden`,
+    journalThen: "Who was there",
+    journalStayed: "Who stayed there",
+    journalStayedNobody: "Nobody stayed",
+    journalNow: "There now",
+    journalNowEmpty: "Nobody there now",
+    infoCreated: "Account made",
+    infoBot: "BOT",
+    infoFriend: "Friend",
+    infoFriendBlocked: "blocked",
+    infoMutualTitle: "Shared servers",
+    infoJoinedGuild: "Member of the server they are in",
+    infoJoinedGuildSince: (date: string, age: string) => `since ${date}, ${age}`,
+    infoMutualLoading: "Asking Discord for the full list",
+    infoMutualPartial: "Discord has only sent part of the member lists, so there may be more",
+    infoIdCopy: "Click to copy",
+    infoIdCopied: "ID copied",
+    infoIdCopyFailed: "Could not copy the ID",
+    infoYes: "yes",
+    infoNo: "no",
+    infoAge: (years: number, months: number, days: number) => {
+        const unit = (count: number, one: string, many: string) => (count ? `${count} ${pluralEn(count, one, many)}` : "");
+        const parts = years ? [unit(years, "year", "years"), unit(months, "month", "months")]
+            : months ? [unit(months, "month", "months"), unit(days, "day", "days")]
+                : [days ? unit(days, "day", "days") : "under a day"];
+        return parts.filter(Boolean).join(" ");
+    },
+    infoLiveTitle: "Now in voice",
+    infoLiveSince: (when: string) => `joined ${when}`,
+    infoLiveFound: (when: string) => `here since ${when} or earlier`,
+    infoLivePeople: (count: number) => `${count} ${pluralEn(count, "person", "people")} in there`,
+    infoOfflineTitle: "Not in voice right now",
+    infoOfflineLast: (channel: string) => `last seen in ${channel}`,
+    infoAtLeast: (count: number) => `at least ${count}`,
+    infoWeekSub: "while Discord was running",
+    infoToday: "Today",
+    infoYesterday: "Yesterday",
+    infoLogEmptyTitle: "No moves yet",
+    apiConfirm: "the confirmation dialog (Alerts.show)",
+    confirmUnavailable: "Could not ask for confirmation, a Discord update moved the dialog. Nothing was done",
+    followTitle: (name: string) => `Auto-join follows ${name}`,
+    followWhere: (where: string) => `now in ${where}`,
+    followNotInVoice: "not in voice right now, you will follow the moment they join",
+    followRemove: "Stop following",
+    silentJoinLabel: "Mute mic on auto-join",
+    chipSendBack: (count: number) => `Send ${count} back`,
+    chipWaitingForSlot: (channel: string) => `Waiting for a slot in ${channel}`,
+
+    modalSubtitle: (pinned: number, recent: number, total: number, limit: number) =>
+        `${pinned} pinned, ${recent} recent, ${total}/${limit}${total > limit ? ", over limit" : ""}`,
+
+    clearHistory: "Clear history",
+    clearHistoryTitle: "Clear history?",
+    clearHistoryBody: (count: number) =>
+        `${count} ${pluralEn(count, "person", "people")} will be removed, everyone who is not pinned, bells, auto-join target and hand-added entries included. Only pinned people stay.`,
+    clearHistoryConfirm: "Clear",
+    cancel: "Cancel",
+    historyCleared: "History cleared (pinned people kept)",
+
+    warnApiDegraded: (problems: string) =>
+        `A Discord update moved these, so these parts are gone. ${problems}. Everything else works, and a plugin update should bring them back.`,
+    warnApiProblems: (problems: string) =>
+        `A Discord update moved things this plugin relies on, so these parts are dead. ${problems}. The rest keeps working, look for a plugin update.`,
+    warnOverLimit: (total: number, limit: number, free: number) =>
+        `${total}/${limit} in the list. The limit only cuts plain history. People you set up by hand (pinned, bells, auto-join target, added manually) are never cut by it, so the list can pass the limit, and history itself has ${free} free ${pluralEn(free, "slot", "slots")} right now. Raise it in the plugin settings, or use "Clear history", which removes everything that is not pinned.`,
+
+    emptyTitle: "Nobody here yet.",
+    emptyHint: "Join a voice channel with someone, or add people from their right-click menu → Voice Radar.",
+
+    sectionPinned: "Pinned",
+    sectionPinnedHint: (count: number, limit: number) => `${count} of ${limit} slots · drag to reorder`,
+    sectionRecent: "Recent",
+    tabEmpty: "Nobody in this tab.",
+    tabEmptyLive: "Nobody in this tab is in a voice channel right now.",
+    tabLiveHint: "In a voice channel right now",
+    sectionRecentHint: (free: number) => `${free} free ${pluralEn(free, "slot", "slots")}`,
+
+    /* ── a person's row ──────────────────────────────────────────────────────────────────── */
+    badgeAuto: "AUTO",
+    badgeWithYou: "WITH YOU",
+    withYouTitle: (count: number) => `With you now · ${count}`,
+    activityButton: "Activity",
+    activityHint: "All the plugin noticed about the people on the list, new lines on top at once",
+    activityInChannel: (count: number) => `${count} ${count === 1 ? "person" : "people"} in the channel`,
+    activityStayed: (count: number) => `${count} stayed in the channel`,
+    activityKindMoved: "Moved",
+    activityFilterLabel: "Whose activity to show",
+    activityEmptyFiltered: "Nobody in this group did anything yet",
+    activityEmptyTitle: "Nothing here yet",
+    activityEmpty: "As soon as somebody on the list joins voice, it shows up here",
+    withYouMuteForMe: "Mute just for you",
+    withYouUnmuteForMe: "Unmute",
+    withYouServerMute: "Server mute",
+    withYouServerUnmute: "Lift the server mute",
+    withYouServerDeafen: "Server deafen",
+    withYouServerUndeafen: "Lift the server deafen",
+    withYouDisconnect: "Disconnect from the channel",
+    badgeLive: "LIVE",
+
+    notInVoice: "Not in voice",
+    lastChannel: (channel: string) => `, last seen in ${channel}`,
+    leftAt: (when: string, channel: string | null) =>
+        channel ? `Not in voice, left ${channel} ${when}` : `Not in voice, left ${when}`,
+    seenAt: (when: string) => `seen together ${when}`,
+    addedAt: (when: string) => `added ${when}`,
+
+    tooltipInVoiceChat: "In Voice Chat",
+    tooltipAndMore: (count: number) => `+${count} more`,
+    tooltipDeafened: "Deafened, hears nothing",
+    tooltipMuted: "Mic is off",
+    tooltipOpenChannel: "Click to open the channel (without joining) and highlight it in Discord's list",
+    tooltipNoChannelAccess: "You have no access to this channel",
+    channelFull: " · full",
+    noChannelAccess: "You have no access to that channel",
+
+    permissionUnchecked: " (permission could not be checked)",
+
+    magnetOff: "Keep them in your channel",
+    magnetIdleNoPermission: "Magnet on, but you have no Move Members here, so nobody can be brought over. Click to switch it off",
+    magnetIdleNotConnected: "Magnet on, idle, because you are not in a voice channel",
+    magnetIdleOtherGuild: "Magnet on, idle, because they are in another server and Discord cannot move them here",
+    magnetIdleTargetOffline: "Magnet on, waiting, because they are not in a voice channel yet",
+    magnetLimit: (returns: number, seconds: number) =>
+        `At most ${returns} returns a minute. If they leave more often, the magnet switches itself off `
+        + `and can be switched on again after ${seconds} ${pluralEn(seconds, "second", "seconds")}. These numbers are fixed`,
+    autoJoinPace: (seconds: number) =>
+        `Joins at most once every ${seconds} ${pluralEn(seconds, "second", "seconds")}. You can change this pause in the plugin settings.`,
+    autoJoinNoPause: "Joins at once, with no pause. You can set one in the plugin settings.",
+    autoJoinPaceCeiling: (set: number, used: number) =>
+        `The settings say ${set} ${pluralEn(set, "second", "seconds")}, but the plugin waits at most ${used} ${pluralEn(used, "second", "seconds")}.`,
+    autoJoinReturns: (returns: number) =>
+        `If somebody disconnects or moves you, it comes back up to ${returns} times a minute, and that number is fixed`,
+    magnetActive: "Magnet on, they get dragged back whenever they wander off",
+
+
+    joinNotInVoice: "Not in a voice channel",
+    joinAlreadyThere: "You are already there",
+    joinNoPermission: "No permission to join this channel",
+    joinQueued: "Waiting for a free slot, click to cancel",
+    joinChannelFull: "Channel is full, click to wait for a free slot",
+    joinFullWithRights: "The channel is full, but you hold Move Members, so you can join past the limit",
+    joinMuted: "Jump in (muted)",
+    join: "Jump in",
+
+    sendBackTo: (channel: string) => `Send them back to ${channel}`,
+    pullAlreadyHere: "Already in your channel",
+    pullToMyChannel: "Move them to your channel",
+    unpin: "Unpin",
+    pin: "Pin (keeps the slot forever)",
+    notifyOn: "Notifications on",
+    notifyOff: "Notify me when they join voice",
+    autoJoinOn: "Auto-join on (click to disable)",
+    autoJoinOff: "Auto-join this person. There can only be one target, arming it switches the previous one off",
+    removeFromList: "Remove from the list",
+    modViewRowHint: "Open in Mod View",
+    modViewButton: "Mod View",
+    modViewHint: (guild: string) => `Open in Mod View on ${guild}. Discord's panel opens to the right of the chat`,
+    modViewGuildHint: (guild: string) => `Open in Mod View on ${guild}`,
+    modViewNoSharedGuild: (name: string) => `You share no server with ${name}, so there is nowhere to open Mod View`,
+    modViewNoAccess: "Discord no longer lets Mod View open without moderator rights, and you hold none on the shared servers. The ShowHiddenThings plugin in Vencord can still open it after a Discord restart",
+    modViewNoChannel: "This server has no text channel Discord could show Mod View next to",
+    modViewFailed: "Could not open Mod View, a Discord update moved it",
+    modViewClosedByDiscord: "Discord closed Mod View right away, so lifting its rights check no longer works. The ShowHiddenThings plugin in Vencord can still open it after a Discord restart",
+    modViewClosed: "Discord closed Mod View right away",
+    modViewOtherHint: "On another server",
+    modViewTheyAreHere: "in voice here now",
+    modViewNoRightsHere: "no moderator rights",
+    modViewNoOtherGuild: "There are no other shared servers",
+    modViewMenuFailed: "Could not show the server list, a Discord update moved it",
+    menuModView: "Open in Mod View",
+    menuModViewOther: "Mod View on another server",
+
+    userNotInVoice: (name: string) => `${name} is not in a voice channel`,
+    alreadyWithUser: (name: string) => `You are already with ${name}`,
+    magnetOffFor: (name: string) => `Magnet off for ${name}`,
+    magnetOnFor: (name: string) => `${name} is now stuck to your channel`,
+    magnetGaveUp: (name: string) => `Magnet off, ${name} is leaving faster than they can be brought back`,
+    magnetOffNoPermission: (name: string) => `Magnet off, ${name} cannot be moved here, so retrying would change nothing`,
+    magnetCoolingDown: (name: string, seconds: number) =>
+        `The magnet on ${name} just gave up, you can put it back in ${seconds}s`,
+    autoJoinTargetSet: (name: string) => `Auto-join target is now ${name}`,
+    autoJoinCleared: "Auto-join disabled",
+
+    /* ── account panel button ────────────────────────────────────────────────────────────── */
+    panelTitle: (hotkey: string) => `Voice Radar (${hotkey})`,
+    panelNobodyInVoice: "Nobody from your list is in voice",
+    panelAutoJoin: (name: string, silent: boolean) => `🎯 auto-join ${name}${silent ? " (silent)" : ""}`,
+
+    /* ── stream preview ──────────────────────────────────────────────────────────────────── */
+    streamingBy: (name: string) => `${name} is streaming`,
+    streamPreviewAlt: "Stream preview",
+    streamPreviewLoading: "loading preview…",
+    streamPreviewMissing: "no preview available",
+    streamPreviewHint: "Click for a bigger preview",
+    streamPreviewMissingFor: (name: string) => `No preview available for ${name}'s stream`,
+
+    /* ── status dot and device icons ─────────────────────────────────────────────────────── */
+    platformDesktop: "Desktop",
+    platformMobile: "Phone",
+    platformWeb: "Browser",
+    platformConsole: "Console",
+    platformVr: "VR",
+    platformInvisible: "Invisible",
+    platformTooltip: (platform: string, status: string) => `${platform} · ${status}`,
+
+    statusUnknownHint: "status unknown, Discord has not sent this user's presence",
+    statusOnline: "online",
+    statusIdle: "idle",
+    statusDnd: "do not disturb",
+    statusOffline: "offline",
+    statusMobile: (status: string) => `${status} (mobile)`,
+
+    /* ── context menus ───────────────────────────────────────────────────────────────────── */
+    menuRoot: "Voice Radar",
+    menuRemoveFromRadar: "Remove from radar",
+    menuAddToRadar: "Add to radar",
+    menuPin: "Pin",
+    menuNotify: "Notify when they join voice",
+    menuAutoJoin: "Auto-join this person",
+    menuJumpMuted: "Jump to their channel (muted)",
+    menuJump: "Jump to their channel",
+    menuStopWaitingTheirChannel: "Stop waiting for a free slot",
+    menuWaitTheirChannel: "Wait for a free slot in their channel",
+    menuStopWaiting: "Stop waiting for a free slot",
+    menuWait: "Wait for a free slot",
+    menuOpenRadar: "Open Voice Radar",
+    menuModerator: "Moderator",
+    menuPullUser: "Pull them into my channel",
+    menuPullChannel: (channel: string) => `Pull everyone from ${channel} to me`,
+    menuSendBatchBack: (count: number) => `↩ Send ${count} back to their channels`,
+    menuMagnet: "Magnet, keep them in my channel",
+    settingLookupUrl: "Site for the button in the info window. {id} becomes the person's ID, an empty field removes the button",
+    lookupHint: (host: string) => `Open this person on ${host} in a window inside Discord. You sign in to the site once`,
+    lookupNeedsRestart: "The site window inside Discord needs a full restart of Discord, opening it in your browser for now",
+    restartNotice: "The part of the plugin that runs in Discord's main process loads only after a full restart. Until then the system-wide hotkey, background timers and the site window wait.",
+    restartButton: "Restart Discord",
+    restartConfirmTitle: "Restart Discord?",
+    restartConfirmBody: "You are in a voice channel, and the call drops while Discord restarts.",
+    restartConfirmButton: "Restart",
+    restartByHand: "Could not restart from here. Quit Discord from the tray and open it again",
+    popOut: "Pop out into its own window. Drag it anywhere, even to another monitor, while Discord keeps working beside it",
+    popoutOptions: "Separate window options",
+    popoutDirect: "Open straight in its own window",
+    popoutDirectHint: "The hotkey and the panel button open and close the radar in its own window instead of inside Discord",
+    popoutHideInstead: "Hide instead of closing",
+    popoutHideInsteadHint: "The hotkey, the panel button and the close button take the window off the screen and the taskbar, and the next press shows it at once. It stays in memory even while hidden",
+    popIn: "Put the radar back into Discord",
+    popoutOnTop: "Keep above all windows",
+    popoutOnTopOn: "Above all windows, click to turn it off",
+    popoutFailed: "Discord did not open a separate window, the radar stays inside Discord",
+    lookupFailed: "Could not open the site in your browser",
+    menuHistory: "Voice Radar info",
+    menuTrackChannel: (count: number) => `Add everyone here to the radar (${count})`,
+    menuPullEveryoneHere: "Pull everyone here into my channel",
+    menuMoveGroupHere: "Move here with my whole channel",
+    menuMoveGroupTo: (channel: string) => `Move my whole channel to ${channel}`,
+
+    pullMoreHint: "Pull more",
+    peopleThere: (count: number) => `${count} ${pluralEn(count, "person", "people")} there`,
+    groupMoveHint: (count: number) => (count ? `you and ${count} more from your channel` : "only you, nobody else is in your channel"),
+    pullSomeOfThem: (moving: number, there: number) => `${moving} of the ${there} there can be moved`,
+    pullNobodyMovable: "nobody there can be moved",
+    menuYou: "You",
+    listNames: (names: readonly string[], hidden: number) => hidden
+        ? `${names.join(", ")} and ${hidden} more`
+        : names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0] ?? "",
+    returnMoreHint: "Send more back",
+    returnAllLabel: "Send everyone you moved back to their channels",
+    peopleCount: (count: number) => `${count} ${pluralEn(count, "person", "people")}`,
+    userAddedToRadar: (name: string) => `${name} added to Voice Radar`,
+    userRemovedFromRadar: (name: string) => `${name} removed from Voice Radar`,
+    addedToRadar: (count: number) => `Added ${count} ${pluralEn(count, "person", "people")} to the radar`,
+    addedToRadarCapped: (added: number, left: number) =>
+        `Added ${added} ${pluralEn(added, "person", "people")} to the radar, ${left} did not fit, `
+        + "because the list is already at its limit. Raise how many people the list keeps in the "
+        + "settings, or clear the history.",
+
+    /* ── slot queue ──────────────────────────────────────────────────────────────────────── */
+    queueCancelled: "Queue cancelled",
+    queueAutoJoinDropped: (name: string) => `auto-join for ${name} turned off`,
+    queueReplaced: (channel: string) => `queue for ${channel} dropped`,
+    queueWaiting: (channel: string, extras: string) =>
+        `⏳ Waiting for a free slot in ${channel}${extras ? `, ${extras}` : ""}`,
+    queueGotSlot: (channel: string) => `✅ Got a slot in ${channel}`,
+    queueStuck: (channel: string) =>
+        `Stopped waiting for ${channel}. It has been open for a while and the connection is not`
+        + " landing, so asking again would only keep pulling at a voice connection that is"
+        + " already struggling. Try joining it by hand.",
+    queueRefused: (channel: string) =>
+        `Stopped waiting for ${channel}, Discord refused the connection, so waiting longer would not change anything`,
+    queueCancelledForMagnet: (channel: string, name: string) => `Queue for ${channel} cancelled, holding ${name} instead`,
+    queueCancelledForAutoJoin: (channel: string, name: string) => `Queue for ${channel} cancelled, now following ${name}`,
+    queueFollowGone: (name: string, channel: string) =>
+        `${name} is out of voice, so the wait for a slot in ${channel} is off.`,
+    queueFollowStopped: (channel: string) =>
+        `Auto-join is off, so the wait for a slot in ${channel} is off.`,
+
+    /* ── tracker notifications ───────────────────────────────────────────────────────────── */
+    someone: "Someone",
+    notifyTitle: (name: string) => `${name} joined voice`,
+    notifyBatchTitle: (count: number) =>
+        `${count} ${pluralEn(count, "person", "people")} joined voice`,
+    notifyBatchNames: (names: string, more: number) => (more ? `${names} and ${more} more` : names),
+    joinedModalHint: "Only the people this popup was about",
+    joinedModalGone: "These people are no longer on the radar",
+    followingUser: (name: string, channel: string, silent: boolean) =>
+        `🎯 Following ${name} → ${channel}${silent ? " (muted)" : ""}`,
+    followGaveUpBeingRemoved: (name: string) =>
+        `Auto-join off, you are being disconnected faster than following ${name} can put you back`,
+
+    /* ── moderator actions ───────────────────────────────────────────────────────────────── */
+    refusalNotConnected: (name: string) => `${name} is not connected to voice`,
+    refusalNotInGuild: (name: string) => `${name} is not on that server any more`,
+    refusalForbidden: (name: string) => `Not allowed to move ${name}, either you lack the permission here, or they cannot enter your channel`,
+    refusalCannotMoveInto: (name: string, channel: string) =>
+        `No Move Members in ${channel}, so ${name} cannot be brought in, the permission is needed in your own channel too`,
+    refusalCannotMoveFrom: (name: string, channel: string) =>
+        `No Move Members in ${channel}, so ${name} cannot be taken out of there`,
+    refusalTargetCannotJoin: (name: string) => `Discord will not let ${name} into your channel, they have no access to it`,
+    refusalNoGuildAccess: "No access to that server any more",
+    refusalGone: (name: string) => `${name} is no longer there`,
+    refusalRateLimited: "Discord asked to slow down, try again in a moment",
+    refusalWithMessage: (name: string, message: string) => `${name}, ${message}`,
+    refusalGeneric: (name: string) => `Discord refused to move ${name}`,
+    refusalVoiceAction: "Discord refused. You may not hold the right for this",
+
+    sentUserBack: (name: string, channel: string) => `${name} sent back to ${channel}`,
+    sentBatchBack: (count: number) => `Sent ${count} ${pluralEn(count, "person", "people")} back`,
+    sentBatchBackStopped: (count: number, left: number) =>
+        `Sent ${count} ${pluralEn(count, "person", "people")} back, then Discord asked to slow down. `
+        + `${left} left, try again in a moment.`,
+    joinChannelFirst: "Join a voice channel first, there is nowhere to pull them",
+    userAlreadyWithYou: (name: string) => `${name} is already with you`,
+    sameGuildOnly: "They can only be moved inside their own server",
+    userPulled: (name: string) => `${name} pulled into your channel`,
+    nobodyToPull: (where: string) => `Nobody to pull from ${where}`,
+    pullConfirmTitle: "Move everyone over?",
+    pullConfirmBody: (count: number, where: string, seconds: number) =>
+        `${count} ${pluralEn(count, "person", "people")} from ${where} will be moved into your channel, `
+        + `in about ${seconds} ${pluralEn(seconds, "second", "seconds")}. `
+        + "Every move is a line in the server's audit log.",
+    pullConfirmButton: (count: number) => `Move ${count}`,
+    pullConfirmWho: (names: string) => `Moving ${names}.`,
+    groupMoveConfirmWho: (names: string) => `Coming with you are ${names}.`,
+    groupMoveConfirmTitle: "Move your whole channel?",
+    groupMoveConfirmBody: (count: number, where: string, seconds: number) =>
+        `${count} ${pluralEn(count, "person", "people")} from your channel will be moved to ${where} and you after them, `
+        + `in about ${seconds} ${pluralEn(seconds, "second", "seconds")}. `
+        + "Every move is a line in the server's audit log.",
+    groupMoveConfirmButton: (count: number) => `Move ${count}`,
+    groupMoved: (count: number, where: string) => `You and ${count} ${pluralEn(count, "other", "others")} are now in ${where}`,
+    groupMovedPartly: (count: number, where: string, left: number) =>
+        `${count} moved to ${where}, ${left} stayed behind. Click again for the rest`,
+    noMovePermissionHere: (where: string) =>
+        `No Move Members in ${where}, nobody can be taken out of there`,
+    pulledUsers: (count: number, where: string) =>
+        `Pulled ${count} ${pluralEn(count, "person", "people")} from ${where}`,
+    pulledUsersCapped: (count: number, where: string, skipped: number) =>
+        `Pulled ${count} ${pluralEn(count, "person", "people")} from ${where}, ${skipped} left behind, that is the most one go can move. Click again for the rest.`,
+    pulledUsersStopped: (count: number, where: string, left: number) =>
+        `Pulled ${count} ${pluralEn(count, "person", "people")} from ${where}, then Discord asked to `
+        + `slow down. ${left} left, try again in a moment.`,
+
+    /* ── voice helpers ───────────────────────────────────────────────────────────────────── */
+    unknownChannel: "Unknown channel",
+    groupCall: "Group call",
+    directCall: "Direct call",
+    unknownUser: "Unknown user",
+
+    couldNotOpenChannel: "Voice Radar could not open that channel",
+    couldNotOpenWindow: "Voice Radar could not open the window, a Discord update probably moved it",
+    targetNotInVoice: "Voice Radar, this user is not in a voice channel",
+    cannotJoinChannel: "Voice Radar, you cannot join that voice channel",
+    channelIsFull: "Voice Radar, that voice channel is full",
+    couldNotJoinChannel: "Voice Radar could not join that channel",
+
+    hotkeyNotSet: "not set",
+
+    /* ── broken Discord internals, listed in the warning banner ──────────────────────────── */
+    apiWhoIsInVoice: "who is in voice (VoiceStateStore.getVoiceStateForUser)",
+    apiChannelMembers: "channel members (VoiceStateStore.getVoiceStatesForChannel)",
+    apiMyChannel: "your own channel (SelectedChannelStore.getVoiceChannelId)",
+    apiChannelInfo: "channel names and permissions (ChannelStore.getChannel)",
+    apiUserInfo: "names and avatars (UserStore.getUser)",
+    apiStatuses: "statuses (PresenceStore.getStatus)",
+    apiJoinChannel: "joining channels (selectVoiceChannel)",
+    apiSilentJoin: "muting the mic on auto-join (setSelfMute and toggleSelfMute, with a dispatch as the last resort)",
+    apiToasts: "toasts (the plugin's own messages)",
+    apiDevices: "which device somebody is online from (PresenceStore.getClientStatus)",
+    apiShowChannel: "highlighting the channel in Discord's list (channel list markup), the channel still opens, just without the highlight",
+    apiUserMenuEntries: "Voice Radar entries in the menu on a person (user-context), Discord renamed that menu",
+    apiChannelMenuEntries: "Voice Radar entries in the voice channel menu (channel-context), Discord renamed that menu",
+    apiLookupWindow: "the site window inside Discord (Vencord's main process helper), the site opens in your browser for now. A full restart of Discord usually helps",
+    apiSpeaking: "who is speaking (SpeakingStore), no green ring around speakers",
+    apiJoinCard: "the join card in the corner of Discord, a plain Vencord notification comes instead",
+    apiMutualGuilds: "shared servers in the info window (profile through RestAPI), only what Discord already sent is shown",
+    apiModView: "Discord's Mod View panel (ChannelSectionStore and the SIDEBAR_VIEW_GUILD event)",
+    apiModViewKind: "the Mod View panel number, taken from memory and may not match",
+    apiModViewMenu: "the server list for Mod View (ContextMenuApi)",
+    apiModViewBypass: "the patch that lifts Discord's rights check on Mod View (the same one ShowHiddenThings uses), without it Discord shuts the panel where you lack the rights",
+    apiPopout: "the radar's own window (PopoutWindowStore and the POPOUT_WINDOW_OPEN event), without it the radar opens only inside Discord",
+    apiUserMenu: "Discord's menu for a person on right click (UserGenericContextMenu, GuildChannelUserContextMenu)",
+    userMenuUnavailable: "Could not open Discord's menu for this person, a Discord update has moved it. Everything else works",
+    apiWindow: "the window itself (createRoot, and Modal as the fallback), so the radar cannot be opened",
+    apiPanelButton: "the button in the account panel (found by matching Discord's code)",
+    apiPanelButtonPatch: "the button's place in the account panel, where the patch did not go in, so no button can appear there. The window still opens from the hotkey and every right-click menu",
+    apiGuildSubscriptions: "asking servers for voice states (GuildSubscriptionsStore), so people in servers you have not opened stay invisible",
+    apiGuildSubscriptionAction: "asking servers for voice states, where the request goes out and nothing comes of it, so people in servers you have not opened stay invisible",
+    apiServerList: "the list of your servers (GuildStore.getGuildIds), so only the servers your people were last seen in are watched and a join anywhere else goes unnoticed",
+    apiOpenChannel: "opening channels (ChannelRouter.transitionToChannel)",
+    apiStreamPreviews: "stream previews (ApplicationStreamPreviewStore)",
+    apiPermissions: "permission checks (PermissionStore.can)",
+    apiModeratorActions: "moderator actions (RestAPI.patch)",
+    apiMoveMembersFlag: "the Move Members permission flag",
+    apiLocalMute: "muting somebody just for you (MediaEngineStore), the button shows no state",
+    apiMuteFlags: "the Mute Members and Deafen Members permission flags",
+    apiVoiceEvents: "being told when somebody moves (FluxDispatcher.subscribe), without which the list never grows and nothing is ever announced",
+
+    /* ── relative time ───────────────────────────────────────────────────────────────────── */
+    timeJustNow: "just now",
+    momentToday: (time: string) => `at ${time}`,
+    momentYesterday: (time: string) => `yesterday at ${time}`,
+    momentOn: (date: string, time: string) => `on ${date} at ${time}`,
+    dayToday: (time: string) => `today ${time}`,
+    dayYesterday: (time: string) => `yesterday ${time}`,
+    timeMinutes: (value: number) => `${value}m ago`,
+    timeHours: (value: number) => `${value}h ago`,
+    timeDays: (value: number) => `${value}d ago`,
+    timeWeeks: (value: number) => `${value}w ago`
+};
+
+export type Messages = typeof en;

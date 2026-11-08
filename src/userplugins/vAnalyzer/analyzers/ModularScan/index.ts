@@ -6,8 +6,8 @@
 
 import { PluginNative } from "@utils/types";
 
-import { ModularScanModule } from "../../modularScanStore";
 import { AnalysisValue, safeToast } from "../../utils";
+import { ModularScanModule } from "../../modularScanStore";
 
 const Native = VencordNative.pluginHelpers.vAnalyzer as PluginNative<typeof import("./native")>;
 
@@ -24,7 +24,7 @@ export async function runModularScan(
     const details: AnalysisValue["details"] = [];
 
     if (!result.ok) {
-        if (!silent) safeToast(`${module.name} failed: ${result.status}`, "failure");
+        if (!silent) safeToast(`${module.name} failed: ${result.status}`, "critical");
 
         // only report actual errors, not normal scan results
         if (result.status === -1) {

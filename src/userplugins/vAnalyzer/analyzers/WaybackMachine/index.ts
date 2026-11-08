@@ -23,7 +23,7 @@ export async function analyzeWithWayback(url: string, silent = false): Promise<A
     const result = await Native.queryWayback(url);
 
     if (result.status !== 200 || !result.data) {
-        if (!silent) safeToast(`Wayback lookup failed: ${result.error ?? "unknown error"}`, "failure");
+        if (!silent) safeToast(`Wayback lookup failed: ${result.error ?? "unknown error"}`, "critical");
         return null;
     }
 
