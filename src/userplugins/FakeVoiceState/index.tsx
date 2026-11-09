@@ -75,6 +75,16 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Automatically mute when deafened.",
         default: false
+    },
+    showInVoiceList: {
+        type: OptionType.BOOLEAN,
+        description: "Show your fake mute and deafen icons in the voice channel list.",
+        default: true
+    },
+    showInCallTiles: {
+        type: OptionType.BOOLEAN,
+        description: "Show your fake mute and deafen icons in call tiles and the voice overlay.",
+        default: true
     }
 });
 
@@ -84,7 +94,7 @@ const fakeVoiceState = {
         try {
             if (!settings.store.autoMute) return this._selfMute;
             return this.selfDeaf || this._selfMute;
-        } catch (e) {
+        } catch {
             return this._selfMute;
         }
     },
@@ -118,6 +128,24 @@ export default definePlugin({
             e[key] = fakeVoiceState[key] || e[key];
         }
         return e;
+    },
+    isFakeMute() {
+        return fakeVoiceState.selfMute && settings.store.showInVoiceList;
+    },
+    isFakeDeaf() {
+        return fakeVoiceState.selfDeaf && settings.store.showInVoiceList;
+    },
+    fakeMuteFor(s) {
+        return fakeVoiceState.selfMute && settings.store.showInCallTiles && s?.userId === UserStore.getCurrentUser()?.id;
+    },
+    fakeDeafFor(s) {
+        return fakeVoiceState.selfDeaf && settings.store.showInCallTiles && s?.userId === UserStore.getCurrentUser()?.id;
+    },
+    fakeMuteBoth(s) {
+        return fakeVoiceState.selfMute && settings.store.showInVoiceList && settings.store.showInCallTiles && s?.userId === UserStore.getCurrentUser()?.id;
+    },
+    fakeDeafBoth(s) {
+        return fakeVoiceState.selfDeaf && settings.store.showInVoiceList && settings.store.showInCallTiles && s?.userId === UserStore.getCurrentUser()?.id;
     },
     contextMenus: {
         "audio-device-context"(children, d) {
@@ -198,6 +226,27 @@ export default definePlugin({
                     replace: "voiceStateUpdate($1){$1=$self.modifyVoiceState($1);$2guildId:"
                 }
             ]
+        },
+        {
+            find: "ConnectedVoiceUser",
+            replacement: {
+                match: /(localMute:\i&&!(\i),localVideoDisabled:\i,)mute:(\i)\|\|(\i),deaf:(\i)\|\|(\i),/,
+                replace: "$1mute:$3||$4||($2&&$self.isFakeMute()),deaf:$5||$6||($2&&$self.isFakeDeaf()),"
+            }
+        },
+        {
+            find: "isVoiceMuted()??!1,deafened:",
+            replacement: {
+                match: /muted:(\i)\?\.isVoiceMuted\(\)\?\?!1,deafened:(\i)\?\.isVoiceDeafened\(\)\?\?!1/,
+                replace: "muted:($1?.isVoiceMuted()??!1)||$self.fakeMuteFor($1),deafened:($2?.isVoiceDeafened()??!1)||$self.fakeDeafFor($2)"
+            }
+        },
+        {
+            find: ".merge({selfMute:",
+            replacement: {
+                match: /(\i)\.merge\(\{selfMute:(\i),selfDeaf:(\i)\}\)/,
+                replace: "$1.merge({selfMute:$2||$self.fakeMuteBoth($1),selfDeaf:$3||$self.fakeDeafBoth($1)})"
+            }
         }
     ],
 });
