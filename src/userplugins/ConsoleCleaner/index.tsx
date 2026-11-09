@@ -5,7 +5,7 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -186,7 +186,7 @@ function StatsPanel() {
         <Card variant="primary">
             <Flex flexDirection="column" gap="12px">
                 <Flex justifyContent="space-between" alignItems="center" gap="12px">
-                    <BaseText size="md" weight="semibold">ConsoleCleaner stats</BaseText>
+                    <Text size="md" weight="semibold">ConsoleCleaner stats</Text>
                     <Flex gap="8px">
                         {open && (
                             <Button
@@ -214,8 +214,8 @@ function StatsPanel() {
                 </Flex>
                 {open && statItems.map(({ label, value }) => (
                     <Flex key={value} justifyContent="space-between" gap="12px">
-                        <BaseText size="sm" color="text-muted">{label}</BaseText>
-                        <BaseText size="sm" weight="semibold" tabularNumbers>{snapshot[value]}</BaseText>
+                        <Text size="sm" color="text-muted">{label}</Text>
+                        <Text size="sm" weight="semibold" tabularNumbers>{snapshot[value]}</Text>
                     </Flex>
                 ))}
             </Flex>

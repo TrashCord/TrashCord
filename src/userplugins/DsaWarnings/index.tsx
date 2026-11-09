@@ -5,7 +5,7 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { EquicordDevs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
@@ -25,11 +25,11 @@ function ApiKeyNotice() {
 
     return (
         <div className={cl("settings-notice")}>
-            <BaseText size="sm" weight="medium" defaultColor={false}>
+            <Text size="sm" weight="medium" defaultColor={false}>
                 {hasKey
                     ? "API key is set. Lookups should work."
                     : "A CordCat API key is required for DSA lookups. Create a free account at https://api.cord.cat to get one, then paste it below."}
-            </BaseText>
+            </Text>
         </div>
     );
 }
@@ -158,8 +158,8 @@ function StatusCard({
                     <div className={cl("chip-row")}>
                         <span className={cl("chip", "chip-user")}>DSA Lookup</span>
                     </div>
-                    <BaseText className={cl("category")} size="xl" weight="extrabold" defaultColor={false}>{title}</BaseText>
-                    <BaseText className={cl("facts")} size="sm" weight="medium" defaultColor={false}>{message}</BaseText>
+                    <Text className={cl("category")} size="xl" weight="extrabold" defaultColor={false}>{title}</Text>
+                    <Text className={cl("facts")} size="sm" weight="medium" defaultColor={false}>{message}</Text>
                 </div>
             </div>
         </div>
@@ -192,27 +192,27 @@ function UserInfoSection({ userInfo }: { userInfo: CordCatUserInfo; }) {
             )}
             <div className={cl("user-details")}>
                 {userInfo.global_name && (
-                    <BaseText className={cl("user-display")} size="lg" weight="bold" defaultColor={false}>
+                    <Text className={cl("user-display")} size="lg" weight="bold" defaultColor={false}>
                         {userInfo.global_name}
-                    </BaseText>
+                    </Text>
                 )}
                 {handle && (
-                    <BaseText className={cl("user-handle")} size="sm" weight="medium" defaultColor={false}>
+                    <Text className={cl("user-handle")} size="sm" weight="medium" defaultColor={false}>
                         {handle}
-                    </BaseText>
+                    </Text>
                 )}
-                <BaseText className={cl("user-id")} size="xs" weight="medium" defaultColor={false}>
+                <Text className={cl("user-id")} size="xs" weight="medium" defaultColor={false}>
                     {userInfo.id}
-                </BaseText>
+                </Text>
                 {userInfo.public_flags != null && userInfo.public_flags !== 0 && (
-                    <BaseText className={cl("user-flags")} size="xs" weight="medium" defaultColor={false}>
+                    <Text className={cl("user-flags")} size="xs" weight="medium" defaultColor={false}>
                         Flags: {userInfo.public_flags}
-                    </BaseText>
+                    </Text>
                 )}
                 {guild && (
-                    <BaseText className={cl("user-clan")} size="xs" weight="medium" defaultColor={false}>
+                    <Text className={cl("user-clan")} size="xs" weight="medium" defaultColor={false}>
                         Clan: [{guild.tag}]
-                    </BaseText>
+                    </Text>
                 )}
             </div>
         </div>
@@ -222,8 +222,8 @@ function UserInfoSection({ userInfo }: { userInfo: CordCatUserInfo; }) {
 function ActionDetailRow({ label, value }: { label: string; value: string; }) {
     return (
         <div className={cl("detail-row")}>
-            <BaseText className={cl("detail-label")} size="xs" weight="bold" defaultColor={false}>{label}</BaseText>
-            <BaseText className={cl("detail-value")} size="xs" weight="medium" defaultColor={false}>{value}</BaseText>
+            <Text className={cl("detail-label")} size="xs" weight="bold" defaultColor={false}>{label}</Text>
+            <Text className={cl("detail-value")} size="xs" weight="medium" defaultColor={false}>{value}</Text>
         </div>
     );
 }
@@ -291,11 +291,11 @@ const DsaWarningsCollection = ErrorBoundary.wrap(function DsaWarningsCollection(
         <section className={classes(cl("section"), isLightTheme && cl("light"))}>
             <div className={cl("header")}>
                 <div className={cl("header-main")}>
-                    <BaseText className={cl("title")} size="md" weight="bold" defaultColor={false}>Active DSA Warnings</BaseText>
-                    <BaseText className={cl("count")} size="xs" weight="semibold" defaultColor={false}>{subtitle}</BaseText>
+                    <Text className={cl("title")} size="md" weight="bold" defaultColor={false}>Active DSA Warnings</Text>
+                    <Text className={cl("count")} size="xs" weight="semibold" defaultColor={false}>{subtitle}</Text>
                 </div>
                 <Clickable className={cl("open")} onClick={() => VencordNative.native.openExternal(buildDsaBrowseUrl(user.id))} aria-label="Open DSA lookup">
-                    <BaseText tag="span" size="xs" weight="bold" defaultColor={false}>Open DSA Lookup</BaseText>
+                    <Text tag="span" size="xs" weight="bold" defaultColor={false}>Open DSA Lookup</Text>
                 </Clickable>
             </div>
 
@@ -337,12 +337,12 @@ const DsaWarningsCollection = ErrorBoundary.wrap(function DsaWarningsCollection(
                                                 <span className={cl("chip", "chip-illegal")}>Illegal</span>
                                             )}
                                         </div>
-                                        <BaseText className={cl("category")} size="xl" weight="extrabold" defaultColor={false}>
+                                        <Text className={cl("category")} size="xl" weight="extrabold" defaultColor={false}>
                                             {formatLabel(action.category)}
-                                        </BaseText>
-                                        <BaseText className={cl("facts")} size="sm" weight="medium" defaultColor={false}>
+                                        </Text>
+                                        <Text className={cl("facts")} size="sm" weight="medium" defaultColor={false}>
                                             {action.decisionFacts}
-                                        </BaseText>
+                                        </Text>
                                         <div className={cl("details")}>
                                             {action.incompatibleContentExplanation && (
                                                 <ActionDetailRow label="Explanation" value={action.incompatibleContentExplanation} />
@@ -378,13 +378,13 @@ const DsaWarningsCollection = ErrorBoundary.wrap(function DsaWarningsCollection(
                                     </div>
                                 </div>
                                 <div className={cl("card-meta")}>
-                                    <BaseText className={cl("date")} size="xs" weight="bold" defaultColor={false}>
+                                    <Text className={cl("date")} size="xs" weight="bold" defaultColor={false}>
                                         {formatDate(action.applicationDate)}
-                                    </BaseText>
+                                    </Text>
                                     {action.createdAt && action.createdAt !== action.applicationDate && (
-                                        <BaseText className={cl("date")} size="xs" weight="medium" defaultColor={false}>
+                                        <Text className={cl("date")} size="xs" weight="medium" defaultColor={false}>
                                             Created {formatDate(action.createdAt)}
-                                        </BaseText>
+                                        </Text>
                                     )}
                                 </div>
                             </div>
@@ -409,12 +409,12 @@ const DsaWarningsCollection = ErrorBoundary.wrap(function DsaWarningsCollection(
                                             <span className={cl("chip", "chip-breach")}>Data Breach</span>
                                             <span className={cl("chip", "chip-tag")}>{breach.source}</span>
                                         </div>
-                                        <BaseText className={cl("category")} size="xl" weight="extrabold" defaultColor={false}>
+                                        <Text className={cl("category")} size="xl" weight="extrabold" defaultColor={false}>
                                             {getBreachName(breach)}
-                                        </BaseText>
-                                        <BaseText className={cl("facts")} size="sm" weight="medium" defaultColor={false}>
+                                        </Text>
+                                        <Text className={cl("facts")} size="sm" weight="medium" defaultColor={false}>
                                             {getBreachSummary(breach)}
-                                        </BaseText>
+                                        </Text>
                                         <div className={cl("details")}>
                                             {breach.ip && breach.ip !== "None" && (
                                                 <ActionDetailRow label="IP" value={breach.ip} />
@@ -438,9 +438,9 @@ const DsaWarningsCollection = ErrorBoundary.wrap(function DsaWarningsCollection(
                                     </div>
                                 </div>
                                 <div className={cl("card-meta")}>
-                                    <BaseText className={cl("date")} size="xs" weight="bold" defaultColor={false}>
+                                    <Text className={cl("date")} size="xs" weight="bold" defaultColor={false}>
                                         {breach.date ? formatDate(breach.date) : "Unknown date"}
-                                    </BaseText>
+                                    </Text>
                                 </div>
                             </div>
                         </Clickable>
@@ -488,9 +488,9 @@ const DsaWarningsCollection = ErrorBoundary.wrap(function DsaWarningsCollection(
                     onClick={() => setExpandedUserId(current => current === user.id ? null : user.id)}
                     aria-label={isExpanded ? "Show fewer DSA results" : "Show all DSA results"}
                 >
-                    <BaseText className={cl("toggle-text")} tag="span" size="xs" weight="bold" defaultColor={false}>
+                    <Text className={cl("toggle-text")} tag="span" size="xs" weight="bold" defaultColor={false}>
                         {isExpanded ? "Show Less" : `Show All ${actions.length + breaches.length} Results`}
-                    </BaseText>
+                    </Text>
                 </Clickable>
             )}
         </section>

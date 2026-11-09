@@ -9,7 +9,7 @@ import managedStyle from "./style.css?managed";
 import { showNotification } from "@api/Notifications";
 import { isPluginEnabled, plugins } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { CodeBlock } from "@components/CodeBlock";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -1343,9 +1343,9 @@ function copyPluginMonitorReport(selectedRow: DiagnosticsRow, rows: DiagnosticsR
 function Metric({ label, value, detail }: { label: string; value: string; detail?: string; }) {
     return (
         <div className={cl("metric")}>
-            <BaseText size="xs" color="text-muted" weight="medium">{label}</BaseText>
-            <BaseText size="lg" weight="semibold" tabularNumbers>{value}</BaseText>
-            {detail && <BaseText size="xs" color="text-muted" lineClamp={1}>{detail}</BaseText>}
+            <Text size="xs" color="text-muted" weight="medium">{label}</Text>
+            <Text size="lg" weight="semibold" tabularNumbers>{value}</Text>
+            {detail && <Text size="xs" color="text-muted" lineClamp={1}>{detail}</Text>}
         </div>
     );
 }
@@ -1371,9 +1371,9 @@ function SearchControls({ query, onChange, resultCount, totalCount }: { query: s
                     </Button>
                 )}
             </div>
-            <BaseText className={cl("search-summary")} size="xs" color="text-muted">
+            <Text className={cl("search-summary")} size="xs" color="text-muted">
                 {resultCount === totalCount ? `${totalCount} ${resultLabel}` : `${resultCount} of ${totalCount} plugins`}
-            </BaseText>
+            </Text>
         </div>
     );
 }
@@ -1386,18 +1386,18 @@ function PluginRow({ row }: { row: DiagnosticsRow; }) {
     return (
         <div className={cl("row", "body")}>
             <div className={cl("plugin-cell")}>
-                <BaseText size="sm" weight="semibold" lineClamp={1}>{row.name}</BaseText>
-                <BaseText size="xs" color="text-muted" lineClamp={1}>{status}{row.api ? " API" : ""}{errorStatus}</BaseText>
+                <Text size="sm" weight="semibold" lineClamp={1}>{row.name}</Text>
+                <Text size="xs" color="text-muted" lineClamp={1}>{status}{row.api ? " API" : ""}{errorStatus}</Text>
             </div>
-            <BaseText className={cl("impact", impactClass)} size="sm" weight="semibold" tabularNumbers>{row.impact.toFixed(0)}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatMs(row.totalMs)}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatNumber(row.calls)}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatNumber(row.slowCalls)}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatBytes(getHeapGrowth(row))}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatNumber(row.resources)}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatNumber(row.listeners)}</BaseText>
-            <BaseText size="sm" lineClamp={1}>{row.hotSurface}</BaseText>
-            <BaseText size="sm" tabularNumbers>{formatMs(row.maxMs)}</BaseText>
+            <Text className={cl("impact", impactClass)} size="sm" weight="semibold" tabularNumbers>{row.impact.toFixed(0)}</Text>
+            <Text size="sm" tabularNumbers>{formatMs(row.totalMs)}</Text>
+            <Text size="sm" tabularNumbers>{formatNumber(row.calls)}</Text>
+            <Text size="sm" tabularNumbers>{formatNumber(row.slowCalls)}</Text>
+            <Text size="sm" tabularNumbers>{formatBytes(getHeapGrowth(row))}</Text>
+            <Text size="sm" tabularNumbers>{formatNumber(row.resources)}</Text>
+            <Text size="sm" tabularNumbers>{formatNumber(row.listeners)}</Text>
+            <Text size="sm" lineClamp={1}>{row.hotSurface}</Text>
+            <Text size="sm" tabularNumbers>{formatMs(row.maxMs)}</Text>
         </div>
     );
 }
@@ -1405,8 +1405,8 @@ function PluginRow({ row }: { row: DiagnosticsRow; }) {
 function ReasonPill({ reason }: { reason: ImpactReason; }) {
     return (
         <div className={cl("reason", reason.level)}>
-            <BaseText size="xs" weight="semibold">{reason.label}</BaseText>
-            <BaseText size="xs" tabularNumbers>{reason.value}</BaseText>
+            <Text size="xs" weight="semibold">{reason.label}</Text>
+            <Text size="xs" tabularNumbers>{reason.value}</Text>
         </div>
     );
 }
@@ -1417,17 +1417,17 @@ function SurfaceBreakdown({ row }: { row: DiagnosticsRow; }) {
         .slice(0, 6);
 
     if (surfaces.length === 0) {
-        return <BaseText size="sm" color="text-muted">No measured surface yet.</BaseText>;
+        return <Text size="sm" color="text-muted">No measured surface yet.</Text>;
     }
 
     return (
         <div className={cl("surface-list")}>
             {surfaces.map(([surface, stat]) => (
                 <div className={cl("surface-row")} key={surface}>
-                    <BaseText size="sm" weight="medium" lineClamp={1}>{surface}</BaseText>
-                    <BaseText size="sm" tabularNumbers>{formatMs(stat.totalMs)}</BaseText>
-                    <BaseText size="sm" tabularNumbers>{formatNumber(stat.calls)} calls</BaseText>
-                    <BaseText size="sm" tabularNumbers>{formatMs(stat.maxMs)} max</BaseText>
+                    <Text size="sm" weight="medium" lineClamp={1}>{surface}</Text>
+                    <Text size="sm" tabularNumbers>{formatMs(stat.totalMs)}</Text>
+                    <Text size="sm" tabularNumbers>{formatNumber(stat.calls)} calls</Text>
+                    <Text size="sm" tabularNumbers>{formatMs(stat.maxMs)} max</Text>
                 </div>
             ))}
         </div>
@@ -1437,9 +1437,9 @@ function SurfaceBreakdown({ row }: { row: DiagnosticsRow; }) {
 function SnippetList({ item }: { item: ImpactAnalysisItem; }) {
     if (item.snippets.length === 0) {
         return (
-            <BaseText size="sm" color="text-muted">
+            <Text size="sm" color="text-muted">
                 No snippet is available. This happens when the cost comes from code already patched into Discord or from functions that cannot be inspected at runtime.
-            </BaseText>
+            </Text>
         );
     }
 
@@ -1448,8 +1448,8 @@ function SnippetList({ item }: { item: ImpactAnalysisItem; }) {
             {item.snippets.map((snippet, index) => (
                 <div className={cl("snippet")} key={`${snippet.surface}-${index}`}>
                     <div className={cl("snippet-title")}>
-                        <BaseText size="sm" weight="semibold">{snippet.label}</BaseText>
-                        <BaseText size="xs" color="text-muted">{snippet.surface}</BaseText>
+                        <Text size="sm" weight="semibold">{snippet.label}</Text>
+                        <Text size="xs" color="text-muted">{snippet.surface}</Text>
                     </div>
                     <div className={cl("snippet-code")}>
                         <CodeBlock content={snippet.code} lang="tsx" />
@@ -1473,24 +1473,24 @@ function ImpactDetails({ item }: { item: ImpactAnalysisItem; }) {
             </div>
 
             <div className={cl("detail-section")}>
-                <BaseText size="md" weight="semibold">Why it matters</BaseText>
+                <Text size="md" weight="semibold">Why it matters</Text>
                 <div className={cl("reason-list")}>
                     {item.reasons.map(reason => (
                         <div className={cl("reason-line")} key={`${reason.label}-${reason.value}`}>
                             <ReasonPill reason={reason} />
-                            <BaseText size="sm">{reason.description}</BaseText>
+                            <Text size="sm">{reason.description}</Text>
                         </div>
                     ))}
                 </div>
             </div>
 
             <div className={cl("detail-section")}>
-                <BaseText size="md" weight="semibold">Most expensive surfaces</BaseText>
+                <Text size="md" weight="semibold">Most expensive surfaces</Text>
                 <SurfaceBreakdown row={row} />
             </div>
 
             <div className={cl("detail-section")}>
-                <BaseText size="md" weight="semibold">Related code</BaseText>
+                <Text size="md" weight="semibold">Related code</Text>
                 <SnippetList item={item} />
             </div>
         </div>
@@ -1505,11 +1505,11 @@ function ImpactAnalysisCard({ item, selected, onSelect }: { item: ImpactAnalysis
         <div className={cl("analysis-card", selected && "selected")}>
             <div className={cl("analysis-card-head")}>
                 <div className={cl("analysis-title")}>
-                    <BaseText size="md" weight="semibold" lineClamp={1}>{row.name}</BaseText>
-                    <BaseText size="sm" color="text-muted" lineClamp={2}>{item.summary}</BaseText>
+                    <Text size="md" weight="semibold" lineClamp={1}>{row.name}</Text>
+                    <Text size="sm" color="text-muted" lineClamp={2}>{item.summary}</Text>
                 </div>
                 <div className={cl("analysis-side")}>
-                    <BaseText className={cl("impact", impactClass)} size="sm" weight="semibold" tabularNumbers>{row.impact.toFixed(0)}</BaseText>
+                    <Text className={cl("impact", impactClass)} size="sm" weight="semibold" tabularNumbers>{row.impact.toFixed(0)}</Text>
                     <Button variant={selected ? "primary" : "secondary"} size="small" onClick={onSelect}>
                         {selected ? "Hide" : "Details"}
                     </Button>
@@ -1517,9 +1517,9 @@ function ImpactAnalysisCard({ item, selected, onSelect }: { item: ImpactAnalysis
             </div>
 
             <div className={cl("analysis-meta")}>
-                <BaseText size="sm" color={item.shouldDisable ? "text-feedback-warning" : "text-muted"}>
+                <Text size="sm" color={item.shouldDisable ? "text-feedback-warning" : "text-muted"}>
                     {item.recommendation}
-                </BaseText>
+                </Text>
                 <div className={cl("reason-list", "compact")}>
                     {item.reasons.slice(0, 4).map(reason => <ReasonPill key={`${reason.label}-${reason.value}`} reason={reason} />)}
                 </div>
@@ -1553,10 +1553,10 @@ function ImpactAnalysisPage() {
         <div className={cl("page")}>
             <div className={cl("toolbar")}>
                 <div>
-                    <BaseText tag="h2" size="xl" weight="semibold">Impact analysis</BaseText>
-                    <BaseText size="sm" color="text-muted">
+                    <Text tag="h2" size="xl" weight="semibold">Impact analysis</Text>
+                    <Text size="sm" color="text-muted">
                         This page interprets the metrics and flags plugins that may make TrashCord lag.
-                    </BaseText>
+                    </Text>
                 </div>
                 <div className={cl("actions")}>
                     <Button variant="secondary" onClick={copyImpactAnalysisReport} disabled={items.length === 0}>
@@ -1582,13 +1582,13 @@ function ImpactAnalysisPage() {
 
             {items.length === 0 ? (
                 <div className={cl("empty")}>
-                    <BaseText size="md" weight="semibold">No suspicious plugins yet.</BaseText>
-                    <BaseText size="sm" color="text-muted">Use the client for a few minutes, then come back here to see collected samples.</BaseText>
+                    <Text size="md" weight="semibold">No suspicious plugins yet.</Text>
+                    <Text size="sm" color="text-muted">Use the client for a few minutes, then come back here to see collected samples.</Text>
                 </div>
             ) : filteredItems.length === 0 ? (
                 <div className={cl("empty")}>
-                    <BaseText size="md" weight="semibold">No plugin matches that search.</BaseText>
-                    <BaseText size="sm" color="text-muted">Try another plugin name or clear the search field.</BaseText>
+                    <Text size="md" weight="semibold">No plugin matches that search.</Text>
+                    <Text size="sm" color="text-muted">Try another plugin name or clear the search field.</Text>
                 </div>
             ) : (
                 <div className={cl("analysis-list")}>
@@ -1635,10 +1635,10 @@ function PluginMonitorPage() {
         <div className={cl("page")}>
             <div className={cl("toolbar")}>
                 <div>
-                    <BaseText tag="h2" size="xl" weight="semibold">Plugin monitor</BaseText>
-                    <BaseText size="sm" color="text-muted">
+                    <Text tag="h2" size="xl" weight="semibold">Plugin monitor</Text>
+                    <Text size="sm" color="text-muted">
                         Search a plugin and compare its measured CPU and RAM contribution.
-                    </BaseText>
+                    </Text>
                 </div>
                 <div className={cl("actions")}>
                     <Button variant="secondary" onClick={() => selectedRow && copyPluginMonitorReport(selectedRow, rows)} disabled={!selectedRow}>
@@ -1658,14 +1658,14 @@ function PluginMonitorPage() {
             <div className={cl("monitor-layout")}>
                 <div className={cl("monitor-results")}>
                     {filteredRows.length === 0 ? (
-                        <BaseText size="sm" color="text-muted">No plugin matches that search.</BaseText>
+                        <Text size="sm" color="text-muted">No plugin matches that search.</Text>
                     ) : filteredRows.map(row => (
                         <div className={cl("monitor-result", selectedRow?.name === row.name && "selected")} key={row.name}>
                             <div className={cl("plugin-cell")}>
-                                <BaseText size="sm" weight="semibold" lineClamp={1}>{row.name}</BaseText>
-                                <BaseText size="xs" color="text-muted" lineClamp={1}>{row.enabled ? "Enabled" : "Disabled"}{row.api ? " API" : ""}</BaseText>
+                                <Text size="sm" weight="semibold" lineClamp={1}>{row.name}</Text>
+                                <Text size="xs" color="text-muted" lineClamp={1}>{row.enabled ? "Enabled" : "Disabled"}{row.api ? " API" : ""}</Text>
                             </div>
-                            <BaseText size="sm" tabularNumbers>{formatPercent(getPercent(row.totalMs, totalCpu))}</BaseText>
+                            <Text size="sm" tabularNumbers>{formatPercent(getPercent(row.totalMs, totalCpu))}</Text>
                             <Button variant={selectedRow?.name === row.name ? "primary" : "secondary"} size="small" onClick={() => setSelectedPlugin(row.name)}>
                                 View
                             </Button>
@@ -1677,16 +1677,16 @@ function PluginMonitorPage() {
                     <div className={cl("monitor-panel")}>
                         <div className={cl("monitor-panel-head")}>
                             <div className={cl("analysis-title")}>
-                                <BaseText size="lg" weight="semibold" lineClamp={1}>{selectedRow.name}</BaseText>
-                                <BaseText size="sm" color="text-muted" lineClamp={2}>
+                                <Text size="lg" weight="semibold" lineClamp={1}>{selectedRow.name}</Text>
+                                <Text size="sm" color="text-muted" lineClamp={2}>
                                     {selectedRow.calls > 0
                                         ? `Measured through ${formatNumber(selectedRow.calls)} callbacks.`
                                         : selectedRow.resources > 0
                                             ? `${formatNumber(selectedRow.resources)} active resources remain after reset.`
                                             : "No measured callbacks yet."}
-                                </BaseText>
+                                </Text>
                             </div>
-                            <BaseText className={cl("impact", getImpactClass(selectedRow.impact))} size="sm" weight="semibold" tabularNumbers>{selectedRow.impact.toFixed(0)}</BaseText>
+                            <Text className={cl("impact", getImpactClass(selectedRow.impact))} size="sm" weight="semibold" tabularNumbers>{selectedRow.impact.toFixed(0)}</Text>
                         </div>
 
                         <div className={cl("metrics")}>
@@ -1704,15 +1704,15 @@ function PluginMonitorPage() {
                         </div>
 
                         <div className={cl("detail-section")}>
-                            <BaseText size="md" weight="semibold">Signals</BaseText>
+                            <Text size="md" weight="semibold">Signals</Text>
                             {reasons.length === 0 ? (
-                                <BaseText size="sm" color="text-muted">No risk signal for this plugin yet.</BaseText>
+                                <Text size="sm" color="text-muted">No risk signal for this plugin yet.</Text>
                             ) : (
                                 <div className={cl("reason-list")}>
                                     {reasons.map(reason => (
                                         <div className={cl("reason-line")} key={`${reason.label}-${reason.value}`}>
                                             <ReasonPill reason={reason} />
-                                            <BaseText size="sm">{reason.description}</BaseText>
+                                            <Text size="sm">{reason.description}</Text>
                                         </div>
                                     ))}
                                 </div>
@@ -1720,14 +1720,14 @@ function PluginMonitorPage() {
                         </div>
 
                         <div className={cl("detail-section")}>
-                            <BaseText size="md" weight="semibold">Most expensive surfaces</BaseText>
+                            <Text size="md" weight="semibold">Most expensive surfaces</Text>
                             <SurfaceBreakdown row={selectedRow} />
                         </div>
                     </div>
                 ) : (
                     <div className={cl("empty")}>
-                        <BaseText size="md" weight="semibold">No plugin selected.</BaseText>
-                        <BaseText size="sm" color="text-muted">Search for a plugin name, then pick one from the results.</BaseText>
+                        <Text size="md" weight="semibold">No plugin selected.</Text>
+                        <Text size="sm" color="text-muted">Search for a plugin name, then pick one from the results.</Text>
                     </div>
                 )}
             </div>
@@ -1759,10 +1759,10 @@ function DiagnosticsPage() {
         <div className={cl("page")}>
             <div className={cl("toolbar")}>
                 <div>
-                    <BaseText tag="h2" size="xl" weight="semibold">Client diagnostics</BaseText>
-                    <BaseText size="sm" color="text-muted">
+                    <Text tag="h2" size="xl" weight="semibold">Client diagnostics</Text>
+                    <Text size="sm" color="text-muted">
                         CPU is measured as JavaScript callback time. Memory uses Chromium heap deltas when available.
-                    </BaseText>
+                    </Text>
                 </div>
                 <div className={cl("actions")}>
                     <Button variant="secondary" onClick={copyReport}>
@@ -1792,23 +1792,23 @@ function DiagnosticsPage() {
 
             <div className={cl("table")}>
                 <div className={cl("row", "head")}>
-                    <BaseText size="xs" weight="semibold">Plugin</BaseText>
-                    <BaseText size="xs" weight="semibold">Impact</BaseText>
-                    <BaseText size="xs" weight="semibold">CPU</BaseText>
-                    <BaseText size="xs" weight="semibold">Calls</BaseText>
-                    <BaseText size="xs" weight="semibold">Slow</BaseText>
-                    <BaseText size="xs" weight="semibold">Heap net</BaseText>
-                    <BaseText size="xs" weight="semibold">Resources</BaseText>
-                    <BaseText size="xs" weight="semibold">Listeners</BaseText>
-                    <BaseText size="xs" weight="semibold">Hot surface</BaseText>
-                    <BaseText size="xs" weight="semibold">Max</BaseText>
+                    <Text size="xs" weight="semibold">Plugin</Text>
+                    <Text size="xs" weight="semibold">Impact</Text>
+                    <Text size="xs" weight="semibold">CPU</Text>
+                    <Text size="xs" weight="semibold">Calls</Text>
+                    <Text size="xs" weight="semibold">Slow</Text>
+                    <Text size="xs" weight="semibold">Heap net</Text>
+                    <Text size="xs" weight="semibold">Resources</Text>
+                    <Text size="xs" weight="semibold">Listeners</Text>
+                    <Text size="xs" weight="semibold">Hot surface</Text>
+                    <Text size="xs" weight="semibold">Max</Text>
                 </div>
                 {filteredRows.map(row => <PluginRow key={row.name} row={row} />)}
             </div>
             {filteredRows.length === 0 && (
                 <div className={cl("empty")}>
-                    <BaseText size="md" weight="semibold">No plugin matches that search.</BaseText>
-                    <BaseText size="sm" color="text-muted">Try another plugin name or clear the search field.</BaseText>
+                    <Text size="md" weight="semibold">No plugin matches that search.</Text>
+                    <Text size="sm" color="text-muted">Try another plugin name or clear the search field.</Text>
                 </div>
             )}
         </div>
@@ -1820,55 +1820,55 @@ function GuidePage() {
         <div className={cl("page")}>
             <div className={cl("toolbar")}>
                 <div>
-                    <BaseText tag="h2" size="xl" weight="semibold">Guide</BaseText>
-                    <BaseText size="sm" color="text-muted">
+                    <Text tag="h2" size="xl" weight="semibold">Guide</Text>
+                    <Text size="sm" color="text-muted">
                         This page explains what Client Diagnostics measures and how to read the numbers without knowing the code.
-                    </BaseText>
+                    </Text>
                 </div>
             </div>
 
             <div className={cl("guide-section")}>
-                <BaseText size="md" weight="semibold">What it is for</BaseText>
-                <BaseText size="sm" color="text-muted">
+                <Text size="md" weight="semibold">What it is for</Text>
+                <Text size="sm" color="text-muted">
                     Client Diagnostics helps find plugins that may cause lag, freezes, or extra memory usage. It measures time spent inside plugin functions, JavaScript memory growth, and resources that remain active.
-                </BaseText>
-                <BaseText size="sm" color="text-muted">
+                </Text>
+                <Text size="sm" color="text-muted">
                     The numbers are samples collected while you use TrashCord. If a plugin is not used during collection, it may look light even if it does more work in other situations.
-                </BaseText>
+                </Text>
             </div>
 
             <div className={cl("guide-section")}>
-                <BaseText size="md" weight="semibold">What the columns mean</BaseText>
+                <Text size="md" weight="semibold">What the columns mean</Text>
                 <div className={cl("guide-grid")}>
                     {GUIDE_ITEMS.map(item => (
                         <div className={cl("guide-item")} key={item.label}>
-                            <BaseText size="sm" weight="semibold">{item.label}</BaseText>
-                            <BaseText size="sm" color="text-muted">{item.description}</BaseText>
+                            <Text size="sm" weight="semibold">{item.label}</Text>
+                            <Text size="sm" color="text-muted">{item.description}</Text>
                         </div>
                     ))}
                 </div>
             </div>
 
             <div className={cl("guide-section")}>
-                <BaseText size="md" weight="semibold">Monitor percentages</BaseText>
+                <Text size="md" weight="semibold">Monitor percentages</Text>
                 <div className={cl("guide-grid")}>
                     {MONITOR_GUIDE_ITEMS.map(item => (
                         <div className={cl("guide-item")} key={item.label}>
-                            <BaseText size="sm" weight="semibold">{item.label}</BaseText>
-                            <BaseText size="sm" color="text-muted">{item.description}</BaseText>
+                            <Text size="sm" weight="semibold">{item.label}</Text>
+                            <Text size="sm" color="text-muted">{item.description}</Text>
                         </div>
                     ))}
                 </div>
             </div>
 
             <div className={cl("guide-section")}>
-                <BaseText size="md" weight="semibold">Measurement limits</BaseText>
-                <BaseText size="sm" color="text-muted">
+                <Text size="md" weight="semibold">Measurement limits</Text>
+                <Text size="sm" color="text-muted">
                     CPU and RAM are not per-plugin values read directly from the operating system. The plugin estimates cost by observing JavaScript work, Chromium heap data, and resources created during plugin callbacks.
-                </BaseText>
-                <BaseText size="sm" color="text-muted">
+                </Text>
+                <Text size="sm" color="text-muted">
                     Impact uses per-minute rates so a lightweight plugin does not become suspicious only because Discord stayed open for a long time. Async wait time is reported separately and does not count as CPU.
-                </BaseText>
+                </Text>
             </div>
         </div>
     );

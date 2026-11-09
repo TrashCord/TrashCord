@@ -5,7 +5,7 @@
  */
 
 import { Badge } from "@components/Badge";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { getGuildAcronym, getUniqueUsername } from "@utils/discord";
 import { classes } from "@utils/misc";
 import type { Channel, Guild, User } from "@vencord/discord-types";
@@ -42,7 +42,7 @@ function Keycap({ shortcut }: { shortcut: string; }) {
     }
     return (
         <span className="tc-chrometabs-keycap">
-            <BaseText size="xxs" weight="semibold" color="text-default">{shortcut.toUpperCase()}</BaseText>
+            <Text size="xxs" weight="semibold" color="text-default">{shortcut.toUpperCase()}</Text>
         </span>
     );
 }
@@ -199,9 +199,9 @@ function TabIconView({ meta }: { meta: TabMeta; }) {
 
     return (
         <div className="tc-chrometabs-switcher-icon-acronym">
-            <BaseText size="xxs" weight="semibold" color="text-default">
+            <Text size="xxs" weight="semibold" color="text-default">
                 {meta.initial}
-            </BaseText>
+            </Text>
         </div>
     );
 }
@@ -235,8 +235,8 @@ function ChromeTabSwitcherModal({
             <div className="tc-chrometabs-switcher-shell" onMouseDown={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="tc-chrometabs-switcher-header">
-                    <BaseText size="xs" weight="bold" color="text-muted" className="tc-chrometabs-switcher-title">OPEN TABS</BaseText>
-                    <BaseText size="xs" weight="semibold" color="text-muted">{tabs.length} tabs</BaseText>
+                    <Text size="xs" weight="bold" color="text-muted" className="tc-chrometabs-switcher-title">OPEN TABS</Text>
+                    <Text size="xs" weight="semibold" color="text-muted">{tabs.length} tabs</Text>
                 </div>
 
                 {/* Tab Rows List */}
@@ -273,7 +273,7 @@ function ChromeTabSwitcherModal({
                                 </div>
 
                                 <div className="tc-chrometabs-switcher-row-content">
-                                    <BaseText
+                                    <Text
                                         size="sm"
                                         weight="medium"
                                         color={isSelected ? "text-default" : "text-subtle"}
@@ -281,9 +281,9 @@ function ChromeTabSwitcherModal({
                                         className="tc-chrometabs-switcher-name"
                                     >
                                         {meta.title}
-                                    </BaseText>
+                                    </Text>
                                     {meta.sub && (
-                                        <BaseText
+                                        <Text
                                             size="xs"
                                             weight="normal"
                                             color="text-muted"
@@ -294,13 +294,13 @@ function ChromeTabSwitcherModal({
                                             )}
                                         >
                                             {meta.sub}
-                                        </BaseText>
+                                        </Text>
                                     )}
                                 </div>
 
                                 <div className="tc-chrometabs-switcher-row-right">
                                     {meta.guildName && (
-                                        <BaseText
+                                        <Text
                                             size="xs"
                                             weight="normal"
                                             color="text-muted"
@@ -308,7 +308,7 @@ function ChromeTabSwitcherModal({
                                             className="tc-chrometabs-switcher-guild"
                                         >
                                             {meta.guildName}
-                                        </BaseText>
+                                        </Text>
                                     )}
                                     {meta.mentionCount > 0 && (
                                         <Badge variant="danger" text={meta.mentionCount > 99 ? "99+" : meta.mentionCount} />
@@ -336,14 +336,14 @@ function ChromeTabSwitcherModal({
                 <div className="tc-chrometabs-switcher-footer">
                     <div className="tc-chrometabs-switcher-hint">
                         <Keycap shortcut="tab" />
-                        <BaseText size="xs" weight="medium" color="text-muted">cycle</BaseText>
-                        <BaseText size="xs" weight="medium" color="text-muted" className="tc-chrometabs-switcher-sep">•</BaseText>
+                        <Text size="xs" weight="medium" color="text-muted">cycle</Text>
+                        <Text size="xs" weight="medium" color="text-muted" className="tc-chrometabs-switcher-sep">•</Text>
                         <Keycap shortcut="ctrl" />
-                        <BaseText size="xs" weight="medium" color="text-muted">release to switch</BaseText>
+                        <Text size="xs" weight="medium" color="text-muted">release to switch</Text>
                     </div>
                     <div className="tc-chrometabs-switcher-hint">
                         <Keycap shortcut="esc" />
-                        <BaseText size="xs" weight="medium" color="text-muted">cancel</BaseText>
+                        <Text size="xs" weight="medium" color="text-muted">cancel</Text>
                     </div>
                 </div>
             </div>

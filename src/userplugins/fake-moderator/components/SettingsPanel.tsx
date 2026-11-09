@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import { Divider } from "@components/Divider";
@@ -148,9 +148,9 @@ export function SettingsPanel() {
                 <Button variant="dangerPrimary" onClick={onClear} disabled={history.length === 0}>
                     Clear history
                 </Button>
-                <BaseText size="sm" style={{ alignSelf: "center", color: "var(--text-muted)" }}>
+                <Text size="sm" style={{ alignSelf: "center", color: "var(--text-muted)" }}>
                     {history.length} entr{history.length === 1 ? "y" : "ies"}
-                </BaseText>
+                </Text>
             </Flex>
 
             <HistoryList />

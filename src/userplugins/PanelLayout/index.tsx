@@ -7,7 +7,7 @@
 import * as DataStore from "@api/DataStore";
 import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
@@ -607,8 +607,8 @@ function SliderRow({ label, value, min, max, unit = "px", onChange, resetKey }: 
     return (
         <Flex flexDirection="column" gap={8} style={{ width: "100%" }}>
             <Flex justifyContent="space-between">
-                <BaseText size="md" weight="medium" color="text-default">{label}</BaseText>
-                <BaseText size="sm" weight="semibold" color="text-muted">{Math.round(value)}{unit}</BaseText>
+                <Text size="md" weight="medium" color="text-default">{label}</Text>
+                <Text size="sm" weight="semibold" color="text-muted">{Math.round(value)}{unit}</Text>
             </Flex>
             <Slider
                 key={`${label}-${resetKey}`}
@@ -632,7 +632,7 @@ function Dropdown({ label, options, value, onChange }: {
 }) {
     return (
         <Flex flexDirection="column" gap={8} style={{ width: "100%" }}>
-            <BaseText size="md" weight="medium" color="text-default">{label}</BaseText>
+            <Text size="md" weight="medium" color="text-default">{label}</Text>
             <Select
                 options={options}
                 serialize={v => String(v)}
@@ -647,7 +647,7 @@ function Dropdown({ label, options, value, onChange }: {
 function ColorRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void; }) {
     return (
         <Flex flexDirection="column" gap={8} style={{ width: "100%" }}>
-            <BaseText size="md" weight="medium" color="text-default">{label}</BaseText>
+            <Text size="md" weight="medium" color="text-default">{label}</Text>
             <input
                 type="color"
                 value={value}
@@ -791,7 +791,7 @@ function ButtonsDragTab() {
             </Paragraph>
 
             {items.length === 0 ? (
-                <BaseText size="sm" color="text-muted">No buttons detected. Open this tab again once buttons load.</BaseText>
+                <Text size="sm" color="text-muted">No buttons detected. Open this tab again once buttons load.</Text>
             ) : (
                 <div className="deracul-scrollbar" style={{
                     display: "flex", flexDirection: "row", gap: "12px", overflowX: "auto",
@@ -854,7 +854,7 @@ function ButtonsDragTab() {
                             const listening = listeningId === item.id;
                             return (
                                 <Flex key={item.id} justifyContent="space-between" alignItems="center" style={{ padding: "8px 12px", backgroundColor: "var(--background-secondary)", borderRadius: "6px" }}>
-                                    <BaseText size="sm" weight="medium" color="text-default">{item.label}</BaseText>
+                                    <Text size="sm" weight="medium" color="text-default">{item.label}</Text>
                                     <Flex gap={8} alignItems="center">
                                         <Button size="small" variant="secondary" onClick={() => setListeningId(listening ? null : item.id)}>
                                             {listening ? "Press key..." : (cfg.keybind || "Assign Key")}
@@ -938,9 +938,9 @@ function PanelLayoutModal({ modalProps }: { modalProps: ModalProps; }) {
                         <PanelLayoutIcon />
                     </div>
                     <div style={{ flex: 1 }}>
-                        <BaseText size="lg" weight="semibold" color="text-strong" tag="h1">
+                        <Text size="lg" weight="semibold" color="text-strong" tag="h1">
                             Panel Layout
-                        </BaseText>
+                        </Text>
                         <Paragraph style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "2px" }}>
                             Customize the layout, style, and visibility of panel and call buttons.
                         </Paragraph>
@@ -959,9 +959,9 @@ function PanelLayoutModal({ modalProps }: { modalProps: ModalProps; }) {
                                 transition: "all 0.15s ease",
                             }}
                         >
-                            <BaseText size="md" weight={tab === t.id ? "semibold" : "medium"} color={tab === t.id ? "text-strong" : "text-muted"}>
+                            <Text size="md" weight={tab === t.id ? "semibold" : "medium"} color={tab === t.id ? "text-strong" : "text-muted"}>
                                 {t.label}
-                            </BaseText>
+                            </Text>
                         </div>
                     ))}
                 </Flex>

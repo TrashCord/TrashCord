@@ -5,7 +5,7 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -332,7 +332,7 @@ function StatsPanel() {
         <Card variant="primary">
             <Flex flexDirection="column" gap="12px">
                 <Flex justifyContent="space-between" alignItems="center" gap="12px">
-                    <BaseText size="md" weight="semibold">FastGifPicker stats</BaseText>
+                    <Text size="md" weight="semibold">FastGifPicker stats</Text>
                     <Flex gap="8px" alignItems="center">
                         {open && (
                             <Button
@@ -370,8 +370,8 @@ function StatsPanel() {
                                     padding: "8px 10px"
                                 }}
                             >
-                                <BaseText size="xs" color="text-muted">{label}</BaseText>
-                                <BaseText size="lg" weight="semibold" tabularNumbers>{snapshot[value]}</BaseText>
+                                <Text size="xs" color="text-muted">{label}</Text>
+                                <Text size="lg" weight="semibold" tabularNumbers>{snapshot[value]}</Text>
                             </div>
                         ))}
                     </Flex>

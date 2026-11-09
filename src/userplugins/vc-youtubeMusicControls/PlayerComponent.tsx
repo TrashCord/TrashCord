@@ -6,7 +6,7 @@
 
 /* import "./ytmStyles.css"; */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Flex } from "@components/Flex";
 import { ImageIcon, LinkIcon, OpenExternalIcon } from "@components/Icons";
 import { debounce } from "@shared/debounce";
@@ -252,14 +252,14 @@ function YtmSeekBar() {
 
     return (
         <div id={cl("progress-bar")}>
-            <BaseText
+            <Text
                 size="xs"
                 weight="medium"
                 className={`${cl("progress-time")} ${cl("time-left")}`}
                 aria-label="Progress"
             >
                 {msToHuman(position)}
-            </BaseText>
+            </Text>
             <SeekBar
                 initialValue={position}
                 minValue={0}
@@ -268,14 +268,14 @@ function YtmSeekBar() {
                 asValueChanges={onChange}
                 onValueRender={msToHuman}
             />
-            <BaseText
+            <Text
                 size="xs"
                 weight="medium"
                 className={`${cl("progress-time")} ${cl("time-right")}`}
                 aria-label="Total Duration"
             >
                 {msToHuman(songDuration * 1000)}
-            </BaseText>
+            </Text>
         </div>
     );
 }
@@ -383,7 +383,7 @@ function Info({ track }: { track: NonNullable<Song>; }) {
         <div id={cl("info-wrapper")}>
             {i}
             <div id={cl("titles")}>
-                <BaseText
+                <Text
                     size="sm"
                     weight="semibold"
                     id={cl("song-title")}
@@ -396,9 +396,9 @@ function Info({ track }: { track: NonNullable<Song>; }) {
                     )}
                 >
                     {track?.title}
-                </BaseText>
+                </Text>
                 {track.artist && (
-                    <BaseText size="sm" className={cl("ellipoverflow")}>
+                    <Text size="sm" className={cl("ellipoverflow")}>
                         by&nbsp;
                         <span
                             className={cl("artist")}
@@ -412,10 +412,10 @@ function Info({ track }: { track: NonNullable<Song>; }) {
                         >
                             {track.artist}
                         </span>
-                    </BaseText>
+                    </Text>
                 )}
                 {track.album && (
-                    <BaseText size="sm" className={cl("ellipoverflow")}>
+                    <Text size="sm" className={cl("ellipoverflow")}>
                         on&nbsp;
                         <span
                             id={cl("album-title")}
@@ -425,7 +425,7 @@ function Info({ track }: { track: NonNullable<Song>; }) {
                         >
                             {track.album}
                         </span>
-                    </BaseText>
+                    </Text>
                 )}
             </div>
         </div>

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { Flex } from "@components/Flex";
 import { classNameFactory } from "@utils/css";
@@ -111,9 +111,9 @@ function InfoRow({ icon, children }: { icon: ReactNode; children: ReactNode; }) 
     return (
         <div className={cl("info-row")}>
             <div className={cl("info-icon")}>{icon}</div>
-            <BaseText size="md" weight="medium" color="text-default" className={cl("info-text")}>
+            <Text size="md" weight="medium" color="text-default" className={cl("info-text")}>
                 {children}
-            </BaseText>
+            </Text>
         </div>
     );
 }
@@ -138,21 +138,21 @@ export function openBlockedWarningModal({
             <DetectBlockModalHeader separator={false} className={cl("header")}>
                 <DetectBlockModalCloseButton onClick={modalProps.onClose} className={cl("close")} />
                 <img alt="" aria-hidden="true" draggable={false} className={cl("graphic")} src={WARNING_GRAPHIC_SRC} />
-                <BaseText tag="h1" size="xl" weight="semibold" color="text-strong" className={cl("title")}>
+                <Text tag="h1" size="xl" weight="semibold" color="text-strong" className={cl("title")}>
                     {recipe.title}
-                </BaseText>
-                <BaseText size="md" weight="normal" color="text-muted" className={cl("subtitle")}>
+                </Text>
+                <Text size="md" weight="normal" color="text-muted" className={cl("subtitle")}>
                     {recipe.subtitle}
-                </BaseText>
+                </Text>
             </DetectBlockModalHeader>
 
             <DetectBlockModalContent className={cl("content")}>
                 <div className={cl("info-group")}>
                     <InfoRow icon={getAvatar(avatarUser, blockedUserIds[0] ?? "")}>
                         <span className={cl("subject")}>
-                            <BaseText tag="span" size="md" weight="semibold" color="text-default" className={cl("username")}>
+                            <Text tag="span" size="md" weight="semibold" color="text-default" className={cl("username")}>
                                 {subjectText.subject}
-                            </BaseText>
+                            </Text>
                             {subjectText.suffix}
                         </span>
                     </InfoRow>

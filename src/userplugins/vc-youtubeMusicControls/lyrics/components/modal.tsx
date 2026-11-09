@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { ModalContent, ModalHeader, ModalProps, ModalRoot } from "@utils/modal";
 
 import { settings } from "../../settings";
@@ -33,8 +33,8 @@ function ModalHeaderContent({ track }: { track: Song; }) {
                     />
                 )}
                 <div>
-                    <BaseText size="sm" weight="semibold">{track.title}</BaseText>
-                    <BaseText size="sm">
+                    <Text size="sm" weight="semibold">{track.title}</Text>
+                    <Text size="sm">
                         by {artistUrl
                             ? (
                                 <span
@@ -46,8 +46,8 @@ function ModalHeaderContent({ track }: { track: Song; }) {
                                 </span>
                             )
                             : track.artist}
-                    </BaseText>
-                    {track.album && <BaseText size="sm">on {track.album}</BaseText>}
+                    </Text>
+                    {track.album && <Text size="sm">on {track.album}</Text>}
                 </div>
             </div>
         </ModalHeader>
@@ -66,7 +66,7 @@ export function YoutubeMusicLyricsModal({ rootProps }: { rootProps: ModalProps; 
                 <div className={cl("lyrics-modal-container") + ` ${scrollClasses.auto}`}>
                     {currentLyrics ? (
                         currentLyrics.map((line, i) => (
-                            <BaseText
+                            <Text
                                 key={i}
                                 size={currLrcIndex === i ? "md" : "sm"}
                                 weight={currLrcIndex === i ? "semibold" : "normal"}
@@ -78,10 +78,10 @@ export function YoutubeMusicLyricsModal({ rootProps }: { rootProps: ModalProps; 
                                     {formatTime(line.time + delay)}
                                 </span>
                                 {line.text || NoteSvg(cl("modal-note"))}
-                            </BaseText>
+                            </Text>
                         ))
                     ) : (
-                        <BaseText size="sm" className={cl("modal-no-lyrics")}>No lyrics available :(</BaseText>
+                        <Text size="sm" className={cl("modal-no-lyrics")}>No lyrics available :(</Text>
                     )}
                 </div>
             </ModalContent>

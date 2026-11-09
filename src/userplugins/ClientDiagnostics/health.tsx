@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { classNameFactory } from "@utils/css";
 import { copyWithToast } from "@utils/discord";
@@ -173,9 +173,9 @@ interface HealthMetricProps {
 
 function HealthMetric({ label, value, detail }: HealthMetricProps) {
     return <div className={cl("metric")}>
-        <BaseText size="sm" color="text-muted">{label}</BaseText>
-        <BaseText size="xl" weight="semibold" tabularNumbers>{value}</BaseText>
-        <BaseText size="xs" color="text-muted">{detail}</BaseText>
+        <Text size="sm" color="text-muted">{label}</Text>
+        <Text size="xl" weight="semibold" tabularNumbers>{value}</Text>
+        <Text size="xs" color="text-muted">{detail}</Text>
     </div>;
 }
 
@@ -189,15 +189,15 @@ export function ClientHealthPage() {
     return <div className={cl("page")}>
         <div className={cl("toolbar")}>
             <div>
-                <BaseText tag="h2" size="xl" weight="semibold">Client health</BaseText>
-                <BaseText size="sm" color="text-muted">Memory trends and foreground responsiveness. Samples update every five seconds, with up to ten minutes of history.</BaseText>
+                <Text tag="h2" size="xl" weight="semibold">Client health</Text>
+                <Text size="sm" color="text-muted">Memory trends and foreground responsiveness. Samples update every five seconds, with up to ten minutes of history.</Text>
             </div>
             <div className={cl("actions")}>
                 <Button variant="secondary" onClick={() => copyWithToast(JSON.stringify({ status, trend, longTasksSupported: observer !== undefined, samples }, null, 2))}>Copy health report</Button>
                 <Button variant="secondary" onClick={resetHealth}>Reset health</Button>
             </div>
         </div>
-        <BaseText tag="h3" size="lg" weight="semibold">Memory and possible leaks</BaseText>
+        <Text tag="h3" size="lg" weight="semibold">Memory and possible leaks</Text>
         <div className={cl("metrics")}>
             <HealthMetric label="JavaScript heap" value={latest ? mb(latest.heap) : memoryPending} detail="Client renderer only, not total process RAM." />
             <HealthMetric label="Heap pressure" value={latest?.heap !== undefined && latest.limit ? `${(latest.heap / latest.limit * 100).toFixed(1)}%` : memoryPending} detail="Used heap relative to the JavaScript heap limit." />
@@ -205,11 +205,11 @@ export function ClientHealthPage() {
             <HealthMetric label="Growth rate" value={latest?.heap !== undefined && trend.perMinute !== undefined ? `${mb(trend.perMinute)}/min` : memoryPending} detail={trend.ready ? "Based on five consecutive sampled minutes." : "Early estimate. Leak checks require five consecutive sampled minutes."} />
         </div>
         <div className={cl("guide-section")}>
-            <BaseText size="md" weight="semibold">{status}</BaseText>
-            <BaseText size="sm" color="text-muted">A possible leak is flagged when five consecutive minute minima rise by more than both 16 MiB and 5%. Caches and normal activity can also cause growth. This estimate cannot measure leaked bytes or identify retained objects. Confirm with heap snapshots and repeat the same actions with suspected plugins disabled.</BaseText>
-            <BaseText size="sm" color="text-muted">Chromium heap readings can be coarse or shared with other contexts. A falling heap may reflect garbage collection, but does not prove that leaks are absent.</BaseText>
+            <Text size="md" weight="semibold">{status}</Text>
+            <Text size="sm" color="text-muted">A possible leak is flagged when five consecutive minute minima rise by more than both 16 MiB and 5%. Caches and normal activity can also cause growth. This estimate cannot measure leaked bytes or identify retained objects. Confirm with heap snapshots and repeat the same actions with suspected plugins disabled.</Text>
+            <Text size="sm" color="text-muted">Chromium heap readings can be coarse or shared with other contexts. A falling heap may reflect garbage collection, but does not prove that leaks are absent.</Text>
         </div>
-        <BaseText tag="h3" size="lg" weight="semibold">Client smoothness</BaseText>
+        <Text tag="h3" size="lg" weight="semibold">Client smoothness</Text>
         <div className={cl("metrics")}>
             <HealthMetric label="Frame cadence" value={latest?.fps === undefined ? "Collecting" : `${latest.fps.toFixed(1)} FPS`} detail="Animation callback cadence, not GPU presentation FPS." />
             <HealthMetric label="Frame time P95" value={ms(latest?.p95)} detail="95% of frame intervals are below this value. Capped at 1000 ms." />
@@ -218,7 +218,7 @@ export function ClientHealthPage() {
             <HealthMetric label="Long tasks" value={observer ? String(latest?.longTasks ?? 0) : "Unavailable"} detail="Main thread tasks over 50 ms in the latest sample." />
             <HealthMetric label="Blocking time" value={observer ? ms(latest?.blocking) : "Unavailable"} detail="Sum of long task duration beyond 50 ms." />
         </div>
-        <BaseText size="sm" color="text-muted">Hidden windows are excluded. Refresh rate, power saving, Discord itself and this profiler affect these numbers.</BaseText>
+        <Text size="sm" color="text-muted">Hidden windows are excluded. Refresh rate, power saving, Discord itself and this profiler affect these numbers.</Text>
         <ClientCauses snapshot={latest?.causes} blocking={latest?.blocking ?? 0} supported={observer !== undefined} />
         <div className={cl("table")}>
             <table className={cl("health-history")}>

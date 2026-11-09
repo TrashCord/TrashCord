@@ -6,7 +6,7 @@
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { CodeBlock } from "@components/CodeBlock";
 import { Divider } from "@components/Divider";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -169,7 +169,7 @@ function sortObject<T extends object>(obj: T): T {
 
 function cleanMessage(msg: Message) {
     const clone = sortObject(JSON.parse(JSON.stringify(msg)));
-    
+
     if (settings.store.cleanSensitiveData) {
         for (const key of ["email", "phone", "mfaEnabled", "personalConnectionId", "token", "password"]) {
             delete clone.author?.[key];
@@ -240,7 +240,7 @@ function convertToYAML(obj: any): string {
 
 function saveToHistory(type: string, data: any): void {
     if (!settings.store.saveHistory) return;
-    
+
     try {
         const history = JSON.parse(settings.store.viewHistory || "[]");
         history.unshift({
@@ -249,7 +249,7 @@ function saveToHistory(type: string, data: any): void {
             size: getObjectSize(data),
             properties: getPropertyCount(data)
         });
-        
+
         const maxEntries = settings.store.maxHistoryEntries;
         settings.store.viewHistory = JSON.stringify(history.slice(0, maxEntries));
     } catch (err) {
@@ -340,7 +340,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
         const format = settings.store.exportFormat;
         const dataToExport = isEditing ? editedJson : json;
         let data = dataToExport;
-        
+
         try {
             const parsed = JSON.parse(dataToExport);
             if (format === "yaml") {
@@ -354,7 +354,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
         } catch {
             // Use raw data if parsing fails
         }
-        
+
         exportToFile(data, `${type.toLowerCase()}_${Date.now()}`, format);
     };
 
@@ -408,12 +408,12 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                                 {parsedData.bot && <span style={{ background: "var(--brand-500)", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" }}>BOT</span>}
                                 {parsedData.system && <span style={{ background: "var(--status-danger)", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" }}>SYSTEM</span>}
                             </Flex>
-                            <BaseText style={{ opacity: 0.8 }}>@{parsedData.username}</BaseText>
+                            <Text style={{ opacity: 0.8 }}>@{parsedData.username}</Text>
                             {parsedData.discriminator && parsedData.discriminator !== "0" && (
-                                <BaseText style={{ opacity: 0.7 }}>#{parsedData.discriminator}</BaseText>
+                                <Text style={{ opacity: 0.7 }}>#{parsedData.discriminator}</Text>
                             )}
-                            <BaseText style={{ opacity: 0.6, fontSize: "12px", marginTop: "4px" }}>ID: {parsedData.id}</BaseText>
-                            
+                            <Text style={{ opacity: 0.6, fontSize: "12px", marginTop: "4px" }}>ID: {parsedData.id}</Text>
+
                             {parsedData.primaryGuild && (
                                 <div style={{ marginTop: "12px", padding: "8px", background: "var(--background-tertiary)", borderRadius: "6px" }}>
                                     <Flex style={{ alignItems: "center", gap: "6px" }}>
@@ -424,19 +424,19 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                                                 style={{ width: "20px", height: "20px" }}
                                             />
                                         )}
-                                        <BaseText style={{ fontWeight: "600" }}>{parsedData.primaryGuild.tag}</BaseText>
+                                        <Text style={{ fontWeight: "600" }}>{parsedData.primaryGuild.tag}</Text>
                                     </Flex>
                                 </div>
                             )}
-                            
+
                             {parsedData.collectibles?.nameplate && (
                                 <div style={{ marginTop: "8px" }}>
-                                    <BaseText style={{ fontSize: "12px", opacity: 0.7 }}>
+                                    <Text style={{ fontSize: "12px", opacity: 0.7 }}>
                                         Nameplate: {parsedData.collectibles.nameplate.palette}
-                                    </BaseText>
+                                    </Text>
                                 </div>
                             )}
-                            
+
                             <Flex style={{ gap: "12px", marginTop: "12px", flexWrap: "wrap" }}>
                                 {parsedData.premiumType !== null && (
                                     <span style={{ background: "rgba(255, 115, 250, 0.2)", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>
@@ -466,7 +466,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             </Flex>
                         </div>
                     </Flex>
-                    
+
                     {parsedData.banner && (
                         <img
                             src={`https://cdn.discordapp.com/banners/${parsedData.id}/${parsedData.banner}.${parsedData.banner.startsWith('a_') ? 'gif' : 'png'}?size=600`}
@@ -492,25 +492,25 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             {channelTypes[parsedData.type] || `Type ${parsedData.type}`}
                         </span>
                     </Flex>
-                    
+
                     {parsedData.topic && (
                         <div style={{ padding: "12px", background: "var(--background-tertiary)", borderRadius: "6px", marginTop: "12px" }}>
-                            <BaseText>{parsedData.topic}</BaseText>
+                            <Text>{parsedData.topic}</Text>
                         </div>
                     )}
-                    
+
                     {parsedData.themeColor && (
                         <Flex style={{ alignItems: "center", gap: "8px", marginTop: "12px" }}>
-                            <div style={{ 
-                                width: "24px", 
-                                height: "24px", 
-                                borderRadius: "4px", 
-                                background: `#${parsedData.themeColor.toString(16).padStart(6, '0')}` 
+                            <div style={{
+                                width: "24px",
+                                height: "24px",
+                                borderRadius: "4px",
+                                background: `#${parsedData.themeColor.toString(16).padStart(6, '0')}`
                             }} />
-                            <BaseText style={{ fontSize: "12px" }}>Theme Color</BaseText>
+                            <Text style={{ fontSize: "12px" }}>Theme Color</Text>
                         </Flex>
                     )}
-                    
+
                     <Flex style={{ gap: "12px", marginTop: "12px", flexWrap: "wrap" }}>
                         {parsedData.nsfw_ && (
                             <span style={{ background: "rgba(242, 63, 67, 0.2)", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>
@@ -523,10 +523,10 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             </span>
                         )}
                     </Flex>
-                    
-                    <BaseText style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
+
+                    <Text style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
                         ID: {parsedData.id} • Position: {parsedData.position_}
-                    </BaseText>
+                    </Text>
                 </div>
             );
         }
@@ -546,7 +546,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                         <div style={{ flex: 1 }}>
                             <Heading>{parsedData.name || "Unknown Guild"}</Heading>
                             {parsedData.description && (
-                                <BaseText style={{ marginTop: "8px", opacity: 0.8 }}>{parsedData.description}</BaseText>
+                                <Text style={{ marginTop: "8px", opacity: 0.8 }}>{parsedData.description}</Text>
                             )}
                             <Flex style={{ gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
                                 {parsedData.premiumTier > 0 && (
@@ -577,7 +577,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             </Flex>
                         </div>
                     </Flex>
-                    
+
                     {parsedData.banner && (
                         <img
                             src={`https://cdn.discordapp.com/banners/${parsedData.id}/${parsedData.banner}.${parsedData.banner.startsWith('a_') ? 'gif' : 'png'}?size=600`}
@@ -585,7 +585,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             style={{ width: "100%", borderRadius: "8px", marginBottom: "12px" }}
                         />
                     )}
-                    
+
                     {parsedData.splash && (
                         <img
                             src={`https://cdn.discordapp.com/splashes/${parsedData.id}/${parsedData.splash}.png?size=600`}
@@ -593,16 +593,16 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             style={{ width: "100%", borderRadius: "8px", marginTop: "12px" }}
                         />
                     )}
-                    
+
                     {parsedData.vanityURLCode && (
                         <div style={{ marginTop: "12px", padding: "12px", background: "var(--background-tertiary)", borderRadius: "6px" }}>
-                            <BaseText style={{ fontFamily: "monospace" }}>discord.gg/{parsedData.vanityURLCode}</BaseText>
+                            <Text style={{ fontFamily: "monospace" }}>discord.gg/{parsedData.vanityURLCode}</Text>
                         </div>
                     )}
-                    
-                    <BaseText style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
+
+                    <Text style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
                         ID: {parsedData.id} • Owner: {parsedData.ownerId}
-                    </BaseText>
+                    </Text>
                 </div>
             );
         }
@@ -621,31 +621,31 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                         )}
                         <div style={{ flex: 1 }}>
                             <Flex style={{ alignItems: "center", gap: "8px" }}>
-                                <BaseText weight="semibold">{parsedData.author.globalName || parsedData.author.username}</BaseText>
+                                <Text weight="semibold">{parsedData.author.globalName || parsedData.author.username}</Text>
                                 {parsedData.author.bot && (
                                     <span style={{ background: "var(--brand-500)", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" }}>BOT</span>
                                 )}
                             </Flex>
-                            <BaseText style={{ fontSize: "12px", opacity: 0.7 }}>
+                            <Text style={{ fontSize: "12px", opacity: 0.7 }}>
                                 {parsedData.timestamp && new Date(parsedData.timestamp).toLocaleString()}
                                 {parsedData.editedTimestamp && " (edited)"}
-                            </BaseText>
+                            </Text>
                         </div>
                     </Flex>
-                    
+
                     <div style={{ padding: "12px", background: "var(--background-tertiary)", borderRadius: "6px" }}>
-                        <BaseText style={{ whiteSpace: "pre-wrap" }}>{parsedData.content || "(No content)"}</BaseText>
+                        <Text style={{ whiteSpace: "pre-wrap" }}>{parsedData.content || "(No content)"}</Text>
                     </div>
-                    
+
                     {parsedData.embeds?.length > 0 && (
                         <div style={{ marginTop: "12px" }}>
-                            <BaseText style={{ fontSize: "12px", opacity: 0.7, marginBottom: "8px" }}>
+                            <Text style={{ fontSize: "12px", opacity: 0.7, marginBottom: "8px" }}>
                                 {parsedData.embeds.length} Embed(s)
-                            </BaseText>
+                            </Text>
                             {parsedData.embeds.map((embed, i) => (
-                                <div key={i} style={{ 
-                                    padding: "12px", 
-                                    background: "var(--background-tertiary)", 
+                                <div key={i} style={{
+                                    padding: "12px",
+                                    background: "var(--background-tertiary)",
                                     borderRadius: "6px",
                                     borderLeft: `4px solid ${embed.color || '#5865f2'}`,
                                     marginTop: i > 0 ? "8px" : "0"
@@ -655,11 +655,11 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                                             {embed.author.iconURL && (
                                                 <img src={embed.author.iconProxyURL || embed.author.iconURL} alt="" style={{ width: "20px", height: "20px", borderRadius: "50%" }} />
                                             )}
-                                            <BaseText style={{ fontSize: "12px", fontWeight: "600" }}>{embed.author.name}</BaseText>
+                                            <Text style={{ fontSize: "12px", fontWeight: "600" }}>{embed.author.name}</Text>
                                         </Flex>
                                     )}
-                                    {embed.title && <BaseText weight="semibold">{embed.title}</BaseText>}
-                                    {embed.rawDescription && <BaseText style={{ fontSize: "13px", marginTop: "4px" }}>{embed.rawDescription.substring(0, 200)}...</BaseText>}
+                                    {embed.title && <Text weight="semibold">{embed.title}</Text>}
+                                    {embed.rawDescription && <Text style={{ fontSize: "13px", marginTop: "4px" }}>{embed.rawDescription.substring(0, 200)}...</Text>}
                                     {embed.image && (
                                         <img src={embed.image.proxyURL || embed.image.url} alt="" style={{ maxWidth: "100%", borderRadius: "4px", marginTop: "8px" }} />
                                     )}
@@ -667,21 +667,21 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             ))}
                         </div>
                     )}
-                    
+
                     {parsedData.attachments?.length > 0 && (
                         <Flex style={{ gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-                            <BaseText style={{ fontSize: "12px", opacity: 0.7 }}>
+                            <Text style={{ fontSize: "12px", opacity: 0.7 }}>
                                 📎 {parsedData.attachments.length} attachment(s)
-                            </BaseText>
+                            </Text>
                         </Flex>
                     )}
-                    
+
                     {parsedData.reactions?.length > 0 && (
                         <Flex style={{ gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
                             {parsedData.reactions.map((reaction, i) => (
-                                <div key={i} style={{ 
-                                    background: "var(--background-tertiary)", 
-                                    padding: "4px 8px", 
+                                <div key={i} style={{
+                                    background: "var(--background-tertiary)",
+                                    padding: "4px 8px",
                                     borderRadius: "8px",
                                     border: reaction.me ? "2px solid var(--brand-500)" : "none"
                                 }}>
@@ -691,16 +691,16 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                                         ) : (
                                             <span>{reaction.emoji.name}</span>
                                         )}
-                                        <BaseText style={{ fontSize: "12px", fontWeight: "600" }}>{reaction.count}</BaseText>
+                                        <Text style={{ fontSize: "12px", fontWeight: "600" }}>{reaction.count}</Text>
                                     </Flex>
                                 </div>
                             ))}
                         </Flex>
                     )}
-                    
-                    <BaseText style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
+
+                    <Text style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
                         ID: {parsedData.id} • Type: {parsedData.type}
-                    </BaseText>
+                    </Text>
                 </div>
             );
         }
@@ -732,13 +732,13 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             {parsedData.name || "Unknown Role"}
                         </Heading>
                     </Flex>
-                    
+
                     {parsedData.description && (
                         <div style={{ padding: "12px", background: "var(--background-tertiary)", borderRadius: "6px", marginTop: "12px" }}>
-                            <BaseText>{parsedData.description}</BaseText>
+                            <Text>{parsedData.description}</Text>
                         </div>
                     )}
-                    
+
                     <Flex style={{ gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
                         {parsedData.hoist && (
                             <span style={{ background: "var(--background-tertiary)", padding: "4px 8px", borderRadius: "4px", fontSize: "11px" }}>
@@ -756,16 +756,16 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                             </span>
                         )}
                     </Flex>
-                    
-                    <BaseText style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
+
+                    <Text style={{ opacity: 0.6, fontSize: "12px", marginTop: "12px" }}>
                         ID: {parsedData.id} • Position: {parsedData.position}
-                    </BaseText>
-                    
+                    </Text>
+
                     {parsedData.permissions && (
                         <div style={{ marginTop: "12px", padding: "12px", background: "var(--background-tertiary)", borderRadius: "6px" }}>
-                            <BaseText style={{ fontSize: "12px", fontFamily: "monospace", opacity: 0.8 }}>
+                            <Text style={{ fontSize: "12px", fontFamily: "monospace", opacity: 0.8 }}>
                                 Permissions: {parsedData.permissions}
-                            </BaseText>
+                            </Text>
                         </div>
                     )}
                 </div>
@@ -787,21 +787,21 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
         <>
             <ModalHeader>
                 <Flex style={{ flexGrow: 1, alignItems: "center", gap: "12px" }}>
-                    <BaseText size="lg" weight="semibold">View Raw - {type}</BaseText>
+                    <Text size="lg" weight="semibold">View Raw - {type}</Text>
                     {settings.store.showMetadata && (
-                        <BaseText size="sm" style={{ opacity: 0.7 }}>
+                        <Text size="sm" style={{ opacity: 0.7 }}>
                             {metadata.size} • {metadata.properties} properties • {metadata.type}
-                        </BaseText>
+                        </Text>
                     )}
                     {isEditing && (
-                        <BaseText size="sm" style={{ color: "var(--brand-500)", fontWeight: "600" }}>
+                        <Text size="sm" style={{ color: "var(--brand-500)", fontWeight: "600" }}>
                             ✏️ EDITING
-                        </BaseText>
+                        </Text>
                     )}
                 </Flex>
                 <ModalCloseButton onClick={onClose} />
             </ModalHeader>
-            
+
             <ModalContent>
                 <div style={{ padding: "16px 0" }}>
                     {settings.store.enableSearch && !isEditing && (
@@ -892,17 +892,17 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                                     }}
                                 />
                             ) : (
-                                <CodeBlock 
-                                    content={filteredJson} 
-                                    lang={settings.store.syntaxHighlight ? "json" : ""} 
+                                <CodeBlock
+                                    content={filteredJson}
+                                    lang={settings.store.syntaxHighlight ? "json" : ""}
                                 />
                             )
                         )}
-                        
+
                         {activeTab === "formatted" && parsedData && (
-                            <div style={{ 
-                                background: "var(--background-secondary)", 
-                                padding: "12px", 
+                            <div style={{
+                                background: "var(--background-secondary)",
+                                padding: "12px",
                                 borderRadius: "8px",
                                 maxHeight: "500px",
                                 overflow: "auto"
@@ -929,7 +929,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
                 <Flex style={{ gap: "8px", flexWrap: "wrap" }}>
                     {settings.store.enableEdit && (
                         <>
-                            <Button 
+                            <Button
                                 onClick={toggleEdit}
                                 variant={isEditing ? "dangerPrimary" : "primary"}
                             >
@@ -965,7 +965,7 @@ function ViewRawModal({ json, type, msgContent, onClose }: {
 function openViewRawModal(json: string, type: string, msgContent?: string) {
     const parsedData = JSON.parse(json);
     saveToHistory(type, parsedData);
-    
+
     const key = openModal(props => (
         <ErrorBoundary>
             <ModalRoot {...props} size={ModalSize.LARGE}>
@@ -1005,7 +1005,7 @@ function MakeContextCallback(name: "Guild" | "Role" | "User" | "Channel"): NavCo
 
         const id = `vc-view-${name.toLowerCase()}-raw`;
         const indentSize = settings.store.autoFormat ? settings.store.indentSize : 0;
-        
+
         children.splice(-1, 0,
             <Menu.MenuItem
                 id={id}

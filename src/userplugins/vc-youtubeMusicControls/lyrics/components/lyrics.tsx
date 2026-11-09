@@ -6,7 +6,7 @@
 
 /* import "../styles.css"; */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { openModal } from "@utils/modal";
 import {
   ContextMenuApi,
@@ -79,12 +79,12 @@ function LyricsDisplay({ scroll = true }: { scroll?: boolean }) {
           onClick={(e) => handleLyricClick(e, line.time)}
           style={{ cursor: "pointer" }}
         >
-          <BaseText
+          <Text
             size={currLrcIndex === i ? "sm" : "xs"}
             className={makeClassName(i)}
           >
             {line.text || NoteElement}
-          </BaseText>
+          </Text>
         </div>
       ))}
     </div>

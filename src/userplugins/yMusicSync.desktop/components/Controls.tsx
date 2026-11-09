@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button } from "@components/Button";
 import { formatDurationMs } from "@utils/text";
 import { React, Slider, Tooltip, useEffect, useRef, useState } from "@webpack/common";
@@ -126,12 +126,12 @@ export function ProgressSlider({ snapshot, disabled }: { snapshot: PlayerSnapsho
                 />
             </div>
             <div className={cl("progress-times")}>
-                <BaseText size="xs" color="text-muted" className={cl("time")}>
+                <Text size="xs" color="text-muted" className={cl("time")}>
                     {formatDurationMs(position)}
-                </BaseText>
-                <BaseText size="xs" color="text-muted" className={cl("time")}>
+                </Text>
+                <Text size="xs" color="text-muted" className={cl("time")}>
                     {snapshot.durationMs > 0 ? formatDurationMs(snapshot.durationMs) : "--:--"}
-                </BaseText>
+                </Text>
             </div>
         </div>
     );

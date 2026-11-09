@@ -6,7 +6,7 @@
 
 import "./styles.css";
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button, TextButton } from "@components/Button";
 import { Card } from "@components/Card";
 import { HeadingTertiary } from "@components/LegacyHeading";
@@ -389,7 +389,7 @@ function PurgeStatusBanner({ status }: { status: PurgeStatusState; }) {
 
             <div className={cl("purge-status-body")}>
                 <div className={cl("purge-status-title-row")}>
-                    <BaseText size="md" weight="semibold">{title}</BaseText>
+                    <Text size="md" weight="semibold">{title}</Text>
                     <span className={cl("meta-tag", "quiet")}>
                         {status.deleted} deleted{status.failed ? ` / ${status.failed} failed` : ""}{status.skipped ? ` / ${status.skipped} skipped` : ""}
                     </span>
@@ -515,7 +515,7 @@ function SendTrailConfigModal({
         <Modal
             {...modalProps}
             size="md"
-            title={<BaseText size="lg" weight="semibold">Purge Config</BaseText>}
+            title={<Text size="lg" weight="semibold">Purge Config</Text>}
             actions={[{
                 text: "Close",
                 variant: "secondary",
@@ -540,7 +540,7 @@ function SendTrailConfigModal({
 
                     <div className={cl("config-switch-row")}>
                         <div>
-                            <BaseText size="md" weight="semibold">Protect all DMs</BaseText>
+                            <Text size="md" weight="semibold">Protect all DMs</Text>
                             <Paragraph className={cl("config-hint")}>
                                 When enabled, no DM or group DM is ever purged, even if it is selected.
                             </Paragraph>
@@ -550,7 +550,7 @@ function SendTrailConfigModal({
                 </div>
 
                 <div className={cl("config-list-header")}>
-                    <BaseText size="md" weight="semibold">Protected DM conversations</BaseText>
+                    <Text size="md" weight="semibold">Protected DM conversations</Text>
                     {!!protectedDmChannels.size && (
                         <TextButton variant="secondary" onClick={() => settings.store.protectedDmChannels = ""}>
                             Clear protected DM list
@@ -569,7 +569,7 @@ function SendTrailConfigModal({
                         {dmConversations.map(conversation => (
                             <Card key={conversation.channelId} className={cl("config-item")} defaultPadding>
                                 <div className={cl("config-item-copy")}>
-                                    <BaseText size="md" weight="semibold">{conversation.label}</BaseText>
+                                    <Text size="md" weight="semibold">{conversation.label}</Text>
                                     <Paragraph className={cl("config-hint")}>
                                         {conversation.details} / {conversation.count} saved message{conversation.count === 1 ? "" : "s"}
                                     </Paragraph>
@@ -584,7 +584,7 @@ function SendTrailConfigModal({
                 )}
 
                 <div className={cl("config-list-header")}>
-                    <BaseText size="md" weight="semibold">Always protected DM users</BaseText>
+                    <Text size="md" weight="semibold">Always protected DM users</Text>
                     {!!protectedDmUserIds.size && (
                         <TextButton variant="secondary" onClick={() => settings.store.protectedDmUserIds = ""}>
                             Clear protected user list
@@ -647,7 +647,7 @@ function SendTrailConfigModal({
                                         loading="lazy"
                                     />
                                     <div className={cl("config-item-copy")}>
-                                        <BaseText size="md" weight="semibold">{contact.label}</BaseText>
+                                        <Text size="md" weight="semibold">{contact.label}</Text>
                                         <Paragraph className={cl("config-hint")}>
                                             {contact.details} / User ID {contact.userId}
                                             {contact.count

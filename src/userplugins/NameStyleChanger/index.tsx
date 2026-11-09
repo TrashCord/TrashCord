@@ -7,7 +7,7 @@
 import managedStyle from "./style.css?managed";
 
 import { definePluginSettings } from "@api/Settings";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
@@ -729,7 +729,7 @@ function SettingsAboutComponent() {
             <Heading tag="h3">Style Options</Heading>
             <Flex gap="1.5em" style={{ marginTop: "8px", marginBottom: "16px" }}>
                 <div style={{ flex: 1 }}>
-                    <BaseText size="sm" style={{ marginBottom: "6px", fontWeight: 600 }}>Font Style</BaseText>
+                    <Text size="sm" style={{ marginBottom: "6px", fontWeight: 600 }}>Font Style</Text>
                     {Select && (
                         <Select
                             placeholder="Select a font"
@@ -744,7 +744,7 @@ function SettingsAboutComponent() {
                     )}
                 </div>
                 <div style={{ flex: 1 }}>
-                    <BaseText size="sm" style={{ marginBottom: "6px", fontWeight: 600 }}>Visual Effect</BaseText>
+                    <Text size="sm" style={{ marginBottom: "6px", fontWeight: 600 }}>Visual Effect</Text>
                     {Select && (
                         <Select
                             placeholder="Select an effect"
@@ -774,14 +774,14 @@ function SettingsAboutComponent() {
                     <Flex gap="1.5em" style={{ alignItems: "flex-end" }}>
                         <ColorPicker
                             color={nameColor1}
-                            label={<BaseText size="xs" style={{ marginTop: "4px" }}>Primary Name Color</BaseText>}
+                            label={<Text size="xs" style={{ marginTop: "4px" }}>Primary Name Color</Text>}
                             onChange={(color: number) => {
                                 settings.store.color1 = resolveNameColors(color, undefined)[0];
                             }}
                         />
                         <ColorPicker
                             color={nameColor2}
-                            label={<BaseText size="xs" style={{ marginTop: "4px" }}>Secondary (Gradient/Glow)</BaseText>}
+                            label={<Text size="xs" style={{ marginTop: "4px" }}>Secondary (Gradient/Glow)</Text>}
                             onChange={(color: number) => {
                                 settings.store.color2 = resolveNameColors(undefined, color)[1];
                             }}

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import { copyWithToast, openImageModal } from "@utils/discord";
@@ -119,9 +119,9 @@ function UnlockView({ onUnlock }: UnlockViewProps) {
 
     return (
         <div className={cl("unlock")}>
-            <BaseText tag="p" size="sm" color="text-muted">
+            <Text tag="p" size="sm" color="text-muted">
                 Enter your SecureBookmarks password to show saved bookmarks.
-            </BaseText>
+            </Text>
             <TextInput
                 value={password}
                 onChange={setPassword}
@@ -129,7 +129,7 @@ function UnlockView({ onUnlock }: UnlockViewProps) {
                 type="password"
                 autoComplete="current-password"
             />
-            {error && <BaseText size="sm" color="text-danger">{error}</BaseText>}
+            {error && <Text size="sm" color="text-danger">{error}</Text>}
             <Button size="small" onClick={unlock}>Unlock</Button>
         </div>
     );
@@ -181,32 +181,32 @@ function BookmarksList({ password }: BookmarksListProps) {
         });
     };
 
-    if (pending) return <BaseText size="sm" color="text-muted">Loading bookmarks.</BaseText>;
-    if (error) return <BaseText size="sm" color="text-danger">{error}</BaseText>;
+    if (pending) return <Text size="sm" color="text-muted">Loading bookmarks.</Text>;
+    if (error) return <Text size="sm" color="text-danger">{error}</Text>;
 
     return (
         <div className={cl("list")}>
             {!bookmarks.length ? (
-                <BaseText size="sm" color="text-muted">No saved bookmarks.</BaseText>
+                <Text size="sm" color="text-muted">No saved bookmarks.</Text>
             ) : (
                 <>
                     <div className={cl("toolbar")}>
-                        <BaseText size="sm" color="text-muted">{bookmarks.length} saved bookmark{bookmarks.length === 1 ? "" : "s"}.</BaseText>
+                        <Text size="sm" color="text-muted">{bookmarks.length} saved bookmark{bookmarks.length === 1 ? "" : "s"}.</Text>
                         <Button size="small" variant="dangerPrimary" onClick={confirmClear}>Clear all</Button>
                     </div>
                     {bookmarks.map(bookmark => (
                         <div className={cl("item")} key={bookmark.id}>
                             <div className={cl("item-main")}>
-                                <BaseText size="sm" weight="semibold" lineClamp={1}>
+                                <Text size="sm" weight="semibold" lineClamp={1}>
                                     {bookmark.authorName} in #{bookmark.channelName}
-                                </BaseText>
-                                <BaseText size="sm" className={cl("content")}>
+                                </Text>
+                                <Text size="sm" className={cl("content")}>
                                     {parsedMessageContent(bookmark)}
-                                </BaseText>
+                                </Text>
                                 <BookmarkImages bookmark={bookmark} />
-                                <BaseText size="xs" color="text-muted">
+                                <Text size="xs" color="text-muted">
                                     {new Date(bookmark.messageTimestamp).toLocaleString()} - {formatExpiry(bookmark.expiresAt)}
-                                </BaseText>
+                                </Text>
                             </div>
                             <div className={cl("actions")}>
                                 <Button size="small" onClick={() => jumpToBookmark(bookmark)}>Jump</Button>
@@ -247,9 +247,9 @@ function SecureBookmarksModalInner({ modalProps, close }: SecureBookmarksModalPr
             actions={[{ text: "Close", variant: "secondary", onClick: close }]}
         >
             {!protection ? (
-                <BaseText size="sm" color="text-muted">Loading bookmarks.</BaseText>
+                <Text size="sm" color="text-muted">Loading bookmarks.</Text>
             ) : passwordNeeded && !password ? (
-                <BaseText size="sm" color="text-danger">Set a SecureBookmarks password in plugin settings first.</BaseText>
+                <Text size="sm" color="text-danger">Set a SecureBookmarks password in plugin settings first.</Text>
             ) : needsUnlock ? (
                 <UnlockView onUnlock={setUnlockedPassword} />
             ) : (

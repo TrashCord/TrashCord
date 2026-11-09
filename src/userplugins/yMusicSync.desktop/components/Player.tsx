@@ -5,7 +5,7 @@
  */
 
 import { plugins } from "@api/PluginManager";
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { CogWheel, ScreenshareIcon } from "@components/Icons";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { ContextMenuApi, Menu, useStateFromStores } from "@webpack/common";
@@ -75,12 +75,12 @@ export function YMusicSyncPlayer() {
             <div className={cl("head")}>
                 <TrackCover coverUrl={snapshot.coverUrl} title={snapshot.title} />
                 <div className={cl("meta")}>
-                    <BaseText size="sm" weight="semibold" color="text-strong" className={cl("line")}>
+                    <Text size="sm" weight="semibold" color="text-strong" className={cl("line")}>
                         {snapshot.title}
-                    </BaseText>
-                    <BaseText size="xs" color="text-subtle" className={cl("line")}>
+                    </Text>
+                    <Text size="xs" color="text-subtle" className={cl("line")}>
                         {idle ? TEXT.noActiveDevice : snapshot.artists || snapshot.album || snapshot.activeDeviceName}
-                    </BaseText>
+                    </Text>
                 </div>
                 <PanelButton
                     label={snapshot.activeDeviceName || TEXT.unknownDevice}

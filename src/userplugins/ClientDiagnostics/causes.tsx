@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { classNameFactory } from "@utils/css";
 import { React } from "@webpack/common";
 
@@ -89,10 +89,10 @@ interface CausesProps {
 
 export function ClientCauses({ snapshot, blocking, supported }: CausesProps) {
     return <div className={cl("guide-section")}>
-        <BaseText tag="h3" size="lg" weight="semibold">What caused the blocking?</BaseText>
-        <BaseText size="sm" color="text-muted">Matches measured plugin callbacks against the blocking portion of long tasks in the latest sample. Nested calls are counted only under their outermost plugin entry point, including any Discord or other plugin code it invokes.</BaseText>
-        {!supported ? <BaseText size="sm">Long task attribution is unavailable in this client.</BaseText> : !snapshot ? <BaseText size="sm">Collecting the first sample.</BaseText> : <>
-            <BaseText size="sm" weight="semibold">{snapshot.unattributed.toFixed(1)} ms unattributed out of {blocking.toFixed(1)} ms blocking.</BaseText>
+        <Text tag="h3" size="lg" weight="semibold">What caused the blocking?</Text>
+        <Text size="sm" color="text-muted">Matches measured plugin callbacks against the blocking portion of long tasks in the latest sample. Nested calls are counted only under their outermost plugin entry point, including any Discord or other plugin code it invokes.</Text>
+        {!supported ? <Text size="sm">Long task attribution is unavailable in this client.</Text> : !snapshot ? <Text size="sm">Collecting the first sample.</Text> : <>
+            <Text size="sm" weight="semibold">{snapshot.unattributed.toFixed(1)} ms unattributed out of {blocking.toFixed(1)} ms blocking.</Text>
             {snapshot.plugins.length ? <div className={cl("table")}>
                 <table className={cl("health-history")}>
                     <thead><tr>{["Plugin entry point", "Blocking overlap", "Share", "Tasks", "Longest callback", "Main surface"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
@@ -103,10 +103,10 @@ export function ClientCauses({ snapshot, blocking, supported }: CausesProps) {
                         <td>{Object.entries(cause.surfaces).sort((a, b) => b[1] - a[1])[0]?.[0]}</td>
                     </tr>)}</tbody>
                 </table>
-            </div> : <BaseText size="sm">{blocking > 0 ? "Blocking was observed outside the captured plugin callbacks." : "No blocking was observed in this sample."}</BaseText>}
-            {snapshot.overwritten > 0 ? <BaseText size="sm">The bounded callback buffer replaced {snapshot.overwritten} older spans. Some callbacks may be missing from attribution.</BaseText> : null}
+            </div> : <Text size="sm">{blocking > 0 ? "Blocking was observed outside the captured plugin callbacks." : "No blocking was observed in this sample."}</Text>}
+            {snapshot.overwritten > 0 ? <Text size="sm">The bounded callback buffer replaced {snapshot.overwritten} older spans. Some callbacks may be missing from attribution.</Text> : null}
         </>}
-        <BaseText size="sm" color="text-muted">A large overlap identifies a suspect, not a confirmed cause. Unattributed time can include Discord rendering, garbage collection, profiler overhead, callbacks shorter than 1 ms and uninstrumented code. Missing attribution does not clear a plugin.</BaseText>
-        <BaseText size="sm" color="text-muted">To check a suspect, copy a report, disable that plugin in settings, restart if required, and repeat the same activity with the same window and profiler settings. Compare several samples. If attribution stays low despite severe blocking, capture a Performance recording in Discord DevTools and inspect the main thread call stacks. To check profiler overhead, compare DevTools recordings with ClientDiagnostics enabled and disabled.</BaseText>
+        <Text size="sm" color="text-muted">A large overlap identifies a suspect, not a confirmed cause. Unattributed time can include Discord rendering, garbage collection, profiler overhead, callbacks shorter than 1 ms and uninstrumented code. Missing attribution does not clear a plugin.</Text>
+        <Text size="sm" color="text-muted">To check a suspect, copy a report, disable that plugin in settings, restart if required, and repeat the same activity with the same window and profiler settings. Compare several samples. If attribution stays low despite severe blocking, capture a Performance recording in Discord DevTools and inspect the main thread call stacks. To check profiler overhead, compare DevTools recordings with ClientDiagnostics enabled and disabled.</Text>
     </div>;
 }

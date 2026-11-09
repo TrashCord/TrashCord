@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { classNameFactory } from "@utils/css";
 import { getGuildAcronym, getUniqueUsername } from "@utils/discord";
 import { classes } from "@utils/misc";
@@ -33,7 +33,7 @@ function GuildIcon({ guild }: { guild: Guild; }) {
     if (!guild.icon) {
         return (
             <div className={cl("favicon", "acronym")}>
-                <BaseText size="xxs" weight="semibold" tag="span">{getGuildAcronym(guild)}</BaseText>
+                <Text size="xxs" weight="semibold" tag="span">{getGuildAcronym(guild)}</Text>
             </div>
         );
     }
@@ -42,7 +42,7 @@ function GuildIcon({ guild }: { guild: Guild; }) {
     if (!iconUrl) {
         return (
             <div className={cl("favicon", "acronym")}>
-                <BaseText size="xxs" weight="semibold" tag="span">{getGuildAcronym(guild)}</BaseText>
+                <Text size="xxs" weight="semibold" tag="span">{getGuildAcronym(guild)}</Text>
             </div>
         );
     }
@@ -138,7 +138,7 @@ function TabLabel({ tab }: { tab: Tab; }) {
         const { Icon } = page;
         return <>
             <div className={cl("favicon", "glyph")}><Icon width={16} height={16} /></div>
-            <BaseText className={cl("label")} size="sm">{page.label}</BaseText>
+            <Text className={cl("label")} size="sm">{page.label}</Text>
         </>;
     }
 
@@ -148,9 +148,9 @@ function TabLabel({ tab }: { tab: Tab; }) {
             <div className={cl("channel-glyph")}>
                 {channel && <ChannelTypeIcon channel={channel} guild={guild} />}
             </div>
-            <BaseText className={cl("label")} size="sm">
+            <Text className={cl("label")} size="sm">
                 {channel?.name ?? "Unknown Channel"}
-            </BaseText>
+            </Text>
         </>;
     }
 
@@ -169,22 +169,22 @@ function TabLabel({ tab }: { tab: Tab; }) {
                     isMobile={isMobile}
                 />
             </div>
-            <BaseText className={cl("label")} size="sm">{name}</BaseText>
+            <Text className={cl("label")} size="sm">{name}</Text>
         </>;
     }
 
     if (channel && recipients?.length) {
         return <>
             <GroupIcon channel={channel} />
-            <BaseText className={cl("label")} size="sm">
+            <Text className={cl("label")} size="sm">
                 {channel.name || "Group DM"}
-            </BaseText>
+            </Text>
         </>;
     }
 
     return <>
         <div className={cl("favicon", "glyph")}><CircleQuestionIcon width={16} height={16} /></div>
-        <BaseText className={cl("label")} size="sm">Unknown Channel</BaseText>
+        <Text className={cl("label")} size="sm">Unknown Channel</Text>
     </>;
 }
 

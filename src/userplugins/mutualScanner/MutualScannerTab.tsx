@@ -6,7 +6,7 @@
 
 import "./styles.css";
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { Button, TextButton } from "@components/Button";
 import { Card } from "@components/Card";
 import { HeadingTertiary } from "@components/LegacyHeading";
@@ -254,7 +254,7 @@ function ScanStatusBanner({
 
             <div className={cl("scan-status-body")}>
                 <div className={cl("scan-status-title-row")}>
-                    <BaseText size="md" weight="semibold">{title}</BaseText>
+                    <Text size="md" weight="semibold">{title}</Text>
                     <div className={cl("scan-status-tags")}>
                         <span className={cl("meta-tag", "quiet")}>
                             {(progress?.matchedCount ?? result?.stats.matchedCount ?? 0)} matches

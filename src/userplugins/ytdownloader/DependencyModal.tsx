@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { BaseText } from "@components/BaseText";
+import { Text } from "@components/Text";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ModalSize } from "@utils/modal";
 import { Button } from "@components/Button";
 import { useEffect, useState } from "@webpack/common";
@@ -32,12 +32,12 @@ export function DependencyModal({ props, options: { key, checkytdlp, checkdeno }
     return (
         <ModalRoot {...props} size={ModalSize.MEDIUM}>
             <ModalHeader>
-                <BaseText size="lg" weight="semibold" style={{ flexGrow: 1 }}>YTdownloader: Missing dependencies</BaseText>
+                <Text size="lg" weight="semibold" style={{ flexGrow: 1 }}>YTdownloader: Missing dependencies</Text>
                 <ModalCloseButton onClick={() => closeModal(key)} />
             </ModalHeader>
             <ModalContent>
                 <div style={{ padding: "16px 0" }}>
-                    <BaseText size="md">
+                    <Text size="md">
                         The YTdownloader plugin requires <strong>yt-dlp</strong> and <strong>deno</strong> to be installed on your system.
                         <br /><br />
                         <strong>Tutorial:</strong>
@@ -54,7 +54,7 @@ export function DependencyModal({ props, options: { key, checkytdlp, checkdeno }
                             </li>
                         </ul>
                         <em>Note: Make sure both are added to your system PATH. You may need to restart Discord after installing.</em>
-                    </BaseText>
+                    </Text>
                     <div style={{
                         marginTop: "16px",
                         display: "grid",
@@ -64,9 +64,9 @@ export function DependencyModal({ props, options: { key, checkytdlp, checkdeno }
                         rowGap: "8px"
                     }}>
                         <div style={{ gridArea: "1 / 1 / 2 / 2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <BaseText size="md" weight="bold">
+                            <Text size="md" weight="bold">
                                 yt-dlp status: {ytdlpStatus}
-                            </BaseText>
+                            </Text>
                         </div>
                         <Button
                             onClick={async () => {
@@ -78,9 +78,9 @@ export function DependencyModal({ props, options: { key, checkytdlp, checkdeno }
                             Check again
                         </Button>
                         <div style={{ gridArea: "2 / 1 / 3 / 2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <BaseText size="md" weight="bold">
+                            <Text size="md" weight="bold">
                                 Deno status: {denoStatus}
-                            </BaseText>
+                            </Text>
                         </div>
                         <Button
                             onClick={async () => {
