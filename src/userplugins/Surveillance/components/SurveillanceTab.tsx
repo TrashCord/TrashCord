@@ -4,17 +4,19 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-/* import "./styles.css"; */
+import "./styles.css";
 
 import ErrorBoundary from "@components/ErrorBoundary";
-import { HeadingPrimary, HeadingTertiary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { SettingsTab, wrapTab } from "@components/settings";
+import { defaultRangeExtractor, elementScroll, observeElementOffset, observeElementRect, type Range, Virtualizer, type VirtualizerOptions } from "@tanstack/virtual-core";
 import { copyToClipboard } from "@utils/clipboard";
 import { classNameFactory } from "@utils/css";
 import { fetchUserProfile, openUserProfile } from "@utils/discord";
 import { classes } from "@utils/misc";
-import type { RenderModalProps } from "@vencord/discord-types";
-import { ChannelStore, GuildStore, Modal, openModal, React, RelationshipStore, TextInput, showToast, useEffect, useMemo, UserProfileStore, UserStore, useState, useStateFromStores } from "@webpack/common";
+import { useForceUpdater } from "@utils/react";
+import type { RenderModalProps, ToastVariant } from "@vencord/discord-types";
+import { ChannelStore, GuildStore, Modal, openModal, React, RelationshipStore, showToast, TextInput, useCallback, useEffect, useLayoutEffect, useMemo, useRef, UserProfileStore, UserStore, useState, useStateFromStores } from "@webpack/common";
 
 import { addServerTarget, getServerTargets, getTargets, removeServerTarget, removeTarget, setServerTargets, setTargets, settings, subscribeServerTargets, subscribeTargets } from "..";
 import { clearEvents, getEvents, loadEvents, subscribe } from "../store";
@@ -136,8 +138,8 @@ const formatTime = (timestamp: number) =>
 const formatLabel = (label: string) =>
     label.replace(/[A-Z]/g, match => ` ${match}`).replace(/^./, match => match.toUpperCase());
 
-const toast = (message: string, type: string = "success") =>
-    showToast({ text: message, variant: type });
+const toast = (message: string, variant: ToastVariant = "success") =>
+    showToast({ text: message, variant });
 
 const getMutualFriendId = (value: unknown) => {
     if (typeof value !== "object" || value == null) return;
@@ -314,10 +316,10 @@ const EventDetailsModal = ErrorBoundary.wrap(function EventDetailsModal({ event,
         try {
             void Promise.resolve(copyToClipboard(JSON.stringify(event, null, 2))).then(
                 () => toast("Event copied."),
-                () => toast("Failed to copy event.", "failure")
+                () => toast("Failed to copy event.", "critical")
             );
         } catch {
-            toast("Failed to copy event.", "failure");
+            toast("Failed to copy event.", "critical");
         }
     };
 
@@ -325,7 +327,7 @@ const EventDetailsModal = ErrorBoundary.wrap(function EventDetailsModal({ event,
         <Modal
             {...modalProps}
             size="md"
-            title={<HeadingPrimary className={cl("modal-title")}>Event Details</HeadingPrimary>}
+            title={<Heading tag="h2" className={cl("modal-title")}>Event Details</Heading>}
         >
             <div className={cl("modal-content")}>
                 <div className={cl("modal-grid")}>
@@ -453,6 +455,78 @@ function EventRow({ event }: { event: SurveillanceEvent; }) {
                 ) : null}
             </div>
         </button>
+    );
+}
+
+interface EventTimelineProps {
+    events: SurveillanceEvent[];
+    label: string;
+    emptyText: string;
+}
+
+function EventTimeline({ events, label, emptyText }: EventTimelineProps) {
+    const scroller = useRef<HTMLDivElement>(null);
+    const update = useForceUpdater();
+    const [focusedId, setFocusedId] = useState<string | null>(null);
+    const focusedIndex = useMemo(() => events.findIndex(event => event.id === focusedId), [events, focusedId]);
+    const getItemKey = useCallback((index: number) => events[index].id, [events]);
+    const rangeExtractor = useCallback((range: Range) => {
+        const indexes = defaultRangeExtractor(range);
+        if (focusedIndex < 0) return indexes;
+
+        const focusRange = [focusedIndex - 1, focusedIndex, focusedIndex + 1].filter(index => index >= 0 && index < range.count);
+        return [...new Set([...indexes, ...focusRange])].sort((a, b) => a - b);
+    }, [focusedIndex]);
+
+    const options: VirtualizerOptions<HTMLDivElement, HTMLDivElement> = {
+        count: events.length,
+        getScrollElement: () => scroller.current,
+        getItemKey,
+        estimateSize: () => 100,
+        gap: 8,
+        overscan: 4,
+        anchorTo: scroller.current?.scrollTop ? "end" : "start",
+        rangeExtractor,
+        observeElementRect,
+        observeElementOffset,
+        scrollToFn: elementScroll,
+        onChange: update,
+    };
+    const [virtualizer] = useState(() => new Virtualizer(options));
+    virtualizer.setOptions(options);
+    useLayoutEffect(virtualizer._didMount, [virtualizer]);
+    useLayoutEffect(virtualizer._willUpdate);
+
+    if (!events.length) return <div className={classes(cl("timeline"), cl("empty"))}>{emptyText}</div>;
+
+    return (
+        <div
+            className={classes(cl("timeline"), cl("timeline-scroll"))}
+            ref={scroller}
+            role="region"
+            aria-label={label}
+            onBlur={event => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setFocusedId(null);
+            }}
+        >
+            <div className={cl("timeline-items")} style={{ height: virtualizer.getTotalSize() }}>
+                {virtualizer.getVirtualItems().map(item => {
+                    const event = events[item.index];
+                    return (
+                        <div
+                            key={item.key}
+                            className={cl("timeline-item")}
+                            data-index={item.index}
+                            ref={virtualizer.measureElement}
+                            style={{ transform: `translateY(${item.start}px)` }}
+                            onFocus={() => setFocusedId(event.id)}
+                        >
+                            <EventRow event={event} />
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 }
 
@@ -584,7 +658,7 @@ function SurveillanceTab() {
 
     const addVisibleUsers = () => {
         if (!userMatches.length) {
-            toast("No users to add.", "failure");
+            toast("No users to add.", "critical");
             return;
         }
 
@@ -594,7 +668,7 @@ function SurveillanceTab() {
 
     const addVisibleServers = () => {
         if (!serverMatches.length) {
-            toast("No servers to add.", "failure");
+            toast("No servers to add.", "critical");
             return;
         }
 
@@ -653,7 +727,7 @@ function SurveillanceTab() {
     const addInputTargets = () => {
         const ids = targetInput.match(/\d+/g) ?? [];
         if (!ids.length) {
-            toast("Enter a valid Discord user ID.", "failure");
+            toast("Enter a valid Discord user ID.", "critical");
             return;
         }
 
@@ -666,10 +740,10 @@ function SurveillanceTab() {
         try {
             void Promise.resolve(copyToClipboard(JSON.stringify(filteredEvents, null, 2))).then(
                 () => toast(`${pageHeading} events copied.`),
-                () => toast("Failed to copy surveillance events.", "failure")
+                () => toast("Failed to copy surveillance events.", "critical")
             );
         } catch {
-            toast("Failed to copy surveillance events.", "failure");
+            toast("Failed to copy surveillance events.", "critical");
         }
     };
 
@@ -684,7 +758,7 @@ function SurveillanceTab() {
         <SettingsTab>
             <div className={cl("root")}>
                 <div className={cl("header")}>
-                    <HeadingPrimary>Surveillance</HeadingPrimary>
+                    <Heading tag="h2">Surveillance</Heading>
                     <div className={cl("actions")}>
                         <button className={cl("action")} onClick={copyEvents}>{exportLabel}</button>
                         <button className={classes(cl("action"), cl("danger"))} onClick={resetEvents}>{clearEventsLabel}</button>
@@ -718,7 +792,7 @@ function SurveillanceTab() {
 
                 <section className={cl("panel")}>
                     <div className={cl("section-head")}>
-                        <HeadingTertiary>{pageHeading}</HeadingTertiary>
+                        <Heading tag="h4">{pageHeading}</Heading>
                         <div className={cl("actions")}>
                             <button className={cl("action")} onClick={toggleTargetPanel}>
                                 {targetPanelCollapsed ? "Open" : "Close"}
@@ -791,7 +865,7 @@ function SurveillanceTab() {
 
                 <section className={cl("panel")}>
                     <div className={cl("timeline-head")}>
-                        <HeadingTertiary>{pageHeading} Timeline</HeadingTertiary>
+                        <Heading tag="h4">{pageHeading} Timeline</Heading>
                         <TextInput value={query} placeholder={`Search ${selectedPageLabel} events...`} onChange={setQuery} />
                     </div>
                     <div className={cl("filters")}>
@@ -805,11 +879,12 @@ function SurveillanceTab() {
                             </button>
                         ))}
                     </div>
-                    <div className={cl("timeline")}>
-                        {visibleEvents.length ? visibleEvents.map(event => (
-                            <EventRow key={event.id} event={event} />
-                        )) : <div className={cl("empty")}>{pageEmpty}</div>}
-                    </div>
+                    <EventTimeline
+                        key={JSON.stringify([page, filter, query])}
+                        events={visibleEvents}
+                        label={`${pageHeading} Timeline`}
+                        emptyText={pageEmpty}
+                    />
                     {filteredEvents.length > visibleEvents.length ? (
                         <div className={cl("timeline-footer")}>
                             <span>Showing {visibleEvents.length} of {filteredEvents.length}</span>
