@@ -10,7 +10,6 @@ import { definePluginSettings, migrateOldSettingToNewPlugin, migratePluginSettin
 import { ShieldIcon } from "@components/Icons";
 import SettingsPlugin from "@plugins/_core/settings";
 import { LazyComponent } from "@utils/lazyReact";
-import { Logger } from "@utils/Logger";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType, type PluginNative } from "@utils/types";
 import type { Embed, VoiceState } from "@vencord/discord-types";
@@ -26,7 +25,6 @@ import { startHardening, stopHardening } from "./runtime";
 import { getTemporaryPermissions, setBlockRecording, startPermissionSession, stopPermissionSession } from "./session";
 import managedStyle from "./style.css?managed";
 
-const logger = new Logger("DiscordHardened");
 const Native = VencordNative?.pluginHelpers?.DiscordHardened as PluginNative<typeof import("./native")> | undefined;
 const SETTINGS_ENTRY_KEY = "TrashCord_discord_hardened";
 const DiscordHardenedSettings = LazyComponent(() => require("./SettingsPage").default);
@@ -428,11 +426,6 @@ export const settings = definePluginSettings({
         restartNeeded: true,
         target: "DESKTOP",
     },
-    logBlockedRequests: {
-        type: OptionType.BOOLEAN,
-        description: "Log requests blocked by this plugin without logging message or account data.",
-        default: false,
-    },
     recordBlockedEvents: {
         type: OptionType.BOOLEAN,
         description: "Keep a bounded block log in memory with categories, times and counts only. Disabling recording clears the log.",
@@ -548,8 +541,7 @@ async function configureNative(currentLifecycleId: number): Promise<void> {
             const status = await Native.getSecurityStatus();
             if (currentLifecycleId === lifecycleId && status?.proxyStatus === "Failed")
                 showNotification({ title: "Desktop proxy failed", body: "Requests remain blocked. Check the proxy settings and restart Discord." });
-        } catch (error) {
-            logger.warn("Could not apply desktop privacy settings.", error);
+        } catch {
         }
     });
 }
@@ -557,7 +549,7 @@ async function configureNative(currentLifecycleId: number): Promise<void> {
 export default definePlugin({
     name: "DiscordHardened",
     description: "The best Discord plugin in the world for reducing tracking, improving privacy, offering advanced controls, and strengthening Discord's Electron security.",
-    authors: [{ name: "irritably", id: 928787166916640838n }],
+    authors: [{ name: "irritably", id: 928787166916640838n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Privacy", "Utility", "Voice"],
     enabledByDefault: false,
     managedStyle,
@@ -631,7 +623,7 @@ export default definePlugin({
         startPermissionSession(() => {
             refreshCameraPrivacy();
             refreshMicrophonePrivacy();
-            if (Native) void Native.setTemporaryPermissions(getTemporaryPermissions()).catch(() => logger.warn("Could not update desktop temporary permissions."));
+            if (Native) void Native.setTemporaryPermissions(getTemporaryPermissions()).catch(() => undefined);
         });
         startAttachmentWarnings();
         startMicrophonePrivacy(settings.store);
@@ -658,8 +650,7 @@ export default definePlugin({
             nativeConfigured = false;
             try {
                 await Native.restore();
-            } catch (error) {
-                logger.warn("Could not restore desktop privacy settings.", error);
+            } catch {
             }
         });
     },

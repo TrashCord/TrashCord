@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Settings } from "@api/Settings";
 import { ModalContent, ModalFooter, openModal } from "@utils/modal";
 import type { RenderModalProps } from "@vencord/discord-types";
 import { Button } from "@components/Button";
@@ -14,77 +15,70 @@ import { Modal, React, TextInput, showToast, useEffect, useRef, useState } from 
 
 import { badgeSpooferEngine } from "../engine";
 import { HypeSquadPicker } from "../hypesquad";
-import type { SpoofLog, SpoofProgress } from "../types";
+import { AnalyticsNotice, warnIfBlocked } from "./AnalyticsNotice";
+
+const cfg = () => (Settings.plugins as any).BadgeSpoofer;
+
+const MAX_HOURS = 500;
+const toHours = (v: string) => Math.min(MAX_HOURS, Math.max(0, Number(v) || 0));
+
+function persistTargets(v: { hours: string; streamHours: string; gameCount: string; fingerprint: string; }) {
+    const c = cfg();
+    c.defaultHours = toHours(v.hours);
+    c.defaultStreamHours = toHours(v.streamHours);
+    c.defaultGames = Math.min(99999, Math.max(0, Math.floor(Number(v.gameCount)) || 0));
+    const fp = v.fingerprint.trim();
+    if (fp !== badgeSpooferEngine.getStats().fingerprint) badgeSpooferEngine.setFingerprint(fp);
+}
 
 export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps }) {
-    const [hours, setHours] = useState("1");
-    const [streamHours, setStreamHours] = useState("1");
-    const [gameCount, setGameCount] = useState("");
-    const [fingerprint, setFingerprint] = useState("");
-    const [stats, setStats] = useState(() => badgeSpooferEngine.getStats());
+    const [hours, setHours] = useState(() => String(cfg().defaultHours ?? 1));
+    const [streamHours, setStreamHours] = useState(() => String(cfg().defaultStreamHours ?? 1));
+    const [gameCount, setGameCount] = useState(() => cfg().defaultGames ? String(cfg().defaultGames) : "");
+    const [fingerprint, setFingerprint] = useState(() => badgeSpooferEngine.getStats().fingerprint || "");
     const [totalAvailableGames, setTotalAvailableGames] = useState(0);
-    const [isRunning, setIsRunning] = useState(badgeSpooferEngine.getIsRunning());
-    const [progress, setProgress] = useState<SpoofProgress | null>(null);
-    const [logs, setLogs] = useState<SpoofLog[]>([
-        {
-            id: "init",
-            timestamp: Date.now(),
-            type: "info",
-            message: "Badge Spoofer ready. Spoofs games played, playtime, and streamed hours."
-        }
-    ]);
-
-    const logsEndRef = useRef<HTMLDivElement>(null);
+    const version = React.useSyncExternalStore(badgeSpooferEngine.subscribe, badgeSpooferEngine.getVersion);
+    const stats = badgeSpooferEngine.getStats();
+    const isRunning = badgeSpooferEngine.getIsRunning();
+    const progress = badgeSpooferEngine.getProgress();
+    const logs = badgeSpooferEngine.getLogs();
+    const logsRef = useRef<HTMLDivElement>(null);
+    const latest = useRef({ hours, streamHours, gameCount, fingerprint });
+    latest.current = { hours, streamHours, gameCount, fingerprint };
 
     useEffect(() => {
-        (async () => {
-            const currentStats = await badgeSpooferEngine.loadStats();
-            setStats(currentStats);
-            setFingerprint(currentStats.fingerprint || "");
-
-            const games = await badgeSpooferEngine.loadGames();
-            setTotalAvailableGames(games.length);
-        })();
+        let alive = true;
+        badgeSpooferEngine.loadGames().then(games => {
+            if (alive) setTotalAvailableGames(games.length);
+        });
+        return () => {
+            alive = false;
+            persistTargets(latest.current);
+        };
     }, []);
 
     useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [logs]);
+        const el = logsRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }, [version]);
 
-    const handleStart = async () => {
+    const handleStart = () => {
+        if (warnIfBlocked()) return;
+        persistTargets(latest.current);
         const parsedCount = !gameCount.trim() || gameCount.toLowerCase() === "all"
             ? totalAvailableGames
             : Math.min(Number(gameCount) || totalAvailableGames, totalAvailableGames);
-        const parsedHours = Math.max(0, Number(hours) || 0);
-        const parsedStreamHours = Math.max(0, Number(streamHours) || 0);
-
-        setIsRunning(true);
-        badgeSpooferEngine.setFingerprint(fingerprint);
-
-        await badgeSpooferEngine.startSpoofing({
+        badgeSpooferEngine.startSpoofing({
             count: parsedCount,
-            hours: parsedHours,
-            streamHours: parsedStreamHours,
+            hours: toHours(hours),
+            streamHours: toHours(streamHours),
             fingerprint: fingerprint.trim() || undefined,
-            onProgress: p => {
-                setProgress(p);
-                setIsRunning(p.isRunning);
-                setStats(badgeSpooferEngine.getStats());
-            },
-            onLog: log => {
-                setLogs(prev => [...prev.slice(-150), log]);
-            }
+            batchSize: cfg().batchSize || 50,
+            batchDelay: cfg().batchDelay || 300
         });
-
-        setIsRunning(false);
-        setStats(badgeSpooferEngine.getStats());
     };
 
-    const handleStop = () => {
-        badgeSpooferEngine.stopSpoofing();
-        setIsRunning(false);
-        showToast({ text: "Spoofing stopped." });
-    };
+    const handleStop = () => badgeSpooferEngine.stopSpoofing();
 
     const handleRefreshGames = async () => {
         const games = await badgeSpooferEngine.loadGames(true);
@@ -94,7 +88,6 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
 
     const handleClearStats = () => {
         badgeSpooferEngine.clearHistory();
-        setStats(badgeSpooferEngine.getStats());
         showToast({ text: "Claimed stats reset.", variant: "success" });
     };
 
@@ -109,7 +102,8 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
             title="Discord Badge Spoofer"
             subtitle="Spoof Game Variety (Games Played), Game Time (Playtime), & Streaming (Hours Streamed)"
         >
-            <ModalContent scrollbarType="none" style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+            <ModalContent scrollbarType="none" style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <AnalyticsNotice />
                 <div style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(4, 1fr)",
@@ -238,7 +232,7 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
 
                 <div>
                     <Heading tag="h5">LIVE OUTPUT LOGS</Heading>
-                    <div className="tc-badge-spoofer-logs">
+                    <div className="tc-badge-spoofer-logs" ref={logsRef}>
                         {logs.map(log => (
                             <div key={log.id} className="tc-badge-spoofer-log-line">
                                 <span className="tc-badge-spoofer-log-time">
@@ -249,7 +243,6 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
                                 </span>
                             </div>
                         ))}
-                        <div ref={logsEndRef} />
                     </div>
                 </div>
 
@@ -272,43 +265,24 @@ export function BadgeSpooferModal({ modalProps }: { modalProps: RenderModalProps
             </ModalContent>
 
             <ModalFooter>
-                <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                        <Button
-                            size="small"
-                            variant="secondary"
-                            disabled={isRunning}
-                            onClick={handleRefreshGames}
-                        >
-                            Reload Database
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", width: "100%", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                        <Button size="small" variant="secondary" disabled={isRunning} onClick={handleRefreshGames}>
+                            Reload DB
                         </Button>
-                        <Button
-                            size="small"
-                            variant="secondary"
-                            disabled={isRunning}
-                            onClick={handleClearStats}
-                        >
+                        <Button size="small" variant="secondary" disabled={isRunning} onClick={handleClearStats}>
                             Reset Stats
                         </Button>
                     </div>
-
-                    <div style={{ display: "flex", gap: "8px" }}>
-                        {isRunning ? (
-                            <Button
-                                variant="dangerPrimary"
-                                onClick={handleStop}
-                            >
-                                Stop Spoofing
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="primary"
-                                onClick={handleStart}
-                            >
-                                Start Spoofing
-                            </Button>
-                        )}
-                    </div>
+                    {isRunning ? (
+                        <Button size="small" variant="dangerPrimary" onClick={handleStop}>
+                            Stop
+                        </Button>
+                    ) : (
+                        <Button size="small" variant="primary" onClick={handleStart}>
+                            Start
+                        </Button>
+                    )}
                 </div>
             </ModalFooter>
         </Modal>

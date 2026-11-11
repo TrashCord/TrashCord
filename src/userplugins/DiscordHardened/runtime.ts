@@ -6,14 +6,12 @@
 
 import { isPluginEnabled } from "@api/PluginManager";
 import { getUserSetting } from "@api/UserSettings";
-import { Logger } from "@utils/Logger";
 
 import { registerMicrophoneStream } from "./microphonePrivacy";
 import { getBlockedRequestKind, isDiscordHost, type NetworkSettings } from "./network";
 import type { RequestInput } from "./requestLog";
 import { type BlockCategory, isPermissionAllowed, recordBlock, registerTemporaryClone, registerTemporaryTracks } from "./session";
 
-const logger = new Logger("DiscordHardened");
 
 const SAFE_EXTERNAL_PROTOCOLS = new Set(["https:", "http:", "mailto:", "steam:", "spotify:"]);
 
@@ -44,7 +42,6 @@ interface PrivacySettings extends NetworkSettings {
     stripThirdPartyReferrers: boolean;
     blockUnsafeExternalProtocols: boolean;
     isolateExternalWindows: boolean;
-    logBlockedRequests: boolean;
 }
 
 interface AudioOutputMediaDevices extends MediaDevices {
@@ -91,8 +88,7 @@ function patchValue(target: object, property: PropertyKey, value: unknown): void
             writable: true,
             value,
         });
-    } catch (error) {
-        logger.warn(`Could not protect ${String(property)}.`, error);
+    } catch {
         return;
     }
 
@@ -114,8 +110,7 @@ function patchGetter(target: object, property: PropertyKey, getter: () => unknow
             enumerable: descriptor?.enumerable,
             get: getter,
         });
-    } catch (error) {
-        logger.warn(`Could not protect ${String(property)}.`, error);
+    } catch {
         return;
     }
 
@@ -153,20 +148,18 @@ export function getRuntimeProtections() {
     });
 }
 
-function getUrl(input: RequestInfo | URL | string, settings: PrivacySettings): URL | null {
+function getUrl(input: RequestInfo | URL | string, _settings: PrivacySettings): URL | null {
     const rawUrl = input instanceof Request ? input.url : String(input);
 
     try {
         return new URL(rawUrl, location.href);
     } catch {
-        if (settings.logBlockedRequests) logger.warn("Could not parse a request URL.");
         return null;
     }
 }
 
-function logBlocked(kind: BlockCategory, settings: PrivacySettings): void {
+function logBlocked(kind: BlockCategory, _settings: PrivacySettings): void {
     recordBlock(kind);
-    if (settings.logBlockedRequests) logger.info(`Blocked ${kind} request.`);
 }
 
 function denied(permission: BlockCategory): Promise<never> {
@@ -632,7 +625,6 @@ function patchWindowOpen(settings: PrivacySettings, openLink: (url: string) => b
     const protectedWindowOpen = function (this: Window, url?: string | URL, target?: string, features?: string): WindowProxy | null {
         if (settings.blockUnsafeExternalProtocols && !isSafeWindowOpenUrl(url, settings)) {
             recordBlock("Unsafe window request");
-            if (settings.logBlockedRequests) logger.warn("Blocked a window request with an unsafe protocol.");
             return null;
         }
 
@@ -687,8 +679,7 @@ export function stopHardening(): void {
     for (const restore of restorers.splice(0).reverse()) {
         try {
             restore();
-        } catch (error) {
-            logger.warn("Could not restore a protected browser API.", error);
+        } catch {
         }
     }
 

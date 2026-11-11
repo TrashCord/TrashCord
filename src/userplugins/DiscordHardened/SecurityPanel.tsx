@@ -11,7 +11,7 @@ import { Heading } from "@components/Heading";
 import { Notice } from "@components/Notice";
 import { Paragraph } from "@components/Paragraph";
 import { classNameFactory } from "@utils/css";
-import { useFixedTimer, useForceUpdater } from "@utils/react";
+import { useForceUpdater } from "@utils/react";
 import { formatDuration } from "@utils/text";
 import type { PluginNative } from "@utils/types";
 import { moment, React, ScrollerThin, Select, TextInput, useEffect, useState } from "@webpack/common";
@@ -36,7 +36,6 @@ export function SecurityPanel() {
     const [grantFailed, setGrantFailed] = useState(false);
     const [search, setSearch] = useState("");
     const forceUpdate = useForceUpdater();
-    useFixedTimer({ initialTime: 0 });
 
     useEffect(() => {
         if (!Native) return;
@@ -54,6 +53,12 @@ export function SecurityPanel() {
     }, [revision]);
 
     const grants = getTemporaryPermissions();
+    const hasGrants = grants.length > 0;
+    useEffect(() => {
+        if (!hasGrants) return;
+        const timer = setInterval(forceUpdate, 1000);
+        return () => clearInterval(timer);
+    }, [hasGrants]);
     const events = getBlockLog().toReversed();
     const query = search.trim().toLowerCase();
     const filteredEvents = events.filter(event => event.category.toLowerCase().includes(query));

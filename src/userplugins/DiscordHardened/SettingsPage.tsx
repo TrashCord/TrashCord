@@ -51,7 +51,6 @@ const SETTINGS_GROUPS = [
             "firewallBlocklist",
             "firewallBlockedPatterns",
             "firewallAllowedPatterns",
-            "logBlockedRequests",
             "recordBlockedEvents",
         ],
     },

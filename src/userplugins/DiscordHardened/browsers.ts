@@ -71,8 +71,20 @@ async function findInstalledBrowsers() {
     return installed.filter(browser => browser !== null);
 }
 
+let cache: { time: number; value: ReturnType<typeof findInstalledBrowsers>; } | null = null;
+
+function getInstalledBrowsers(force: boolean): ReturnType<typeof findInstalledBrowsers> {
+    if (!force && cache && Date.now() - cache.time < 60_000) return cache.value;
+    const value = findInstalledBrowsers();
+    cache = { time: Date.now(), value };
+    value.catch(() => {
+        if (cache?.value === value) cache = null;
+    });
+    return value;
+}
+
 export async function listInstalledBrowsers(): Promise<InstalledBrowser[]> {
-    return (await findInstalledBrowsers()).map(({ id, name }) => ({ id, name }));
+    return (await getInstalledBrowsers(true)).map(({ id, name }) => ({ id, name }));
 }
 
 export async function launchBrowser(browserId: unknown, rawUrl: unknown, canOpen: () => boolean): Promise<boolean> {
@@ -86,7 +98,7 @@ export async function launchBrowser(browserId: unknown, rawUrl: unknown, canOpen
         return false;
     }
     if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) return false;
-    const browser = (await findInstalledBrowsers()).find(browser => browser.id === browserId);
+    const browser = (await getInstalledBrowsers(false)).find(browser => browser.id === browserId);
     if (!browser || !canOpen()) return false;
 
     return new Promise(resolve => {

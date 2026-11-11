@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Logger } from "@utils/Logger";
 import { escapeRegExp } from "@utils/text";
 
 import type { BlockCategory } from "./session";
-
-const logger = new Logger("DiscordHardened");
 
 export const DEFAULT_FIREWALL_URLS = [
     "https://*/api/v*/science",
@@ -130,9 +127,8 @@ function getFirewallRules(settings: NetworkSettings): FirewallRules | null {
             allowed: getCombinedRegex(settings.firewallAllowedPatterns),
         };
         return firewallRules;
-    } catch (error) {
+    } catch {
         firewallRules = null;
-        logger.warn("Could not compile the GoofCord firewall rules.", error);
         return null;
     }
 }

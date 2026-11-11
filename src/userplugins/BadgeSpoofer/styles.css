@@ -1,14 +1,8 @@
-/*
- * Vencord, a Discord client mod
- * Copyright (c) 2026 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 .tc-badge-spoofer-logs {
     background: #111214;
     padding: 10px 14px;
     border-radius: 6px;
-    height: 140px;
+    height: 120px;
     overflow-y: auto;
     font-family: var(--font-code, "Consolas", "Courier New", monospace);
     font-size: 12.5px;
@@ -70,21 +64,4 @@
 .tc-badge-spoofer-log-msg.error {
     color: #ed4245;
     font-weight: 600;
-}
-
-button[class*="closeButton"] {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-button[class*="closeButton"]:hover {
-    background-color: var(--background-modifier-hover);
-}
-
-button[class*="closeButton"]:active {
-    background-color: var(--background-modifier-active);
 }

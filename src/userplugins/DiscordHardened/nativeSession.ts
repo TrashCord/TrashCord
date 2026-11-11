@@ -5,7 +5,6 @@
  */
 
 import { RendererSettings } from "@main/settings";
-import { Logger } from "@utils/Logger";
 import { escapeRegExp } from "@utils/text";
 import { app, type OnBeforeRequestListenerDetails, type Session, session, type WebContents, type WebRequestFilter } from "electron";
 
@@ -25,7 +24,6 @@ interface SessionState {
     restore: () => void;
 }
 
-const logger = new Logger("DiscordHardened");
 const sessions = new Map<Session, SessionState>();
 
 export function getSessionStatus(ses: Session) {
@@ -41,6 +39,7 @@ export function getSessionStatus(ses: Session) {
 function filterRequest(details: OnBeforeRequestListenerDetails): boolean {
     const settings = RendererSettings.store.plugins?.DiscordHardened;
     if (settings?.enabled === false) return false;
+    if (settings?.sessionFirewall !== true && !settings?.blockedRequestUrls && !settings?.allowedRequestUrls) return false;
     let url: URL;
     try {
         url = new URL(details.url);
@@ -63,7 +62,6 @@ function filterRequest(details: OnBeforeRequestListenerDetails): boolean {
         firewallBlockedPatterns: settings?.firewallBlockedPatterns ?? DEFAULT_BLOCKED_PATTERNS,
         firewallAllowedPatterns: settings?.firewallAllowedPatterns ?? DEFAULT_ALLOWED_PATTERNS,
     }, RendererSettings.store.plugins?.NoTrack?.enabled !== false);
-    if (kind && settings?.logBlockedRequests) logger.info(`Blocked ${kind} request in the desktop session.`);
     return kind !== null;
 }
 
@@ -94,6 +92,22 @@ export function prepareSession(ses: Session): SessionState {
     };
     const listener: RequestListener = (details, callback) => {
         requests.begin(details);
+        const handle = (ready: boolean): void => {
+            if (!ready || filterRequest(details)) {
+                requests.log.finish(details.id, { state: "Blocked", detail: ready ? "Request firewall" : "Desktop proxy unavailable" });
+                callback({ cancel: true });
+                return;
+            }
+            if (hostListener && (!hostPatterns || hostPatterns.some(pattern => pattern.test(details.url)))) hostListener(details, result => {
+                if (result.cancel) requests.log.finish(details.id, { state: "Blocked", detail: "Request filter" });
+                callback(result);
+            });
+            else callback({ cancel: false });
+        };
+        if (state.proxyStatus === "Disabled") {
+            handle(true);
+            return;
+        }
         waitForProxy();
         function waitForProxy(): void {
             const pending = state.ready;
@@ -102,16 +116,7 @@ export function prepareSession(ses: Session): SessionState {
                     waitForProxy();
                     return;
                 }
-                if (!ready || filterRequest(details)) {
-                    requests.log.finish(details.id, { state: "Blocked", detail: ready ? "Request firewall" : "Desktop proxy unavailable" });
-                    callback({ cancel: true });
-                    return;
-                }
-                if (hostListener && (!hostPatterns || hostPatterns.some(pattern => pattern.test(details.url)))) hostListener(details, result => {
-                    if (result.cancel) requests.log.finish(details.id, { state: "Blocked", detail: "Request filter" });
-                    callback(result);
-                });
-                else callback({ cancel: false });
+                handle(ready);
             });
         }
     };
@@ -167,7 +172,6 @@ export async function configureSessionProxy(ses: Session, proxyRules: unknown, p
             return true;
         } catch {
             if (state.proxyKey === key) state.proxyStatus = "Failed";
-            logger.error("The desktop proxy could not be configured. Session requests remain blocked. Restart Discord after checking the proxy settings.");
             return false;
         }
     });
@@ -185,7 +189,6 @@ export async function releaseSession(ses: Session): Promise<boolean> {
         } catch {
             state.proxyStatus = "Failed";
             state.ready = Promise.resolve(false);
-            logger.error("The desktop proxy could not be restored. Session requests remain blocked.");
             return false;
         }
     }

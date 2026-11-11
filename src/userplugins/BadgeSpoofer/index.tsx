@@ -7,11 +7,13 @@
 import managedStyle from "./styles.css?managed";
 
 import { ApplicationCommandInputType, ApplicationCommandOptionType, findOption, sendBotMessage } from "@api/Commands";
+import { addHeaderBarButton, removeHeaderBarButton } from "@api/HeaderBar";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { showToast } from "@webpack/common";
 
 import { openBadgeSpooferModal } from "./components/BadgeSpooferModal";
+import { BadgeSpooferHeaderButton } from "./components/HeaderButton";
 import { badgeSpooferEngine } from "./engine";
 import { applyHouse, type HouseId,HOUSES } from "./hypesquad";
 import { settings } from "./settings";
@@ -19,7 +21,7 @@ import { settings } from "./settings";
 export default definePlugin({
     name: "BadgeSpoofer",
     description: "Discord profile badge spoofer: Game Variety (Games Played), Game Time (Playtime), & Streaming (Hours Streamed) via /api/v9/science. Also switch your real HypeSquad house or leave HypeSquad.",
-    authors: [Devs.sirphantom89],
+    authors: [Devs.sirphantom89, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Customisation", "Appearance", "Utility", "Commands"],
     enabledByDefault: false,
     managedStyle,
@@ -30,9 +32,11 @@ export default definePlugin({
 
     async start() {
         await badgeSpooferEngine.init();
+        if (settings.store.headerButton) addHeaderBarButton("BadgeSpoofer", BadgeSpooferHeaderButton, 5);
     },
 
     stop() {
+        removeHeaderBarButton("BadgeSpoofer");
         badgeSpooferEngine.stopSpoofing();
     },
 
@@ -76,8 +80,8 @@ export default definePlugin({
                 }
 
                 const hours = findOption(options, "hours", settings.store.defaultHours || 1);
-                const streamHours = findOption(options, "stream_hours", 1);
-                const games = findOption(options, "games", undefined);
+                const streamHours = findOption(options, "stream_hours", settings.store.defaultStreamHours ?? 1);
+                const games = findOption(options, "games", settings.store.defaultGames || undefined);
                 const fingerprint = findOption(options, "fingerprint", settings.store.customFingerprint || undefined);
 
                 sendBotMessage(channel.id, {
@@ -169,7 +173,7 @@ export default definePlugin({
                     return;
                 }
 
-                    badgeSpooferEngine.stopSpoofing();
+                badgeSpooferEngine.stopSpoofing();
                 sendBotMessage(channel.id, { content: "Badge Spoofer stopped." });
             }
         }

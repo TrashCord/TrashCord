@@ -13,7 +13,7 @@ import { Paragraph } from "@components/Paragraph";
 import { classNameFactory } from "@utils/css";
 import type { PluginNative } from "@utils/types";
 import { saveFile } from "@utils/web";
-import { moment, React, ScrollerThin, Select, TextInput, useEffect, useState } from "@webpack/common";
+import { moment, React, ScrollerThin, Select, TextInput, useEffect, useMemo, useState } from "@webpack/common";
 import type { ReactNode } from "react";
 
 import { settings } from "./index";
@@ -53,16 +53,22 @@ export function RequestPanel({ controls }: RequestPanelProps) {
         let active = true;
         let timer: ReturnType<typeof setTimeout>;
         let previousVersion = "";
+        let desktopRevision: number | undefined;
+        let desktopEntries: RequestEntry[] = [];
         async function refresh(): Promise<void> {
             try {
-                const desktop = Native ? await Native.getRequestLog() : null;
+                const desktop = Native ? await Native.getRequestLog(desktopRevision) : null;
                 if (!active) return;
+                if (!desktop) desktopEntries = [];
+                else if (desktop.entries) desktopEntries = desktop.entries;
+                desktopRevision = desktop?.revision;
                 const browser = browserRequestLog.snapshot();
-                setCoverage({ webSockets: "Disabled", localResources: "Disabled", error: "", ...desktop?.advanced, voice: getVoiceLoggingStatus() });
+                const next = { webSockets: "Disabled", localResources: "Disabled", error: "", ...desktop?.advanced, voice: getVoiceLoggingStatus() };
+                setCoverage(previous => previous.webSockets === next.webSockets && previous.localResources === next.localResources && previous.voice === next.voice && previous.error === next.error ? previous : next);
                 const version = `${desktop?.revision}:${browser.revision}`;
                 if (version !== previousVersion) {
                     previousVersion = version;
-                    setEntries([...(desktop?.entries ?? []), ...browser.entries].sort((a, b) => b.time - a.time || b.id - a.id));
+                    setEntries([...desktopEntries, ...browser.entries].sort((a, b) => b.time - a.time || b.id - a.id));
                 }
                 setError(Native && !desktop ? "Desktop request capture is unavailable. Enable DiscordHardened and restart Discord." : "");
             } catch {
@@ -76,15 +82,16 @@ export function RequestPanel({ controls }: RequestPanelProps) {
     }, [revision]);
 
     const query = search.trim().toLowerCase();
-    const filtered = entries.filter(entry => (state === "All" || entry.state === state)
+    const filtered = useMemo(() => entries.filter(entry => (state === "All" || entry.state === state)
         && (method === "All" || entry.method === method)
         && (resource === "All" || entry.resourceType === resource)
         && (source === "All" || entry.source === source)
-        && `${entry.url} ${entry.method} ${entry.resourceType} ${entry.source} ${entry.state} ${entry.status ?? ""} ${entry.detail ?? ""}`.toLowerCase().includes(query));
-    const resources = Array.from(new Set(["All", resource, ...entries.map(entry => entry.resourceType)]));
+        && `${entry.url} ${entry.method} ${entry.resourceType} ${entry.source} ${entry.state} ${entry.status ?? ""} ${entry.detail ?? ""}`.toLowerCase().includes(query)),
+    [entries, state, method, resource, source, query]);
+    const resources = useMemo(() => Array.from(new Set(["All", resource, ...entries.map(entry => entry.resourceType)])), [entries, resource]);
     const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const page = Math.min(pageIndex, pages - 1);
-    const failed = entries.filter(entry => entry.state === "Failed" || entry.state === "Blocked").length;
+    const failed = useMemo(() => entries.filter(entry => entry.state === "Failed" || entry.state === "Blocked").length, [entries]);
 
     function changeRule(target: string, decision: RequestRuleDecision): void {
         const { blockedRequestUrls, allowedRequestUrls } = settings.plain;

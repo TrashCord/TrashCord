@@ -30,6 +30,22 @@ export const settings = definePluginSettings({
         description: "Default hours of playtime to spoof per game",
         default: 1,
     },
+    defaultStreamHours: {
+        type: OptionType.NUMBER,
+        description: "Default hours of streaming to spoof per game",
+        default: 1,
+    },
+    defaultGames: {
+        type: OptionType.NUMBER,
+        description: "Default number of games to spoof (0 = all available)",
+        default: 0,
+    },
+    headerButton: {
+        type: OptionType.BOOLEAN,
+        description: "Show the Badge Spoofer button in the header bar",
+        default: true,
+        restartNeeded: true,
+    },
     batchSize: {
         type: OptionType.NUMBER,
         description: "Number of game events to bundle per /science request batch",

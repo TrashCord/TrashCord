@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Logger } from "@utils/Logger";
 import { isObject } from "@utils/misc";
 import { FluxDispatcher, MediaEngineStore, SelectedChannelStore, VoiceActions } from "@webpack/common";
 
@@ -21,7 +20,6 @@ interface MicrophonePrivacySettings {
     maximumPttSeconds: number;
 }
 
-const logger = new Logger("DiscordHardened");
 const trackedMicrophones = new Map<MediaStreamTrack, { desired: boolean; callOwned: boolean; }>();
 const endedListeners = new Map<MediaStreamTrack, () => void>();
 type UnknownFunction = (...args: unknown[]) => unknown;
@@ -128,8 +126,7 @@ function hookPttConnection(connection: unknown): void {
             value: protectedSetPttActive,
         });
         patchedPttConnections.set(conn, { original, protected: protectedSetPttActive });
-    } catch (error) {
-        logger.warn("Could not protect the push-to-talk connection.", error);
+    } catch {
     }
 }
 
@@ -139,9 +136,8 @@ function ensurePttConnectionHooks(): void {
     try {
         mediaEngine ??= MediaEngineStore.getMediaEngine();
         for (const connection of mediaEngine.connections) hookPttConnection(connection);
-    } catch (error) {
+    } catch {
         mediaEngine = null;
-        logger.warn("Could not monitor push-to-talk connections.", error);
     }
 }
 
@@ -171,7 +167,6 @@ export function setPrivatePttActive(active: boolean): void {
             pttTimeout = undefined;
             pttActive = false;
             applyMicrophoneGate();
-            logger.warn("Push-to-talk was locked by the privacy timeout.");
         }, settings.maximumPttSeconds * 1000);
     }
 
@@ -237,9 +232,8 @@ export function startMicrophonePrivacy(newSettings: MicrophonePrivacySettings): 
                     ...enabledDescriptor,
                     set: protectedEnabledSetter,
                 });
-            } catch (error) {
+            } catch {
                 protectedEnabledSetter = null;
-                logger.warn("Could not protect microphone track state.", error);
             }
         }
 
@@ -260,10 +254,9 @@ export function startMicrophonePrivacy(newSettings: MicrophonePrivacySettings): 
                 writable: true,
                 value: protectedClone,
             });
-        } catch (error) {
+        } catch {
             originalClone = null;
             protectedClone = null;
-            logger.warn("Could not protect cloned microphone tracks.", error);
         }
     }
 
@@ -300,10 +293,9 @@ export function startMicrophonePrivacy(newSettings: MicrophonePrivacySettings): 
                 writable: true,
                 value: protectedDispatch,
             });
-        } catch (error) {
+        } catch {
             originalDispatch = null;
             protectedDispatch = null;
-            logger.warn("Could not protect media actions.", error);
         }
     }
 
@@ -324,10 +316,9 @@ export function startMicrophonePrivacy(newSettings: MicrophonePrivacySettings): 
                 writable: true,
                 value: protectedSetLoopback,
             });
-        } catch (error) {
+        } catch {
             originalSetLoopback = null;
             protectedSetLoopback = null;
-            logger.warn("Could not protect microphone loopback.", error);
         }
     }
 
@@ -348,10 +339,9 @@ export function startMicrophonePrivacy(newSettings: MicrophonePrivacySettings): 
                 writable: true,
                 value: protectedSetVideoEnabled,
             });
-        } catch (error) {
+        } catch {
             originalSetVideoEnabled = null;
             protectedSetVideoEnabled = null;
-            logger.warn("Could not protect camera activation.", error);
         }
     }
 
@@ -370,8 +360,7 @@ export function stopMicrophonePrivacy(): void {
     if (enabledDescriptor && protectedEnabledSetter && Object.getOwnPropertyDescriptor(MediaStreamTrack.prototype, "enabled")?.set === protectedEnabledSetter) {
         try {
             Object.defineProperty(MediaStreamTrack.prototype, "enabled", enabledDescriptor);
-        } catch (error) {
-            logger.warn("Could not restore microphone track state.", error);
+        } catch {
         }
     }
 
@@ -382,8 +371,7 @@ export function stopMicrophonePrivacy(): void {
                 writable: true,
                 value: originalClone,
             });
-        } catch (error) {
-            logger.warn("Could not restore cloned microphone tracks.", error);
+        } catch {
         }
     }
 
@@ -394,8 +382,7 @@ export function stopMicrophonePrivacy(): void {
                 writable: true,
                 value: originalSetLoopback,
             });
-        } catch (error) {
-            logger.warn("Could not restore microphone loopback.", error);
+        } catch {
         }
     }
 
@@ -406,8 +393,7 @@ export function stopMicrophonePrivacy(): void {
                 writable: true,
                 value: originalSetVideoEnabled,
             });
-        } catch (error) {
-            logger.warn("Could not restore camera activation.", error);
+        } catch {
         }
     }
 
@@ -418,8 +404,7 @@ export function stopMicrophonePrivacy(): void {
                 writable: true,
                 value: originalDispatch,
             });
-        } catch (error) {
-            logger.warn("Could not restore media actions.", error);
+        } catch {
         }
     }
 
@@ -439,8 +424,7 @@ export function stopMicrophonePrivacy(): void {
                     writable: true,
                     value: functions.original,
                 });
-            } catch (error) {
-                logger.warn("Could not restore a push-to-talk connection.", error);
+            } catch {
             }
         }
     }

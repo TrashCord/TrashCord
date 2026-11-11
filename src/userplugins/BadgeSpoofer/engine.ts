@@ -5,13 +5,10 @@
  */
 
 import * as DataStore from "@api/DataStore";
-import { Logger } from "@utils/Logger";
 import { findStoreLazy } from "@webpack";
 import { AuthenticationStore, ChannelStore, RestAPI, SelectedChannelStore, UserStore } from "@webpack/common";
 
-import type { Game, SessionInfo, SpooferStats, SpoofOptions, VoiceContext } from "./types";
-
-const logger = new Logger("BadgeSpooferEngine", "#ff73fa");
+import type { Game, SessionInfo, SpooferStats, SpoofLog, SpoofOptions, SpoofProgress, VoiceContext } from "./types";
 
 const GAMES_CDN_URL = "https://cdn.discordapp.com/detectables/games.json";
 const SCIENCE_URL = "/science?source=badge_spoofer";
@@ -21,6 +18,12 @@ const CLIENT_VERSION = "1.0.9253";
 const CLIENT_BUILD_NUMBER = 594031;
 const NATIVE_BUILD_NUMBER = 88414;
 const OS_VERSION = "10.0.26200";
+const MAX_HOURS = 500;
+
+const finite = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+};
 const USER_AGENT = typeof navigator !== "undefined" ? navigator.userAgent : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.9253 Chrome/148.0.7778.280 Electron/42.7.1 Safari/537.36";
 
 export class BadgeSpooferEngine {
@@ -31,6 +34,10 @@ export class BadgeSpooferEngine {
     private analyticsTokenFetchedAt = 0;
     private abortController: AbortController | null = null;
     private isRunning = false;
+    private listeners = new Set<() => void>();
+    private version = 0;
+    private progress: SpoofProgress | null = null;
+    private logs: SpoofLog[] = [{ id: "init", timestamp: Date.now(), type: "info", message: "Badge Spoofer ready. Spoofs games played, playtime, and streamed hours." }];
 
     private stats: SpooferStats = {
         totalGamesClaimed: 0,
@@ -56,15 +63,14 @@ export class BadgeSpooferEngine {
             const saved = await DataStore.get("badge_spoofer_stats");
             if (saved && typeof saved === "object") {
                 this.stats = {
-                    totalGamesClaimed: Number(saved.totalGamesClaimed) || 0,
-                    totalHoursClaimed: Number(saved.totalHoursClaimed) || 0,
-                    totalStreamHoursClaimed: Number(saved.totalStreamHoursClaimed) || 0,
+                    totalGamesClaimed: finite(saved.totalGamesClaimed),
+                    totalHoursClaimed: finite(saved.totalHoursClaimed),
+                    totalStreamHoursClaimed: finite(saved.totalStreamHoursClaimed),
                     usedGames: Array.isArray(saved.usedGames) ? saved.usedGames : [],
                     fingerprint: typeof saved.fingerprint === "string" ? saved.fingerprint : ""
                 };
             }
-        } catch (e) {
-            logger.error("Failed to load spoofer stats:", e);
+        } catch {
         }
         return { ...this.stats };
     }
@@ -72,8 +78,7 @@ export class BadgeSpooferEngine {
     public async saveStats(): Promise<void> {
         try {
             await DataStore.set("badge_spoofer_stats", this.stats);
-        } catch (e) {
-            logger.error("Failed to save spoofer stats:", e);
+        } catch {
         }
     }
 
@@ -92,10 +97,31 @@ export class BadgeSpooferEngine {
         this.stats.totalStreamHoursClaimed = 0;
         this.stats.usedGames = [];
         this.saveStats();
+        this.notify();
     }
 
     public getIsRunning(): boolean {
         return this.isRunning;
+    }
+
+    public subscribe = (cb: () => void) => {
+        this.listeners.add(cb);
+        return () => { this.listeners.delete(cb); };
+    };
+
+    public getVersion = () => this.version;
+
+    public getProgress() {
+        return this.progress;
+    }
+
+    public getLogs() {
+        return this.logs;
+    }
+
+    private notify() {
+        this.version++;
+        this.listeners.forEach(l => l());
     }
 
     public async loadGames(forceReload = false): Promise<Game[]> {
@@ -135,8 +161,7 @@ export class BadgeSpooferEngine {
             this.cachedGames = games;
             await DataStore.set("badge_spoofer_cached_games", games);
             return games;
-        } catch (e) {
-            logger.error("Failed to load games database:", e);
+        } catch {
             return this.cachedGames;
         }
     }
@@ -155,8 +180,7 @@ export class BadgeSpooferEngine {
                 this.analyticsTokenFetchedAt = Date.now();
                 return token;
             }
-        } catch (e) {
-            logger.warn("RestAPI get analytics token failed, attempting fallback:", e);
+        } catch {
         }
 
         try {
@@ -177,8 +201,7 @@ export class BadgeSpooferEngine {
                     }
                 }
             }
-        } catch (err) {
-            logger.error("Failed to fetch analytics token:", err);
+        } catch {
         }
 
         return this.analyticsToken;
@@ -238,8 +261,7 @@ export class BadgeSpooferEngine {
                 : `call:${channelId}:${userId}`;
 
             return { channelId, guildId: guildId ?? null, streamKey };
-        } catch (e) {
-            logger.warn("Failed to resolve voice context:", e);
+        } catch {
             return null;
         }
     }
@@ -479,15 +501,15 @@ export class BadgeSpooferEngine {
                 body: JSON.stringify(payload)
             });
             return res.status;
-        } catch (e: any) {
-            logger.error("Error posting science batch:", e);
+        } catch {
             return 0;
         }
     }
 
     private selectGames(allGames: Game[], count: number): Game[] {
         const availableIds = new Set(allGames.map(g => g.id));
-        const unusedIds = allGames.map(g => g.id).filter(id => !this.stats.usedGames.includes(id));
+        const usedSet = new Set(this.stats.usedGames);
+        const unusedIds = allGames.map(g => g.id).filter(id => !usedSet.has(id));
         const usedIds = this.stats.usedGames.filter(id => availableIds.has(id));
 
         let selectedIds: string[] = [];
@@ -502,8 +524,9 @@ export class BadgeSpooferEngine {
             }
         }
 
+        const selectedSet = new Set(selectedIds);
         this.stats.usedGames = [
-            ...this.stats.usedGames.filter(id => !selectedIds.includes(id)),
+            ...this.stats.usedGames.filter(id => !selectedSet.has(id)),
             ...selectedIds
         ];
 
@@ -523,7 +546,26 @@ export class BadgeSpooferEngine {
         }
 
         this.isRunning = true;
-        this.abortController = new AbortController();
+        const controller = new AbortController();
+        this.abortController = controller;
+
+        const userProgress = options.onProgress;
+        const userLog = options.onLog;
+        options = {
+            ...options,
+            onProgress: p => {
+                this.progress = p;
+                userProgress?.(p);
+                this.notify();
+            },
+            onLog: l => {
+                if (this.logs.length >= 120) this.logs.splice(0, this.logs.length - 119);
+                this.logs.push(l);
+                userLog?.(l);
+                this.notify();
+            }
+        };
+        this.notify();
 
         const log = (type: "info" | "success" | "warn" | "error", message: string) => {
             options.onLog?.({
@@ -540,6 +582,7 @@ export class BadgeSpooferEngine {
         if (allGames.length === 0) {
             log("error", "Could not load games database from Discord CDN. Check network connection.");
             this.isRunning = false;
+            this.notify();
             return;
         }
 
@@ -549,14 +592,18 @@ export class BadgeSpooferEngine {
         if (!analyticsToken) {
             log("error", "Could not retrieve Discord analytics_token. Are you logged in?");
             this.isRunning = false;
+            this.notify();
             return;
         }
 
         log("success", "Analytics token ready.");
 
         const targetCount = Math.min(Math.max(1, options.count || allGames.length), allGames.length);
-        const hours = Math.max(0, options.hours || 0);
-        const streamHours = Math.max(0, options.streamHours || 0);
+        const hours = Math.min(MAX_HOURS, Math.max(0, options.hours || 0));
+        const streamHours = Math.min(MAX_HOURS, Math.max(0, options.streamHours || 0));
+        if ((options.hours || 0) > MAX_HOURS || (options.streamHours || 0) > MAX_HOURS) {
+            log("warn", `Hours per game capped at ${MAX_HOURS}h.`);
+        }
         const playDurationMs = Math.floor(hours * 3600 * 1000);
         const streamDurationMs = Math.floor(streamHours * 3600 * 1000);
         const batchSize = Math.max(1, options.batchSize || 50);
@@ -592,7 +639,7 @@ export class BadgeSpooferEngine {
         });
 
         for (let i = 0; i < selectedGames.length; i += batchSize) {
-            if (this.abortController.signal.aborted) {
+            if (controller.signal.aborted) {
                 log("warn", "Spoofing cancelled by user.");
                 break;
             }
@@ -646,7 +693,13 @@ export class BadgeSpooferEngine {
                 status: `Sent ${sentGamesCount}/${selectedGames.length} games`
             });
 
-            await new Promise(r => setTimeout(r, batchDelay));
+            await new Promise<void>(r => {
+                const t = setTimeout(r, batchDelay);
+                controller.signal.addEventListener("abort", () => {
+                    clearTimeout(t);
+                    r();
+                }, { once: true });
+            });
         }
 
         this.isRunning = false;
@@ -665,10 +718,7 @@ export class BadgeSpooferEngine {
     }
 
     public stopSpoofing() {
-        if (this.abortController) {
-            this.abortController.abort();
-        }
-        this.isRunning = false;
+        this.abortController?.abort();
     }
 }
 

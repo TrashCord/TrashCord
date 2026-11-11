@@ -63,10 +63,22 @@ export function createRequestLog(readSettings: () => RequestLogSettings | undefi
     let nextId = 0;
     let revision = 0;
 
+    function getLimit(settings: RequestLogSettings | undefined): number {
+        return typeof settings?.requestLogLimit === "number" && Number.isFinite(settings.requestLogLimit)
+            ? Math.max(100, Math.min(10_000, settings.requestLogLimit)) : 2000;
+    }
+
+    function trim(limit: number): void {
+        for (const id of entries.keys()) {
+            if (entries.size <= limit) break;
+            entries.delete(id);
+            revision++;
+        }
+    }
+
     function prune(): void {
         const settings = readSettings();
-        const limit = typeof settings?.requestLogLimit === "number" && Number.isFinite(settings.requestLogLimit)
-            ? Math.max(100, Math.min(10_000, settings.requestLogLimit)) : 2000;
+        const limit = getLimit(settings);
         const minutes = typeof settings?.requestLogRetention === "number" && Number.isFinite(settings.requestLogRetention)
             ? Math.max(0, Math.min(1440, settings.requestLogRetention)) : 15;
         const cutoff = minutes ? Date.now() - minutes * 60_000 : 0;
@@ -94,7 +106,7 @@ export function createRequestLog(readSettings: () => RequestLogSettings | undefi
             entries.set(id, { ...input, id, time: input.time ?? Date.now(), url, method: input.method.toUpperCase() });
             if (key !== undefined) pending.set(key, id);
             revision++;
-            prune();
+            trim(getLimit(settings));
         },
         finish(key: number | string, result: RequestResult): void {
             const id = pending.get(key);
@@ -103,7 +115,10 @@ export function createRequestLog(readSettings: () => RequestLogSettings | undefi
             if (!entry) return;
             Object.assign(entry, result, { duration: Math.max(0, Date.now() - entry.time) });
             revision++;
+        },
+        version(): number {
             prune();
+            return revision;
         },
         snapshot(): RequestSnapshot {
             prune();

@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Logger } from "@utils/Logger";
-
 import { createRequestLog, type RequestLogSettings } from "./requestLog";
 import { installVoiceRequestLog } from "./voiceRequestLog";
 
-const logger = new Logger("DiscordHardened");
 let activeSettings: RequestLogSettings = { enabled: false };
 let observer: PerformanceObserver | undefined;
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -38,7 +35,7 @@ export function refreshRequestLogging(): void {
         const localResources = enabled && activeSettings.recordLocalResources === true;
         desktopOperation = desktopOperation.then(async () => {
             await configure(webSockets, localResources);
-        }).catch(() => logger.warn("Could not configure advanced request capture."));
+        }).catch(() => undefined);
     }
 }
 
@@ -46,6 +43,7 @@ export function startRequestLogging(settings: RequestLogSettings, desktop: boole
     activeSettings = settings;
     configureDesktop = configure;
     refreshRequestLogging();
+    clearInterval(timer);
     timer = setInterval(browserRequestLog.prune, 30_000);
     if (desktop || typeof PerformanceObserver === "undefined") return;
     const startedAt = performance.now();
