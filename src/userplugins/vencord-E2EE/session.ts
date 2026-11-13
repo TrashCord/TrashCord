@@ -144,7 +144,7 @@ export async function buildInit(id: Identity): Promise<{ wire: string; eph: KeyP
     return { wire, eph };
 }
 
-/** Parse an INIT message into its components. Side-effect-free — no key
+/** Parse an INIT message into its components. Side-effect-free - no key
  *  derivation, no state change, no automatic reply. Callers stash the result
  *  and wait for the user to explicitly accept before calling `buildAck`. */
 export function parseInit(content: string): { peerIdPub: Uint8Array; peerEphPub: Uint8Array } {
@@ -179,10 +179,10 @@ export async function buildAck(
     // IMPORTANT: Both sides must mix the four DH outputs in the same order.
     // Match each of our outputs with the DH Alice computes over the same key
     // pair (DH is symmetric, so same pair == same output):
-    //   our dh1 = DH(myEph, peerId)  — pair {IdA, EphB} — == Alice's dh1 = DH(myId,  peerEph)
-    //   our dh2 = DH(myId,  peerEph) — pair {IdB, EphA} — == Alice's dh2 = DH(myEph, peerId)
-    //   our dh3 = DH(myEph, peerEph) — pair {EphA, EphB} — == Alice's dh3
-    //   our dh4 = DH(myId,  peerId)  — pair {IdA, IdB}  — == Alice's dh4
+    //   our dh1 = DH(myEph, peerId)  - pair {IdA, EphB} - == Alice's dh1 = DH(myId,  peerEph)
+    //   our dh2 = DH(myId,  peerEph) - pair {IdB, EphA} - == Alice's dh2 = DH(myEph, peerId)
+    //   our dh3 = DH(myEph, peerEph) - pair {EphA, EphB} - == Alice's dh3
+    //   our dh4 = DH(myId,  peerId)  - pair {IdA, IdB}  - == Alice's dh4
     // So both sides pass (dh1, dh2, dh3, dh4) as numbered on their own side.
     const SK = await deriveHandshakeSecret(dh1, dh2, dh3, dh4);
 

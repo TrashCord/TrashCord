@@ -1,4 +1,4 @@
-/* MallCord CRTEffect — scanline + flicker overlay */
+/* MallCord CRTEffect - scanline + flicker overlay */
 body::after {
     content: "";
     position: fixed;

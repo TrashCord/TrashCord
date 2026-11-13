@@ -31,13 +31,13 @@ const settings = definePluginSettings({
     },
     caretSpeed: {
         type: OptionType.NUMBER,
-        description: "Caret transition speed (ms) — lower = faster",
+        description: "Caret transition speed (ms) - lower = faster",
         default: 80,
         onChange() { applySettings(); }
     },
     fadeSpeed: {
         type: OptionType.NUMBER,
-        description: "Character fade-in speed (ms) — lower = faster",
+        description: "Character fade-in speed (ms) - lower = faster",
         default: 80,
         onChange() { applySettings(); }
     },

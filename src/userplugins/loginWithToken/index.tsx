@@ -11,7 +11,7 @@ import { findByProps } from "@webpack";
 import { Heading } from "@components/Heading";
 import { React, useState } from "@webpack/common";
 
-// Identical to TokenImporter — same login logic
+// Identical to TokenImporter - same login logic
 function switchToAccount(token: string) {
     try { window.localStorage.setItem("token", `"${token}"`); location.reload(); } catch {
         const iframe = document.createElement("iframe"); iframe.style.display = "none"; document.body.appendChild(iframe);
@@ -80,7 +80,7 @@ function LoginWithTokenModal({ rootProps }: { rootProps: any; }) {
                 />
                 {err && <div style={{ color: "var(--text-danger, #ed4245)", fontSize: 12, marginTop: 4 }}>{err}</div>}
                 <div style={{ fontSize: 11, color: "var(--text-muted, #72767d)", marginTop: 12 }}>
-                    ⚠️ Never share your token — it gives full access to your account.
+                    ⚠️ Never share your token - it gives full access to your account.
                 </div>
             </ModalContent>
             <ModalFooter>

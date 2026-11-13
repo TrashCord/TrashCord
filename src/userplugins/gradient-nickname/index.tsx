@@ -287,7 +287,7 @@ function applyGradient(el: HTMLElement, userId: string) {
     el.style.setProperty("background-clip", "text", "important");
     el.style.setProperty("color", "transparent", "important");
     el.style.setProperty("-webkit-text-fill-color", "transparent", "important");
-    // Glow temporarily enabled — upcoming feature, gated off regardless of cfg.glow.
+    // Glow temporarily enabled - upcoming feature, gated off regardless of cfg.glow.
     const GLOW_ENABLED = true;
     if (GLOW_ENABLED && cfg.glow) {
         const glowList = (cfg.glowStops && cfg.glowStops.length > 0
@@ -323,11 +323,11 @@ function applyGradient(el: HTMLElement, userId: string) {
     // Don't apply font-family directly: different glyph metrics would shift the
     // element's width and reflow adjacent icons (mute badge, status, etc.).
     // Instead use a pseudo `::after` overlay that renders text in the custom font
-    // absolutely-positioned on top — original layout box preserved.
+    // absolutely-positioned on top - original layout box preserved.
     el.style.removeProperty("font-family");
     let anim = "";
     if (cfg.anim === "slide") {
-        // Note: u/d suffix flipped vs naive guess — perceived scroll direction is opposite
+        // Note: u/d suffix flipped vs naive guess - perceived scroll direction is opposite
         // of bg-position-y motion. Panel SVG preview uses translate which has the inverse
         // semantics, so this mapping keeps DOM paint matching the preview.
         const suffix = slideDir === "right" ? "r" : slideDir === "up" ? "d" : slideDir === "down" ? "u" : "l";
@@ -449,7 +449,7 @@ function stopObserver() {
     unmountPanel();
 }
 
-// Discord's menu API rejects function components as children — only Menu.* elements allowed.
+// Discord's menu API rejects function components as children - only Menu.* elements allowed.
 // Solution: call hooks INSIDE the patch callback (it runs in the menu's render context, so
 // hooks track to that menu's React fiber). Push only direct Menu.* JSX into children.
 const userContextPatch: NavContextMenuPatchCallback = (children, props: any) => {

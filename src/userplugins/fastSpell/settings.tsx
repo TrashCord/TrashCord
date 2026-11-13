@@ -53,7 +53,7 @@ export const settings = definePluginSettings({
         type: OptionType.SELECT,
         description: "Speech-to-text provider. Groq is free (get a key at console.groq.com) and very fast.",
         options: [
-            { label: "Groq (Whisper large v3 turbo) — free API key", value: "groq", default: true },
+            { label: "Groq (Whisper large v3 turbo) - free API key", value: "groq", default: true },
             { label: "OpenAI (Whisper)", value: "openai" },
             { label: "Custom (any OpenAI-compatible API)", value: "custom" }
         ] as const

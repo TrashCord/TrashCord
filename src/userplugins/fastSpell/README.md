@@ -10,14 +10,14 @@ Discord's spellchecker just underlines words in red and honestly it's slow half 
 - Fixes typos instantly when you hit space or punctuation: `teh` → `the`, `becuase` → `because`, `definately` → `definitely`
 - Auto-capitalization like a phone keyboard: sentence starts get a capital letter, `i` becomes `I` (can be turned off)
 - Keeps your capitalization (`Wrold` → `World`)
-- Knows internet slang — it won't "fix" lol, bruh, ngl, rizz and friends
+- Knows internet slang - it won't "fix" lol, bruh, ngl, rizz and friends
 - Leaves mentions, emojis, links, code blocks and ALL-CAPS words alone
 - Runs fully offline after the first start (it downloads an 82k word dictionary once and caches it)
 
 **Voice typing**
-- Click the mic button, talk, click again — your words show up in the chat box
+- Click the mic button, talk, click again - your words show up in the chat box
 - Uses Whisper through Groq's API (free key, takes a minute to make) so it's fast and accurate, and it auto-detects the language you speak
-- Optional translation: pick an output language in the panel and whatever you say gets typed out in that language — speak Arabic, send English
+- Optional translation: pick an output language in the panel and whatever you say gets typed out in that language - speak Arabic, send English
 
 **The panel**
 - Click the spellcheck button (Aa✓) in the chat bar to open the panel
@@ -37,7 +37,7 @@ Discord's spellchecker just underlines words in red and honestly it's slow half 
 That's it for autocorrect. For voice typing, grab a free API key at [console.groq.com/keys](https://console.groq.com/keys) and paste it into the FastSpell plugin settings (`sttApiKey`).
 
 A couple of notes:
-- This installs a full Vencord build with FastSpell included. If you already use Vencord, this replaces your install (all your plugins and settings stay, you just get FastSpell on top). Don't use Vencord's built-in updater afterwards — it would remove FastSpell. Update by installing a newer release from here instead.
+- This installs a full Vencord build with FastSpell included. If you already use Vencord, this replaces your install (all your plugins and settings stay, you just get FastSpell on top). Don't use Vencord's built-in updater afterwards - it would remove FastSpell. Update by installing a newer release from here instead.
 - When Discord updates itself it sometimes wipes the patch. If the plugin disappears, just run `install.ps1` again.
 - To go back to plain Discord run `uninstall.ps1`.
 
@@ -68,9 +68,9 @@ Voice recording uses Discord's own voice module, and the audio only goes to the 
 
 ## Credits
 
-- [Vencord](https://github.com/Vendicated/Vencord) — the client mod this runs on. The release zip is a Vencord build, unmodified except for this plugin.
-- [SymSpell](https://github.com/wolfgarbe/SymSpell) — the word frequency dictionary
-- Whisper (via [Groq](https://groq.com)) — speech to text
+- [Vencord](https://github.com/Vendicated/Vencord) - the client mod this runs on. The release zip is a Vencord build, unmodified except for this plugin.
+- [SymSpell](https://github.com/wolfgarbe/SymSpell) - the word frequency dictionary
+- Whisper (via [Groq](https://groq.com)) - speech to text
 
 ## License
 

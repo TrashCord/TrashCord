@@ -139,7 +139,7 @@ function withProxyRadarRateLimit<T>(task: () => Promise<T>): Promise<T> {
 }
 
 /**
- * ProxyScrape v4 — official API, country-filtered, HTTP only.
+ * ProxyScrape v4 - official API, country-filtered, HTTP only.
  * https://docs.proxyscrape.com/api-reference/public-api/get-proxy-list
  */
 export async function fetchProxyScrapeForCountry(country: string): Promise<ProxyEntry[]> {
@@ -157,7 +157,7 @@ export async function fetchProxyScrapeForCountry(country: string): Promise<Proxy
 }
 
 /**
- * FlashProxy — filtered TXT endpoint, HTTP only.
+ * FlashProxy - filtered TXT endpoint, HTTP only.
  * https://flashproxy.com/resources/free-proxies
  */
 export async function fetchFlashProxyForCountry(country: string): Promise<ProxyEntry[]> {
@@ -175,7 +175,7 @@ export async function fetchFlashProxyForCountry(country: string): Promise<ProxyE
 }
 
 /**
- * Proxifly CDN (jsDelivr) — direct GitHub list, country-specific TXT files.
+ * Proxifly CDN (jsDelivr) - direct GitHub list, country-specific TXT files.
  * https://github.com/proxifly/free-proxy-list
  * Updated every 5 minutes.
  */
@@ -184,7 +184,7 @@ export async function fetchProxiflyForCountry(country: string): Promise<ProxyEnt
     console.debug(`[QuestRegions/Proxy] Proxifly → ${url}`);
     try {
         const text = await fetchTextFromUrl(url);
-        // Proxifly data.txt lines may be "protocol://host:port" — parseProxyList strips the prefix
+        // Proxifly data.txt lines may be "protocol://host:port" - parseProxyList strips the prefix
         const entries = parseProxyList(text, country, "proxifly");
         console.debug(`[QuestRegions/Proxy] Proxifly ${country}: ${entries.length} proxies`);
         return entries;
@@ -195,7 +195,7 @@ export async function fetchProxiflyForCountry(country: string): Promise<ProxyEnt
 }
 
 /**
- * Geonode — unofficial but widely used JSON API, country-filtered.
+ * Geonode - unofficial but widely used JSON API, country-filtered.
  * Returns the first page (100 entries) of HTTP proxies.
  */
 export async function fetchGeonodeForCountry(country: string): Promise<ProxyEntry[]> {
@@ -218,7 +218,7 @@ export async function fetchGeonodeForCountry(country: string): Promise<ProxyEntr
 }
 
 /**
- * ProxyRadar — country/type-filtered public API.
+ * ProxyRadar - country/type-filtered public API.
  * https://proxyradar.net/docs/api
  */
 export async function fetchProxyRadarForCountry(country: string): Promise<ProxyEntry[]> {

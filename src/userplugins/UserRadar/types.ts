@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// types.ts — k1ng_op
+// types.ts - k1ng_op
 // keeping types minimal, only what i actually use
 
 export type Status = "online" | "idle" | "dnd" | "offline" | "invisible"
@@ -118,7 +118,7 @@ export interface WatchedUser {
     id: string
     nick: string     // your personal label, e.g. "my ex", "the rat from work"
     addedAt: number  // timestamp so we can show when they were added
-    // per-user overrides — null means "just use the global setting"
+    // per-user overrides - null means "just use the global setting"
     overrides: {
         msgs:     boolean | null
         edits:    boolean | null

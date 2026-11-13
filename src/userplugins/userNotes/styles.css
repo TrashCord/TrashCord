@@ -6,7 +6,7 @@
     gap: 4px;
 }
 
-/* Themed form controls — Discord variables. Discord may apply our class to the
+/* Themed form controls - Discord variables. Discord may apply our class to the
    wrapper OR the inner input/textarea, so style the class directly, and also
    the inner element (for the wrapper case). */
 .vc-user-notes-profile-text-area,

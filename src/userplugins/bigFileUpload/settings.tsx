@@ -676,7 +676,7 @@ function ShareXFormFields(props: { store: { sharexConfig?: string; }; update: ()
             <SettingsSection
                 id="sharex-form-headers"
                 name="Headers (JSON)"
-                description={headersInvalid ? "⚠ Invalid JSON — header changes are not saved until valid." : "Optional request headers as a JSON object (e.g. an auth token)."}
+                description={headersInvalid ? "⚠ Invalid JSON - header changes are not saved until valid." : "Optional request headers as a JSON object (e.g. an auth token)."}
             >
                 <TextArea
                     value={headersText}
@@ -689,7 +689,7 @@ function ShareXFormFields(props: { store: { sharexConfig?: string; }; update: ()
                 <SettingsSection
                     id="sharex-form-arguments"
                     name="Arguments (JSON)"
-                    description={argsInvalid ? "⚠ Invalid JSON — argument changes are not saved until valid." : "Optional extra fields sent with the upload — multipart form fields, or the JSON request body. As a JSON object."}
+                    description={argsInvalid ? "⚠ Invalid JSON - argument changes are not saved until valid." : "Optional extra fields sent with the upload - multipart form fields, or the JSON request body. As a JSON object."}
                 >
                     <TextArea
                         value={argsText}

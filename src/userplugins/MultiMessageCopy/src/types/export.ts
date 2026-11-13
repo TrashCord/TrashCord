@@ -14,7 +14,7 @@ export interface ExportAttachment {
   height?: number
 }
 
-/** Embed shape in an exported message — full Discord fields */
+/** Embed shape in an exported message - full Discord fields */
 export interface ExportEmbed {
   type: string
   url?: string

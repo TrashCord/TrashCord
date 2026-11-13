@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// store.ts — k1ng_op
+// store.ts - k1ng_op
 // watchlist crud + misc helpers
 
 import { Logger } from "@utils/Logger"
@@ -22,7 +22,7 @@ function parseList(raw: string): WatchedUser[] {
     }
 }
 
-// always read fresh from settings — never cache in a local var
+// always read fresh from settings - never cache in a local var
 // learned this the hard way after "why isn't this user removed" bugs
 export function getWatchlist(s: any): WatchedUser[] {
     return parseList(s.store.watchlist ?? "[]")

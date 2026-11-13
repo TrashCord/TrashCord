@@ -50,8 +50,8 @@ const settings = definePluginSettings({
         type: OptionType.SELECT,
         description: "FFmpeg mode. Precise cuts at the exact frame (re-encodes, mp4); Lossless is instant and keeps quality, but the start snaps to the nearest keyframe.",
         options: [
-            { label: "Precise — exact frame", value: "precise", default: true },
-            { label: "Fast — lossless (keyframe)", value: "lossless" }
+            { label: "Precise - exact frame", value: "precise", default: true },
+            { label: "Fast - lossless (keyframe)", value: "lossless" }
         ]
     },
     exportQuality: {
@@ -207,7 +207,7 @@ function handleAction(action: unknown): void {
     if (payload.type !== "UPLOAD_ATTACHMENT_ADD_FILES") return;
     if (!settings.store.interceptUploads) return;
 
-    // Only the regular channel/DM composer — leave slash-command args, forum
+    // Only the regular channel/DM composer - leave slash-command args, forum
     // creation, etc. to Discord.
     const draftType = payload.draftType ?? DraftType.ChannelMessage;
     if (draftType !== DraftType.ChannelMessage) return;
@@ -229,7 +229,7 @@ function handleAction(action: unknown): void {
         const k = mediaKindOf(f);
         return k != null && kindEnabled(k);
     });
-    if (!target) return; // nothing to do — also lets our re-adds pass
+    if (!target) return; // nothing to do - also lets our re-adds pass
 
     const kind = mediaKindOf(target)!;
     const others = unique.filter(f => f !== target);
@@ -247,7 +247,7 @@ function handleAction(action: unknown): void {
     }
 
     // Defer opening the modal: we're running inside a Flux dispatch right now,
-    // and openModal dispatches too — doing it synchronously would throw
+    // and openModal dispatches too - doing it synchronously would throw
     // "Cannot dispatch in the middle of a dispatch".
     setTimeout(() => startFlow({ channelId, draftType }, target, kind, others), 0);
 }
@@ -258,7 +258,7 @@ function handleAction(action: unknown): void {
 
 export default definePlugin({
     name: "Clipify",
-    description: "Edit media before sending: trim videos frame-accurately, cut audio, and resize/crop/censor images — all inside Discord.",
+    description: "Edit media before sending: trim videos frame-accurately, cut audio, and resize/crop/censor images - all inside Discord.",
     authors: [{ name: "overocai", id: 1288832011452153910n }],
     tags: ["Media", "Utility", "Chat"],
     enabledByDefault: false,

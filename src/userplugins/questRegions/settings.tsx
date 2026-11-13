@@ -31,7 +31,7 @@ export const settings = definePluginSettings({
         description: "Where to pull proxies from when fetching/enrolling region quests. 'Auto (all APIs)' fetches from all providers for the target country simultaneously.",
         options: [
             { label: "Proxy file (.txt)", value: "file", default: true },
-            { label: "Auto (all APIs — ProxyScrape + FlashProxy + Proxifly + Geonode)", value: "api" },
+            { label: "Auto (all APIs - ProxyScrape + FlashProxy + Proxifly + Geonode)", value: "api" },
             { label: "ProxyScrape v4", value: "proxyscrape" },
             { label: "FlashProxy", value: "flashproxy" },
             { label: "Proxifly (jsDelivr CDN)", value: "proxifly" },
@@ -74,10 +74,10 @@ export const settings = definePluginSettings({
         default: 2000,
         restartNeeded: false,
     },
-    // Stores the raw text content of the loaded proxy file. Not shown directly — driven by the file picker in settingsAboutComponent.
+    // Stores the raw text content of the loaded proxy file. Not shown directly - driven by the file picker in settingsAboutComponent.
     proxyFileContent: {
         type: OptionType.STRING,
-        description: "Loaded proxy list (managed by file picker — do not edit manually).",
+        description: "Loaded proxy list (managed by file picker - do not edit manually).",
         default: "",
         restartNeeded: false,
         hidden: true,

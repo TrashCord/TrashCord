@@ -131,7 +131,7 @@ function initCspUnstricter() {
         if (resourceType === "mainFrame" || resourceType === "subFrame") {
             responseHeaders["content-security-policy"] = [""];
         } else if (resourceType === "stylesheet") {
-            // Some CDNs serve CSS with the wrong MIME (e.g. raw.githubusercontent.com) — fix it.
+            // Some CDNs serve CSS with the wrong MIME (e.g. raw.githubusercontent.com) - fix it.
             responseHeaders["content-type"] = ["text/css"];
         }
         done({ responseHeaders });
@@ -346,7 +346,7 @@ let bootstrapped = false;
 function bootstrap() {
     if (bootstrapped) return;
     bootstrapped = true;
-    if (!isEnabled()) { log("Plugin disabled — skipping init"); return; }
+    if (!isEnabled()) { log("Plugin disabled - skipping init"); return; }
 
     initFirewall();
     initCspUnstricter();

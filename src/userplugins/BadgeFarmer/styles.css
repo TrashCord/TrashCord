@@ -1,307 +1,421 @@
-.vc-badge-farmer-dashboard {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.vc-badge-farmer-btn-wrap {
-    white-space: normal;
-    min-width: 0;
-}
-
-.vc-badge-farmer-intro {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 10px 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    background: var(--background-secondary);
-    font-size: 13px;
-    line-height: 18px;
-}
-
-.vc-badge-farmer-modes {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 10px;
-}
-
-.vc-badge-farmer-mode {
+.vc-bf {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 12px;
+    color: var(--text-default);
+    font-size: 13px;
+    line-height: 18px;
+    contain: layout style;
+}
+
+.vc-bf *,
+.vc-bf *::before,
+.vc-bf *::after {
+    box-sizing: border-box;
+}
+
+.vc-bf .vc-bf-box,
+.vc-bf .vc-bf-card,
+.vc-bf .vc-bf-run,
+.vc-bf .vc-bf-done,
+.vc-bf .vc-bf-maxall,
+.vc-bf .vc-bf-check,
+.vc-bf .vc-bf-notice-bad {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
 }
 
-.vc-badge-farmer-mode-blurb {
-    color: var(--text-muted);
-    font-size: 12px;
-    line-height: 16px;
+.vc-bf .vc-bf-box { background: var(--background-secondary); }
+.vc-bf .vc-bf-run { border-color: #1fb85a; background: var(--background-secondary); }
+.vc-bf .vc-bf-done { border-color: #1fb85a; font-weight: 600; }
+.vc-bf .vc-bf-notice-bad { border-color: var(--text-danger); color: var(--text-danger); }
+.vc-bf .vc-bf-check { gap: 3px; padding: 8px; background: var(--background-secondary); }
+.vc-bf .vc-bf-check-rows { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+
+.vc-bf .vc-bf-maxall {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-color: var(--border-strong);
 }
 
-.vc-badge-farmer-mode-head {
+.vc-bf .vc-bf-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px;
+    align-items: start;
+}
+
+.vc-bf .vc-bf-card-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 8px;
 }
 
-.vc-badge-farmer-mode-tier {
-    flex: 0 0 auto;
-    padding: 1px 7px;
-    border-radius: 999px;
+.vc-bf .vc-bf-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--header-primary, var(--text-default));
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.vc-bf .vc-bf-tier {
+    padding: 0 7px;
     border: 1px solid var(--border-strong);
+    border-radius: 999px;
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 600;
 }
 
-.vc-badge-farmer-mode-progress {
+.vc-bf .vc-bf-col { display: flex; flex-direction: column; gap: 4px; }
+.vc-bf .vc-bf-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.vc-bf .vc-bf-field-name { font-size: 12px; font-weight: 600; }
+.vc-bf .vc-bf-muted { color: var(--text-muted); font-size: 12px; line-height: 16px; }
+.vc-bf .vc-bf-err { color: var(--text-danger); font-size: 12px; line-height: 16px; }
+.vc-bf .vc-bf-yes { color: #1fb85a; font-size: 12px; }
+.vc-bf .vc-bf-no { color: var(--text-muted); font-size: 12px; }
+.vc-bf .vc-bf-warn { color: var(--text-warning, #f0b232); font-size: 12px; }
+
+.vc-bf .vc-bf-steps {
     display: flex;
     flex-direction: column;
     gap: 3px;
-}
-
-.vc-badge-farmer-mode-progress-copy {
-    color: var(--text-muted);
-    font-size: 11px;
-}
-
-.vc-badge-farmer-mode-steps {
     margin: 0;
     padding-left: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    color: var(--text-default);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-bf .vc-bf-dot {
+    flex: 0 0 auto;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #1fb85a;
+}
+
+.vc-bf .vc-bf-track {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--background-secondary-alt, var(--background-tertiary));
+    overflow: hidden;
+}
+
+.vc-bf .vc-bf-fill {
+    height: 100%;
+    background: var(--text-brand, var(--brand-500));
+}
+
+.vc-bf .vc-bf-btn {
+    appearance: none !important;
+    align-self: flex-start;
+    padding: 6px 12px;
+    border: 0 !important;
+    border-radius: 4px;
+    background: var(--brand-500) !important;
+    color: #fff !important;
     font-size: 13px;
-    line-height: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: normal;
 }
 
-.vc-badge-farmer-mode-run {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    flex-wrap: wrap;
-}
+.vc-bf .vc-bf-btn:hover:not(:disabled) { background: var(--brand-560, var(--brand-500)) !important; }
+.vc-bf .vc-bf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.vc-bf .vc-bf-btn-danger { background: var(--status-danger, #da373c) !important; }
+.vc-bf .vc-bf-btn-danger:hover:not(:disabled) { background: var(--status-danger, #da373c) !important; opacity: 0.85; }
 
-.vc-badge-farmer-mode-field {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex: 1 1 100px;
-    min-width: 0;
-}
-
-.vc-badge-farmer-mode-error {
-    color: var(--text-danger);
-    font-size: 11px;
-}
-
-.vc-badge-farmer-mode-toggle {
+.vc-bf .vc-bf-link {
     align-self: flex-start;
     padding: 0;
-    border: 0;
-    background: none;
+    border: 0 !important;
+    background: none !important;
     color: var(--text-link);
     font-size: 12px;
     cursor: pointer;
 }
 
-.vc-badge-farmer-mode-toggle:hover {
-    text-decoration: underline;
-}
+.vc-bf .vc-bf-link:hover { text-decoration: underline; }
 
-.vc-badge-farmer-progress-track {
-    height: 5px;
-    border-radius: 3px;
-    background: var(--background-secondary-alt);
-    overflow: hidden;
-}
-
-.vc-badge-farmer-progress-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: var(--text-brand);
-}
-
-.vc-badge-farmer-game-search {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.vc-badge-farmer-game-picked {
+.vc-bf .vc-bf-picked {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border: 1px solid var(--border-subtle);
     border-radius: 6px;
     font-weight: 600;
-    font-size: 13px;
 }
 
-.vc-badge-farmer-game-clear {
-    padding: 2px 8px;
-    border: 0;
-    border-radius: 4px;
-    color: var(--interactive-normal);
-    background: none;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.vc-badge-farmer-game-clear:hover {
-    color: var(--interactive-hover);
-    background: var(--interactive-background-hover);
-}
-
-.vc-badge-farmer-results {
+.vc-bf .vc-bf-results {
     display: flex;
     flex-direction: column;
-    max-height: 180px;
+    max-height: 170px;
     overflow-y: auto;
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thin-thumb) transparent;
 }
 
-.vc-badge-farmer-results::-webkit-scrollbar {
-    width: 8px;
-}
-
-.vc-badge-farmer-results::-webkit-scrollbar-thumb {
-    background-clip: padding-box;
-    border: 2px solid transparent;
-    border-radius: 4px;
-    background-color: var(--scrollbar-thin-thumb);
-}
-
-.vc-badge-farmer-results::-webkit-scrollbar-track,
-.vc-badge-farmer-results::-webkit-scrollbar-corner {
-    background: transparent;
-}
-
-.vc-badge-farmer-result {
+.vc-bf .vc-bf-result {
     display: flex;
     flex-direction: column;
-    gap: 1px;
     min-width: 0;
-    padding: 6px 10px;
-    border: 0;
+    padding: 5px 10px;
+    border: 0 !important;
+    background: none !important;
     color: var(--text-default);
     text-align: left;
-    background: none;
     cursor: pointer;
 }
 
-.vc-badge-farmer-result:hover {
-    background: var(--interactive-background-hover);
-}
+.vc-bf .vc-bf-result:hover { background: var(--interactive-background-hover) !important; }
+.vc-bf .vc-bf-result-name { font-weight: 600; }
 
-.vc-badge-farmer-result-name {
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.vc-badge-farmer-result-meta {
+.vc-bf .vc-bf-result .vc-bf-muted {
     overflow: hidden;
-    color: var(--text-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
 }
 
-.vc-badge-farmer-done-panel {
+.vc-bf .vc-bf-attn {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    border: 1px solid var(--text-positive);
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px;
+    border: 1px solid var(--status-warning, #f0b232);
+    border-left-width: 4px;
     border-radius: 8px;
     background: var(--background-secondary);
-    font-size: 14px;
-    font-weight: 600;
 }
 
-.vc-badge-farmer-done-check {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: var(--text-positive);
-    color: var(--white-500, var(--white));
-    font-size: 13px;
+.vc-bf .vc-bf-attn-title {
+    color: var(--text-warning, #f0b232);
     font-weight: 700;
 }
 
-.vc-badge-farmer-run-panel {
+.vc-bf .vc-bf-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.vc-bf .vc-bf-badge-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.vc-bf .vc-bf-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vc-bf .vc-bf-badge-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.vc-bf .vc-bf-acc-1 { --bf-acc: #e09400; }
+.vc-bf .vc-bf-acc-2 { --bf-acc: #1fb85a; }
+.vc-bf .vc-bf-acc-3 { --bf-acc: #e8478b; }
+
+.vc-bf .vc-bf-card {
+    border: 1px solid var(--bf-acc, var(--border-subtle));
+    border-top-width: 4px;
+    background: color-mix(in srgb, var(--bf-acc, #5865f2) 8%, var(--background-secondary));
+}
+
+.vc-bf .vc-bf-card .vc-bf-title { color: var(--bf-acc); }
+
+.vc-bf .vc-bf-card .vc-bf-tier {
+    border-color: var(--bf-acc);
+    background: var(--bf-acc);
+    color: #fff;
+}
+
+.vc-bf .vc-bf-card .vc-bf-fill { background: var(--bf-acc); }
+.vc-bf .vc-bf-card .vc-bf-btn { background: var(--bf-acc) !important; }
+.vc-bf .vc-bf-card .vc-bf-btn:hover:not(:disabled) { background: var(--bf-acc) !important; opacity: 0.88; }
+.vc-bf .vc-bf-card .vc-bf-link { color: var(--bf-acc); }
+.vc-bf .vc-bf-card .vc-bf-field-name { color: var(--bf-acc); }
+
+.vc-bf .vc-bf-run {
+    border: 1px solid #1fb85a;
+    border-left-width: 5px;
+    background: color-mix(in srgb, #1fb85a 10%, var(--background-secondary));
+}
+
+.vc-bf .vc-bf-done {
+    border-color: #1fb85a;
+    background: color-mix(in srgb, #1fb85a 12%, var(--background-secondary));
+    color: #1fb85a;
+}
+
+.vc-bf .vc-bf-attn {
+    border-color: #f5a623;
+    background: color-mix(in srgb, #f5a623 14%, var(--background-secondary));
+}
+
+.vc-bf .vc-bf-attn-title { color: #f5a623; }
+
+.vc-bf .vc-bf-stop {
+    appearance: none !important;
+    align-self: flex-start;
+    padding: 9px 22px;
+    border: 0 !important;
+    border-radius: 999px;
+    background: #f23f43 !important;
+    color: #fff !important;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+}
+
+.vc-bf .vc-bf-stop:hover { background: #d92f33 !important; }
+
+.vc-bf .vc-bf-check { border-color: color-mix(in srgb, #5865f2 40%, var(--border-subtle)); }
+.vc-bf .vc-bf-yes { color: #1fb85a; font-weight: 600; }
+.vc-bf .vc-bf-warn { color: #f5a623; font-weight: 600; }
+
+.vc-bf .vc-bf-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.vc-bf .vc-bf-opt input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    accent-color: #5865f2;
+}
+
+.vc-bf .vc-bf-opt-text { display: flex; flex-direction: column; }
+
+.vc-bf .vc-bf-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--background-tertiary);
+    color: var(--text-default);
+}
+
+.vc-bf .vc-bf-select option {
+    background: #fff;
+    color: #000;
+}
+
+.vc-bf .vc-bf-fs {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 14px;
-    border: 1px solid var(--status-positive);
-    border-radius: 8px;
-    background: var(--background-secondary);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
-.vc-badge-farmer-run-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    font-weight: 600;
-}
+.vc-bf .vc-bf-fs:disabled { opacity: 0.45; }
 
-.vc-badge-farmer-run-dot {
-    width: 8px;
-    height: 8px;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: var(--text-positive);
-}
-
-.vc-badge-farmer-run-live {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.vc-badge-farmer-run-error {
-    color: var(--text-danger);
-    font-size: 13px;
-}
-
-.vc-badge-farmer-run-hint {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.vc-badge-farmer-maxall {
+.vc-bf .vc-bf-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--border-strong);
-    border-radius: 8px;
-    font-size: 13px;
+    gap: 8px;
 }
 
-.vc-badge-farmer-muted {
+.vc-bf .vc-bf-name {
+    color: #5865f2;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.vc-bf .vc-bf-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
     color: var(--text-muted);
     font-size: 12px;
-    line-height: 16px;
+    font-weight: 600;
 }
 
-.vc-badge-farmer-footer {
-    padding-top: 2px;
+.vc-bf .vc-bf-pill-on {
+    border-color: #1fb85a;
+    color: #1fb85a;
 }
+
+.vc-bf .vc-bf-dot-off {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.vc-bf .vc-bf-track { height: 7px; border-radius: 4px; }
+.vc-bf .vc-bf-fill { border-radius: 4px; }
+
+.vc-bf .vc-bf-card .vc-bf-btn {
+    align-self: stretch;
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.vc-bf .vc-bf-maxall {
+    border-color: #5865f2;
+    background: color-mix(in srgb, #5865f2 8%, var(--background-secondary));
+}
+
+.vc-bf .vc-bf-maxall .vc-bf-btn { padding: 9px 18px; font-size: 14px; }
+
+.vc-bf .vc-bf-dot { width: 10px; height: 10px; }
+.vc-bf .vc-bf-dot-off { flex: 0 0 auto; width: 10px; height: 10px; }
+
+
+
+
+.vc-bf .vc-bf-card .vc-bf-btn { color: var(--bf-on, #fff) !important; }
+.vc-bf .vc-bf-card .vc-bf-tier { color: var(--bf-on, #fff); }
+
+.vc-bf .vc-bf-hl {
+    color: var(--bf-acc, #5865f2);
+    font-weight: 700;
+}
+
+.vc-bf .vc-bf-stop-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.vc-bf .vc-bf-stop {
+    padding: 11px 26px;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.vc-bf .vc-bf-opt-lang {
+    align-items: center;
+    gap: 10px;
+}
+
+.vc-bf .vc-bf-opt-lang .vc-bf-select { margin: 0; }

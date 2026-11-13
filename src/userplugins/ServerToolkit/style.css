@@ -3,7 +3,7 @@
  * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * ServerToolkit — styles for X-Ray inspector and Duplicate modal
+ * ServerToolkit - styles for X-Ray inspector and Duplicate modal
  */
 
 /* ============================================================
@@ -115,7 +115,7 @@
 }
 
 /* ============================================================
-   Overview tab — key/value rows + feature pills
+   Overview tab - key/value rows + feature pills
    ============================================================ */
 .gt-overview {
     display: flex;
@@ -635,7 +635,7 @@
 }
 
 /* ============================================================
-   Copy modal — target toggles & log
+   Copy modal - target toggles & log
    ============================================================ */
 .gt-target-toggle {
     display: flex;

@@ -115,7 +115,7 @@ export function resolveDmDisplayTarget(
     }
   }
 
-  // Derive from participants — pick the one with most messages (not current user)
+  // Derive from participants - pick the one with most messages (not current user)
   if (participants.size > 0) {
     const currentUserId = (doc as any).current_user_id as string | undefined
     let best: ExportParticipant | null = null
@@ -213,7 +213,7 @@ export function renderAvatar(
 
 /**
  * Build the JSON blob embedded in the page that the client-side JS uses to
- * populate the user profile popout. All data is JSON-encoded — no raw
+ * populate the user profile popout. All data is JSON-encoded - no raw
  * user content is ever injected as JS literals.
  */
 export function buildPopoutDataScript(

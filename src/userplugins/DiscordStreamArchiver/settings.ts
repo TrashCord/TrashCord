@@ -41,7 +41,7 @@ export const settings = definePluginSettings({
     absenceTimeoutSeconds: {
         type: OptionType.NUMBER,
         default: 300,
-        description: "Seconds to keep recording after the last whitelisted user leaves the channel. Only applies when the recording was started because a whitelisted user was present (autoRecordUsers match). Channel-whitelist sessions ignore this — whitelisting a channel always records until you leave. Set to 0 to disable the timer."
+        description: "Seconds to keep recording after the last whitelisted user leaves the channel. Only applies when the recording was started because a whitelisted user was present (autoRecordUsers match). Channel-whitelist sessions ignore this - whitelisting a channel always records until you leave. Set to 0 to disable the timer."
     },
     videoResolution: {
         type: OptionType.SELECT,
@@ -136,17 +136,17 @@ export const settings = definePluginSettings({
     outputFormat: {
         type: OptionType.SELECT,
         default: "webm",
-        description: "Final file format. Non-webm formats run ffmpeg after the recording stops. MKV is a near-instant lossless container swap. MP4 re-encodes the video to H.264/AAC for maximum player compatibility and takes significantly longer — roughly 5-30% of recording duration on a modern CPU.",
+        description: "Final file format. Non-webm formats run ffmpeg after the recording stops. MKV is a near-instant lossless container swap. MP4 re-encodes the video to H.264/AAC for maximum player compatibility and takes significantly longer - roughly 5-30% of recording duration on a modern CPU.",
         options: [
-            { label: "WebM — no conversion, fastest", value: "webm", default: true },
-            { label: "MKV — lossless remux (requires ffmpeg)", value: "mkv" },
-            { label: "MP4 — H.264/AAC re-encode, universal playback (requires ffmpeg, slow)", value: "mp4" }
+            { label: "WebM - no conversion, fastest", value: "webm", default: true },
+            { label: "MKV - lossless remux (requires ffmpeg)", value: "mkv" },
+            { label: "MP4 - H.264/AAC re-encode, universal playback (requires ffmpeg, slow)", value: "mp4" }
         ]
     },
     ffmpegPath: {
         type: OptionType.STRING,
         default: "",
-        description: "Absolute path to ffmpeg. Leave empty to search PATH — but note that winget installs place ffmpeg in a location Discord may not see (because Discord inherits PATH at launch, not when winget updates it). Easiest to just paste the full path here. On Windows, run `where.exe ffmpeg` in a fresh terminal — typical result: C:\\Users\\<you>\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffmpeg.exe. Install: Windows → winget install ffmpeg / choco install ffmpeg; macOS → brew install ffmpeg; Linux → apt/dnf/pacman install ffmpeg."
+        description: "Absolute path to ffmpeg. Leave empty to search PATH - but note that winget installs place ffmpeg in a location Discord may not see (because Discord inherits PATH at launch, not when winget updates it). Easiest to just paste the full path here. On Windows, run `where.exe ffmpeg` in a fresh terminal - typical result: C:\\Users\\<you>\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffmpeg.exe. Install: Windows → winget install ffmpeg / choco install ffmpeg; macOS → brew install ffmpeg; Linux → apt/dnf/pacman install ffmpeg."
     },
     keepWebmAfterRemux: {
         type: OptionType.BOOLEAN,

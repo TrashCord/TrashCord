@@ -2,7 +2,7 @@
 
 A Vencord plugin that adds `/spotify` to search Spotify and share tracks right from Discord.
 
-Type the command, get a list of 5 matches, listen to a 30-sec preview if you want, click Send — Discord turns the link into a player.
+Type the command, get a list of 5 matches, listen to a 30-sec preview if you want, click Send - Discord turns the link into a player.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](./LICENSE)
 [![Vencord](https://img.shields.io/badge/Vencord-Userplugin-7289DA)](https://github.com/Vendicated/Vencord)
@@ -11,8 +11,8 @@ Type the command, get a list of 5 matches, listen to a 30-sec preview if you wan
 ## What you need
 
 - Node.js, pnpm, git.
-- A Spotify app — create one at https://developer.spotify.com/dashboard. You'll get a Client ID and Client Secret.
-- **Spotify Premium** on the account that owns the app — required for Web API access since Feb 2026. No way around it. (You can register the app on a free account, but API requests will return 403 until Premium is active.)
+- A Spotify app - create one at https://developer.spotify.com/dashboard. You'll get a Client ID and Client Secret.
+- **Spotify Premium** on the account that owns the app - required for Web API access since Feb 2026. No way around it. (You can register the app on a free account, but API requests will return 403 until Premium is active.)
 
 ## Screenshots
 
@@ -20,7 +20,7 @@ The modal with 5 search results and embedded Spotify players:
 
 ![Search modal](./screenshots/Modal.png)
 
-## Step 1 — Install Vencord (skip if you already have it)
+## Step 1 - Install Vencord (skip if you already have it)
 
 If you don't have a local Vencord Dev Build yet, set it up first:
 
@@ -32,7 +32,7 @@ pnpm install
 
 Full official guide: https://docs.vencord.dev/installing/
 
-## Step 2 — Add the plugin
+## Step 2 - Add the plugin
 
 Drop the `SpotifySearch` folder (with everything inside, including `logo/`) into Vencord's userplugins directory. The final path must look like this:
 
@@ -40,17 +40,17 @@ Drop the `SpotifySearch` folder (with everything inside, including `logo/`) into
 Vencord/src/userplugins/SpotifySearch/
 ```
 
-(Don't unpack the contents into `userplugins/` directly — keep them inside the `SpotifySearch` folder.)
+(Don't unpack the contents into `userplugins/` directly - keep them inside the `SpotifySearch` folder.)
 
-## Step 3 — Build and load
+## Step 3 - Build and load
 
-The order matters — `inject` copies the freshly built files into Discord, so you need to build first and have Discord closed when injecting:
+The order matters - `inject` copies the freshly built files into Discord, so you need to build first and have Discord closed when injecting:
 
 ```sh
 pnpm build
 ```
 
-Then **fully quit Discord** — right-click the tray icon → Quit Discord. Just closing the window doesn't count.
+Then **fully quit Discord** - right-click the tray icon → Quit Discord. Just closing the window doesn't count.
 
 ```sh
 pnpm inject
@@ -58,7 +58,7 @@ pnpm inject
 
 Open Discord again. Plugin should be loaded.
 
-## Step 4 — Configure
+## Step 4 - Configure
 
 1. Discord → User Settings → Vencord → Plugins.
 2. Find **SpotifySearch**, turn it on.
@@ -82,7 +82,7 @@ The plugin only does anything when you type the slash command. No background stu
 ## Privacy
 
 - Client ID and Secret sit in Vencord's `settings.json` as plain text. Don't share that file.
-- Auth and search requests go through the Electron main process, not the Discord renderer — so the access token doesn't leak to other plugins.
+- Auth and search requests go through the Electron main process, not the Discord renderer - so the access token doesn't leak to other plugins.
 - The embed players load from `open.spotify.com` inside the modal. Spotify's normal cookies and policies apply to those.
 
 ## Troubleshooting
@@ -107,5 +107,5 @@ Discord might be blocking `open.spotify.com` iframes via CSP. Open DevTools (Ctr
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](./LICENSE).
-The Spotify logo and embed are **not** GPL — see the disclaimer.
+GPL-3.0-or-later - see [LICENSE](./LICENSE).
+The Spotify logo and embed are **not** GPL - see the disclaimer.

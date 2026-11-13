@@ -428,7 +428,7 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
 
 export default definePlugin({
     name: "SaveUserGifs",
-    description: "Right-click a user to save all GIFs they have sent to your favorites. Due to Discord's search API being non-deterministic, some GIFs may be missed on the first scan — simply run it again to pick up any remaining ones.",
+    description: "Right-click a user to save all GIFs they have sent to your favorites. Due to Discord's search API being non-deterministic, some GIFs may be missed on the first scan - simply run it again to pick up any remaining ones.",
     authors: [Devs.nnenaza],
     tags: ["Media", "Utility"],
     enabledByDefault: false,
@@ -441,20 +441,20 @@ export default definePlugin({
                 </p>
                 <p style={{ marginBottom: "4px", color: "var(--header-primary, #fff)" }}>⚙️ <b>Scan Mode</b></p>
                 <p style={{ marginBottom: "12px", color: "var(--header-secondary, #b9bbbe)" }}>
-                    <b style={{ color: "var(--header-primary, #fff)" }}>Current channel</b> — only scans the channel you are in.<br />
-                    <b style={{ color: "var(--header-primary, #fff)" }}>Entire server</b> — scans all channels.
+                    <b style={{ color: "var(--header-primary, #fff)" }}>Current channel</b> - only scans the channel you are in.<br />
+                    <b style={{ color: "var(--header-primary, #fff)" }}>Entire server</b> - scans all channels.
                 </p>
                 <p style={{ marginBottom: "4px", color: "var(--header-primary, #fff)" }}>💾 <b>Save Mode</b></p>
                 <p style={{ marginBottom: "12px", color: "var(--header-secondary, #b9bbbe)" }}>
-                    <b style={{ color: "var(--header-primary, #fff)" }}>Export to JSON</b> — downloads a .json file.<br />
-                    <b style={{ color: "var(--header-primary, #fff)" }}>Add to favorites</b> — adds directly to Discord GIF favorites.<br />
-                    <b style={{ color: "var(--header-primary, #fff)" }}>Both</b> — exports and adds to favorites.
+                    <b style={{ color: "var(--header-primary, #fff)" }}>Export to JSON</b> - downloads a .json file.<br />
+                    <b style={{ color: "var(--header-primary, #fff)" }}>Add to favorites</b> - adds directly to Discord GIF favorites.<br />
+                    <b style={{ color: "var(--header-primary, #fff)" }}>Both</b> - exports and adds to favorites.
                 </p>
                 <p style={{ marginBottom: "8px", color: "var(--text-warning, #faa61a)", fontWeight: "700" }}>
                     ⚠️ You can stop the scan at any time by right-clicking any user and selecting "Stop saving GIFs". GIFs found so far will already be saved.
                 </p>
                 <p style={{ marginBottom: "16px", color: "var(--header-secondary, #b9bbbe)" }}>
-                    Due to Discord's search API being non-deterministic, some GIFs may be missed on the first scan. Simply run it again on the same user to pick up any remaining ones — already saved GIFs will be skipped automatically.
+                    Due to Discord's search API being non-deterministic, some GIFs may be missed on the first scan. Simply run it again on the same user to pick up any remaining ones - already saved GIFs will be skipped automatically.
                 </p>
                 <Link href="https://github.com/Mixiruri" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <img

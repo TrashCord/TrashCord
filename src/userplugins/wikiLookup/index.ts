@@ -31,7 +31,7 @@ export default definePlugin({
                     }
                     const data = await res.json();
                     if (data.type === "disambiguation" || !data.extract) {
-                        sendBotMessage(ctx.channel.id, { content: `**${query}** is ambiguous — try being more specific.` });
+                        sendBotMessage(ctx.channel.id, { content: `**${query}** is ambiguous - try being more specific.` });
                         return;
                     }
                     const url = data.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(query)}`;

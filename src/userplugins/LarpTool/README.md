@@ -9,11 +9,11 @@ A [Vencord](https://github.com/Vendicated/Vencord) userplugin that customizes ho
 
 ## Features
 
-- **Add badges** — show badges you don't have
-- **Hide badges** — toggle off badges you actually own
-- **Custom `@username`** — spoof your handle in profile, settings, and messages
-- **Connections** — rename real connections, or add fake ones
-- **Decorations** — add decorations without owning them
+- **Add badges** - show badges you don't have
+- **Hide badges** - toggle off badges you actually own
+- **Custom `@username`** - spoof your handle in profile, settings, and messages
+- **Connections** - rename real connections, or add fake ones
+- **Decorations** - add decorations without owning them
 
 ## Requirements
 
@@ -53,7 +53,7 @@ Use **Reset** in the modal to clear all overrides.
 
 ## Disclaimer
 
-This plugin only changes what **you** see in your Discord client. It does not modify your account on Discord's servers. Vencord custom plugins are unofficial — see the [custom plugins docs](https://docs.vencord.dev/installing/custom-plugins/).
+This plugin only changes what **you** see in your Discord client. It does not modify your account on Discord's servers. Vencord custom plugins are unofficial - see the [custom plugins docs](https://docs.vencord.dev/installing/custom-plugins/).
 
 ---
 

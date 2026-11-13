@@ -7,8 +7,8 @@
 // Captures YOUR OWN outbound screenshare on Vesktop / web.
 //
 // Remote participants' streams reach us through Discord's inbound Output class,
-// which webAudioTap hooks. Your own stream never goes through that class — it's
-// captured locally and sent outbound — so the self-tile would otherwise stay
+// which webAudioTap hooks. Your own stream never goes through that class - it's
+// captured locally and sent outbound - so the self-tile would otherwise stay
 // blank. On Vesktop/web Discord obtains your screen as a normal MediaStream via
 // navigator.mediaDevices.getDisplayMedia (Vesktop patches it to use its own
 // source picker, but the JS call still happens). We decorate getDisplayMedia,
@@ -77,7 +77,7 @@ function adopt(stream: MediaStream): void {
 
 export function installLocalStreamTap(): void {
     if (installed) return;
-    if (IS_DISCORD_DESKTOP) return; // native capture — no JS MediaStream to tap
+    if (IS_DISCORD_DESKTOP) return; // native capture - no JS MediaStream to tap
     const md = navigator.mediaDevices as any;
     if (!md || typeof md.getDisplayMedia !== "function") {
         logger.warn("localStreamTap: getDisplayMedia unavailable; own stream won't be captured");
@@ -90,7 +90,7 @@ export function installLocalStreamTap(): void {
         const p = original!(constraints);
         p.then((stream: MediaStream) => {
             if (shouldAdoptDisplayStream(stream, ignore)) adopt(stream);
-        }).catch(() => { /* cancelled / error — nothing to adopt */ });
+        }).catch(() => { /* cancelled / error - nothing to adopt */ });
         return p;
     };
     installed = true;

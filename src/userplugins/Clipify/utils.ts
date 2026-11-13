@@ -34,7 +34,7 @@ const IMAGE_EXTENSIONS: readonly string[] = [
 /** The kinds of media Clipify can intercept and edit. */
 export type MediaKind = "video" | "audio" | "image";
 
-/** Editor complexity preset — how many controls each editor reveals. */
+/** Editor complexity preset - how many controls each editor reveals. */
 export type LayoutMode = "simple" | "moderate" | "advanced";
 
 /** Estimate a media file's average bitrate in kbps from its size and duration. */
@@ -119,7 +119,7 @@ export function formatTimecode(seconds: number): string {
     const m = Math.floor((t % 3600) / 60);
     const s = Math.floor(t % 60);
     const ms = Math.round((t - Math.floor(t)) * 1000);
-    // Rounding ms can roll over to 1000 — normalise so we never print `.1000`.
+    // Rounding ms can roll over to 1000 - normalise so we never print `.1000`.
     const msSafe = ms === 1000 ? 999 : ms;
     return `${pad(h)}:${pad(m)}:${pad(s)}.${pad(msSafe, 3)}`;
 }
@@ -202,7 +202,7 @@ export interface ExportOptions {
  * capture its video track via `captureStream()`, route audio through a
  * detached Web Audio graph (so nothing leaks to the speakers while still
  * being recorded), and feed both into a {@link MediaRecorder}. Recording is
- * real-time — a 30s selection takes ~30s — and re-encodes to webm.
+ * real-time - a 30s selection takes ~30s - and re-encodes to webm.
  */
 export async function exportTrimmedVideo(
     file: File,
@@ -364,7 +364,7 @@ function encodeWav(buffer: AudioBuffer, startSample: number, endSample: number, 
 /**
  * Trim `[startTime, endTime]` out of an audio `file` entirely offline, using
  * the Web Audio API. Decodes the source, slices the samples and re-encodes to
- * a lossless 16-bit `.wav`. No network and no ffmpeg required — used as the
+ * a lossless 16-bit `.wav`. No network and no ffmpeg required - used as the
  * MediaRecorder-engine path and as a fallback when ffmpeg is unavailable.
  */
 export async function trimAudioWebAudio(file: File, startTime: number, endTime: number, gain = 1): Promise<File> {

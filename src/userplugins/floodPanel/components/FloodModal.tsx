@@ -114,7 +114,7 @@ export function FloodModal({ channel, rootProps, onRunningChange }: Props) {
                 body: { content: messages[idx], nonce: makeNonce(), tts: false }
             });
             if (response.status === 429) {
-                setStatus("Rate limited — waiting...");
+                setStatus("Rate limited - waiting...");
                 if (runningRef.current) scheduleNext(1000);
                 return;
             }

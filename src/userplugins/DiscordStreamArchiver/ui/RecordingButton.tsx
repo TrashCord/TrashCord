@@ -83,7 +83,7 @@ export function RecordingPanelButton(_props: RecordingPanelButtonProps) {
     const color = disabled ? MUTED : recording ? (conditional ? YELLOW : RED) : RED;
 
     let tooltip: string;
-    if (conditional) tooltip = `Auto-recording (${formatDuration(elapsedMs)}) — click to make permanent · right-click for details`;
+    if (conditional) tooltip = `Auto-recording (${formatDuration(elapsedMs)}) - click to make permanent · right-click for details`;
     else if (recording) tooltip = `Stop recording (${formatDuration(elapsedMs)}) · right-click for details`;
     else if (inVC) tooltip = "Start recording this call · right-click for details";
     else tooltip = "Join a voice channel to record · right-click for details";

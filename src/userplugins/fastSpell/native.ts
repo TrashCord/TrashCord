@@ -115,7 +115,7 @@ export async function translateText(_: IpcMainInvokeEvent, opts: TranslateOption
                 messages: [
                     {
                         role: "system",
-                        content: `You are a translator. Translate the user's message into ${opts.targetLanguage}. Reply with ONLY the translation — no explanations, no notes, no quotation marks around it.`
+                        content: `You are a translator. Translate the user's message into ${opts.targetLanguage}. Reply with ONLY the translation - no explanations, no notes, no quotation marks around it.`
                     },
                     { role: "user", content: opts.text }
                 ]

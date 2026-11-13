@@ -58,7 +58,7 @@ const decryptedCache = new Map<string, string>();
 const enabledChannels = new Set<string>();
 /**
  * Pinned identity pubkeys per peer user ID (TOFU key pinning). Sessions are
- * ephemeral — they die on RESET — but this map survives, so a MITM who forces
+ * ephemeral - they die on RESET - but this map survives, so a MITM who forces
  * a reset and re-handshakes with their own key trips a loud "identity key
  * CHANGED" warning instead of silently looking like a fresh invitation.
  */
@@ -67,7 +67,7 @@ const knownPeerKeys = new Map<string, string>();
  * IDs of handshake messages (INIT / ACK / RESET) we've already acted on.
  *
  * Without this, every channel-scroll / history-load fires LOAD_MESSAGES_SUCCESS
- * which feeds every message — including ancient handshake messages — back into
+ * which feeds every message - including ancient handshake messages - back into
  * handleIncoming. An old INIT would then be (re-)processed as if it were fresh:
  * the plugin would derive a new SK, overwrite the live `ready` session, and
  * fire off a stray ACK into the channel, destroying the active secure channel.
@@ -81,7 +81,7 @@ const processedHandshakeMsgs = new Set<string>();
 /**
  * Plaintext of our own outgoing encrypted messages, keyed by the exact wire
  * string we sent. We can't decrypt our own ciphertext (the ratchet only moves
- * forward), and at pre-send time the message has no ID yet — so we stash the
+ * forward), and at pre-send time the message has no ID yet - so we stash the
  * plaintext here and move it into `decryptedCache` (keyed by the real message
  * ID) when the server echoes our message back via MESSAGE_CREATE. Without
  * this, your own messages would render as an "[encrypted]" placeholder
@@ -191,7 +191,7 @@ function checkPeerKey(userId: string, idPub: Uint8Array): "new" | "match" | "cha
 }
 
 /** Pin (or re-pin) a peer's identity pubkey. Called whenever a handshake
- *  completes — i.e. only after either an explicit user accept on our side or
+ *  completes - i.e. only after either an explicit user accept on our side or
  *  a key-change warning has already been shown. */
 async function pinPeerKey(userId: string, idPub: Uint8Array) {
     const b64 = b64encode(idPub);
@@ -219,7 +219,7 @@ async function startHandshake(channelId: string) {
     sendRaw(channelId, wire);
 }
 
-/** Responder side: accept a pending invitation — derive the session, pin the
+/** Responder side: accept a pending invitation - derive the session, pin the
  *  peer's identity key, and send the ACK. Returns the ready session, or null
  *  on failure (failure toasts are shown here; success toasts by the caller). */
 async function acceptInvite(channelId: string, s: Session): Promise<Session | null> {
@@ -229,7 +229,7 @@ async function acceptInvite(channelId: string, s: Session): Promise<Session | nu
         sessions.delete(channelId);
         await persistSessions();
         notifyStateChange();
-        showToast({ text: "🔐 Handshake failed — invitation was corrupt.", variant: "critical" });
+        showToast({ text: "🔐 Handshake failed - invitation was corrupt.", variant: "critical" });
         return null;
     }
     try {
@@ -269,7 +269,7 @@ const onSend: MessageSendListener = async (channelId, msg) => {
     // doesn't accidentally send plaintext.
     if (s.phase === "none") {
         await startHandshake(channelId);
-        showToast({ text: "🔐 E2EE handshake sent. Your message wasn't sent — please retype it after the lock turns green." });
+        showToast({ text: "🔐 E2EE handshake sent. Your message wasn't sent - please retype it after the lock turns green." });
         return { cancel: true };
     }
 
@@ -292,14 +292,14 @@ const onSend: MessageSendListener = async (channelId, msg) => {
                 : "";
             showToast({
                 text: `🔐 E2EE handshake accepted.${safety} ` +
-                "Your message wasn't sent — please retype it after the lock turns green.",
+                "Your message wasn't sent - please retype it after the lock turns green.",
                 variant: "success"
             });
         }
         return { cancel: true };
     }
 
-    // Phase === "ready" — encrypt.
+    // Phase === "ready" - encrypt.
     try {
         const plaintext = msg.content;
         const wire = await encryptForSession(s, plaintext);
@@ -319,7 +319,7 @@ const onSend: MessageSendListener = async (channelId, msg) => {
         // client sends one automatically on ACK receipt).
         showToast({
             text: String(e).includes("no sending chain")
-                ? "🔐 Waiting for the peer's first encrypted message — try again in a moment."
+                ? "🔐 Waiting for the peer's first encrypted message - try again in a moment."
                 : "🔐 Encryption failed; aborting send.",
             variant: "critical"
         });
@@ -331,7 +331,7 @@ const onSend: MessageSendListener = async (channelId, msg) => {
 
 /**
  * Edits go through Discord's edit path, which addMessagePreSendListener does
- * NOT cover — without this hook, editing one of your own encrypted messages
+ * NOT cover - without this hook, editing one of your own encrypted messages
  * would ship the new content in PLAINTEXT. Re-encrypting an edit isn't useful
  * either (the ratchet can't re-key an old message; the peer would decrypt it
  * out of order), so edits are simply blocked in E2EE channels.
@@ -372,7 +372,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
     // produced it, and our session state for sending is already advanced).
     // If we can't tell who authored the message (MESSAGE_UPDATE payloads may
     // omit `author`), bail rather than risk feeding our OWN ciphertext into
-    // the ratchet — its unknown header pubkey would trigger a bogus DH
+    // the ratchet - its unknown header pubkey would trigger a bogus DH
     // ratchet and wreck the session.
     const me = UserStore.getCurrentUser();
     if (!me?.id || !message.author?.id) return;
@@ -392,7 +392,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
     try {
         if (content.startsWith(PREFIX_INIT)) {
             if (fromSelf) {
-                // Our own outgoing INIT — purely cosmetic on render.
+                // Our own outgoing INIT - purely cosmetic on render.
                 replaceContent(channelId, message, "🔐 [E2EE handshake invitation sent]");
                 await markProcessed(message.id);
                 return;
@@ -400,7 +400,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
             if (alreadyProcessed) {
                 // Old INIT loaded from history; we already acted on it (or
                 // explicitly decided not to). Render but do NOT mutate state.
-                replaceContent(channelId, message, "🔐 [E2EE handshake invitation — historic]");
+                replaceContent(channelId, message, "🔐 [E2EE handshake invitation - historic]");
                 return;
             }
 
@@ -420,7 +420,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                     current.phase === "ready"     ? "secure channel already active" :
                     current.phase === "init-sent" ? "outgoing handshake in flight"  :
                     /* init-recvd */                "another invitation already pending";
-                replaceContent(channelId, message, `🔐 [E2EE handshake invitation ignored — ${reason}]`);
+                replaceContent(channelId, message, `🔐 [E2EE handshake invitation ignored - ${reason}]`);
                 showToast({
                     text: `🔐 Peer sent a handshake invitation, but ${reason}. ` +
                     "Toggle the lock off and on to reset if you want to accept it."
@@ -432,11 +432,11 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
             // TOFU pin check: a fresh INIT carrying a different identity key
             // than the one we've pinned for this user is exactly what a MITM
             // (or a peer who wiped their data) looks like. We still stash the
-            // invitation — the user decides — but the warning must be loud.
+            // invitation - the user decides - but the warning must be loud.
             const keyChanged = checkPeerKey(message.author.id, peerIdPub) === "changed";
 
             // Stash the INIT as a pending invitation. We do NOT auto-reply
-            // here — that was the spam vector. The user must explicitly accept
+            // here - that was the spam vector. The user must explicitly accept
             // (click the lock, or send a message if already enabled), which
             // runs buildAck and produces the actual ACK wire.
             const pending: Session = {
@@ -453,13 +453,13 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
             replaceContent(
                 channelId, message,
                 keyChanged
-                    ? "⚠️ [E2EE handshake invitation — peer's identity key has CHANGED since you last talked! Verify the safety number out of band before accepting.]"
-                    : "🔐 [E2EE handshake invitation — click the lock to accept]"
+                    ? "⚠️ [E2EE handshake invitation - peer's identity key has CHANGED since you last talked! Verify the safety number out of band before accepting.]"
+                    : "🔐 [E2EE handshake invitation - click the lock to accept]"
             );
             if (keyChanged) {
                 showToast({
                     text: "⚠️ E2EE: peer wants to start a secure channel, but their identity key has " +
-                    "CHANGED since you last talked. This could be a new install — or an attacker. " +
+                    "CHANGED since you last talked. This could be a new install - or an attacker. " +
                     "Verify the safety number out of band before accepting!",
                     variant: "critical"
                 });
@@ -480,7 +480,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                 return;
             }
             if (alreadyProcessed) {
-                replaceContent(channelId, message, "🔐 [E2EE handshake response — historic]");
+                replaceContent(channelId, message, "🔐 [E2EE handshake response - historic]");
                 return;
             }
             const s = sessions.get(channelId);
@@ -495,7 +495,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
 
             // TOFU pin check. The session is established either way (the user
             // initiated this handshake), but a changed key means whoever just
-            // answered is NOT who answered last time — warn loudly, then pin
+            // answered is NOT who answered last time - warn loudly, then pin
             // the new key so the next change warns again.
             const ackKeyChanged = newSession.peerIdPub
                 ? checkPeerKey(message.author.id, newSession.peerIdPub) === "changed"
@@ -504,7 +504,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
 
             // Prime the responder's sending chain. By Double Ratchet design
             // the responder (Bob) has no sending chain until our first
-            // encrypted message reaches him and triggers his DH ratchet — so
+            // encrypted message reaches him and triggers his DH ratchet - so
             // until we send something, ALL of his sends would fail. Send one
             // encrypted message automatically so both sides can talk
             // immediately. It decrypts to a visible "channel established"
@@ -548,7 +548,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                 return;
             }
             if (alreadyProcessed) {
-                replaceContent(channelId, message, "🔐 [E2EE reset — historic]");
+                replaceContent(channelId, message, "🔐 [E2EE reset - historic]");
                 return;
             }
             sessions.delete(channelId);
@@ -567,7 +567,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
             }
 
             // Our own outgoing ciphertext: we can't decrypt it (forward secrecy
-            // moves the ratchet forward), but we don't need to — we stashed the
+            // moves the ratchet forward), but we don't need to - we stashed the
             // plaintext at send time. Promote it into the persistent cache now
             // that we know the message ID. Falls back to a placeholder for
             // messages sent before this client session (or from another device).
@@ -579,14 +579,14 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
                     await persistDecrypted();
                     replaceContent(channelId, message, pt);
                 } else {
-                    replaceContent(channelId, message, "🔐 [encrypted — sent]");
+                    replaceContent(channelId, message, "🔐 [encrypted - sent]");
                 }
                 return;
             }
 
             const s = sessions.get(channelId);
             if (!s || s.phase !== "ready") {
-                replaceContent(channelId, message, "🔐 [no session — cannot decrypt]");
+                replaceContent(channelId, message, "🔐 [no session - cannot decrypt]");
                 return;
             }
             const plaintext = await decryptForSession(s, content);
@@ -611,7 +611,7 @@ async function handleIncoming(channelId: string, message: any): Promise<void> {
  *
  *  Mutating the Flux payload alone is NOT enough: MessageStore converts the
  *  payload into an immutable MessageRecord synchronously during dispatch, and
- *  this code runs async — after the store already took its copy. So we also
+ *  this code runs async - after the store already took its copy. So we also
  *  go through the MessageUpdater API, which merges new fields into the cached
  *  record and forces a re-render. The payload mutation is kept as a cheap
  *  belt-and-suspenders for any consumer that reads the raw payload later. */
@@ -628,19 +628,19 @@ function replaceContent(channelId: string, message: any, newContent: string) {
  *
  *  Goes through Vencord's sendMessage util rather than MessageActions
  *  directly: the util supplies the `waitForChannelReady` / `options`
- *  arguments Discord's sendMessage requires — calling it without them makes
+ *  arguments Discord's sendMessage requires - calling it without them makes
  *  the send reject silently and the message never goes out. */
 function sendRaw(channelId: string, content: string) {
     Promise.resolve(sendMessage(channelId, { content }))
         .then((res: any) => {
             if (res?.ok === false) {
                 log.error("sendRaw: send failed", res);
-                showToast({ text: "🔐 Failed to send E2EE message — check your connection.", variant: "critical" });
+                showToast({ text: "🔐 Failed to send E2EE message - check your connection.", variant: "critical" });
             }
         })
         .catch((e: any) => {
             log.error("sendRaw: send rejected", e);
-            showToast({ text: "🔐 Failed to send E2EE message — see console for details.", variant: "critical" });
+            showToast({ text: "🔐 Failed to send E2EE message - see console for details.", variant: "critical" });
         });
 }
 
@@ -703,10 +703,10 @@ const LockButton: ChatBarButtonFactory = ({ channel, isMainChat }) => {
     const enabled = enabledChannels.has(channel.id);
 
     let icon = "🔓";
-    let tooltip = "E2EE off — click to enable";
+    let tooltip = "E2EE off - click to enable";
     if (enabled && sess?.phase === "ready") {
         icon = "🔒";
-        tooltip = `E2EE active${sess.safetyNum ? ` — safety #: ${sess.safetyNum}` : ""}`;
+        tooltip = `E2EE active${sess.safetyNum ? ` - safety #: ${sess.safetyNum}` : ""}`;
     } else if (enabled && sess?.phase === "init-sent") {
         icon = "🟡";
         tooltip = "E2EE handshake in progress";
@@ -715,11 +715,11 @@ const LockButton: ChatBarButtonFactory = ({ channel, isMainChat }) => {
         // can still see (and choose whether to accept) an inbound invitation.
         icon = "📩";
         tooltip = enabled
-            ? "Peer requested E2EE — send a message to accept"
-            : "Peer requested E2EE — click the lock to accept";
+            ? "Peer requested E2EE - send a message to accept"
+            : "Peer requested E2EE - click the lock to accept";
     } else if (enabled) {
         icon = "🟡";
-        tooltip = "E2EE enabled — send a message to start handshake";
+        tooltip = "E2EE enabled - send a message to start handshake";
     }
 
     return (
@@ -750,7 +750,7 @@ async function onLockClicked(channelId: string) {
         await persistEnabled();
         notifyStateChange();
         if (pending?.phase === "init-recvd") {
-            // Accept the pending invitation right away — the click IS the
+            // Accept the pending invitation right away - the click IS the
             // explicit user gesture that gates buildAck.
             const sess = await acceptInvite(channelId, pending);
             if (sess) {
@@ -763,7 +763,7 @@ async function onLockClicked(channelId: string) {
             // Start the handshake immediately instead of waiting for (and
             // eating) the user's first typed message.
             await startHandshake(channelId);
-            showToast({ text: "🔐 E2EE handshake sent — the lock turns green when the peer accepts." });
+            showToast({ text: "🔐 E2EE handshake sent - the lock turns green when the peer accepts." });
         }
     }
 }
@@ -806,7 +806,7 @@ export default definePlugin({
         // Outgoing.
         addMessagePreSendListener(onSend);
 
-        // Edits would bypass encryption entirely — block them.
+        // Edits would bypass encryption entirely - block them.
         addMessagePreEditListener(onEdit);
 
         // Incoming via Flux. All paths go through the per-channel queue so

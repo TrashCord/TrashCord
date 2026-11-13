@@ -27,7 +27,7 @@ const CUSTOM_VALUE = -1;
 /**
  * Collects a reason (and, where relevant, a duration) for a fake action, then
  * records it locally and fires the confirmation notifications. This modal does
- * not — and cannot — send anything to Discord.
+ * not - and cannot - send anything to Discord.
  */
 function ActionModal({ modalProps, type, targetId, targetName, guildId }: ActionModalProps) {
     const meta = ACTIONS[type];

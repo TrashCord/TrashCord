@@ -341,7 +341,7 @@ function findDiscordImageEditorDialog(originalDialog: HTMLElement): HTMLElement 
     const candidates = Array.from(document.querySelectorAll<HTMLElement>("[role='dialog']"));
 
     return candidates.find(candidate => {
-        // Ignore the original "Select an Image" dialog itself — it can still
+        // Ignore the original "Select an Image" dialog itself - it can still
         // contain matching words mid-transition, which previously caused a
         // false positive: we'd close the Pinterest modal thinking the real
         // editor had appeared, before it actually had, making it look like

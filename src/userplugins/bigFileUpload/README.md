@@ -3,9 +3,9 @@
 
 # Big File Upload (Vencord)
 
-Bypass Discord's upload limit without Nitro. Big File Upload sends your files to an external host — Catbox, GoFile, an S3 bucket, your own WebDAV or ShareX-compatible server, and more — then pastes the resulting link straight into chat.
+Bypass Discord's upload limit without Nitro. Big File Upload sends your files to an external host - Catbox, GoFile, an S3 bucket, your own WebDAV or ShareX-compatible server, and more - then pastes the resulting link straight into chat.
 
-You can upload in several ways: the `Upload to Host` option in the `+` attachment menu, a right-click `Upload to <host>` entry on any image, video, or link, or by letting it transparently take over Discord's own upload button, drag & drop, and clipboard paste — each toggleable independently in settings. A live progress bar shows the percentage, bytes transferred, and current host, with a cancel button.
+You can upload in several ways: the `Upload to Host` option in the `+` attachment menu, a right-click `Upload to <host>` entry on any image, video, or link, or by letting it transparently take over Discord's own upload button, drag & drop, and clipboard paste - each toggleable independently in settings. A live progress bar shows the percentage, bytes transferred, and current host, with a cancel button.
 
 If a host fails or isn't configured, it automatically falls back to the next one (no-key hosts first by default), so an upload almost always lands. Enable Nitro-aware mode to let Discord handle anything under your current upload limit (server upload limit included) and only bypass for larger files. The maximum file size depends on the host you choose. Extras include converting APNG to GIF, preserving original filenames, posting the link as clickable filename text, auto-copying the link, stripping query parameters, and an optional embed proxy for inline video previews.
 

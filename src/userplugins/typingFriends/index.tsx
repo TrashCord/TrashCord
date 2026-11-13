@@ -244,7 +244,7 @@ export default definePlugin({
             predicate: () => settings.store.showFriendsSection,
             replacement: {
                 match: /case\s+([A-Za-z0-9_$]+\.[A-Za-z0-9_$]+)\.ONLINE:\s*return\b/,
-                replace: 'case $1.TYPING:return "Typing — " + arguments[1];case $1.ONLINE:return '
+                replace: 'case $1.TYPING:return "Typing - " + arguments[1];case $1.ONLINE:return '
             }
         },
         {

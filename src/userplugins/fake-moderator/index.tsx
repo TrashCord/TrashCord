@@ -71,7 +71,7 @@ function toggleVoice(meta: FakeActionMeta, user: User, targetName: string, guild
 /**
  * Renders the fake moderation entries to look exactly like Discord's native ones:
  * red ("danger") action items for Timeout/Kick/Ban/Warn, and checkbox toggles for
- * Mute/Deafen (mirroring the native voice checkboxes). Everything is 100% cosmetic —
+ * Mute/Deafen (mirroring the native voice checkboxes). Everything is 100% cosmetic -
  * nothing is ever sent to Discord and the target is never affected.
  */
 const UserContextMenuPatch: NavContextMenuPatchCallback = (children, props: UserContextProps) => {
@@ -126,7 +126,7 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (children, props: User
 
 export default definePlugin({
     name: "Fake Moderator",
-    description: "Adds local-only moderation entries (Ban/Kick/Timeout/Warn) and voice toggles (Mute/Deafen) to the user context menu, styled exactly like Discord's real ones. Purely cosmetic — nothing is sent to Discord and the target is never affected.",
+    description: "Adds local-only moderation entries (Ban/Kick/Timeout/Warn) and voice toggles (Mute/Deafen) to the user context menu, styled exactly like Discord's real ones. Purely cosmetic - nothing is sent to Discord and the target is never affected.",
     authors: [{ name: "overocai", id: 1288832011452153910n }],
     tags: ["Utility", "Privacy", "Servers"],
     enabledByDefault: false,

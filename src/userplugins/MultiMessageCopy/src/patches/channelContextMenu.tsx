@@ -17,7 +17,7 @@ import {
 import { showNotification } from "../utils/notification"
 
 // ─── Channel type constants (Discord internal) ───────────────────────────────
-// 1 = DM, 3 = GROUP_DM  — only private, non-guild channels are allowed.
+// 1 = DM, 3 = GROUP_DM  - only private, non-guild channels are allowed.
 const PRIVATE_CHANNEL_TYPES = new Set([1, 3])
 
 /**
@@ -85,7 +85,7 @@ function buildExportItem(channelId: string) {
 // ─── Patch callbacks ──────────────────────────────────────────────────────────
 
 /**
- * Generic patch factory — works for channel-context, gdm-context, and
+ * Generic patch factory - works for channel-context, gdm-context, and
  * thread-context menus which all pass `{ channel }` in their props.
  */
 export const channelContextMenuPatch: NavContextMenuPatchCallback = (
@@ -102,7 +102,7 @@ export const channelContextMenuPatch: NavContextMenuPatchCallback = (
 }
 
 /**
- * Patch for "user-context" — the props shape is `{ user, channel }`.
+ * Patch for "user-context" - the props shape is `{ user, channel }`.
  * If a DM channel object is available we use it; otherwise we fall back
  * to opening by user id (the caller must resolve the channel id first).
  */

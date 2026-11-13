@@ -67,7 +67,7 @@ export function getSyntheticPageIdForPath(pathname: string): string | undefined 
             if (pathname === "/channels/@me" || pathname === "/channels/@me/") return id;
             continue;
         }
-        // exact match or a subpath — never a coincidental substring
+        // exact match or a subpath - never a coincidental substring
         if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return id;
     }
 

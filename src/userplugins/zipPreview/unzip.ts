@@ -119,7 +119,7 @@ export async function unzipBlob(blob: Blob): Promise<{ entries: ZipEntry[]; read
 
         // If DecompressionStream isn't available, try the older API name (some runtimes exposed 'CompressionStream' only for compress/decompress)
         if (typeof (CompressionStream) !== "undefined" && typeof (globalThis as any).DecompressionStream === "undefined") {
-            // Some environments only provide CompressionStream; try using a hack: create a Response around a blob with 'deflate-raw' content, then use 'arrayBuffer'—but this is unreliable.
+            // Some environments only provide CompressionStream; try using a hack: create a Response around a blob with 'deflate-raw' content, then use 'arrayBuffer'-but this is unreliable.
             throw new Error("Deflate-compressed entries require DecompressionStream support in this environment");
         }
 

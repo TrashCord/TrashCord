@@ -15,7 +15,7 @@ export interface FrameLookup {
 }
 
 // Bare-media embeds: Discord renders these without chrome (no border, no
-// title, no description) — just the media. A raw Tenor GIF URL, a direct
+// title, no description) - just the media. A raw Tenor GIF URL, a direct
 // image link, or a Twitter/Giphy gifv all land here. Everything else
 // (type "rich", "link", "video") keeps the full embed box.
 function isBareMedia(emb: ChatEmbed): boolean {
@@ -89,7 +89,7 @@ export function embedHeight(
 
 // Sizing for a bare-media embed: fit the media into variant dims, preserving
 // the source aspect ratio. Used for both height-report and draw. Pasted
-// sticker links are a special case — they arrive as image-type embeds with
+// sticker links are a special case - they arrive as image-type embeds with
 // the source dimensions reported by Discord (often 320x320), but we want
 // them rendered at the same fixed 160x160 size as actual sticker
 // attachments so they read as stickers, not generic image embeds.
@@ -162,7 +162,7 @@ export function drawEmbed(
 ): number {
     // Bare-media: no chrome, just the frame. Matches how Discord renders
     // gifv/image-type embeds (direct image URL, Tenor/Giphy/Twitter GIF).
-    // drawMedia does its own save/restore — no extra bookkeeping needed.
+    // drawMedia does its own save/restore - no extra bookkeeping needed.
     if (isBareMedia(emb)) {
         const { w, h, url } = bareMediaSize(emb, variant, contentWidth);
         // For gifv: primary URL is the MP4 (video); poster fallback is the
@@ -229,7 +229,7 @@ export function drawEmbed(
     }
 
     if (emb.image?.url || emb.video?.url) {
-        // Prefer the video URL when both are present — for "video" embeds
+        // Prefer the video URL when both are present - for "video" embeds
         // (YouTube etc.) the thumbnail is already in emb.image, and the
         // video field holds the actual media for gifv. We keep the play
         // overlay for non-gifv video embeds so it reads as clickable.
@@ -333,7 +333,7 @@ function drawImageBox(
 // Draw any media URL, preferring an animated frame if available. Falls back
 // to the static HTMLImageElement, then to an optional poster URL (used for
 // gifv embeds where the primary URL is an MP4 that may fail or still be
-// loading — without the poster the embed would paint as a blank grey box).
+// loading - without the poster the embed would paint as a blank grey box).
 function drawMedia(
     ctx: CanvasRenderingContext2D,
     url: string,

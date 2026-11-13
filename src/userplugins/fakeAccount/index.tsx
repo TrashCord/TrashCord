@@ -44,7 +44,7 @@ function isMultiAccountStore(mod: any): boolean {
         if (!Array.isArray(users)) return false;
 
         // If users are present, they must have a Discord account structure
-        // (id string + tokenStatus number) — exclusive characteristic of MultiAccountStore
+        // (id string + tokenStatus number) - exclusive characteristic of MultiAccountStore
         if (users.length > 0) {
             const first = users[0];
             if (typeof first !== "object" || first === null) return false;
@@ -300,7 +300,7 @@ function RestoreButton() {
     return (
         <HeaderBarButton
             icon={RestoreIcon}
-            tooltip="Fake account active — click to restore your real account"
+            tooltip="Fake account active - click to restore your real account"
             onClick={() => { restoreRealAccount(); setActive(false); }}
         />
     );
@@ -356,7 +356,7 @@ export default definePlugin({
             // Patching the wrong store causes all rooms to disappear
             // on servers with permissions (the permissions store becomes corrupted).
             if (!isMultiAccountStore(mod)) {
-                console.warn("[FakeAccount] Store ignored — doesn't look like MultiAccountStore:", mod);
+                console.warn("[FakeAccount] Store ignored - doesn't look like MultiAccountStore:", mod);
                 return;
             }
 

@@ -362,7 +362,7 @@ function FakeDMPanel({ onClose, btnRect }: { onClose(): void; btnRect: DOMRect; 
     // Mode: "message" | "call"
     const [mode, setMode] = React.useState<"message" | "call">("message");
 
-    // Message mode state — for groups we use a member ID string; for 1:1 we keep "me"/"other"
+    // Message mode state - for groups we use a member ID string; for 1:1 we keep "me"/"other"
     const [senderId, setSenderId] = React.useState<string>(() => me?.id ?? "");
 
     // Call mode state
@@ -583,7 +583,7 @@ const FakeDMButton: ChatBarButtonFactory = (props: any) => {
 
     return (
         <div onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onMouseUp={e => e.stopPropagation()} style={{ display: "contents" }}>
-            <ChatBarButton tooltip="Fake DM — inject a fake message" onClick={handleClick}>
+            <ChatBarButton tooltip="Fake DM - inject a fake message" onClick={handleClick}>
                 <FakeDMIcon />
             </ChatBarButton>
             {btnRect && ReactDOM.createPortal(

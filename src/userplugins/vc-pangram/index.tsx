@@ -82,7 +82,7 @@ async function runScore(id: string, text: string, manual: boolean) {
     try {
         const s = settings.store;
         if (s.scorer === "pangram" && !s.apiKey)
-            throw new Error("No API key — set it in plugin settings");
+            throw new Error("No API key  set it in plugin settings");
         const result = s.scorer === "custom"
             ? await scoreCustom(text, s.customUrl)
             : await scorePangram(text, s.apiKey);
@@ -125,7 +125,7 @@ const settings = definePluginSettings({
         disabled: () => settings.store.scorer !== "pangram",
     },
     customUrl: {
-        description: "Custom scorer URL — any endpoint that accepts POST {text} and returns {label, score}",
+        description: "Custom scorer URL  any endpoint that accepts POST {text} and returns {label, score}",
         type: OptionType.STRING,
         default: "",
         disabled: () => settings.store.scorer !== "custom",

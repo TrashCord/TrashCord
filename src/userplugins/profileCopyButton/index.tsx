@@ -174,7 +174,7 @@ function resolveEmojisInBio(bio: string): Promise<string> {
         const missing = emojis.filter(e => !ownedMap.has(e.id));
 
         if (missing.length === 0) {
-            // All emojis already owned — nothing to upload
+            // All emojis already owned - nothing to upload
             resolve(bio);
             return;
         }
@@ -185,7 +185,7 @@ function resolveEmojisInBio(bio: string): Promise<string> {
                 missingEmojis={missing}
                 onConfirm={async (guildId: string | null) => {
                     if (!guildId) {
-                        // User skipped — strip missing emojis from bio
+                        // User skipped - strip missing emojis from bio
                         let result = bio;
                         for (const e of missing) result = result.split(e.full).join("");
                         resolve(result.replace(/[ \t]+\n/g, "\n").trim());
@@ -199,7 +199,7 @@ function resolveEmojisInBio(bio: string): Promise<string> {
                             const prefix = e.animated ? "a" : "";
                             result = result.split(e.full).join(`<${prefix}:${e.name}:${newId}>`);
                         } else {
-                            // Upload failed — strip that emoji
+                            // Upload failed - strip that emoji
                             result = result.split(e.full).join("");
                         }
                     }
@@ -358,7 +358,7 @@ async function tryAutoJoinGuild(guildId: string): Promise<void> {
     let inviteCode: string | null = null;
     let guildName = "the server";
 
-    // Try vanity URL first — works for most public servers
+    // Try vanity URL first - works for most public servers
     try {
         const vanityRes = await RestAPI.get({ url: `/guilds/${guildId}/vanity-url` });
         if (vanityRes?.body?.code) inviteCode = vanityRes.body.code;
@@ -376,7 +376,7 @@ async function tryAutoJoinGuild(guildId: string): Promise<void> {
     }
 
     if (!inviteCode) {
-        showToast({ text: "Server is private — can't auto-join." });
+        showToast({ text: "Server is private - can't auto-join." });
         return;
     }
 
@@ -569,7 +569,7 @@ export async function copyProfileFromId(targetId: string, guildId?: string) {
         setPendingChange({ pendingPronouns: "" });
     }
 
-    // Bio — resolve custom emojis first
+    // Bio - resolve custom emojis first
     const rawBio = profile?.bio ?? "";
     if (rawBio) {
         let bioToSet = nitro ? rawBio : rawBio.replace(CUSTOM_EMOJI_RE, "").replace(/[ \t]+\n/g, "\n").trim();
@@ -731,7 +731,7 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
     const showSubmenu = !!guildId;
 
     if (!showSubmenu) {
-        // No guild context — just show a single "Copy Profile" item
+        // No guild context - just show a single "Copy Profile" item
         children.push(
             <Menu.MenuSeparator />,
             <Menu.MenuItem
@@ -750,7 +750,7 @@ const userContextMenuPatch: NavContextMenuPatchCallback = (children, { user, gui
         return;
     }
 
-    // Guild context — show submenu with Global and Server Profile options
+    // Guild context - show submenu with Global and Server Profile options
     children.push(
         <Menu.MenuSeparator />,
         <Menu.MenuItem id="copy-profile" label="Copy Profile">

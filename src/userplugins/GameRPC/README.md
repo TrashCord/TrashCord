@@ -52,7 +52,7 @@ Some games have additional integration for Discord RPC. For example, VRChat will
 
 ## Installation
 
-### Option A — Git submodule
+### Option A - Git submodule
 
 From the root of your Vencord folder:
 
@@ -66,7 +66,7 @@ To update the plugin later:
 git submodule update --remote
 ```
 
-### Option B — Clone directly
+### Option B - Clone directly
 
 From the root of your Vencord folder:
 

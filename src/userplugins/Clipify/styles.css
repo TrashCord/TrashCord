@@ -1,5 +1,5 @@
 /*
- * Clipify — native-feeling styles for the choice + trim modals.
+ * Clipify - native-feeling styles for the choice + trim modals.
  * Everything keys off Discord theme variables so it adapts to light/dark and
  * custom themes automatically.
  *
@@ -584,7 +584,7 @@
     cursor: crosshair;
 }
 
-/* Crop selection — the box-shadow darkens everything outside it. */
+/* Crop selection - the box-shadow darkens everything outside it. */
 .vc-clipify-crop-rect {
     position: absolute;
     border: 2px solid var(--brand-experiment, var(--brand-500, #5865f2));

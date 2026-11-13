@@ -27,7 +27,7 @@ export function resolveChatAnimate(mode: ChatAnimationMode, streamActive: boolea
     return streamActive; // "when-streaming"
 }
 
-// Count emit timestamps within the last `windowMs` — the displayed output fps.
+// Count emit timestamps within the last `windowMs` - the displayed output fps.
 export function fpsInWindow(timestamps: number[], now: number, windowMs = 1000): number {
     let c = 0;
     for (const t of timestamps) if (now - t < windowMs) c++;

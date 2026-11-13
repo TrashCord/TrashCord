@@ -9,7 +9,7 @@
 // without breaking the destination track.
 //
 // A MediaStreamAudioDestinationNode with zero connected sources does NOT
-// reliably emit silent samples in Chromium — it emits nothing. That starves
+// reliably emit silent samples in Chromium - it emits nothing. That starves
 // MediaRecorder (it waits for audio data that never arrives and never
 // transitions to "recording" state). We fix this by always having a
 // ConstantSourceNode with offset=0 connected to the destination: it emits

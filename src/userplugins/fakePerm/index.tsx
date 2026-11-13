@@ -12,7 +12,7 @@ import { Button } from "@components/Button";
 import { GuildChannelStore, GuildMemberStore, GuildRoleStore, GuildStore, Menu, React, Select, TextArea } from "@webpack/common";
 
 // ─── Global State ──────────────────────────────────────────────────────────────
-// isEnabled is the SINGLE source of truth — read from DataStore at start()
+// isEnabled is the SINGLE source of truth - read from DataStore at start()
 // Context menu patches are always registered, they check isEnabled at runtime
 let isEnabled = false;
 
@@ -39,7 +39,7 @@ function destroyDomObserver() {
 
 const DS_KEY = "FakePerm.options.enabled"; // Standard Equicord key for plugin options
 
-// injectHideStyle / removeHideStyle removed — caused display bugs
+// injectHideStyle / removeHideStyle removed - caused display bugs
 // by hiding Discord elements via too broad CSS selectors (roles, permissions, copy-user-id)
 // which made some rooms invisible. Complete removal.
 function injectHideStyle() { /* intentionally removed */ }
@@ -394,7 +394,7 @@ function AddRoleModal({ rootProps, user, guildId }: { rootProps: any; user: any;
                     {filtered.map(role => {
                         const color = role.color ? `#${role.color.toString(16).padStart(6, "0")}` : "#80848e";
                         return (
-                            <div key={role.id} onClick={() => { toast(`Role ${role.name} — simulation`); rootProps.onClose(); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", cursor: "pointer", opacity: memberRoleIds.includes(role.id) ? 0.5 : 1 }} onMouseEnter={e => (e.currentTarget.style.background = "var(--background-modifier-hover)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                            <div key={role.id} onClick={() => { toast(`Role ${role.name} - simulation`); rootProps.onClose(); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", cursor: "pointer", opacity: memberRoleIds.includes(role.id) ? 0.5 : 1 }} onMouseEnter={e => (e.currentTarget.style.background = "var(--background-modifier-hover)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                                 <div style={{ width: 12, height: 12, borderRadius: "50%", background: color, flexShrink: 0 }} />
                                 <span style={{ color: "var(--text-normal, #dcddde)", fontSize: 14 }}>{role.name}</span>
                             </div>
@@ -502,7 +502,7 @@ const userContextPatch: NavContextMenuPatchCallback = (children, { user }: any) 
                         } catch { }
                         allChannels.sort((a, b) => a.position - b.position);
                         if (allChannels.length === 0) return <Menu.MenuItem key="fp-move-empty" id="fp-move-empty" label="No voice channels" disabled />;
-                        return allChannels.map(ch => <Menu.MenuItem key={`fp-move-${ch.id}`} id={`fp-move-${ch.id}`} label={`🔊 ${ch.name}`} action={() => toast(`Moved to #${ch.name} — simulation`)} />);
+                        return allChannels.map(ch => <Menu.MenuItem key={`fp-move-${ch.id}`} id={`fp-move-${ch.id}`} label={`🔊 ${ch.name}`} action={() => toast(`Moved to #${ch.name} - simulation`)} />);
                     })()}
                 </Menu.MenuItem>
                 <Menu.MenuCheckboxItem key="fp-mute" id="fp-mute" label="Server Mute" color="danger" checked={mutedUsers.get(user.id) === true} action={() => { const next = !mutedUsers.get(user.id); mutedUsers.set(user.id, next); notifyBadgeChange(); }} />
@@ -648,7 +648,7 @@ export default definePlugin({
         }
         pluginSelf = this;
 
-        // Patches are ALWAYS registered — they check isEnabled at runtime
+        // Patches are ALWAYS registered - they check isEnabled at runtime
         addContextMenuPatch("user-context", userContextPatch);
         addContextMenuPatch("message", messageContextPatch);
 
@@ -658,7 +658,7 @@ export default definePlugin({
         style.textContent = "[class*='submenu']::-webkit-scrollbar{display:none!important}[class*='submenu']{scrollbar-width:none!important} .fp-footer-fix { display: flex; gap: 8px; padding: 16px; }";
         document.head.appendChild(style);
 
-        // MutationObserver for DOM overrides — only active while enabled
+        // MutationObserver for DOM overrides - only active while enabled
         ensureDomObserver();
     },
 

@@ -7,31 +7,36 @@
 import managedStyle from "./styles.css?managed";
 
 import { definePluginSettings } from "@api/Settings";
+import ErrorBoundary from "@components/ErrorBoundary";
+import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { onceReady } from "@webpack";
 
-import { maxAll, stop as stopFarmer } from "./farmer";
+import { checkInterrupted, maxAll, stop as stopFarmer } from "./farmer";
+import { createHeaderButton, IconIdle } from "./header";
+import { LANGUAGES } from "./i18n";
 import { BadgeFarmerDashboard, loadCatalogue } from "./ui";
 
-const settings = definePluginSettings({
+export const settings = definePluginSettings({
     dashboard: {
         type: OptionType.COMPONENT,
         description: "Farming dashboard",
         component: BadgeFarmerDashboard
     },
-    autoStartMaxAll: {
-        type: OptionType.BOOLEAN,
-        description: "Run Max All on client start",
-        default: false
-    },
-    showGamePresence: {
-        type: OptionType.BOOLEAN,
-        description: "Show the credited game as your activity while farming (heavier on low-end PCs)",
-        default: false
-    }
+    language: { type: OptionType.SELECT, description: "Language", options: LANGUAGES, hidden: true },
+    headerButton: { type: OptionType.BOOLEAN, description: "Header button", default: true, hidden: true },
+    toasts: { type: OptionType.BOOLEAN, description: "Notifications", default: true, hidden: true },
+    autoSwitch: { type: OptionType.BOOLEAN, description: "Auto Turbo / Slow", default: true, hidden: true },
+    autoStartMaxAll: { type: OptionType.BOOLEAN, description: "Run Max All at startup", default: false, hidden: true },
+    showGamePresence: { type: OptionType.BOOLEAN, description: "Show game as activity", default: false, hidden: true }
 });
 
-export default definePlugin({
+const HeaderButton = ErrorBoundary.wrap(
+    createHeaderButton(() => settings.use(["headerButton"]).headerButton),
+    { noop: true }
+);
+
+const plugin = definePlugin({
     name: "BadgeFarmer",
     description: "Credited Game Time, Game Variety, and Streaming hours straight to Discord's analytics. One click, every tier.",
     authors: [{ name: "rico", id: 1361736124858630274n }, { name: "zfrancesck1", id: 456195985404592149n }],
@@ -40,7 +45,21 @@ export default definePlugin({
     managedStyle,
     searchTerms: ["badges", "farm", "game time", "game variety", "streaming"],
     settings,
+
+    headerBarButton: {
+        icon: IconIdle,
+        render: HeaderButton,
+        priority: 5
+    },
+
+    toolboxActions: {
+        "Open Badge Farmer"() {
+            openPluginModal(plugin);
+        }
+    },
+
     start() {
+        void checkInterrupted();
         if (!settings.store.autoStartMaxAll) return;
         onceReady.then(() =>
             loadCatalogue().then(
@@ -53,3 +72,5 @@ export default definePlugin({
         stopFarmer();
     }
 });
+
+export default plugin;

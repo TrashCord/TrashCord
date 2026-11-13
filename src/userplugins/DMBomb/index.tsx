@@ -78,7 +78,7 @@ async function startBomb(guildId: string, roleId: string | "all", message: strin
         try {
             const dmRes = await RestAPI.post({ url: "/users/@me/channels", body: { recipient_id: m.userId } });
             if (!dmRes?.body?.id) {
-                state.log.push(`❌ ${name} — DMs closed or error`);
+                state.log.push(`❌ ${name} - DMs closed or error`);
                 state.notify();
                 continue;
             }
@@ -86,7 +86,7 @@ async function startBomb(guildId: string, roleId: string | "all", message: strin
             state.done++;
             state.log.push(`✅ ${name}`);
         } catch (e: any) {
-            state.log.push(`❌ ${name} — ${e?.message ?? "error (rate limit?)"}`);
+            state.log.push(`❌ ${name} - ${e?.message ?? "error (rate limit?)"}`);
         }
         state.notify();
         if (!state.aborted) await sleep(state.delayMs);

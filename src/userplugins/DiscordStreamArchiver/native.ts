@@ -196,7 +196,7 @@ export async function ffmpegRemuxDir(
     const output = path.join(dir, `call.${format}`);
     const bin = opts.ffmpegPath || "ffmpeg";
 
-    // mkv: copy both streams — WebM is already Matroska-family so no re-encode needed.
+    // mkv: copy both streams - WebM is already Matroska-family so no re-encode needed.
     // mp4: re-encode video to H.264 and audio to AAC for maximum player compatibility.
     //      VP9+Opus in MP4 works in some players but is flaky on Windows / older systems;
     //      H.264+AAC is the universal baseline.

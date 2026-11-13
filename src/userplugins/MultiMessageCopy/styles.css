@@ -1,13 +1,13 @@
 /* Enhanced Multi Message Copy Plugin Styles */
 
-/* CSS Custom Properties — mapped to Discord theme tokens where possible */
+/* CSS Custom Properties - mapped to Discord theme tokens where possible */
 :root {
-  /* Brand / accent — always blurple, works on any theme */
+  /* Brand / accent - always blurple, works on any theme */
   --mmc-primary: var(--brand-experiment, #5865f2);
   --mmc-primary-hover: var(--brand-experiment-560, #4752c4);
   --mmc-primary-light: rgba(88, 101, 242, 0.1);
 
-  /* Semantic status colors — fixed, they don't come from Discord tokens */
+  /* Semantic status colors - fixed, they don't come from Discord tokens */
   --mmc-success: #23a55a;
   --mmc-success-hover: #1e8e4e;
   --mmc-warning: #f0b232;
@@ -17,19 +17,19 @@
   --mmc-info: #00a8fc;
   --mmc-info-hover: #0096e0;
 
-  /* Backgrounds — Discord theme-aware with hardcoded dark fallbacks */
+  /* Backgrounds - Discord theme-aware with hardcoded dark fallbacks */
   --mmc-bg-primary: var(--modal-background, var(--background-primary, #313338));
   --mmc-bg-secondary: var(--background-secondary, #2b2d31);
   --mmc-bg-tertiary: var(--background-tertiary, #1e1f22);
   --mmc-border: var(--border-subtle, rgba(255, 255, 255, 0.08));
   --mmc-border-hover: var(--interactive-normal, rgba(255, 255, 255, 0.16));
 
-  /* Text — Discord theme-aware */
+  /* Text - Discord theme-aware */
   --mmc-text: var(--header-primary, var(--text-normal, #f2f3f5));
   --mmc-text-muted: var(--text-muted, #949ba4);
   --mmc-text-secondary: var(--text-normal, #dbdee1);
 
-  /* Shadows — use opacity so they work on any background */
+  /* Shadows - use opacity so they work on any background */
   --mmc-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
   --mmc-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
   --mmc-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -193,7 +193,7 @@
 /* ── Message Container ──────────────────────────────────────────────────────
    position:relative is the only structural guarantee we need here.
    padding-left is fixed at 48px the moment selection-mode is active and
-   never changes on hover or select — this is the no-flicker contract.       */
+   never changes on hover or select - this is the no-flicker contract.       */
 .mmc-message-container {
   position: relative !important;
   transition: background 120ms ease, box-shadow 120ms ease !important;
@@ -241,7 +241,7 @@
   animation: mmcCheckboxSlideIn 150ms var(--mmc-spring) !important;
 }
 
-/* Focus ring — keyboard navigation */
+/* Focus ring - keyboard navigation */
 .mmc-checkbox-container:focus-visible {
   outline: 2px solid var(--mmc-primary) !important;
   outline-offset: 2px !important;
@@ -254,7 +254,7 @@
 
 /* ── Visual Checkbox ────────────────────────────────────────────────────────
    20×20px, 7px radius = modern Discord-style rounded square.
-   pointer-events:none — the 32px container is the click target.            */
+   pointer-events:none - the 32px container is the click target.            */
 .mmc-checkbox {
   width: 20px !important;
   height: 20px !important;
@@ -1170,7 +1170,7 @@
   }
 }
 
-/* Discord-style Scrollbar — plugin containers only */
+/* Discord-style Scrollbar - plugin containers only */
 .mmc-preview-text::-webkit-scrollbar,
 .mmc-modal-body::-webkit-scrollbar,
 .mmc-export-progress-log::-webkit-scrollbar {

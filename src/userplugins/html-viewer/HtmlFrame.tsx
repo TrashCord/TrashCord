@@ -10,11 +10,11 @@ import { FULLVIEW_CSP, hardenHtml, LOCKED_CSP } from "./harden";
 
 // Containment lives here. sandbox="allow-scripts" and NOTHING else: adding
 // allow-same-origin would let the frame delete its own sandbox and read
-// Discord's token. That holds in BOTH modes below — and BOTH inject a CSP, so
+// Discord's token. That holds in BOTH modes below - and BOTH inject a CSP, so
 // neither is ever fully open.
 //
-//   "locked" (default) — inline glance: no network at all.
-//   "full"             — Full view: CDN script/style/img/font render, but
+//   "locked" (default) - inline glance: no network at all.
+//   "full"             - Full view: CDN script/style/img/font render, but
 //                        connect-src 'none' blocks fetch/XHR/WebSocket/beacon.
 export function HtmlFrame({ html, className, mode = "locked" }: { html: string; className?: string; mode?: "locked" | "full"; }) {
     const srcDoc = useMemo(

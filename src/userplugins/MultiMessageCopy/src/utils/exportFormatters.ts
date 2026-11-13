@@ -101,5 +101,5 @@ export function getExportMimeType(format: ExportFormat): string {
 }
 
 export function getExportExtension(format: ExportFormat): string {
-  return format // "json" | "txt" | "html" — all are their own extension
+  return format // "json" | "txt" | "html" - all are their own extension
 }

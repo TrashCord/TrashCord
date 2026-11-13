@@ -158,7 +158,7 @@ export function HtmlCard({ attachment, authorId, guildId }: { attachment: Attach
                 {authorId && (
                     <button
                         className={"vc-hv-toggle" + (userAuto ? " vc-hv-toggle-on" : "")}
-                        title={userAuto ? "Auto-rendering this user's HTML — click to stop" : "Always render this user's HTML"}
+                        title={userAuto ? "Auto-rendering this user's HTML - click to stop" : "Always render this user's HTML"}
                         onClick={toggleUser}
                     >
                         <UserIcon />
@@ -167,7 +167,7 @@ export function HtmlCard({ attachment, authorId, guildId }: { attachment: Attach
                 {guildId && (
                     <button
                         className={"vc-hv-toggle" + (serverAuto ? " vc-hv-toggle-on" : "")}
-                        title={serverAuto ? "Auto-rendering this server's HTML — click to stop" : "Always render HTML in this server"}
+                        title={serverAuto ? "Auto-rendering this server's HTML - click to stop" : "Always render HTML in this server"}
                         onClick={toggleServer}
                     >
                         <ServerIcon />

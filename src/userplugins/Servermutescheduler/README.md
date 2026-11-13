@@ -7,7 +7,7 @@ A Vencord plugin that automatically mutes all your Discord servers outside your 
 - **Node.js** → [nodejs.org](https://nodejs.org) (pick the LTS version)
 - **Git** → [git-scm.com](https://git-scm.com)
 
-## 🔧 Step 1 — Install Vencord from source
+## 🔧 Step 1 - Install Vencord from source
 
 Open CMD and run these commands one by one:
 
@@ -24,7 +24,7 @@ When `pnpm run inject` asks for your Discord location, enter:
 
 Then fully restart Discord.
 
-## 📁 Step 2 — Install the plugin
+## 📁 Step 2 - Install the plugin
 
 1. Download `ServerMuteScheduler.tsx` from this page
 2. Go to this folder on your PC: `C:\Users\YOURNAME\Vencord\src\userplugins`
@@ -35,9 +35,9 @@ Then fully restart Discord.
 Your final path should look like this:
 `C:\Users\YOURNAME\Vencord\src\userplugins\mutemod\index.tsx`
 
-*(Vencord accepts userplugins either as a single loose file or as a folder containing an `index.tsx` — this plugin uses the folder version.)*
+*(Vencord accepts userplugins either as a single loose file or as a folder containing an `index.tsx` - this plugin uses the folder version.)*
 
-## ⚙️ Step 3 — Build and launch
+## ⚙️ Step 3 - Build and launch
 
 Run in CMD:
 
@@ -48,14 +48,14 @@ pnpm run build
 
 Then open Discord → Settings → Vencord → Settings → click **Relaunch Discord**
 
-## ✅ Step 4 — Enable the plugin
+## ✅ Step 4 - Enable the plugin
 
 1. Go to Settings → Plugins
 2. Search **ServerMuteScheduler**
 3. Toggle it on
 4. Click the ⚙️ icon to configure your active hours and excluded servers
 
-## 🕐 Step 5 — Configure
+## 🕐 Step 5 - Configure
 
 | Setting | Description |
 |---|---|
@@ -76,4 +76,4 @@ Click it anytime to pause or resume without going into settings.
 ---
 
 ⚠️ Replace `YOURNAME` with your actual Windows username in all folder paths above.
-⚠️ This plugin is PC only — Vencord does not work on mobile.
+⚠️ This plugin is PC only - Vencord does not work on mobile.

@@ -115,7 +115,7 @@ export function SpotifyModal({ rootProps, tracks, onPick }: Props) {
             >
                 <ModalHeader>
                     <Heading tag="h2" style={{ margin: 0, flex: 1 }}>
-                        Spotify — pick a track
+                        Spotify - pick a track
                     </Heading>
                     <ModalCloseButton onClick={rootProps.onClose} />
                 </ModalHeader>

@@ -192,7 +192,7 @@ export async function ratchetInitAlice(SK: Uint8Array, bobDHpub: Uint8Array): Pr
 }
 
 /** Bob (responder): his ephemeral keypair from the handshake becomes his first
- *  ratchet keypair. He has no receive chain yet — that's set up when Alice's
+ *  ratchet keypair. He has no receive chain yet - that's set up when Alice's
  *  first message arrives and triggers a DH ratchet. */
 export function ratchetInitBob(SK: Uint8Array, bobKP: KeyPair): RatchetState {
     return {

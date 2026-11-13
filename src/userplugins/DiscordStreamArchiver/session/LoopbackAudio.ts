@@ -7,7 +7,7 @@
 // System-audio loopback capture for Discord Desktop.
 //
 // Discord Desktop routes voice through a native C++ module with no JS
-// MediaStream exposure, so we fall back to getDisplayMedia — it prompts the
+// MediaStream exposure, so we fall back to getDisplayMedia - it prompts the
 // user once per session to select a window or screen and returns a
 // MediaStream containing the captured system audio output.
 //
@@ -19,7 +19,7 @@
 //   - On Windows 11 the picker lets you choose a specific window (e.g.
 //     "Discord"); audio is then scoped to that window's output.
 //   - On Windows 10 and most Linux/macOS configurations, loopback is
-//     whole-system — other apps playing audio at the time (Spotify, YouTube
+//     whole-system - other apps playing audio at the time (Spotify, YouTube
 //     in a browser tab, game audio, etc.) will also be captured.
 //   - The user's own mic is not captured this way unless they have OS-level
 //     loopback on their mic, which is unusual.
@@ -33,7 +33,7 @@ export async function captureDesktopAudio(): Promise<MediaStream | null> {
         return null;
     }
     try {
-        // This is our own getDisplayMedia call (for loopback audio) — tell the
+        // This is our own getDisplayMedia call (for loopback audio) - tell the
         // local-stream tap not to mistake it for a screenshare to record.
         ignoreNextSelfDisplayCapture();
         const displayStream = await navigator.mediaDevices.getDisplayMedia({

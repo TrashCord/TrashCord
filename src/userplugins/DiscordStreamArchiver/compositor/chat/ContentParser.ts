@@ -48,7 +48,7 @@ const UNICODE_EMOJI_RX = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F900}-\u{1F9F
 function emoteUrl(id: string, animated: boolean): string {
     // Animated emotes: request animated WebP, NOT GIF. Discord's CDN returns
     // HTTP 415 for the `.gif` form of many (especially recently-uploaded)
-    // animated emotes — it serves those only as animated WebP. When the
+    // animated emotes - it serves those only as animated WebP. When the
     // `.gif` 415s, both the decode worker's fetch and the static <img>
     // fallback fail, leaving a gray placeholder square. The decode worker
     // (ImageDecoder) handles image/webp frame-by-frame, and an animated-WebP

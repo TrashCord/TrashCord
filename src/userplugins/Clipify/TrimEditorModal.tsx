@@ -367,8 +367,8 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
                 // Network blocked / core failed to load → degrade gracefully.
                 showToast({
                     text: hasEffects
-                    ? "FFmpeg unavailable — effects skipped, using MediaRecorder."
-                    : "FFmpeg unavailable — falling back to MediaRecorder."
+                    ? "FFmpeg unavailable - effects skipped, using MediaRecorder."
+                    : "FFmpeg unavailable - falling back to MediaRecorder."
                 });
                 setProgress(0);
             }
@@ -483,10 +483,10 @@ function TrimEditorInner({ modalProps, file, defaultFps, quality: initialQuality
                             </div>
                             <div className={cl("overlay-hint")}>
                                 {!useFFmpeg
-                                    ? "Re-encoding in real time (MediaRecorder) — this takes about the length of the clip."
+                                    ? "Re-encoding in real time (MediaRecorder) - this takes about the length of the clip."
                                     : mode === "lossless"
-                                        ? "Lossless cut — almost instant."
-                                        : "Re-encoding with quality (FFmpeg) — much faster than real time."}
+                                        ? "Lossless cut - almost instant."
+                                        : "Re-encoding with quality (FFmpeg) - much faster than real time."}
                             </div>
                         </div>
                     )}

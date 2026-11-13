@@ -141,7 +141,7 @@ function CustomWarningRules({ rulesArray }: { rulesArray: WarningRule[]; }) {
                         )}
                     >
                         <Paragraph variant="text-md/medium" lineClamp={1}>
-                            {isEmptyRule(rule) ? `Empty Rule ${index + 1}` : `Rule ${index + 1} — ${rule.match}`}
+                            {isEmptyRule(rule) ? `Empty Rule ${index + 1}` : `Rule ${index + 1} - ${rule.match}`}
                         </Paragraph>
                     </ExpandableCard>
                 )}

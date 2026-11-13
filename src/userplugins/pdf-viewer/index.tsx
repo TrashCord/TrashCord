@@ -482,7 +482,7 @@ function Preview({ attachment }: { attachment: MessageAttachment; }) {
                 <IconBtn
                     active={open}
                     disabled={tooLarge}
-                    label={tooLarge ? `Preview disabled — over ${maxFileSizeMb} MB` : open ? "Hide preview" : "Preview PDF"}
+                    label={tooLarge ? `Preview disabled - over ${maxFileSizeMb} MB` : open ? "Hide preview" : "Preview PDF"}
                     onClick={() => setOpen(o => !o)}
                 >
                     {open ? <EyeClosed /> : <EyeOpen />}

@@ -125,11 +125,11 @@ function fmtEnum(value: string | undefined, prefix: string) {
 }
 
 function fmtDate(value: string | undefined | null) {
-    return value ? String(value).slice(0, 10) : "—";
+    return value ? String(value).slice(0, 10) : "-";
 }
 
 function fmtDateTime(value: string | undefined | null) {
-    return value ? String(value).replace("T", " ").slice(0, 19) : "—";
+    return value ? String(value).replace("T", " ").slice(0, 19) : "-";
 }
 
 function riskColor(level: string | undefined) {
@@ -177,7 +177,7 @@ function FivemCard({ r }: { r: FivemResult; }) {
             {r.discord_name && <Field label="Discord name" value={r.discord_name} />}
             {r.email && <Field label="Email" value={r.email} />}
             {r.ip_asn && (
-                <Field label="IP location" value={[r.ip_asn.organization, r.ip_asn.country].filter(Boolean).join(" — ")} />
+                <Field label="IP location" value={[r.ip_asn.organization, r.ip_asn.country].filter(Boolean).join(" - ")} />
             )}
         </div>
     );
@@ -190,7 +190,7 @@ function SignalRow({ s }: { s: ScoreSignal; }) {
             <Tag color={SIGNAL_COLORS[s.kind]}>{points}</Tag>
             <div>
                 <span style={{ color: TEXT_NORMAL, fontWeight: 600 }}>{s.label}</span>
-                {s.detail && <span style={{ color: TEXT_MUTED }}> — {s.detail}</span>}
+                {s.detail && <span style={{ color: TEXT_MUTED }}> - {s.detail}</span>}
             </div>
         </div>
     );
@@ -295,7 +295,7 @@ export function CordCatModal({ data }: { data: any; }) {
 
             <SectionTitle>User Info</SectionTitle>
             {u.global_name && <Field label="Display name" value={u.global_name} />}
-            <Field label="Username" value={u.username ?? "—"} />
+            <Field label="Username" value={u.username ?? "-"} />
             <Field label="User ID" value={u.id} />
             <Field label="Public flags" value={String(u.public_flags ?? 0)} />
             {u.accent_color != null && <Field label="Accent color" value={`#${u.accent_color.toString(16).padStart(6, "0")}`} />}

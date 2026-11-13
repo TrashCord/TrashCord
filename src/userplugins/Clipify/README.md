@@ -2,7 +2,7 @@
 
 # ✂️ Clipify
 
-**Edit your media before sending it — without ever leaving Discord.**
+**Edit your media before sending it - without ever leaving Discord.**
 
 A [Vencord](https://vencord.dev/) / [Equicord](https://equicord.org/) userplugin that intercepts **video, audio and image** uploads, asks whether you want to edit, and opens a polished editor built right into the client: a frame-accurate video trimmer, an audio cutter, and a mini image editor with crop, resize and censor tools.
 
@@ -39,30 +39,30 @@ Everything runs **locally in your client**. Your media is never uploaded to any 
 
 <img src="assets/ui-audio.svg" alt="Audio trim editor (advanced)" width="640"/>
 
-<img src="assets/ui-image.svg" alt="Image editor — censor with brush (advanced)" width="640"/>
+<img src="assets/ui-image.svg" alt="Image editor - censor with brush (advanced)" width="640"/>
 
 </div>
 
 ## Features
 
-- **🎬 Video — frame-accurate trimmer** — scrub the timeline, set in/out points, step a single frame at a time, and preview your exact selection. Two engines (see [comparison](#video-engines)) and High / Medium / Low quality presets. **Advanced** adds **color grading** (saturation / contrast / brightness, previewed live), an **audio boost**, and a **crop / zoom** box you drag right on the video.
-- **🎵 Audio — quick cutter** — trim an audio clip down to the part you want with the same timeline + in/out workflow. Lossless cut (keeps the original format) or re-encode, with a fully-offline WAV fallback. Shows the source **bitrate in kbps**, and **advanced** adds an output bitrate picker and an **audio boost** (gain).
-- **🖼️ Image — mini editor** — three tools in one modal:
-  - **Crop** — drag a selection box; everything outside it is dimmed.
-  - **Resize** — set width / height with an optional aspect-ratio lock.
-  - **Censor** — hide faces, text or anything sensitive with **blur** or **pixelate (mosaic)**. Draw **boxes** or free-hand **paint with the brush**, with sliders for intensity and brush size, plus undo / clear.
-- **🧰 Three layout modes** — a **Simple / Moderate / Advanced** switch in every editor reveals progressively more controls, from the bare essentials up to the power-user effects. See [Layout modes](#layout-modes) for the full breakdown.
+- **🎬 Video - frame-accurate trimmer** - scrub the timeline, set in/out points, step a single frame at a time, and preview your exact selection. Two engines (see [comparison](#video-engines)) and High / Medium / Low quality presets. **Advanced** adds **color grading** (saturation / contrast / brightness, previewed live), an **audio boost**, and a **crop / zoom** box you drag right on the video.
+- **🎵 Audio - quick cutter** - trim an audio clip down to the part you want with the same timeline + in/out workflow. Lossless cut (keeps the original format) or re-encode, with a fully-offline WAV fallback. Shows the source **bitrate in kbps**, and **advanced** adds an output bitrate picker and an **audio boost** (gain).
+- **🖼️ Image - mini editor** - three tools in one modal:
+  - **Crop** - drag a selection box; everything outside it is dimmed.
+  - **Resize** - set width / height with an optional aspect-ratio lock.
+  - **Censor** - hide faces, text or anything sensitive with **blur** or **pixelate (mosaic)**. Draw **boxes** or free-hand **paint with the brush**, with sliders for intensity and brush size, plus undo / clear.
+- **🧰 Three layout modes** - a **Simple / Moderate / Advanced** switch in every editor reveals progressively more controls, from the bare essentials up to the power-user effects. See [Layout modes](#layout-modes) for the full breakdown.
 - **⏯️ Cancellable exports** with live progress.
-- **🔒 Local-only & private** — no telemetry, no uploads. Images are edited purely on a canvas; the only network request is a one-time fetch of the FFmpeg core (see [notes](#notes--privacy)).
-- **🎚️ Per-type opt-in** — audio and image interception can each be toggled off in settings.
+- **🔒 Local-only & private** - no telemetry, no uploads. Images are edited purely on a canvas; the only network request is a one-time fetch of the FFmpeg core (see [notes](#notes--privacy)).
+- **🎚️ Per-type opt-in** - audio and image interception can each be toggled off in settings.
 
 ## Layout modes
 
-Every editor has a **Simple / Moderate / Advanced** switch at the top (the default is set in settings, but you can change it live per session). Each step up reveals more controls without changing what you already set — they're purely about how much is on screen.
+Every editor has a **Simple / Moderate / Advanced** switch at the top (the default is set in settings, but you can change it live per session). Each step up reveals more controls without changing what you already set - they're purely about how much is on screen.
 
-- **Simple** — just the essentials to get the job done fast.
-- **Moderate** — the standard toolset (the default).
-- **Advanced** — everything, plus the power-user effects.
+- **Simple** - just the essentials to get the job done fast.
+- **Moderate** - the standard toolset (the default).
+- **Advanced** - everything, plus the power-user effects.
 
 What each mode shows, per editor:
 
@@ -72,7 +72,7 @@ What each mode shows, per editor:
 | **🎵 Audio** | Timeline, play, trim & send | Lossless/Re-encode mode, set in/out points, source **bitrate (kbps)** | Output AAC **bitrate** picker, **audio boost** (gain) |
 | **🖼️ Image** | Crop, resize (W/H + lock), censor with **blur boxes** + intensity | **Pixelate** style, **brush** painting + brush size, undo | Output **format** (PNG/JPEG/WebP) + **quality**, resize **scale presets** (25/50/100%) |
 
-> Advanced effects on video/audio (color grading, crop, boost, speed) re-encode through FFmpeg automatically — they can't be applied to a lossless stream copy.
+> Advanced effects on video/audio (color grading, crop, boost, speed) re-encode through FFmpeg automatically - they can't be applied to a lossless stream copy.
 
 ## Video engines
 
@@ -83,12 +83,12 @@ What each mode shows, per editor:
 | **Lossless mode** | ✅ Instant stream-copy, zero quality loss¹ | ❌ |
 | **Output** | `.mp4` (precise) / original container (lossless) | `.webm` |
 | **Speed** | Fast; lossless is near-instant | Real-time (a 30s clip takes ~30s) |
-| **Network** | One-time ~30 MB core download² | None — fully offline |
+| **Network** | One-time ~30 MB core download² | None - fully offline |
 
 > ¹ In lossless mode the start point snaps to the nearest preceding keyframe (a fundamental trade-off of stream-copying).
 > ² The core is fetched from [jsDelivr](https://www.jsdelivr.com/), which is allow-listed in Discord's CSP. Cached by the browser after first use.
 
-Audio trimming follows the same engine setting: **FFmpeg** does a lossless stream-copy (or re-encodes to AAC `.m4a`), while **MediaRecorder** / any ffmpeg failure falls back to a lossless **WAV** export — both fully offline. Image editing never needs ffmpeg.
+Audio trimming follows the same engine setting: **FFmpeg** does a lossless stream-copy (or re-encodes to AAC `.m4a`), while **MediaRecorder** / any ffmpeg failure falls back to a lossless **WAV** export - both fully offline. Image editing never needs ffmpeg.
 
 ## Keyboard shortcuts
 
@@ -111,17 +111,17 @@ Configure under **Settings → Plugins → Clipify**.
 | **Intercept uploads** | On | Ask before sending a media upload. |
 | **Edit audio** | On | Also intercept audio uploads (trim before sending). |
 | **Edit images** | On | Also intercept image uploads (resize / crop / censor). |
-| **Engine** | FFmpeg | Video/audio engine — FFmpeg or MediaRecorder (offline). |
-| **Trim mode** | Precise | FFmpeg only — *Precise* (exact frame, re-encodes) or *Fast* (lossless keyframe). |
+| **Engine** | FFmpeg | Video/audio engine - FFmpeg or MediaRecorder (offline). |
+| **Trim mode** | Precise | FFmpeg only - *Precise* (exact frame, re-encodes) or *Fast* (lossless keyframe). |
 | **Export quality** | High | High / Medium / Low (CRF for FFmpeg precise, bitrate for MediaRecorder). |
 | **Frame rate** | 30 | Assumed FPS used for frame-by-frame navigation in the video editor. |
-| **Layout** | Moderate | Default editor layout — Simple, Moderate or Advanced. Switchable live inside each editor. |
+| **Layout** | Moderate | Default editor layout - Simple, Moderate or Advanced. Switchable live inside each editor. |
 
 ## Supported input formats
 
-- **Video** — `mp4` · `webm` · `mov` · `mkv` · `avi` · `m4v` · `mpg` · `mpeg` · `wmv` · `flv` · `ts` · `3gp` · `ogv`
-- **Audio** — `mp3` · `wav` · `ogg` · `oga` · `m4a` · `aac` · `flac` · `opus` · `weba` · `wma` · `aiff` · `aif`
-- **Image** — `png` · `jpg` · `jpeg` · `webp` · `bmp` · `avif`  *(animated GIFs are left untouched to preserve animation)*
+- **Video** - `mp4` · `webm` · `mov` · `mkv` · `avi` · `m4v` · `mpg` · `mpeg` · `wmv` · `flv` · `ts` · `3gp` · `ogv`
+- **Audio** - `mp3` · `wav` · `ogg` · `oga` · `m4a` · `aac` · `flac` · `opus` · `weba` · `wma` · `aiff` · `aif`
+- **Image** - `png` · `jpg` · `jpeg` · `webp` · `bmp` · `avif`  *(animated GIFs are left untouched to preserve animation)*
 
 Detection prefers the file's MIME type and falls back to the extension, so pasted blobs without a MIME type are still recognised.
 

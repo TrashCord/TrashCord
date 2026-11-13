@@ -15,9 +15,9 @@ const settings = definePluginSettings({
     default: "plain",
     options: [
       { label: "Plain  ([date] User: message)", value: "plain", default: true },
-      { label: "Discord  (User — date\\nmessage)", value: "discord" },
+      { label: "Discord  (User - date\\nmessage)", value: "discord" },
       { label: "WhatsApp  ([date, time] User: message)", value: "whatsapp" },
-      { label: "Markdown  (**User** — date\\nmessage)", value: "markdown" },
+      { label: "Markdown  (**User** - date\\nmessage)", value: "markdown" },
       { label: "Compact  (User: message)", value: "compact" },
       { label: "JSON  (structured array)", value: "json" },
     ],

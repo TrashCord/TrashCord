@@ -6,7 +6,7 @@
 **Available for [Vencord](https://github.com/Vendicated/Vencord)/[Equicord](https://github.com/Equicord/Equicord) and [BetterDiscord](https://betterdiscord.app/).**
 
 
-Shows a *"last seen X ago"* label below usernames in the member list — completely client-side, resets every restart.
+Shows a *"last seen X ago"* label below usernames in the member list - completely client-side, resets every restart.
 
 ![Discord](https://img.shields.io/badge/Discord-Client_Mod-5865F2?style=flat&logo=discord&logoColor=white)
 ![Vencord](https://img.shields.io/badge/Vencord-Plugin-pink?style=flat)
@@ -19,10 +19,10 @@ Shows a *"last seen X ago"* label below usernames in the member list — complet
 
 ## ✨ Features
 
-- **Below-username label** — shows `"Active 39m ago"` directly under a user's name in the member list
-- **Auto-updates** — refreshes every 60 seconds without needing to reload Discord
-- **Client-side only** — no servers, no databases, no external requests
-- **Resets on restart** — intentionally ephemeral; closing Discord wipes all data
+- **Below-username label** - shows `"Active 39m ago"` directly under a user's name in the member list
+- **Auto-updates** - refreshes every 60 seconds without needing to reload Discord
+- **Client-side only** - no servers, no databases, no external requests
+- **Resets on restart** - intentionally ephemeral; closing Discord wipes all data
 - **Works in servers and DMs**
 
 ---
@@ -41,17 +41,17 @@ Shows a *"last seen X ago"* label below usernames in the member list — complet
 
 Click the settings icon on the plugin card to customize:
 
-- **🏷️ Label dropdown** — pick what shows before the timestamp: `Active`, `Last seen`, `Online`, or `Seen`
+- **🏷️ Label dropdown** - pick what shows before the timestamp: `Active`, `Last seen`, `Online`, or `Seen`
 
 [![Screenshot-2026-07-22-065103.png](https://i.postimg.cc/MpSLWRs0/Screenshot-2026-07-22-065103.png)](https://postimg.cc/mtmjjcWh)
 
-- **🕐 Time format toggle** — switch between relative time (`5m ago`) or exact time (`2:34 PM`)
+- **🕐 Time format toggle** - switch between relative time (`5m ago`) or exact time (`2:34 PM`)
 
 [![Screenshot-2026-07-22-065135.png](https://i.postimg.cc/fb3mpqx0/Screenshot-2026-07-22-065135.png)](https://postimg.cc/qtTNCLDk)
 
-- **💬 Hover tooltip** — hover the last-seen text to see the full date and time it was recorded
+- **💬 Hover tooltip** - hover the last-seen text to see the full date and time it was recorded
 
-Settings save automatically and apply instantly — no restart needed.
+Settings save automatically and apply instantly - no restart needed.
 
 ---
 
@@ -59,15 +59,15 @@ Settings save automatically and apply instantly — no restart needed.
 
 > **Note:** This plugin requires a **source install** of Vencord (not the installer/pre-built version) because it needs to be compiled.
 
-### Step 1 — Add the plugin
+### Step 1 - Add the plugin
 
-**Option A — Clone this repo (recommended)**
+**Option A - Clone this repo (recommended)**
 ```bat
 cd path\to\Vencord\src\userplugins
 git clone https://github.com/YOUR_USERNAME/lastOnlineTracker
 ```
 
-**Option B — Manual copy**
+**Option B - Manual copy**
 
 1. Create a folder: `Vencord/src/userplugins/lastOnlineTracker/`
 2. Copy `index.tsx` into that folder
@@ -81,14 +81,14 @@ Vencord/
             └── index.tsx   ← plugin file goes here
 ```
 
-### Step 2 — Build Vencord
+### Step 2 - Build Vencord
 
 ```bat
 cd path\to\Vencord
 pnpm build
 ```
 
-### Step 3 — Enable the plugin
+### Step 3 - Enable the plugin
 
 1. Open Discord
 2. Go to **User Settings → Vencord → Plugins**
@@ -108,11 +108,11 @@ pnpm build
 
 # BetterDiscord Version
 
-A standalone port for [BetterDiscord](https://betterdiscord.app/) users — same idea, shows `"Active X ago"` under a user's name once they go offline in your DM list
+A standalone port for [BetterDiscord](https://betterdiscord.app/) users - same idea, shows `"Active X ago"` under a user's name once they go offline in your DM list
 
 **Differences from the Vencord version:**
 
-- No build step required — it's a single file you drop straight into your plugins folder
+- No build step required - it's a single file you drop straight into your plugins folder
 
 ## 📋 Requirements
 
@@ -148,7 +148,7 @@ Latest [BetterDiscord](https://betterdiscord.app/)
 
 ## ⚠️ Disclaimer
 
-- This plugin is **client-side only** — it cannot track users you can't already see presence for
+- This plugin is **client-side only** - it cannot track users you can't already see presence for
 - Large servers (250+ members) have limited presence data from Discord
 - Discord's Terms of Service technically prohibit client modifications, though bans are essentially unheard of for passive plugins like this
 - All tracked data stays in your Device and is never shared
@@ -157,7 +157,7 @@ Latest [BetterDiscord](https://betterdiscord.app/)
 
 ## 📄 License
 
-GPL-3.0 — see [LICENSE](https://www.gnu.org/licenses/gpl-3.0.en.html)
+GPL-3.0 - see [LICENSE](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 ---
 

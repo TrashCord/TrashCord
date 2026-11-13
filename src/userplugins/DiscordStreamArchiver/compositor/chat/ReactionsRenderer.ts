@@ -19,7 +19,7 @@ const PILL_FONT = "13px Whitney, 'Helvetica Neue', Helvetica, Arial, sans-serif"
 
 export function reactionEmoteUrl(r: ChatReaction): string | null {
     if (!r.emoji.id) return null;
-    // Animated reactions: animated WebP, not GIF — Discord's CDN 415s the
+    // Animated reactions: animated WebP, not GIF - Discord's CDN 415s the
     // `.gif` form of many animated emoji (see ContentParser.emoteUrl).
     return r.emoji.animated
         ? `https://cdn.discordapp.com/emojis/${r.emoji.id}.webp?size=32&animated=true`
@@ -88,7 +88,7 @@ function drawPill(
     if ("roundRect" in ctx) {
         // beginPath() is mandatory: roundRect() appends to the current path
         // rather than replacing it. Without this the fill would also paint
-        // whatever sub-path the previous draw call left behind — most
+        // whatever sub-path the previous draw call left behind - most
         // visibly the avatar's clip arc, which would erase the profile
         // picture the moment a reaction pill is drawn.
         ctx.beginPath();

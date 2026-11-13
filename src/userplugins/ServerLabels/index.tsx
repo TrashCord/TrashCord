@@ -346,7 +346,7 @@ function updateCSSVars() {
         ${color ? `--serverlabels-color: ${color};` : ""}
     }`;
     document.body.classList.toggle("vc-serverlabels-custom-color", !!color);
-    // Re-measure after layout settles — max-width changes affect overflow amounts.
+    // Re-measure after layout settles - max-width changes affect overflow amounts.
     requestAnimationFrame(remeasureAllMarquees);
 }
 
@@ -372,7 +372,7 @@ function measureMarquee(label: HTMLElement) {
 }
 
 function remeasureAllMarquees() {
-    // Read pass — collect all measurements before touching the DOM
+    // Read pass - collect all measurements before touching the DOM
     const measurements: Array<[HTMLElement, number]> = [];
     for (const el of activeLabels) {
         if (!el.isConnected) continue;
@@ -382,7 +382,7 @@ function remeasureAllMarquees() {
         const hPad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
         measurements.push([el, inner.scrollWidth - (el.clientWidth - hPad)]);
     }
-    // Write pass — apply results without interleaving reads
+    // Write pass - apply results without interleaving reads
     for (const [el, overflow] of measurements) {
         if (overflow > 2) {
             el.style.setProperty("--marquee-offset", `-${overflow}px`);
@@ -456,7 +456,7 @@ function onDocumentMouseMove(e: MouseEvent) {
 /**
  * Injects a label into a single guild treeitem's listItem container.
  * Walks up from the treeitem to find the icon <span>, then appends
- * the label as a sibling inside the existing listItem flex row —
+ * the label as a sibling inside the existing listItem flex row -
  * without wrapping or moving any of Discord's original elements.
  */
 function injectFolderLabel(treeitem: Element, folders: any[]) {
@@ -472,7 +472,7 @@ function injectFolderLabel(treeitem: Element, folders: any[]) {
         if (!folder?.folderName) return;
 
         // Folder DOM has no <span> ancestor. The treeitem itself is the folderButton,
-        // which is the icon area — append label directly inside it.
+        // which is the icon area - append label directly inside it.
         if (treeitem.querySelector(`.${LABEL_CLASS}`)) return;
 
         suppressNativeTooltip(treeitem);
@@ -568,7 +568,7 @@ function injectLabel(treeitem: Element, folders: any[]) {
     }
 
     // Append the label inside the icon span so it becomes the absolute positioning
-    // anchor — avoids shrinking the listItem (which breaks Discord's icon centering).
+    // anchor - avoids shrinking the listItem (which breaks Discord's icon centering).
     // The label has pointer-events: none (see style.css), so it is invisible to
     // Discord's event system. Clicks and hover effects are handled by document-level
     // listeners registered in start() to avoid triggering Discord's tooltip.
@@ -586,7 +586,7 @@ function injectSettingsButton() {
     const nav = homeItem.closest('nav[class*="guilds"]') as HTMLElement | null;
     if (!nav) return;
 
-    // Bail if the nav isn't laid out yet — MutationObserver will retry.
+    // Bail if the nav isn't laid out yet - MutationObserver will retry.
     const navRect = nav.getBoundingClientRect();
     if (navRect.height === 0) return;
 
@@ -631,7 +631,7 @@ function removeAllLabels() {
 }
 
 function refreshLabelColors() {
-    // Discord may replace the nav element on theme/settings changes — reconnect the observer if so.
+    // Discord may replace the nav element on theme/settings changes - reconnect the observer if so.
     const nav = document.querySelector('nav[class*="guilds"]');
     if (nav && nav !== guildsNav) {
         guildsNav = nav as HTMLElement;
@@ -712,7 +712,7 @@ export default definePlugin({
         // Watch for Discord re-rendering the guild list (e.g. new notifications,
         // server reorder, folder expand/collapse) and re-inject labels as needed.
         observer = new MutationObserver(mutations => {
-            // Lazy — only fetched if we actually process treeitem nodes.
+            // Lazy - only fetched if we actually process treeitem nodes.
             let folders: any[] | null = null;
             const getFolders = () => folders ??= SortedGuildStore.getGuildFolders?.() ?? [];
 
@@ -745,7 +745,7 @@ export default definePlugin({
             guildsNav = nav as HTMLElement;
             observer.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-expanded"] });
         } else {
-            // Guild sidebar not ready yet — watch body briefly, then switch to nav.
+            // Guild sidebar not ready yet - watch body briefly, then switch to nav.
             observer.observe(document.body, { childList: true, subtree: true });
             navBootstrapObserver = new MutationObserver(() => {
                 const n = document.querySelector('nav[class*="guilds"]');

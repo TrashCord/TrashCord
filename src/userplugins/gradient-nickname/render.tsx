@@ -133,7 +133,7 @@ export const KEYFRAMES_CSS = `
     100% { --gn-glow-x: 0px;  --gn-glow-y: -2px; }
 }
 /* Custom-font overlay: original element keeps Discord-font text (invisible)
- * so its layout box stays Discord-sized — adjacent icons don't reflow.
+ * so its layout box stays Discord-sized - adjacent icons don't reflow.
  * The pseudo overlay renders the same text in the custom font, absolutely
  * positioned on top, so the visible glyphs match the user's choice. */
 [data-gn-overlay]::after {

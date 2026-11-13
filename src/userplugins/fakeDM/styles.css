@@ -13,7 +13,7 @@
     to   { opacity: 1; }
 }
 
-/* Panneau principal — position calculée par JS près du bouton */
+/* Panneau principal - position calculée par JS près du bouton */
 .fdm-panel {
     position: fixed;
     /* left et top injectés inline par React */

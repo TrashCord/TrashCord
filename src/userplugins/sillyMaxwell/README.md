@@ -1,5 +1,5 @@
 # Maxwell GIF Plugin for Vencord  
-Add a fun gif of Maxwell to your screen — he's just having fun, let him play!!!!
+Add a fun gif of Maxwell to your screen - he's just having fun, let him play!!!!
 
 ## Installation Guide  
 Follow the [official Vencord custom plugin installation guide](https://docs.vencord.dev/installing/custom-plugins/), or use the quick instructions below:  

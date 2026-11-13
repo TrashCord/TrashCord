@@ -93,7 +93,7 @@ function renderTenorEmbed(e: ExportEmbed): string {
     return `<div class="embed embed-gif">${mediaHtml}${footer}</div>`
   }
 
-  // No media — Tenor card with link
+  // No media - Tenor card with link
   let out = `<div class="embed embed-gif-card"${embedAccentStyle(e.color)}>`
   out += `<span class="gif-provider">${providerLabel}</span>`
   if (e.title) out += `<div class="gif-title">${escapeHtml(e.title)}</div>`
@@ -137,7 +137,7 @@ function renderStandardEmbed(e: ExportEmbed): string {
     out += `</div>`
   }
 
-  // Thumbnail (floated right via CSS — rendered early so float works)
+  // Thumbnail (floated right via CSS - rendered early so float works)
   if (e.thumbnail?.url && isSafeUrl(e.thumbnail.url)) {
     const thumbSrc = escapeAttribute(e.thumbnail.url)
     out += (

@@ -560,7 +560,7 @@ export function getActiveTargetForGuild(guildId: string | null | undefined): { u
         });
         // Flag overlay so buildOverrides / profileHook skip identity overrides.
         payload.manualData.overlaySelf = true;
-        // Keep the REAL identity — do NOT swap name / avatar / id / discriminator.
+        // Keep the REAL identity - do NOT swap name / avatar / id / discriminator.
         payload.user.id = me.id;
         payload.user.username = me.username;
         payload.user.globalName = (me as any).globalName ?? me.username;

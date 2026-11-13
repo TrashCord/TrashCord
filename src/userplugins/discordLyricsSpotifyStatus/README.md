@@ -24,11 +24,11 @@ This fork fixes silent failures, adds new settings, and improves sync accuracy.
 ## What changed
 
 <details>
-<summary><b>Artist name normalization</b> — lrclib query fix</summary>
+<summary><b>Artist name normalization</b> - lrclib query fix</summary>
 
 <br/>
 
-Spotify sends featured artists as `"Rae Sremmurd, Gucci Mane"` — lrclib stores `"Rae Sremmurd feat. Gucci Mane"`. The original query returned 404 for any track with featured artists.
+Spotify sends featured artists as `"Rae Sremmurd, Gucci Mane"` - lrclib stores `"Rae Sremmurd feat. Gucci Mane"`. The original query returned 404 for any track with featured artists.
 
 ```diff
 + function primaryArtist(artistName: string): string {
@@ -45,7 +45,7 @@ Spotify sends featured artists as `"Rae Sremmurd, Gucci Mane"` — lrclib stores
 </details>
 
 <details>
-<summary><b>Multi-attempt lyrics fetch</b> — fuzzy search fallback</summary>
+<summary><b>Multi-attempt lyrics fetch</b> - fuzzy search fallback</summary>
 
 <br/>
 
@@ -72,11 +72,11 @@ Original used only `/api/get` (exact match). Now tries three strategies in order
 </details>
 
 <details>
-<summary><b>CSP gate removed</b> — silent blocking fix</summary>
+<summary><b>CSP gate removed</b> - silent blocking fix</summary>
 
 <br/>
 
-Original gated all network access on `VencordNative.csp.isDomainAllowed`. If the domain wasn't pre-approved, lyrics were silently blocked forever — no error, no fallback attempt.
+Original gated all network access on `VencordNative.csp.isDomainAllowed`. If the domain wasn't pre-approved, lyrics were silently blocked forever - no error, no fallback attempt.
 
 ```diff
 - const allowed = await VencordNative.csp.isDomainAllowed(url, directives).catch(() => false);
@@ -86,7 +86,7 @@ Original gated all network access on `VencordNative.csp.isDomainAllowed`. If the
 - }
 
 + // request override once, then fetch directly
-+ // CSP errors are caught and logged — no silent permanent block
++ // CSP errors are caught and logged - no silent permanent block
 + try {
 +     await VencordNative.csp.requestAddOverride(url, directives, "DiscordLyricsSpotifyStatus");
 + } catch { /* VencordNative.csp may not exist in all builds */ }
@@ -95,7 +95,7 @@ Original gated all network access on `VencordNative.csp.isDomainAllowed`. If the
 </details>
 
 <details>
-<summary><b>Sync offset setting</b> — compensates for status PATCH latency</summary>
+<summary><b>Sync offset setting</b> - compensates for status PATCH latency</summary>
 
 <br/>
 
@@ -104,7 +104,7 @@ Discord status PATCH requests take 100–500ms to propagate. Lyrics were always 
 ```diff
 - scheduler.start(track.progressMs);
 
-+ // default 250ms — advance position to compensate for PATCH latency
++ // default 250ms - advance position to compensate for PATCH latency
 + const offsetMs = settings.store.syncOffsetMs ?? 250;
 + scheduler.start(track.progressMs + offsetMs);
 ```
@@ -112,7 +112,7 @@ Discord status PATCH requests take 100–500ms to propagate. Lyrics were always 
 </details>
 
 <details>
-<summary><b>New settings</b> — full list</summary>
+<summary><b>New settings</b> - full list</summary>
 
 <br/>
 
@@ -130,7 +130,7 @@ Discord status PATCH requests take 100–500ms to propagate. Lyrics were always 
 </details>
 
 <details>
-<summary><b>Fallback format</b> — aesthetic improvement</summary>
+<summary><b>Fallback format</b> - aesthetic improvement</summary>
 
 <br/>
 
@@ -154,7 +154,7 @@ Drop the `discordLyricsSpotifyStatus` folder into `src/userplugins/` in your Equ
 pnpm build
 ```
 
-Restart Discord — enable **DiscordLyricsSpotifyStatus** in Equicord Settings → Plugins.
+Restart Discord - enable **DiscordLyricsSpotifyStatus** in Equicord Settings → Plugins.
 
 > First launch may prompt you to allow `lrclib.net` in CSP settings. Accept and restart Discord once.
 
@@ -162,9 +162,9 @@ Restart Discord — enable **DiscordLyricsSpotifyStatus** in Equicord Settings �
 
 ## Credits
 
-- [Tona Shiin](https://github.com/Shiin2ii) — original plugin author
-- [lrclib.net](https://lrclib.net) — open-source synced lyrics API
-- [Equicord](https://github.com/Equicord/Equicord) — the client mod
+- [Tona Shiin](https://github.com/Shiin2ii) - original plugin author
+- [lrclib.net](https://lrclib.net) - open-source synced lyrics API
+- [Equicord](https://github.com/Equicord/Equicord) - the client mod
 
 ---
 

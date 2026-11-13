@@ -67,7 +67,7 @@ export interface RecordingSessionDeps {
     // Fired when the session finishes stopping itself (anchor stream ended,
     // recorder-error abort, etc.). Lets index.tsx clear its `currentSession`
     // handle, which the public stop() helper would otherwise be the only one
-    // to do — without it a self-stopped session blocks all new recordings
+    // to do - without it a self-stopped session blocks all new recordings
     // until you leave the channel.
     onStopped?: () => void;
 }
@@ -447,7 +447,7 @@ export class RecordingSession {
 
     // Scan the Web Audio tap registry for any stream with video tracks and
     // link it into the matching participant's tile so the compositor draws
-    // it. This is the screenshare path — on Vesktop/web, Discord's Output
+    // it. This is the screenshare path - on Vesktop/web, Discord's Output
     // class captures screenshare video onto the same MediaStream our
     // webAudioTap already grabs, so we don't need STREAM_CREATE to fire
     // (it's unreliable across client builds). Registry id shapes observed:
@@ -599,7 +599,7 @@ export class RecordingSession {
         // EVERYTHING that resets state (nulling fields, sessionStore→idle,
         // onStopped) lives in `finally`, so a throw from teardown / writeMetadata
         // / finalize can never leave the session stuck "recording" with a live
-        // handle — which would block all future recordings until a reload.
+        // handle - which would block all future recordings until a reload.
         try {
             if (this.reconcilePollHandle !== null) {
                 clearInterval(this.reconcilePollHandle);
@@ -612,7 +612,7 @@ export class RecordingSession {
             for (const [key] of Array.from(this.taps)) await this.removeStreamInternal(key);
             await this.compositor?.stop();
             await this.audioMixer?.close();
-            // End the loopback capture — this releases the user's screen/window
+            // End the loopback capture - this releases the user's screen/window
             // audio selection. Must happen after mixer.close so the tracks aren't
             // yanked out from under the encoder mid-flush.
             if (this.loopbackStream) {
@@ -643,7 +643,7 @@ export class RecordingSession {
             if (format === "mkv" || format === "mp4") {
                 const startedAt = Date.now();
                 if (format === "mp4") {
-                    this.deps.onToast("Converting to MP4 via ffmpeg — this can take a while…");
+                    this.deps.onToast("Converting to MP4 via ffmpeg - this can take a while…");
                 }
                 try {
                     const { path: converted } = await this.deps.native.ffmpegRemuxDir(dir, {
@@ -660,7 +660,7 @@ export class RecordingSession {
             }
         } catch (err) {
             logger.error("error while stopping recording; resetting state anyway", err);
-            this.deps.onToast("Recording stopped, but finalizing the file failed — check the logs / output folder.");
+            this.deps.onToast("Recording stopped, but finalizing the file failed - check the logs / output folder.");
         } finally {
             this.handle = null;
             this.channelId = null;

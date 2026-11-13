@@ -45,7 +45,7 @@ export const serviceLabels: Record<ServiceType, string> = {
 };
 
 export const fallbackServiceOrder: ServiceType[] = [
-    // No account / API key required (tried first — they work anonymously)
+    // No account / API key required (tried first - they work anonymously)
     ServiceType.CATBOX,
     ServiceType.LITTERBOX,
     ServiceType.ZEROX0,

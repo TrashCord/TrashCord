@@ -70,7 +70,7 @@ function IgnoredWords() {
         <section className={Margins.top16}>
             <Heading tag="h3">Never correct these words</Heading>
             <Paragraph className={Margins.bottom8}>
-                Slang, names, other languages — anything the autocorrect keeps getting wrong.
+                Slang, names, other languages - anything the autocorrect keeps getting wrong.
             </Paragraph>
 
             <div className="vc-fastspell-row">

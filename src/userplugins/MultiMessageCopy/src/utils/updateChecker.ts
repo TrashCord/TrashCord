@@ -14,7 +14,7 @@ import { UpdateModal } from "../components/UpdateModal"
 // Typed native helper accessor
 // ---------------------------------------------------------------------------
 
-// Import only the type — never the value. The actual module runs in the main
+// Import only the type - never the value. The actual module runs in the main
 // process; importing it at runtime in the renderer would crash.
 type NativeExports = typeof import("../../native")
 
@@ -170,7 +170,7 @@ async function rendererFetch(cacheBust: boolean): Promise<RemoteVersionInfo | nu
  * process). Falls back gracefully to null if the helper is unavailable
  * (web build, old Vencord, or plugin loaded without native.ts).
  *
- * The native layer returns `{ ok, value | error }` — we unwrap that here so
+ * The native layer returns `{ ok, value | error }` - we unwrap that here so
  * callers only see `RemoteVersionInfo | null`.
  */
 async function nativeFetch(cacheBust: boolean): Promise<RemoteVersionInfo | null> {
@@ -227,7 +227,7 @@ function toast(msg: string, type: "success" | "failure" | "message") {
                 : "message"
         showToast({ text: msg, variant: toastType })
     } catch {
-        // Toasts API might not be available in all Vencord versions — fail silently.
+        // Toasts API might not be available in all Vencord versions - fail silently.
         console.info(`[MultiMessageCopy] ${msg}`)
     }
 }
@@ -248,7 +248,7 @@ async function runCheck(force: boolean): Promise<void> {
         return
     }
 
-    // Always compare against the compiled constant — not installed-version.json,
+    // Always compare against the compiled constant - not installed-version.json,
     // which can be stale or missing if the user has never run the updater.
     const localVersion = PLUGIN_VERSION
 

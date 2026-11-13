@@ -114,7 +114,7 @@ function buildParticipantTile(userId: string, channelId: string): TileSpec | nul
         bannerColor,
         avatarUrl,
         // `suppress: true` in stage channels means the user is in the audience
-        // and cannot speak — functionally identical to being mic-muted for our
+        // and cannot speak - functionally identical to being mic-muted for our
         // tile UI. Also treated as muted in regular VCs for any edge case
         // where Discord emits it.
         muted: !!state.mute || !!state.selfMute || !!state.suppress,
@@ -124,7 +124,7 @@ function buildParticipantTile(userId: string, channelId: string): TileSpec | nul
     };
 }
 
-// Discord channel types — 2 = GUILD_VOICE, 13 = GUILD_STAGE_VOICE. In stage
+// Discord channel types - 2 = GUILD_VOICE, 13 = GUILD_STAGE_VOICE. In stage
 // channels the audience (everyone with suppress:true) sits alongside the
 // speakers in VoiceStateStore; we only want the speakers in the composite.
 const CHANNEL_TYPE_STAGE_VOICE = 13;
@@ -160,7 +160,7 @@ function getParticipantAudioStream(userId: string): MediaStream | null {
     // `${userId}:video` so screenshare/camera Outputs don't clobber voice,
     // but if a stream gained a video track AFTER initial registration the
     // bare `userId` slot could still hold a video-bearing stream. Reject
-    // those — `createMediaStreamSource` would otherwise pick up the
+    // those - `createMediaStreamSource` would otherwise pick up the
     // screenshare's first audio track (game/desktop audio) and mix it in
     // place of voice.
     const tap = getTappedStream(userId);
@@ -181,7 +181,7 @@ function resolveAudioMode(): ResolvedAudioMode {
 async function getMicStream(): Promise<MediaStream | null> {
     // In loopback mode the system audio capture already contains everything
     // the user hears, including their own mic if (and only if) they have OS
-    // loopback — there's no second stream to grab. And on Discord Desktop,
+    // loopback - there's no second stream to grab. And on Discord Desktop,
     // getUserMedia is outright permission-denied. Skip the call entirely.
     if (resolveAudioMode() === "loopback") {
         logger.info("mic stream: skipped (loopback mode handles audio separately)");
@@ -255,7 +255,7 @@ function makeSession(): RecordingSession {
         onToast: (msg, onClick) => toast.show(msg, onClick),
         resolveAvatar,
         onStopped: () => {
-            // Only clear if WE are still the active session — the public stop()
+            // Only clear if WE are still the active session - the public stop()
             // helper nulls currentSession before awaiting the async finalize,
             // during which a new session may already have started; don't clobber it.
             if (currentSession !== session) return;
@@ -330,7 +330,7 @@ function findExistingStreamKeysInChannel(channelId: string): string[] {
         }
     } catch { /* ignore */ }
 
-    // Tertiary: voice states directly — `selfStream: true` means that
+    // Tertiary: voice states directly - `selfStream: true` means that
     // participant is currently streaming even if the streaming store
     // lookup missed them.
     try {
@@ -383,13 +383,13 @@ async function maybeAutoStart(channelId: string): Promise<void> {
         return false;
     })();
     if (!channelMatch && !userMatch) return;
-    // Auto-start is triggered by VOICE_STATE_UPDATES, not a user gesture — the
+    // Auto-start is triggered by VOICE_STATE_UPDATES, not a user gesture - the
     // getDisplayMedia prompt may be rejected here because Chromium has no
     // recent gesture to attribute it to. We still attempt it; if it fails,
     // the session starts with no loopback audio and the toast log explains.
     const loopbackAudioStream = await captureLoopbackIfNeeded();
     // Channel-whitelist takes priority over user-whitelist for the absence
-    // timer — whitelisting a channel means "record while I'm here", regardless
+    // timer - whitelisting a channel means "record while I'm here", regardless
     // of which users are in it.
     const trigger: import("./stores/sessionStore").SessionTrigger = channelMatch ? "channel" : "user";
     currentSession = makeSession();
@@ -469,7 +469,7 @@ function handleFlaggedStream(streamKey: string): void {
 //   - if a whitelist-triggered session no longer matches its trigger
 //     (last whitelisted user removed, or the recorded channel got
 //     unwhitelisted), stop.
-// Manual sessions are never stopped here — those were started by the user
+// Manual sessions are never stopped here - those were started by the user
 // pressing Record explicitly and shouldn't be terminated by toggle changes.
 function reevaluateAutoRecord(): void {
     const myChannelId = (SelectedChannelStore as any).getVoiceChannelId?.();
@@ -524,7 +524,7 @@ function avatarUrlForUser(userId: string, size = 64): string {
 
 // Build an avatar URL straight from a message-payload author object rather
 // than via UserStore.getUser().getAvatarURL(). The store-based path returns
-// "" for any user not in the client's local cache — and in busy channels the
+// "" for any user not in the client's local cache - and in busy channels the
 // replied-to author (referenced_message.author), and often the sender too,
 // simply isn't cached, which paints the avatar a blank gray circle. The
 // message payload always carries the author's id + avatar hash, so we can
@@ -537,7 +537,7 @@ function avatarUrlFromAuthor(author: any, size = 64): string {
         // first-frame webp here.)
         return `https://cdn.discordapp.com/avatars/${author.id}/${author.avatar}.webp?size=${size}`;
     }
-    // No hash on the payload — the cache may still know this user (including
+    // No hash on the payload - the cache may still know this user (including
     // whether they have a custom avatar), so try it before assuming default.
     const cached = avatarUrlForUser(author.id, size);
     if (cached) return cached;
@@ -568,7 +568,7 @@ function chatMessageFromPayload(m: any): ChatMessage {
     if (ref?.author?.id) {
         const refAuthor = ref.author;
         const refName = refAuthor.global_name || refAuthor.username || "unknown";
-        // Keep the raw emote/mention syntax intact — the renderer parses it
+        // Keep the raw emote/mention syntax intact - the renderer parses it
         // into inline emotes/mentions for the preview. Slice generously (a
         // single emote is ~25 chars) and let width-based truncation in
         // drawReplySnippet decide what actually fits on the one preview line.
@@ -590,7 +590,7 @@ function chatMessageFromPayload(m: any): ChatMessage {
     // Media URL preference: proxy_url by default (Discord's media proxy
     // sends CORS-friendly headers for canvas use, unlike arbitrary origin
     // URLs). EXCEPTION: sticker URLs. Discord's external proxy strips APNG
-    // animation from stickers and returns a static PNG — same as FakeNitro
+    // animation from stickers and returns a static PNG - same as FakeNitro
     // observed. For a pasted sticker link we fall back to the direct CDN
     // URL (cdn.discordapp.com/stickers/<id>.<ext>) which serves the native
     // APNG bytes. That CDN endpoint sends CORS, so it's still canvas-safe.
@@ -680,7 +680,7 @@ function chatMessageFromPayload(m: any): ChatMessage {
 
 // Pick the embed media URL that gives us the native content. For stickers
 // (/stickers/<id>.<ext>), Discord's external proxy re-encodes APNG as flat
-// PNG — FakeNitro addressed the same problem. The direct CDN URL still
+// PNG - FakeNitro addressed the same problem. The direct CDN URL still
 // sends canvas-friendly CORS headers, so it's safe to prefer over the
 // proxied version. Non-sticker media keeps preferring proxy_url.
 function preferDirectForStickers(direct: string | undefined, proxied: string | undefined): string | undefined {
@@ -705,7 +705,7 @@ function reactionEmojiMatches(
 }
 
 // Only apply reaction mutations for messages currently visible on the chat
-// panel — off-screen messages won't ever be rendered again in this session,
+// panel - off-screen messages won't ever be rendered again in this session,
 // so tracking their reaction deltas is wasted work. Initial reactions from
 // MESSAGE_CREATE still flow through chatMessageFromPayload regardless.
 function applyReactionMutation(
@@ -805,7 +805,7 @@ export default definePlugin({
             // that actually changed (e.g. an embed lands ~1s after the
             // initial CREATE, and the update has just `id`, `channel_id`,
             // and `embeds`). chatMessageFromPayload would derive defaults
-            // for any missing field — most visibly, no `author` block
+            // for any missing field - most visibly, no `author` block
             // means avatarUrl="" and authorName="unknown", which paints
             // the avatar tile blank. Merge the partial update over the
             // cached message so untouched fields keep their values.
@@ -814,7 +814,7 @@ export default definePlugin({
             const cached = seenMessagesById.get(fresh.id);
             // Capture first-sent content the moment we see a real text edit.
             // Once set, originalContent never changes through subsequent
-            // edits — we want the very first version, not the most recent
+            // edits - we want the very first version, not the most recent
             // prior. editedAtMs uses Discord's edited_timestamp when
             // present, falling back to wall clock so we still get a sane
             // value for embed-injection updates that don't carry a content
@@ -920,7 +920,7 @@ export default definePlugin({
     //
     // Two mutually-exclusive replacements handle both load orders:
     //   1. Pristine-source (GAT disabled or our plugin runs first): anchors
-    //      on `accountContainerRef` close after `children:[` — same pattern
+    //      on `accountContainerRef` close after `children:[` - same pattern
     //      GameActivityToggle itself uses.
     //   2. Post-GAT (the common case; GAT is stock/default-on and our
     //      plugin name sorts after "GameActivityToggle" alphabetically):
@@ -938,7 +938,7 @@ export default definePlugin({
     // #{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}). There is no
     // stable Vencord API for panel buttons, so when the button disappears
     // after a Discord update, copy the current `find` from
-    // src/plugins/gameActivityToggle/index.tsx — the Vencord team updates it
+    // src/plugins/gameActivityToggle/index.tsx - the Vencord team updates it
     // within days of each breaking update. The intl-key form is preferred: it
     // is far more stable than the CSS-module class hashes used before.
     patches: [
@@ -960,12 +960,12 @@ export default definePlugin({
         // Web Audio tap for per-participant voice MediaStreams. The module
         // containing `streamSourceNode` is Discord's per-participant Output
         // class. Two replacements cover the two moments we care about:
-        //   (a) entry of updateAudioElement — called on addTrack (first track
+        //   (a) entry of updateAudioElement - called on addTrack (first track
         //       only), volume change, mute change, speakingFlags change, and
         //       setSinkId. Catches any state transition on existing streams,
         //       so if someone joined the VC before we hit Record, the next
         //       time they speak our hook fires with their audio track live.
-        //   (b) the streamSourceNode creation line inside addTrack — runs
+        //   (b) the streamSourceNode creation line inside addTrack - runs
         //       exactly when an audio track becomes available on the stream.
         //       Catches participants whose first track was video (their
         //       audio arrives in a second addTrack call that doesn't re-run

@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { get, set } from "@api/DataStore";
 import { Settings } from "@api/Settings";
 import { sleep } from "@utils/misc";
 import type { RunningGame } from "@vencord/discord-types";
+import { findStoreLazy } from "@webpack";
 import { ApplicationStreamingStore, FluxDispatcher, SelectedChannelStore, showToast } from "@webpack/common";
 
-import { creditPlaytime, fingerprintFor, startLiveStream, startTurboLiveStream, type StreamLocation } from "./science";
+import { t } from "./i18n";
+import { creditPlaytime, fingerprintFor, type LiveContext, startLiveStream, type StreamLocation, type StreamPhase } from "./science";
 
 export interface DetectableApp {
     id: string;
@@ -36,20 +39,31 @@ export interface FarmerStatus {
     gamesCreditedThisRun: number;
     hoursCreditedThisRun: number;
     streamHoursCreditedThisRun: number;
-    streamBatch: number;
-    streamBatches: number;
+    streamPhase: StreamPhase;
+    needsConsent: boolean;
+    gameTarget: number;
+    streamTarget: number;
     errors: number;
     lastError: string | null;
     finishedMessage: string | null;
 }
 
+export interface LiveInfo {
+    inVoice: boolean;
+    live: boolean;
+    viewers: number;
+}
+
 export const MAX_TIME_HOURS = 1000000;
+
+export const MAX_BADGE_HOURS = 5000;
 export const MAX_VARIETY_GAMES = 100;
 export const DEFAULT_VARIETY_MINUTES = 2;
 export const DEFAULT_CHUNK_HOURS = 24;
 const MAX_CHUNK_HOURS = 500;
 const REQUEST_DELAY_MS = 600;
 const RETRY_DELAY_MS = 3_000;
+const MAX_FAILED_BURSTS = 5;
 
 let mode: FarmerMode = "IDLE";
 let activeGame: SpoofedGame | null = null;
@@ -58,11 +72,11 @@ let varietyIndex = 0;
 let gamesCredited = 0;
 let hoursCredited = 0;
 let streamHoursCredited = 0;
-let streamMinutesCredited = 0;
-let streamBatch = 0;
-let streamBatches = 0;
+let streamPhase: StreamPhase = "waiting";
+let needsConsent = false;
+let gameTarget = 0;
+let streamTarget = 0;
 let liveSession: ReturnType<typeof startLiveStream> | null = null;
-let liveSessionDone: (() => void) | null = null;
 let errors = 0;
 let lastError: string | null = null;
 let finishedMessage: string | null = null;
@@ -72,14 +86,26 @@ let cursor = 0;
 let presenceShown = false;
 
 const listeners = new Set<() => void>();
+let notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);
 }
 
-function notify(): void {
+function flush(): void {
+    notifyTimer = null;
+    persist();
     for (const listener of listeners) listener();
+}
+
+function notify(now = false): void {
+    if (now) {
+        if (notifyTimer != null) clearTimeout(notifyTimer);
+        flush();
+    } else if (notifyTimer == null) {
+        notifyTimer = setTimeout(flush, 150);
+    }
 }
 
 export function getStatus(): FarmerStatus {
@@ -91,12 +117,96 @@ export function getStatus(): FarmerStatus {
         gamesCreditedThisRun: gamesCredited,
         hoursCreditedThisRun: hoursCredited,
         streamHoursCreditedThisRun: streamHoursCredited,
-        streamBatch,
-        streamBatches,
+        streamPhase,
+        needsConsent,
+        gameTarget,
+        streamTarget,
         errors,
         lastError,
         finishedMessage
     };
+}
+
+export function notice(text: string, kind: "success" | "warning" | "info" = "info"): void {
+    if ((Settings.plugins as any).BadgeFarmer?.toasts === false) return;
+    showToast({ text: `BadgeFarmer · ${text}`, variant: kind } as any);
+}
+
+const ConsentStore: any = findStoreLazy("ConsentStore");
+const RUN_KEY = "BadgeFarmer_run";
+let lastSave = 0;
+
+let forceUnlock = false;
+
+export function setForce(value: boolean): void {
+    forceUnlock = value;
+}
+
+export function isLocked(): boolean {
+    return personalizationOff() && !forceUnlock;
+}
+
+export function personalizationOff(): boolean {
+    try {
+        if (typeof ConsentStore.hasConsented === "function") return !ConsentStore.hasConsented("personalization");
+        const entry = ConsentStore.getConsents?.()?.personalization;
+        if (entry != null) return !(entry.consented ?? entry);
+    } catch { }
+    return false;
+}
+
+function friendly(error: unknown): string {
+    const text = String(error);
+    if (text.includes("analytics_token")) {
+        needsConsent = true;
+        return t("errToken");
+    }
+    return text;
+}
+
+function persist(force = false): void {
+    const now = Date.now();
+    if (!force && now - lastSave < 5_000) return;
+    lastSave = now;
+    set(RUN_KEY, { running, games: gamesCredited, hours: hoursCredited, stream: streamHoursCredited }).catch(() => { });
+}
+
+export async function checkInterrupted(): Promise<void> {
+    try {
+        const saved = await get(RUN_KEY);
+        if (saved?.running !== true) return;
+        await set(RUN_KEY, { running: false });
+        finishedMessage = t("interrupted", { g: saved.games ?? 0, h: Math.round(saved.hours ?? 0), s: Math.round(saved.stream ?? 0) });
+        notice(finishedMessage, "warning");
+        notify(true);
+    } catch { }
+}
+
+function activeLiveStream(): { location: StreamLocation; viewers: number; } | null {
+    try {
+        const stream = ApplicationStreamingStore.getCurrentUserActiveStream();
+        if (stream == null) return null;
+
+        const { channelId } = (stream as { channelId?: string; });
+        if (typeof channelId !== "string" || channelId === "") return null;
+
+        const { guildId } = (stream as { guildId?: string | null; });
+        const viewers = ApplicationStreamingStore.getViewerIds(stream).length;
+        return { location: { guildId: guildId ?? "0", channelId }, viewers };
+    } catch {
+        return null;
+    }
+}
+
+function liveContext(): LiveContext {
+    const live = activeLiveStream();
+    return live == null ? { location: null, viewers: 0 } : { location: live.location, viewers: live.viewers };
+}
+
+export function getLiveInfo(): LiveInfo {
+    const live = activeLiveStream();
+    const voice = SelectedChannelStore.getVoiceChannelId();
+    return { inVoice: typeof voice === "string" && voice !== "", live: live != null, viewers: live?.viewers ?? 0 };
 }
 
 export function executableFor(app: DetectableApp): string {
@@ -152,10 +262,7 @@ function clearGame(): void {
     setDebugGame(null);
 }
 
-interface Slot {
-    start: number;
-    end: number;
-}
+interface Slot { start: number; end: number; }
 
 function nextSlot(durationMs: number): Slot {
     const end = cursor;
@@ -164,21 +271,20 @@ function nextSlot(durationMs: number): Slot {
     return { start, end };
 }
 
-async function withRetry(_label: string, action: () => Promise<void>): Promise<boolean> {
-    for (let attempt = 0; attempt < 3 && running; attempt++) {
+async function withRetry(action: () => Promise<void>): Promise<boolean> {
+    const own = abortToken;
+    for (let attempt = 0; attempt < 3 && running && own === abortToken; attempt++) {
         try {
             await action();
             return true;
         } catch (error) {
             errors++;
-            lastError = String(error);
+            lastError = friendly(error);
             if (attempt < 2) await sleep(RETRY_DELAY_MS);
         }
     }
     return false;
 }
-
-const MAX_FAILED_BURSTS = 5;
 
 function shuffled<T>(items: T[]): T[] {
     const pool = [...items];
@@ -191,111 +297,72 @@ function shuffled<T>(items: T[]): T[] {
 
 async function creditGameChunk(game: SpoofedGame, hours: number): Promise<void> {
     const slot = nextSlot(hours * 3_600_000);
+    const own = abortToken;
     await creditPlaytime(game, hours * 3_600_000, slot.start);
-    hoursCredited += hours;
+    if (own === abortToken) hoursCredited += hours;
 }
 
 async function creditVarietySession(game: SpoofedGame, minutes: number): Promise<void> {
     const slot = nextSlot(minutes * 60_000);
+    const own = abortToken;
     await creditPlaytime(game, minutes * 60_000, slot.start);
-    gamesCredited++;
-}
-
-function currentStreamLocation(): StreamLocation {
-    const channelId = SelectedChannelStore.getVoiceChannelId();
-    if (typeof channelId === "string" && channelId !== "") {
-        return { guildId: "0", channelId };
-    }
-    return { guildId: "900000000000000000", channelId: "900000000000000001" };
-}
-
-function activeLiveStream(): { location: StreamLocation; viewers: number; } | null {
-    try {
-        const stream = ApplicationStreamingStore.getCurrentUserActiveStream();
-        if (stream == null) return null;
-
-        const { channelId } = (stream as { channelId?: string; });
-        if (typeof channelId !== "string" || channelId === "") return null;
-
-        const { guildId } = (stream as { guildId?: string | null; });
-
-        const viewers = ApplicationStreamingStore.getViewerIds(stream).length;
-        return { location: { guildId: guildId ?? "0", channelId }, viewers };
-    } catch {
-        return null;
-    }
+    if (own === abortToken) gamesCredited++;
 }
 
 async function runStream(targetHours: number): Promise<void> {
-    const live = activeLiveStream();
+    const own = abortToken;
+    streamPhase = "waiting";
+    let announced: StreamPhase | null = null;
+    notify(true);
 
-    if (live != null && live.viewers > 0) {
-        let turboDone: (() => void) | null = null;
-
-        const session = startTurboLiveStream(
-            live.location,
-            targetHours,
-            () => running,
-            totalHours => {
-                streamHoursCredited = totalHours;
-                streamMinutesCredited = totalHours * 60;
-                streamBatch = Math.round(totalHours) % 60;
-                streamBatches = 60;
-                notify();
-            }
-        );
-        liveSession = session;
-        liveSessionDone = () => turboDone?.();
-
-        await new Promise<void>(resolve => { turboDone = resolve; });
-        await session.stop();
-        liveSession = null;
-        liveSessionDone = null;
-        return;
-    }
-
-    if (live != null && live.viewers === 0) {
-        lastError = "You are live but nobody is watching. Hours only count with a viewer. Falling back to per-minute mode.";
-    } else {
-        lastError = "No live stream detected. Turbo requires a real stream. Falling back to per-minute mode.";
-    }
-    notify();
-
-    const targetMinutes = Math.round(targetHours * 60);
-    let liveDone: (() => void) | null = null;
-
-    const session = startLiveStream(
-        currentStreamLocation(),
-        () => running && streamMinutesCredited < targetMinutes,
-        totalMinutes => {
-            streamMinutesCredited = Math.min(totalMinutes, targetMinutes);
-            streamHoursCredited = streamMinutesCredited / 60;
-            streamBatch = streamMinutesCredited % 60;
-            streamBatches = 60;
+    const session = startLiveStream({
+        targetHours,
+        autoSwitch: (Settings.plugins as any).BadgeFarmer?.autoSwitch !== false,
+        context: liveContext,
+        shouldContinue: () => running && own === abortToken && streamHoursCredited < targetHours,
+        onProgress: hours => {
+            if (own !== abortToken) return;
+            streamHoursCredited = Math.min(hours, targetHours);
             notify();
+        },
+        onPhase: phase => {
+            streamPhase = phase;
+            if (phase !== announced) {
+                announced = phase;
+                const info = getLiveInfo();
+                if (phase === "turbo") notice(t("toastTurbo", { n: info.viewers }), "success");
+                else if (phase === "slow") notice(t("toastNoViewer"), "info");
+                else notice(t(info.inVoice ? "toastNoLive" : "toastNoVoice"), "warning");
+            }
+            notify(true);
+        },
+        onError: message => {
+            errors++;
+            lastError = message === "errHb" ? t("errHb") : friendly(message);
+            notify(true);
         }
-    );
-    liveSession = session;
-    liveSessionDone = () => liveDone?.();
+    });
 
-    await new Promise<void>(resolve => { liveDone = resolve; });
-    await session.stop();
+    liveSession = session;
+    await session.finished;
     liveSession = null;
-    liveSessionDone = null;
 }
 
 async function runGameTime(app: { id: string; name: string; exeName: string; }, targetHours: number, chunkHours = DEFAULT_CHUNK_HOURS): Promise<void> {
     let credited = 0;
     let failedBursts = 0;
     const chunkSize = Math.min(Math.max(1, chunkHours), MAX_CHUNK_HOURS);
-    while (running && credited < targetHours) {
+    const own = abortToken;
+    clearGame();
+
+    while (running && own === abortToken && credited < targetHours) {
         const chunk = Math.min(chunkSize, targetHours - credited);
         const game = activeGame ?? buildGame(app, cursor);
         showGame(game);
-        const ok = await withRetry(`Game time chunk (${chunk}h ${game.name})`, () => creditGameChunk(game, chunk));
+        const ok = await withRetry(() => creditGameChunk(game, chunk));
         if (!ok) {
             if (++failedBursts >= MAX_FAILED_BURSTS) {
-                lastError = "Stopped after repeated failures";
+                lastError = t("errRepeated");
                 return;
             }
             continue;
@@ -308,10 +375,11 @@ async function runGameTime(app: { id: string; name: string; exeName: string; }, 
 }
 
 async function runVariety(list: SpoofedGame[], minutesPerGame: number): Promise<void> {
-    for (varietyIndex = 0; varietyIndex < list.length && running; varietyIndex++) {
+    const own = abortToken;
+    for (varietyIndex = 0; varietyIndex < list.length && running && own === abortToken; varietyIndex++) {
         const game = list[varietyIndex];
         showGame(game);
-        await withRetry(`Variety session ${game.name}`, () => creditVarietySession(game, minutesPerGame));
+        await withRetry(() => creditVarietySession(game, minutesPerGame));
         notify();
         await sleep(REQUEST_DELAY_MS);
     }
@@ -319,39 +387,49 @@ async function runVariety(list: SpoofedGame[], minutesPerGame: number): Promise<
 
 function begin(nextMode: FarmerMode): boolean {
     if (running) return false;
+    if (isLocked()) {
+        notice(t("lockedToast"), "warning");
+        return false;
+    }
     running = true;
     mode = nextMode;
     gamesCredited = 0;
     hoursCredited = 0;
     streamHoursCredited = 0;
-    streamMinutesCredited = 0;
-    streamBatch = 0;
-    streamBatches = 0;
+    streamPhase = "waiting";
+    needsConsent = false;
+    gameTarget = 0;
+    streamTarget = 0;
     errors = 0;
     lastError = null;
     finishedMessage = null;
     cursor = Date.now();
     abortToken++;
-    notify();
+    persist(true);
+    notify(true);
     return true;
 }
 
 function markFinished(message: string): void {
     finishedMessage = message;
-    showToast({ text: message, variant: "success" });
+    notice(message, "success");
 }
 
 type GameSpec = { id: string; name: string; exeName: string; };
 
-export async function startGameTime(app: DetectableApp, hours = MAX_TIME_HOURS, chunkHours = DEFAULT_CHUNK_HOURS): Promise<void> {
+export async function startGameTime(app: DetectableApp, hours = MAX_BADGE_HOURS, chunkHours = DEFAULT_CHUNK_HOURS): Promise<void> {
     const spec: GameSpec = { id: app.id, name: app.name, exeName: executableFor(app) };
     if (!begin("GAME_TIME")) return;
+    gameTarget = hours;
+    notice(t("toastStarted", { what: `${t("gameTime")}: ${spec.name}` }));
     const token = abortToken;
     try {
         await runGameTime(spec, hours, chunkHours);
         if (running && hoursCredited >= hours) {
-            markFinished(`Game Time done. ${Math.round(hoursCredited)}h credited to ${spec.name}. Badge updates on the next nightly pass.`);
+            markFinished(t("doneGame", { h: Math.round(hoursCredited), name: spec.name }));
         }
+    } catch (error) {
+        lastError = friendly(error);
     } finally {
         if (token === abortToken) finish();
     }
@@ -359,27 +437,34 @@ export async function startGameTime(app: DetectableApp, hours = MAX_TIME_HOURS, 
 
 export async function startVariety(apps: DetectableApp[], minutesPerGame = DEFAULT_VARIETY_MINUTES): Promise<void> {
     if (!begin("VARIETY")) return;
+    notice(t("toastStarted", { what: t("variety") }));
     varietyList = apps.map(app => buildGame({ id: app.id, name: app.name, exeName: executableFor(app) }, cursor));
     varietyIndex = 0;
     const token = abortToken;
     try {
         await runVariety(varietyList, minutesPerGame);
         if (running && gamesCredited >= varietyList.length) {
-            markFinished(`Variety done. ${gamesCredited} games credited. Badge updates on the next nightly pass.`);
+            markFinished(t("doneVar", { n: gamesCredited }));
         }
+    } catch (error) {
+        lastError = friendly(error);
     } finally {
         if (token === abortToken) finish();
     }
 }
 
-export async function startStream(hours = MAX_TIME_HOURS): Promise<void> {
+export async function startStream(hours = MAX_BADGE_HOURS): Promise<void> {
     if (!begin("STREAM")) return;
+    streamTarget = hours;
+    notice(t("toastStarted", { what: t("streaming") }));
     const token = abortToken;
     try {
         await runStream(hours);
         if (running && streamHoursCredited >= hours) {
-            markFinished(`Streaming done. ${Math.round(streamHoursCredited)}h credited. Badge updates on the next nightly pass.`);
+            markFinished(t("doneStream", { h: Math.round(streamHoursCredited) }));
         }
+    } catch (error) {
+        lastError = friendly(error);
     } finally {
         if (token === abortToken) finish();
     }
@@ -387,6 +472,9 @@ export async function startStream(hours = MAX_TIME_HOURS): Promise<void> {
 
 export async function maxAll(apps: DetectableApp[]): Promise<void> {
     if (!begin("MAX_ALL")) return;
+    gameTarget = MAX_BADGE_HOURS;
+    streamTarget = MAX_BADGE_HOURS;
+    notice(t("toastStarted", { what: t("maxAll") }));
     const token = abortToken;
     try {
         varietyList = shuffled(apps).slice(0, MAX_VARIETY_GAMES).map(app => buildGame({ id: app.id, name: app.name, exeName: executableFor(app) }, cursor));
@@ -394,16 +482,19 @@ export async function maxAll(apps: DetectableApp[]): Promise<void> {
         await runVariety(varietyList, 1.5);
 
         if (running && varietyList.length > 0) {
-            await runGameTime(varietyList[0], MAX_TIME_HOURS);
+            await runGameTime(varietyList[0], MAX_BADGE_HOURS);
         }
 
         if (running) {
-            await runStream(MAX_TIME_HOURS);
+            if (getLiveInfo().viewers > 0) await runStream(MAX_BADGE_HOURS);
+            else notice(t("toastSkipStream"), "warning");
         }
 
-        if (running && gamesCredited >= varietyList.length && hoursCredited >= MAX_TIME_HOURS && streamHoursCredited >= MAX_TIME_HOURS) {
-            markFinished(`All badges done. ${gamesCredited} games, ${Math.round(hoursCredited)}h game time, ${Math.round(streamHoursCredited)}h streaming. Badge updates on the next nightly pass.`);
+        if (running && gamesCredited >= varietyList.length && hoursCredited >= MAX_BADGE_HOURS) {
+            markFinished(t("doneAll", { g: gamesCredited, h: Math.round(hoursCredited), s: Math.round(streamHoursCredited) }));
         }
+    } catch (error) {
+        lastError = friendly(error);
     } finally {
         if (token === abortToken) finish();
     }
@@ -415,19 +506,14 @@ function finish(): void {
     clearGame();
     varietyList = [];
     varietyIndex = 0;
-    liveSessionDone?.();
-    liveSessionDone = null;
-    notify();
+    persist(true);
+    notify(true);
 }
 
 export function stop(): void {
+    if (running) notice(t("toastStopped"));
     abortToken++;
-    const session = liveSession;
-    if (session != null) {
-        void session.stop().then(() => {
-            liveSession = null;
-        });
-    }
+    liveSession?.stop();
     finish();
 }
 

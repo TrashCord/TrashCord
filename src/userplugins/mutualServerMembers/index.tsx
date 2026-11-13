@@ -291,7 +291,7 @@ function GuildPickerModal({ fixedGuildId, modalProps }: { fixedGuildId?: string;
         return (
             <div>
                 <button style={s.dropBtn} onClick={() => setOpenDropdown(isOpen ? null : which)}>
-                    <span>{selected ? selected.name : "— pick server —"}</span>
+                    <span>{selected ? selected.name : "- pick server -"}</span>
                     <span>{isOpen ? "▲" : "▼"}</span>
                 </button>
                 {isOpen && (

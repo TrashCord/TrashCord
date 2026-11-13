@@ -35,7 +35,7 @@ function getUserAssets() {
 /**
  * Make a URL safe to interpolate into a CSS `url('…')`. HTML escaping was used here before and
  * was both wrong and ineffective: entities stay literal inside a CSS string, while the characters
- * that can actually break out — quotes, backslashes, newlines and parentheses — passed straight
+ * that can actually break out - quotes, backslashes, newlines and parentheses - passed straight
  * through. encodeURI leaves a working URL and removes all of them.
  */
 function cssUrl(url: string) {
@@ -82,18 +82,18 @@ const buf2hex = (buf: ArrayBuffer) => Array.prototype.map.call(new Uint8Array(bu
 const hex2binb = (hex: string) => Uint8Array.from(hex.match(/.{1,2}/g) ?? [], byte => parseInt(byte, 16));
 
 // Marks which KDF produced a stored hash. Without it, changing the KDF would leave an existing
-// user permanently unable to unlock — their old hash could never match. On a mismatch the data
+// user permanently unable to unlock - their old hash could never match. On a mismatch the data
 // is treated as "no passcode set" so they are asked to choose a new one instead of being locked
 // out. (Nothing shipped with the old scheme in Testcord, but a silent lockout is not a risk worth
 // leaving in place.)
 const KDF_VERSION = 2;
 const KDF_ITERATIONS = 600_000;
 
-// Upstream generated the salt as HEX but decoded it with atob() as BASE64 — a real mismatch.
+// Upstream generated the salt as HEX but decoded it with atob() as BASE64 - a real mismatch.
 // It happened to "work" (hex characters are all valid base64 symbols and the length divides by
 // four) and the salt stayed unique, but it silently derived from the wrong bytes. Hex in, hex
 // out. SHA-1 is also replaced by SHA-256, and the iteration count raised from 4,000 to OWASP's
-// current PBKDF2-HMAC-SHA256 guidance — a short numeric passcode is brute-forceable offline
+// current PBKDF2-HMAC-SHA256 guidance - a short numeric passcode is brute-forceable offline
 // otherwise, and people reuse passcodes elsewhere.
 async function pbkdf2(str: string, salt: string, iterations: number) {
     const key = await crypto.subtle.importKey("raw", str2binb(str), { name: "PBKDF2" }, false, ["deriveKey"]);
@@ -122,7 +122,7 @@ async function hashCheck(code: string, salt: string, iterations: number, expecte
  *
  * A hash produced by a different KDF can never match, so treating it as "set" would lock the
  * user out permanently with no way back in through the UI. Treating it as "not set" instead
- * degrades to the unconfigured state — the setup screen — which is recoverable. Deliberate
+ * degrades to the unconfigured state - the setup screen - which is recoverable. Deliberate
  * trade-off: fail open on an unverifiable hash rather than brick the client.
  */
 function hasPasscode(d: PLData): boolean {
@@ -338,7 +338,7 @@ function PasscodeLocker({ type, button, onDone }: LockerProps) {
 
     // close() is GUARANTEED to call onDone, no matter what happens with styling/animation.
     // Any failure inside the animation steps is caught and logged, but never blocks
-    // the unmount — this is what previously could leave the full-screen overlay
+    // the unmount - this is what previously could leave the full-screen overlay
     // stuck forever, eating all clicks/keystrokes.
     const close = (success: boolean) => {
         try {
@@ -397,7 +397,7 @@ function PasscodeLocker({ type, button, onDone }: LockerProps) {
 
     // `accept` takes an optional explicit code to validate. This matters because
     // `append()` below calls accept() synchronously (via setTimeout) right after
-    // computing the new full code string — if accept() fell back to reading the
+    // computing the new full code string - if accept() fell back to reading the
     // `code` state closed over from the same render, it would see the code as it
     // was *before* the digit that was just typed, i.e. one character short. That
     // was a real, silent bug: the very last digit typed was never actually checked,
@@ -449,7 +449,7 @@ function PasscodeLocker({ type, button, onDone }: LockerProps) {
         const interval = setInterval(checkDelay, 1000);
         checkDelay();
 
-        // entrance animation — wrapped defensively so a styling/layout error never
+        // entrance animation - wrapped defensively so a styling/layout error never
         // leaves the overlay stuck mid-animation (which would block all clicks/keys).
         let tick: ReturnType<typeof setInterval> | undefined;
         let finished = false;
@@ -631,7 +631,7 @@ function openLocker(type: LockType, button: HTMLElement | null, onSuccess?: (new
 
     // Watchdog: an overlay should never realistically stay open for 45s without
     // the user interacting successfully or cancelling. If it does, something broke
-    // (e.g. an uncaught error prevented onDone from firing) — auto-recover instead
+    // (e.g. an uncaught error prevented onDone from firing) - auto-recover instead
     // of leaving the user permanently locked out of every button/shortcut.
     clearTimeout(watchdogTimeout);
     if (type !== "default") {
@@ -707,7 +707,7 @@ function lock(button: HTMLElement | null = document.body) {
         // Only commit the locked state once the overlay actually rendered
         // without throwing. Setting this *before* the attempt is what could
         // previously leave isLocked stuck at true forever if openLocker failed
-        // (e.g. a webpack module not ready yet at startup) — silently disabling
+        // (e.g. a webpack module not ready yet at startup) - silently disabling
         // every lock entry point (header button, settings button, keybind) for
         // the rest of the session.
         isLocked = true;
@@ -717,7 +717,7 @@ function lock(button: HTMLElement | null = document.body) {
         console.error("[PasscodeLock] lock() failed to open the overlay", e);
         isLocked = false;
         forceReset("lock() threw while opening the overlay");
-        showToast({ text: t("تعذّر فتح قفل الرمز — راجع الطرفية للتفاصيل.", "PasscodeLock failed to open — check the console for details."), variant: "critical" });
+        showToast({ text: t("تعذّر فتح قفل الرمز - راجع الطرفية للتفاصيل.", "PasscodeLock failed to open - check the console for details."), variant: "critical" });
     }
 }
 
@@ -840,7 +840,7 @@ export default definePlugin({
         // Only auto-lock on startup if a passcode has actually been configured.
         // Without this check, enabling the plugin for the very first time (before
         // ever setting a passcode) would immediately lock Discord because
-        // lockOnStartup defaults to true — trapping the user behind a lock screen
+        // lockOnStartup defaults to true - trapping the user behind a lock screen
         // with no passcode they ever chose.
         if (hasPasscode(data) && (settings.store.lockOnStartup || data.locked)) {
             setTimeout(() => {

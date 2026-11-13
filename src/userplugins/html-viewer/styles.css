@@ -1,4 +1,4 @@
-/* html-viewer — Discord's theme tokens churn between versions, so every color
+/* html-viewer - Discord's theme tokens churn between versions, so every color
    is a fallback chain: old name -> a token confirmed present on current builds
    -> a dark hardcode. Theme-aware where tokens exist; never falls back to light.
    Locals are declared on both the card and the (portaled) modal root. */

@@ -95,7 +95,7 @@ export default definePlugin({
         }
     ],
 
-    // Flux events — intercept MESSAGE_CREATE to auto-ack DMs/Groups during stream
+    // Flux events - intercept MESSAGE_CREATE to auto-ack DMs/Groups during stream
     flux: {
         MESSAGE_CREATE(event: any) {
             if (!isStreaming()) return;

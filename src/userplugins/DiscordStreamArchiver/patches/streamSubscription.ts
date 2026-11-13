@@ -45,7 +45,7 @@ export function initStreamSubscriptionPatches(): void {
 }
 
 // Kick off Discord's stream subscription for the given streamKey. Non-async
-// because the STREAM_WATCH dispatch is fire-and-forget — the resulting
+// because the STREAM_WATCH dispatch is fire-and-forget - the resulting
 // MediaStream arrives on a later tick and is captured by webAudioTap.
 // Returns true if the action was invoked, false on invalid key or missing
 // action. Safe to call multiple times for the same key (Discord refcounts
@@ -58,7 +58,7 @@ export function dispatchWatchStream(streamKey: string): boolean {
     }
     // Discord's streamKey constructor (module 652896's `_z` export, called
     // inside the watch action as `u._z(e)`) destructures
-    // `{streamType, guildId, channelId, ownerId}` — the field is streamType,
+    // `{streamType, guildId, channelId, ownerId}` - the field is streamType,
     // not type. Without it: "Unknown stream type undefined".
     const info: { streamType: "guild" | "call"; guildId?: string; channelId: string; ownerId: string } = {
         streamType: parsed.type,
@@ -102,7 +102,7 @@ export function userTriggeredWatchClosed(streamKey: string): void {
 }
 
 // Legacy API kept so existing callers in StreamTap.ts compile. The
-// MediaStream isn't returned here — callers should look in the webAudioTap
+// MediaStream isn't returned here - callers should look in the webAudioTap
 // registry (see RecordingSession.reconcileScreenshares). subscribeSilently
 // now just dispatches the watch action and resolves with placeholder tracks
 // for the rare path where someone still calls it.
@@ -117,7 +117,7 @@ export interface SubscribeResult {
 export async function subscribeSilently(streamKey: string): Promise<SubscribeResult> {
     const ok = dispatchWatchStream(streamKey);
     if (!ok) throw new Error(`subscribeSilently: watchStream action unavailable for ${streamKey}`);
-    // Returning empty placeholders — StreamTap handles the real linking via
+    // Returning empty placeholders - StreamTap handles the real linking via
     // the webAudioTap registry now.
     const videoEl = document.createElement("video");
     return {

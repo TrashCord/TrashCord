@@ -50,7 +50,7 @@ export class ImageCache {
 
     // maxEntries lets callers size the LRU to the media class it holds. High-
     // churn, low-reuse media (attachments, embed images) and small, bounded,
-    // high-reuse media (avatars) should NOT share one cache — attachment churn
+    // high-reuse media (avatars) should NOT share one cache - attachment churn
     // would otherwise evict avatars that are about to be re-rendered.
     constructor(private readonly onLoaded: () => void, private readonly maxEntries: number = MAX_ENTRIES) {}
 
@@ -62,7 +62,7 @@ export class ImageCache {
             this.cache.set(url, v);
             return v;
         }
-        // Self-heal: the renderer wants this image but it isn't loaded — it
+        // Self-heal: the renderer wants this image but it isn't loaded - it
         // either never was, a previous load failed (transient network blip),
         // or the LRU evicted it. Kick a de-duplicated, backoff-guarded load so
         // a later frame can draw it. Without this a one-off failure left the
@@ -145,7 +145,7 @@ export class ImageCache {
     // Remove every <img> this cache put in the shared DOM container and stop
     // accepting new loads. Without this the elements (and their decoded
     // bitmaps) accumulate across sessions and progressively load the
-    // compositor — call from the owning renderer's dispose().
+    // compositor - call from the owning renderer's dispose().
     dispose(): void {
         this.disposed = true;
         for (const img of this.cache.values()) {

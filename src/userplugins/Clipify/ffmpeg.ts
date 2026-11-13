@@ -62,7 +62,7 @@ export function isFFmpegLoaded(): boolean {
     return ffmpeg?.loaded ?? false;
 }
 
-/** Kill the worker — used to abort an in-flight export. Next call reloads. */
+/** Kill the worker - used to abort an in-flight export. Next call reloads. */
 export function terminateFFmpeg(): void {
     try { ffmpeg?.terminate(); } catch { /* ignore */ }
     ffmpeg = null;

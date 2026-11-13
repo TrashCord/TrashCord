@@ -8,12 +8,12 @@ A [Vencord](https://github.com/Vendicated/Vencord) plugin that adds multi-messag
 
 ## Features
 
-- **Selection mode** — enter via the message context menu; click messages or drag to select a range
-- **Toolbar** — live selected-message counter; copy or clear with one click
-- **Preview modal** — inspect formatted text before copying (configurable)
-- **Copy formats** — timestamp, author, content, attachments, and embeds; fully configurable
-- **Sound effects** — subtle tones on select / deselect / copy (toggleable)
-- **Export Chat** *(optional, off by default)* — export the full history of a DM or Group DM as **JSON**, **Plain Text**, or **HTML**
+- **Selection mode** - enter via the message context menu; click messages or drag to select a range
+- **Toolbar** - live selected-message counter; copy or clear with one click
+- **Preview modal** - inspect formatted text before copying (configurable)
+- **Copy formats** - timestamp, author, content, attachments, and embeds; fully configurable
+- **Sound effects** - subtle tones on select / deselect / copy (toggleable)
+- **Export Chat** *(optional, off by default)* - export the full history of a DM or Group DM as **JSON**, **Plain Text**, or **HTML**
   - HTML export includes Discord-style rendering: custom emoji, stickers, embeds, Tenor GIFs, Markdown, spoilers, lightbox, and a profile popout
 
 ---
@@ -22,7 +22,7 @@ A [Vencord](https://github.com/Vendicated/Vencord) plugin that adds multi-messag
 
 | Requirement | Version | Notes |
 |---|---|---|
-| [Vencord](https://github.com/Vendicated/Vencord) | latest `dev` branch | Source install required — not the Desktop app |
+| [Vencord](https://github.com/Vendicated/Vencord) | latest `dev` branch | Source install required - not the Desktop app |
 | [Git](https://git-scm.com) | any recent | Required to clone Vencord and the plugin |
 | [Node.js](https://nodejs.org) | 18 LTS or newer | Required to build Vencord |
 | pnpm | 8 or newer | Run `npm install -g pnpm` to install |
@@ -44,16 +44,16 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 | Stage | Action |
 |---|---|
 | 1 | Welcome screen |
-| 2 | Checks Git, Node.js, pnpm — offers to install each one if missing |
-| 3 | Auto-detects your Vencord source folder — asks if not found |
+| 2 | Checks Git, Node.js, pnpm - offers to install each one if missing |
+| 3 | Auto-detects your Vencord source folder - asks if not found |
 | 4 | Offers to clone Vencord from GitHub if you do not have it |
 | 5 | Creates `src/userplugins` if it does not exist |
 | 6 | Downloads the latest MultiMessageCopy ZIP from GitHub into a temp folder |
 | 7 | Copies only the runtime files into `src/userplugins/MultiMessageCopy` |
 | 8 | Runs `pnpm install` (skipped if `node_modules` already exists) |
 | 9 | Runs `pnpm build` then `pnpm inject` |
-| — | Saves your Vencord path to `%APPDATA%\MultiMessageCopy\mmc-config.json` |
-| — | Shows final installation summary |
+| - | Saves your Vencord path to `%APPDATA%\MultiMessageCopy\mmc-config.json` |
+| - | Shows final installation summary |
 
 After it finishes, **restart Discord completely** (close from the system tray first).
 
@@ -77,14 +77,14 @@ powershell -ExecutionPolicy Bypass -File .\update.ps1
 | Stage | Action |
 |---|---|
 | 1 | Checks Git, Node.js, pnpm |
-| 2 | Reads saved Vencord path from config — asks if missing |
+| 2 | Reads saved Vencord path from config - asks if missing |
 | 3 | Fetches latest version from GitHub and shows installed vs latest |
 | 4 | Downloads latest plugin ZIP from GitHub |
 | 5 | Creates a timestamped backup of your current install |
 | 6 | Replaces only the runtime plugin files |
 | 7 | Runs `pnpm build` |
 | 8 | Asks if you want to restart Discord |
-| — | Shows update summary with backup path and build status |
+| - | Shows update summary with backup path and build status |
 
 ---
 
@@ -99,11 +99,11 @@ The installer and updater copy **only these runtime files** into your Vencord pl
 | `src/` | Yes |
 | `README.md` | Yes |
 | `LICENSE` | Yes |
-| `setup.ps1` | **No** — installer only, stays in your downloads |
-| `update.ps1` | **No** — updater only, stays in your downloads |
-| `uninstall.ps1` | **No** — uninstaller only |
-| `version.json` | **No** — not needed at runtime |
-| `package.json` | **No** — not needed at runtime |
+| `setup.ps1` | **No** - installer only, stays in your downloads |
+| `update.ps1` | **No** - updater only, stays in your downloads |
+| `uninstall.ps1` | **No** - uninstaller only |
+| `version.json` | **No** - not needed at runtime |
+| `package.json` | **No** - not needed at runtime |
 | `.git/` | **No** |
 | `.github/` | **No** |
 
@@ -200,13 +200,13 @@ All three scripts (`setup.ps1`, `update.ps1`, `uninstall.ps1`) follow these rule
 | Rule | Detail |
 |---|---|
 | No remote code execution | Scripts never use `Invoke-Expression`, `iex`, or execute any downloaded code |
-| Scope-limited deletion | Only `src\userplugins\MultiMessageCopy` is ever deleted — verified by a path safety guard before any delete |
+| Scope-limited deletion | Only `src\userplugins\MultiMessageCopy` is ever deleted - verified by a path safety guard before any delete |
 | Parent path check | Both the folder path AND its parent are validated before any file is removed |
 | No credentials | Scripts never ask for Discord login, token, password, or any private data |
-| Ask before big actions | Cloning Vencord, installing pnpm, restarting Discord — all require explicit confirmation |
+| Ask before big actions | Cloning Vencord, installing pnpm, restarting Discord - all require explicit confirmation |
 | No silent installs | Large dependencies (Git, Node.js) are never installed silently; the script explains and asks |
 | Paths with spaces | All paths are quoted throughout |
-| Auditable | All three scripts are plain PowerShell — open them in any text editor before running |
+| Auditable | All three scripts are plain PowerShell - open them in any text editor before running |
 
 ---
 
@@ -270,9 +270,9 @@ All three scripts (`setup.ps1`, `update.ps1`, `uninstall.ps1`) follow these rule
 
 | Symptom | Fix |
 |---|---|
-| `git: command not found` | Install Git from https://git-scm.com — `setup.ps1` will offer to do this automatically |
-| `node: command not found` | Install Node.js LTS from https://nodejs.org — `setup.ps1` will offer to do this automatically |
-| `pnpm: command not found` | Run `npm install -g pnpm` — `setup.ps1` will offer to do this |
+| `git: command not found` | Install Git from https://git-scm.com - `setup.ps1` will offer to do this automatically |
+| `node: command not found` | Install Node.js LTS from https://nodejs.org - `setup.ps1` will offer to do this automatically |
+| `pnpm: command not found` | Run `npm install -g pnpm` - `setup.ps1` will offer to do this |
 | Vencord folder not found | Run `setup.ps1` and enter the path when prompted, or let it clone Vencord for you |
 | `src/userplugins` does not exist | `setup.ps1` and `update.ps1` create it automatically |
 | `pnpm build` fails | Run `pnpm install` inside the Vencord folder first, then try `pnpm build` again |
@@ -287,7 +287,7 @@ All three scripts (`setup.ps1`, `update.ps1`, `uninstall.ps1`) follow these rule
 ## Development
 
 ```bash
-# watch mode — rebuilds on file changes
+# watch mode - rebuilds on file changes
 pnpm watch
 
 # type-check only

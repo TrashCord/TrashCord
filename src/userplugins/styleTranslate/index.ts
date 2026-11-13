@@ -15,7 +15,7 @@ const Native = VencordNative.pluginHelpers.StyleTranslate as {
     translateWithAnythingTranslate(style: string, text: string): Promise<string>;
 };
 
-// ── All styles (superset — AT has more, Claude covers all with prompts) ────
+// ── All styles (superset - AT has more, Claude covers all with prompts) ────
 // Order: most fun first
 const ALL_STYLES: { name: string; displayName: string }[] = [
     // ── Standard ─────────────────────────────────────────────
@@ -107,7 +107,7 @@ const CLAUDE_PROMPTS: Record<string, string> = {
         "Use every possible synonym, add excessive explanations, tangents, and make it as long as humanly possible. " +
         "Output ONLY the translated text, nothing else.",
     "verbose-5yo":
-        "Rewrite the following text as an extremely verbose 5-year-old would say it — " +
+        "Rewrite the following text as an extremely verbose 5-year-old would say it - " +
         "rambling, going off on tangents, repeating things, adding 'and then', 'and also', 'because'. " +
         "Output ONLY the translated text, nothing else.",
     "verbose-stupendous":

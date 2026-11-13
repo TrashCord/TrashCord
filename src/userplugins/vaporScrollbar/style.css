@@ -1,4 +1,4 @@
-/* MallCord VaporScrollbar — neon gradient scrollbars */
+/* MallCord VaporScrollbar - neon gradient scrollbars */
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #ff71ce, #b967ff, #01cdfe) !important;
     border-radius: 8px !important;

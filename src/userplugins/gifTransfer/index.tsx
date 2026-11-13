@@ -131,7 +131,7 @@ function applyRuntimeUnlock(): boolean {
         if (!LIMIT_RE.test(src)) continue;
 
         const patched = src.replace(LIMIT_RE, ".toBinary(t).length>Number.MAX_SAFE_INTEGER");
-        // Already lifted (e.g. by the static patch on this same module) — nothing to do.
+        // Already lifted (e.g. by the static patch on this same module) - nothing to do.
         if (patched === src) {
             runtimeUnlockApplied = true;
             logger.info("Limit already lifted on module", id, "skipping runtime re-eval.");
@@ -516,9 +516,9 @@ export default definePlugin({
                     so you can transfer your favorite GIFs between Discord accounts.
                 </p>
 
-                <p style={{ marginBottom: "4px", color: "var(--header-primary, #fff)" }}>📤 <b>Export</b> <span style={{ color: "var(--header-secondary, #b9bbbe)", fontWeight: "normal" }}>— saves all your favorite GIFs to a .json file.</span></p>
-                <p style={{ marginBottom: "4px", color: "var(--header-primary, #fff)" }}>📥 <b>Import</b> <span style={{ color: "var(--header-secondary, #b9bbbe)", fontWeight: "normal" }}>— loads GIFs from a .json file. Skips duplicates automatically.</span></p>
-                <p style={{ marginBottom: "16px", color: "var(--header-primary, #fff)" }}>🔍 <b>Verify</b> <span style={{ color: "var(--header-secondary, #b9bbbe)", fontWeight: "normal" }}>— checks which GIFs from a file are missing from your favorites.</span></p>
+                <p style={{ marginBottom: "4px", color: "var(--header-primary, #fff)" }}>📤 <b>Export</b> <span style={{ color: "var(--header-secondary, #b9bbbe)", fontWeight: "normal" }}>- saves all your favorite GIFs to a .json file.</span></p>
+                <p style={{ marginBottom: "4px", color: "var(--header-primary, #fff)" }}>📥 <b>Import</b> <span style={{ color: "var(--header-secondary, #b9bbbe)", fontWeight: "normal" }}>- loads GIFs from a .json file. Skips duplicates automatically.</span></p>
+                <p style={{ marginBottom: "16px", color: "var(--header-primary, #fff)" }}>🔍 <b>Verify</b> <span style={{ color: "var(--header-secondary, #b9bbbe)", fontWeight: "normal" }}>- checks which GIFs from a file are missing from your favorites.</span></p>
 
                 <p style={{ marginBottom: "6px", color: "#43b581", fontWeight: "700", fontSize: "13px" }}>
                     ✅ Bypasses Discord's GIF Limit
@@ -526,7 +526,7 @@ export default definePlugin({
                 <p style={{ marginBottom: "16px", color: "var(--header-secondary, #b9bbbe)" }}>
                     Patches Discord's internal validation to remove the "Too many favorite GIFs" limit.
                     Uses Discord's actual API so GIFs appear in your favorites properly.
-                    Includes automatic rate limit handling — slows down if Discord asks it to.
+                    Includes automatic rate limit handling - slows down if Discord asks it to.
                 </p>
 
                 <Link href="https://github.com/Mixiruri" style={{ display: "flex", alignItems: "center", gap: "6px" }}>

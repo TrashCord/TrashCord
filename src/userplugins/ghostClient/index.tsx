@@ -284,7 +284,7 @@ function Dropdown({ icon, label, value, options, onChange }: {
                     {selected?.avatar !== undefined && (selected.avatar
                         ? <img src={avatarUrl(selected.userId!, selected.avatar)} className="gc-dropdown-avatar" alt="" />
                         : <div className="gc-dropdown-avatar-placeholder">{selected.label[0]?.toUpperCase()}</div>)}
-                    <span className="gc-dropdown-selected-label">{selected?.label ?? "—"}</span>
+                    <span className="gc-dropdown-selected-label">{selected?.label ?? "-"}</span>
                 </div>
                 <ChevronIcon />
             </button>
@@ -344,7 +344,7 @@ function useStreamPoller(userId: string | null, active: boolean) {
                     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
                 }
             } catch {
-                // ghost-server temporarily unavailable — keep polling
+                // ghost-server temporarily unavailable - keep polling
             }
         }, 800);
 
@@ -368,7 +368,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
     const [streamingUserId, setStreamingUserId] = useState<string | null>(null);
     const [streamInput, setStreamInput] = useState("");
     const [isPolling, setIsPolling] = useState(false);
-    // FIX: streamStatus and polling separated — setStreamStatus can write an instant message,
+    // FIX: streamStatus and polling separated - setStreamStatus can write an instant message,
     // polling takes over once /stream-start has responded
     const [streamStatus, setStreamStatusDirect] = useState<string | null>(null);
     const [pollStatus, setPollStatus] = useStreamPoller(streamingUserId, isPolling);
@@ -494,7 +494,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ userId, url: url.trim() }),
-                signal: AbortSignal.timeout(5000), // short timeout — the server now responds immediately
+                signal: AbortSignal.timeout(5000), // short timeout - the server now responds immediately
             });
             const d = await r.json();
             if (!mountedRef.current) return;
@@ -555,7 +555,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
                 <div className="gc-popover-divider" />
                 <div className="gc-section-label">Accounts (Native + Imported)</div>
                 <div className="gc-accounts" style={{ maxHeight: 160, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.04)" }}>
-                    {accounts.length === 0 && <div className="gc-empty">No accounts — add a token below</div>}
+                    {accounts.length === 0 && <div className="gc-empty">No accounts - add a token below</div>}
                     {accounts.map(acc => {
                         const state = states.get(acc.userId);
                         const isActive = state?.active === true;
@@ -611,7 +611,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
                     })}
                 </div>
 
-                {/* Video stream panel — FIX: uses non-blocking startStream() + polling */}
+                {/* Video stream panel - FIX: uses non-blocking startStream() + polling */}
                 {streamingUserId && (() => {
                     const acc = accounts.find(a => a.userId === streamingUserId);
                     if (!acc) return null;
@@ -668,7 +668,7 @@ function GhostPopover({ onClose, anchorRect }: { onClose: () => void; anchorRect
                         {adding ? "Adding..." : "Add"}
                     </button>
                 </div>
-                <div className="gc-note">Use a secondary account — selfbots are against Discord TOS.</div>
+                <div className="gc-note">Use a secondary account - selfbots are against Discord TOS.</div>
             </div>
         </div>
     );
@@ -750,7 +750,7 @@ const GhostUserAreaButton: UserAreaButtonFactory = ({ iconForeground, hideToolti
     return (
         <div ref={btnRef} style={{ position: "relative" }}>
             <UserAreaButton
-                tooltipText={hideTooltips ? undefined : "Ghost Accounts — left click: toggle | right click: config"}
+                tooltipText={hideTooltips ? undefined : "Ghost Accounts - left click: toggle | right click: config"}
                 icon={<GhostIcon className={`${iconForeground} ${anyActive ? "gc-icon--active" : ""}`} />}
                 plated={nameplate != null}
                 redGlow={false}
@@ -770,7 +770,7 @@ const GhostUserAreaButton: UserAreaButtonFactory = ({ iconForeground, hideToolti
 
 export default definePlugin({
     name: "GhostClient",
-    description: "Discord ghost accounts — left-click to enable/disable, right-click to configure.",
+    description: "Discord ghost accounts - left-click to enable/disable, right-click to configure.",
     authors: [{ name: "Nightcord", id: 0n }],
     tags: ["Voice", "Utility", "Privacy"],
     enabledByDefault: false,

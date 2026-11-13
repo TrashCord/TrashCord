@@ -8,7 +8,7 @@ import {
   selectedMessages,
   isSelectionMode,
 } from "../hooks/selectionState"
-// selectedMessages is now Map<string, Message> — .has() / .size still work
+// selectedMessages is now Map<string, Message> - .has() / .size still work
 // identically so no logic changes are required in this file.
 import { isSystemMessageElement } from "../utils/domHelpers"
 import { MESSAGE_SELECTOR } from "../constants"
@@ -101,16 +101,16 @@ export function addCheckboxesToMessages(): void {
 
     if (isSystemMessageElement(messageElement)) return
 
-    // Mark message row — no padding change, position: relative is sufficient
+    // Mark message row - no padding change, position: relative is sufficient
     messageElement.classList.add("mmc-message-container", "mmc-selection-mode")
 
-    // Checkbox container — stable, always visible in selection mode
+    // Checkbox container - stable, always visible in selection mode
     const checkboxContainer = document.createElement("div")
     checkboxContainer.className = "mmc-checkbox-container"
     checkboxContainer.setAttribute("role", "checkbox")
     checkboxContainer.setAttribute("aria-checked", "false")
     checkboxContainer.setAttribute("tabindex", "0")
-    // Data attribute used by delegated handlers — no per-element listeners needed
+    // Data attribute used by delegated handlers - no per-element listeners needed
     checkboxContainer.setAttribute("data-mmc-message-id", messageId)
     checkboxContainer.setAttribute("data-mmc-selectable", "true")
 

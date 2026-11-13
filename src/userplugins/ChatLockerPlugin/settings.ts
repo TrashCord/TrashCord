@@ -10,7 +10,7 @@ import { OptionType } from "@utils/types";
 export const settings = definePluginSettings({
     backgroundImage: {
         type: OptionType.STRING,
-        description: "Custom lock screen background image URL(s) — leave empty for the default dark background, or enter a comma-separated list of several URLs to shuffle between",
+        description: "Custom lock screen background image URL(s) - leave empty for the default dark background, or enter a comma-separated list of several URLs to shuffle between",
         default: "",
     },
     shuffleBackground: {

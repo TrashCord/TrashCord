@@ -218,7 +218,7 @@ export function openExportProgressModal(
             phaseEl.style.display = "none"
         }
 
-        // Large export warning — show once when status text contains keywords
+        // Large export warning - show once when status text contains keywords
         if (
             state.statusText.toLowerCase().includes("large export") ||
             state.statusText.toLowerCase().includes("very large")

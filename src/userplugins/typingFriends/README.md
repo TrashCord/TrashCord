@@ -4,8 +4,8 @@ Shows where and which of your friends are currently typing across servers and DM
 
 ## Settings
 
-• **Show Typing Section** — Toggle the Typing section in the Friends list  
-• **Typing Timeout** — Time before a typing indicator is cleared
+• **Show Typing Section** - Toggle the Typing section in the Friends list  
+• **Typing Timeout** - Time before a typing indicator is cleared
 
 ## Screenshot
 

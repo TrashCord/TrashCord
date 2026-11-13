@@ -72,7 +72,7 @@ export function GalleryModal(props: ModalProps & { channelId: string; settings: 
     const { channelId, settings, ...modalProps } = props;
 
     const channel = ChannelStore.getChannel(channelId);
-    const title = channel?.name ? `Gallery — #${channel.name}` : "Gallery";
+    const title = channel?.name ? `Gallery - #${channel.name}` : "Gallery";
 
     const cache = useMemo(() => getOrCreateCache(channelId), [channelId]);
 

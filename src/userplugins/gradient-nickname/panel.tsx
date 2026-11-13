@@ -22,11 +22,11 @@ const ANIMS: { value: AnimationType; label: string }[] = [
 
 const FONTS: { value: string; label: string; group: "system" | "google" | "discord" }[] = [
     { value: "", label: "Default (Discord)", group: "system" },
-    // Discord-native fonts (always available — no fetch).
-    { value: "var(--font-primary)", label: "Discord — gg sans", group: "discord" },
-    { value: "var(--font-display)", label: "Discord — Display", group: "discord" },
-    { value: "var(--font-headline)", label: "Discord — Headline", group: "discord" },
-    { value: "var(--font-code)", label: "Discord — Mono", group: "discord" },
+    // Discord-native fonts (always available - no fetch).
+    { value: "var(--font-primary)", label: "Discord - gg sans", group: "discord" },
+    { value: "var(--font-display)", label: "Discord - Display", group: "discord" },
+    { value: "var(--font-headline)", label: "Discord - Headline", group: "discord" },
+    { value: "var(--font-code)", label: "Discord - Mono", group: "discord" },
     // Google Fonts (lazy-loaded on demand; may fail if Discord CSP blocks the fetch)
     { value: "Inter", label: "Inter", group: "google" },
     { value: "Roboto", label: "Roboto", group: "google" },
@@ -815,7 +815,7 @@ function StopRow(props: StopRowProps) {
                     boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.25)",
                     flexShrink: 0,
                     ...animatedSwatchStyle,
-                }} title="Hue animation active — color cycles" />
+                }} title="Hue animation active - color cycles" />
             ) : (
                 <ColorSwatch color={color} onChange={onColorChange} />
             )}
@@ -1137,7 +1137,7 @@ function CopyBioTagButton({ cfg }: { cfg: any }) {
             setTimeout(() => setCopied(false), 2000);
             if (overLimit) {
                 showToast({
-                    text: `Tag is ${tag.length} chars but Discord's bio limit is ${BIO_LIMIT}. It won't fit — remove some stops or disable glow.`,
+                    text: `Tag is ${tag.length} chars but Discord's bio limit is ${BIO_LIMIT}. It won't fit - remove some stops or disable glow.`,
                     variant: "critical",
                     duration: 5000,
                     position: "bottom"

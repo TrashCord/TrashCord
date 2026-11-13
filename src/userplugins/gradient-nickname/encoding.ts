@@ -7,7 +7,7 @@
 import type { ColorStop, GradientConfig } from "./types";
 
 // ============================================================================
-// Font index — DO NOT REORDER. Decoder maps numeric idx → font name; existing
+// Font index - DO NOT REORDER. Decoder maps numeric idx → font name; existing
 // bios encode the index, so reordering would corrupt other users' configs.
 // Append new fonts at the end only.
 // ============================================================================
@@ -56,7 +56,7 @@ const DIR_BY_NAME: Record<string, number> = {
 const DIR_BY_IDX = ["left", "right", "up", "down"] as const;
 
 // ============================================================================
-// Zero-width Unicode encoding — 16 invisible chars = 4 bits each, 2 chars/byte.
+// Zero-width Unicode encoding - 16 invisible chars = 4 bits each, 2 chars/byte.
 // Wrapped between U+2063 sentinels so decoder can locate the blob in bio text.
 // 50% smaller than the prior 4-char palette.
 // ============================================================================
@@ -93,7 +93,7 @@ function zwToBytes(s: string): Uint8Array | null {
 }
 
 // ============================================================================
-// Binary serialization (v1) — packed for size to fit Discord's 190-char bio
+// Binary serialization (v1) - packed for size to fit Discord's 190-char bio
 // limit after ZW expansion (4 chars per byte).
 // ============================================================================
 const BINARY_VERSION = 2;
@@ -275,7 +275,7 @@ function decodePlain(bio: string): GradientConfig | null {
 }
 
 // ============================================================================
-// Bio strip pattern — used by bioWriter to remove old tag content before
+// Bio strip pattern - used by bioWriter to remove old tag content before
 // appending new one. Matches both ZW blob and legacy plain tag.
 // ============================================================================
 export const BIO_STRIP_RE = new RegExp(

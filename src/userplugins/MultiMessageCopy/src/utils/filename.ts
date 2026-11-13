@@ -6,7 +6,7 @@
 
 import type { ExportFormat } from "../types/export"
 
-// Discord channel type constants (kept local — no cross-import needed)
+// Discord channel type constants (kept local - no cross-import needed)
 const DM_CHANNEL_TYPE = 1
 const GROUP_DM_CHANNEL_TYPE = 3
 
@@ -90,7 +90,7 @@ export function buildExportFilename(
       if (first && typeof first === "object" && first.username) {
         otherUser = first
       } else if (first && UserStore) {
-        // Only a snowflake — look up the full user via UserStore
+        // Only a snowflake - look up the full user via UserStore
         try {
           otherUser = UserStore.getUser(String(first))
         } catch {
@@ -110,7 +110,7 @@ export function buildExportFilename(
       return `discord-export-${usernameSlug}-${userId}-${date}.${ext}`
     }
 
-    // Could not resolve the other user — fall back to channelId
+    // Could not resolve the other user - fall back to channelId
     return `discord-export-dm-${channelId}-${date}.${ext}`
   }
 

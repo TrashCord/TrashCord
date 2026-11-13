@@ -16,7 +16,7 @@ const settings = definePluginSettings({
     freezeList: {
         type: OptionType.BOOLEAN,
         default: false,
-        description: "Freeze the member list — stop it from jumping around when people change status.",
+        description: "Freeze the member list - stop it from jumping around when people change status.",
         onChange(val: boolean) {
             if (val) startFreeze();
             else stopFreeze();
@@ -58,7 +58,7 @@ function removeFakeOnline() {
     FluxDispatcher.dispatch({ type: "PRESENCE_UPDATES", updates: [] });
 }
 
-// ─── Freeze logic — patch shouldComponentUpdate on the member list component ──
+// ─── Freeze logic - patch shouldComponentUpdate on the member list component ──
 
 let _freezeActive = false;
 

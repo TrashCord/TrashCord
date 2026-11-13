@@ -1,13 +1,13 @@
-# FocusMode — Vencord Plugin
+# FocusMode - Vencord Plugin
 
 Hide the server list, sidebar, and user panel with one click to focus on your chat or call.
 
 ## Features
 
-- **Focus Mode button** (⊟/⊞) in the header — hides both guild list and sidebar at once
-- **Optional Guild toggle** (G) — hide/show only the server list
-- **Optional Sidebar toggle** (S) — hide/show only the sidebar + user panel
-- **i18n** — English and Português (BR) language selector in settings
+- **Focus Mode button** (⊟/⊞) in the header - hides both guild list and sidebar at once
+- **Optional Guild toggle** (G) - hide/show only the server list
+- **Optional Sidebar toggle** (S) - hide/show only the sidebar + user panel
+- **i18n** - English and Português (BR) language selector in settings
 - Smooth CSS transitions
 
 ## Preview
@@ -47,4 +47,4 @@ pnpm build
 
 ## License
 
-GPL-3.0-or-later — See [Vencord License](https://github.com/Vendicated/Vencord/blob/main/LICENSE)
+GPL-3.0-or-later - See [Vencord License](https://github.com/Vendicated/Vencord/blob/main/LICENSE)

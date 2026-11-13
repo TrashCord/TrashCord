@@ -15,7 +15,7 @@ const classes = findCssClassesLazy("messageListItem");
 
 export default definePlugin({
     name: "LazyMessageRender",
-    description: "Prevents message action toolbar from clipping under the message above. content-visibility was removed — Discord's virtualized scroller mis-measures contained rows after recent updates.",
+    description: "Prevents message action toolbar from clipping under the message above. content-visibility was removed - Discord's virtualized scroller mis-measures contained rows after recent updates.",
     authors: [Devs.x2b],
     tags: ["Utility"],
     enabledByDefault: false,

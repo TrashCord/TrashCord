@@ -354,7 +354,7 @@ const incoming = payload => {
 const handleTyping = dispatch => {
     if (ws?.readyState !== WebSocket.OPEN) return;
     // Only forward typing events from the current voice channel's text channel,
-    // or any channel in the same guild — filter to currentChannel scope.
+    // or any channel in the same guild - filter to currentChannel scope.
     if (!currentChannel) return;
     const voiceChannel = ChannelStore.getChannel(currentChannel);
     if (!voiceChannel) return;

@@ -563,7 +563,7 @@ async function helpCommand(ctx: RemoteContext, parsed: ParsedCommand) {
     if (query === "all") {
         const lines = Object.entries(commandDefs)
             .sort(([a], [b]) => a.localeCompare(b))
-            .map(([, definition]) => `${prefix}${definition.usage} — ${definition.description}`);
+            .map(([, definition]) => `${prefix}${definition.usage} - ${definition.description}`);
         await replyInfo(ctx, lines.join("\n"));
         return;
     }
@@ -574,7 +574,7 @@ async function helpCommand(ctx: RemoteContext, parsed: ParsedCommand) {
 
         for (const option of local.options ?? []) {
             const choices = option.choices?.length ? ` (${option.choices.map(choice => String(choice.value)).join(", ")})` : "";
-            lines.push(`${prefix}${local.name}${option.required ? ` <${option.name}>` : ` [${option.name}]`}${choices} — ${option.description}`);
+            lines.push(`${prefix}${local.name}${option.required ? ` <${option.name}>` : ` [${option.name}]`}${choices} - ${option.description}`);
         }
 
         await replyInfo(ctx, lines.join("\n"));
@@ -584,7 +584,7 @@ async function helpCommand(ctx: RemoteContext, parsed: ParsedCommand) {
     const entries = Object.entries(commandDefs).filter(([, definition]) => definition.category === query);
     if (!entries.length) return replyError(ctx, `No help category or command named "${query}".`);
 
-    const lines = entries.map(([, definition]) => `${prefix}${definition.usage} — ${definition.description}`);
+    const lines = entries.map(([, definition]) => `${prefix}${definition.usage} - ${definition.description}`);
     await replyInfo(ctx, `**${query}**\n${lines.join("\n")}`);
 }
 
@@ -815,7 +815,7 @@ async function schedulesCommand(ctx: RemoteContext) {
     if (!schedules.length) return replyInfo(ctx, "No scheduled messages.");
 
     const lines = schedules.slice(0, 20).map(schedule =>
-        `${schedule.id} — ${moment(schedule.dueAt).fromNow()} — #${ChannelStore.getChannel(schedule.channelId)?.name ?? schedule.channelId}: ${schedule.content.slice(0, 80)}`
+        `${schedule.id} - ${moment(schedule.dueAt).fromNow()} - #${ChannelStore.getChannel(schedule.channelId)?.name ?? schedule.channelId}: ${schedule.content.slice(0, 80)}`
     );
 
     await replyInfo(ctx, `**Scheduled messages** (${schedules.length})\n${lines.join("\n")}`);
@@ -874,7 +874,7 @@ async function cmdsCommand(ctx: RemoteContext, parsed: ParsedCommand) {
 
     const query = words.join(" ").toLowerCase();
     const local = getLocalCommands(query).map(
-        command => `${prefix}${command.name} — ${(command.description ?? "").slice(0, 90)}`
+        command => `${prefix}${command.name} - ${(command.description ?? "").slice(0, 90)}`
     );
 
     let remote: string[];
@@ -885,7 +885,7 @@ async function cmdsCommand(ctx: RemoteContext, parsed: ParsedCommand) {
             .map(command => {
                 const description = (command.untranslatedDescription || command.displayDescription || "").slice(0, 90);
                 const app = command.section?.name ? ` (${command.section.name})` : "";
-                return `/${command.untranslatedName}${app} — ${description}`;
+                return `/${command.untranslatedName}${app} - ${description}`;
             });
     } catch (error) {
         logger.warn("Could not read the slash command list", error);
@@ -920,7 +920,7 @@ async function guildsCommand(ctx: RemoteContext, parsed: ParsedCommand) {
 
     if (!guilds.length) return replyError(ctx, `No servers match "${query}".`);
 
-    await replyInfo(ctx, `**Servers** (${guilds.length})\n${guilds.map(guild => `${guild.name} — ${guild.id}`).join("\n")}`);
+    await replyInfo(ctx, `**Servers** (${guilds.length})\n${guilds.map(guild => `${guild.name} - ${guild.id}`).join("\n")}`);
 }
 
 async function channelsCommand(ctx: RemoteContext, parsed: ParsedCommand) {
@@ -946,7 +946,7 @@ async function channelsCommand(ctx: RemoteContext, parsed: ParsedCommand) {
 
     if (!unique.length) return replyError(ctx, `No channels match "${query}".`);
 
-    const lines = unique.map(channel => `${channel.isVocal() ? "🔊" : "#"}${channel.name} — ${channel.id}`);
+    const lines = unique.map(channel => `${channel.isVocal() ? "🔊" : "#"}${channel.name} - ${channel.id}`);
     await replyInfo(ctx, `**${guild.name} channels** (${unique.length})\n${lines.join("\n")}`);
 }
 
@@ -969,7 +969,7 @@ async function dmsCommand(ctx: RemoteContext, parsed: ParsedCommand) {
 
     if (!dms.length) return replyError(ctx, "No DMs found.");
 
-    await replyInfo(ctx, `**DMs** (${dms.length})\n${dms.map(channel => `${dmName(channel)} — ${channel.id}`).join("\n")}`);
+    await replyInfo(ctx, `**DMs** (${dms.length})\n${dms.map(channel => `${dmName(channel)} - ${channel.id}`).join("\n")}`);
 }
 
 async function openCommand(ctx: RemoteContext, parsed: ParsedCommand) {
@@ -1005,7 +1005,7 @@ async function searchuserCommand(ctx: RemoteContext, parsed: ParsedCommand) {
         .slice(0, 15);
 
     if (!users.length) return replyError(ctx, `No users match "${query}".`);
-    await replyInfo(ctx, `**Users** (${users.length})\n${users.map(user => `${userLabel(user)} — ${user.id}`).join("\n")}`);
+    await replyInfo(ctx, `**Users** (${users.length})\n${users.map(user => `${userLabel(user)} - ${user.id}`).join("\n")}`);
 }
 
 async function channelinfoCommand(ctx: RemoteContext, parsed: ParsedCommand) {

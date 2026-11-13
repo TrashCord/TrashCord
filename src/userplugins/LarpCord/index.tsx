@@ -187,7 +187,7 @@ const PROFILE_EFFECTS = [
 
 const CUSTOM_BADGES = [
     { id: "quest", label: "Completed a quest", icon: "7d9ae358c8c5e118768335dbe68b4fb8" },
-    { id: "orbs", label: "Orbs — Apprentice", icon: "83d8a1eb09a8d64e59233eec5d4d5c2d" },
+    { id: "orbs", label: "Orbs - Apprentice", icon: "83d8a1eb09a8d64e59233eec5d4d5c2d" },
     { id: "oldname", label: "Old username", icon: "6de6d34650760ba5551a79732e98ed60" },
     { id: "gifting_level", label: "Level reached", icon: "ca105ad9cfc8580c765101d17bbb2323" },
     { id: "gifting_icon", label: "Gifting Icon", icon: "64f2413c9b9803661322aaad25826b62" },
@@ -893,7 +893,7 @@ function BadgePicker({ selected, onChange, nitroType, onNitroType, boostLevel, o
                     <input className="cp-input" value={oldName} placeholder="OldUser#0000"
                         onChange={e => onOldName(e.target.value)} />
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
-                        {t('Ex : Triggerr#5954 — will appear as "Old username: Triggerr#5954" when hovering the badge.')}
+                        {t('Ex : Triggerr#5954 - will appear as "Old username: Triggerr#5954" when hovering the badge.')}
                     </div>
                 </div>
             )}
@@ -1262,7 +1262,7 @@ function CustomProfileModal(rootProps: RenderModalProps) {
                 <Field label={t("Bio")} value={data.bio ?? ""} placeholder={t("My description...")} onChange={v => set("bio", v)} />
                 <Field label={t("Pronouns")} value={data.pronouns ?? ""} placeholder={t("he/him")} onChange={v => set("pronouns", v)} />
                 <div className="cp-field">
-                    <SectionLabel>{t("Profile color (Nitro — gradient possible)")}</SectionLabel>
+                    <SectionLabel>{t("Profile color (Nitro - gradient possible)")}</SectionLabel>
                     <div className="cp-color-row" style={{ marginBottom: 6 }}>
                         <span style={{ fontSize: 11, color: "var(--text-muted)", marginRight: 6 }}>{t("Color 1")}</span>
                         <input type="color" value={accentHex || "#5865f2"} onChange={e => { const n = parseInt(e.target.value.replace("#", ""), 16); if (!isNaN(n)) set("accentColor", n); }} className="cp-color-swatch" />

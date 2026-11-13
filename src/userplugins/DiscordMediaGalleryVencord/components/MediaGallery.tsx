@@ -56,7 +56,7 @@ export function MediaGalleryModal({
     const abortControllerRef = useRef<AbortController | null>(null);
 
     // Initial load when channel changes.
-    // NOTE: dateFrom/dateTo are intentionally NOT dependencies here — the date filter is
+    // NOTE: dateFrom/dateTo are intentionally NOT dependencies here  the date filter is
     // applied client-side inside `filteredItems`. Having them here would restart a full
     // channel scan on every keystroke and freeze the renderer.
     useEffect(() => {

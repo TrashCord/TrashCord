@@ -162,7 +162,7 @@ const EncryptButton: ChatBarButtonFactory = ({ type }) => {
     if (!["normal", "sidebar"].some(n => type.analyticsName === n) || encryptSettings.store.location !== "chatbar") return null;
 
     const tooltip = enabled
-        ? "Encryption active — random technique"
+        ? "Encryption active - random technique"
         : "Encryption disabled";
 
     return (
@@ -198,7 +198,7 @@ function DecryptionAccessory({ message }: { message: Message; }) {
             {" "}
             {Parser.parse(decrypted)}
             <br />
-            (decrypted —{" "}
+            (decrypted -{" "}
             <button
                 onClick={() => setDecrypted(undefined)}
                 style={{
@@ -243,7 +243,7 @@ const messageContextPatch = (children: any, { message }: { message: any; }) => {
                             }
                             showToast({ text: `Technique detected: ${found.technique}` });
                         } else {
-                            showToast({ text: "❌ Unable to decrypt — no technique worked", variant: "critical" });
+                            showToast({ text: "❌ Unable to decrypt - no technique worked", variant: "critical" });
                         }
                     }}
                 />

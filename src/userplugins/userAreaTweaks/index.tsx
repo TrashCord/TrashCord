@@ -8,7 +8,7 @@ import definePlugin from "@utils/types";
 
 const CSS = `
 /* ──────────────────────────────────────────────────
-   User Area — Floating Dock (CSS-only)
+   User Area - Floating Dock (CSS-only)
 ────────────────────────────────────────────────── */
 
 /* Hide the native flex container of buttons to recreate them elsewhere if needed, 

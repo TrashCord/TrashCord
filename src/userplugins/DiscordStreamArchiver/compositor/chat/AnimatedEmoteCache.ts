@@ -13,7 +13,7 @@ const Native = VencordNative.pluginHelpers.DiscordStreamArchiver as PluginNative
 // URLs that we can't reach with the worker's own fetch (origin sends no
 // Access-Control-Allow-Origin). For these we fetch in the main process and
 // hand the bytes to the worker. Discord's sticker CDN
-// (cdn.discordapp.com/stickers/<id>.<ext>) is the canonical case — its
+// (cdn.discordapp.com/stickers/<id>.<ext>) is the canonical case - its
 // emoji sibling sends CORS, the sticker endpoint doesn't.
 function needsNativeFetch(url: string): boolean {
     return /https?:\/\/cdn\.discordapp\.com\/stickers\/\d+\./i.test(url);
@@ -25,7 +25,7 @@ function needsNativeFetch(url: string): boolean {
 // fetch, ImageDecoder, frame scheduling. It posts ImageBitmap frames back to
 // the main thread, which just stores the latest per URL and blits it with
 // drawImage. This decouples decode cost from the rAF / MediaRecorder pipeline
-// — if the worker falls behind, we draw the most-recent frame instead of
+// - if the worker falls behind, we draw the most-recent frame instead of
 // stalling the compositor.
 //
 // Messages from main -> worker:
@@ -125,7 +125,7 @@ async function scheduleFrame(url, entry, index) {
     self.postMessage({ type: "frame", url, bitmap }, [bitmap]);
     // Single-frame payloads (static PNG/WebP that got routed through here
     // because the URL pattern looked sticker-shaped) don't need a schedule.
-    // Stop after frame 0 — otherwise we'd spin decoding the same frame
+    // Stop after frame 0 - otherwise we'd spin decoding the same frame
     // 30x/sec for nothing.
     if (total === 1) return;
     // Clamp to 30fps max. Some APNGs report 20ms/frame (50fps), which
@@ -202,7 +202,7 @@ export class AnimatedEmoteCache {
 
     private handleMessage(msg: WorkerMessage): void {
         if (msg.type === "frame") {
-            // Close the previous bitmap for this URL before overwriting —
+            // Close the previous bitmap for this URL before overwriting -
             // ImageBitmaps hold GPU memory and are not GC-eligible via
             // normal refcounting. Without close(), every frame we don't
             // replace would leak until page close.
@@ -222,13 +222,13 @@ export class AnimatedEmoteCache {
         // Zero-decode path first: if Discord's client is currently rendering
         // this media (i.e. the user is viewing the recording channel), reuse
         // its <img>/<video> directly. drawImage on Discord's animating <img>
-        // samples its current decoded frame — no bytes re-fetched, no frames
+        // samples its current decoded frame - no bytes re-fetched, no frames
         // re-decoded. The compositor's animTick dirty-flip keeps re-sampling
         // it across rAF ticks.
         const discordEl = this.domIndex.find(url);
         if (discordEl) return discordEl;
         // Worker-decoded fallback. If the worker hasn't produced a first
-        // frame yet (preload still in flight), returns null — caller then
+        // frame yet (preload still in flight), returns null - caller then
         // falls back to the static ImageCache <img> frame-0.
         const f = this.frames.get(url);
         if (f) {
@@ -269,7 +269,7 @@ export class AnimatedEmoteCache {
             return;
         }
         if (needsNativeFetch(url)) {
-            // Origin doesn't send CORS — worker's fetch would fail. Pull
+            // Origin doesn't send CORS - worker's fetch would fail. Pull
             // bytes through the main process (no CORS) and hand them to
             // the worker for decoding. Bytes are transferred (no copy).
             Native.fetchAsBytes(url).then(({ bytes, mime }) => {

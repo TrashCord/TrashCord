@@ -6,22 +6,22 @@
 
 /*
  * The sandbox hardening core. Under Legcord the main-frame CSP is deleted
- * (csp:"none"), so a srcdoc iframe inherits NO parent policy — the injected
+ * (csp:"none"), so a srcdoc iframe inherits NO parent policy - the injected
  * <meta> CSP is the SOLE control over what a rendered artifact may do. It must
  * be the first child of <head> so it governs every later resource tag.
  *
  * Two policies (both verified by the html-viewer-core unit suite):
- *   LOCKED_CSP   — inline glance. Renders inline + data: + a curated allowlist of
+ *   LOCKED_CSP   - inline glance. Renders inline + data: + a curated allowlist of
  *                  well-known CDNs (fonts/styles/scripts), but connect-src 'none'
  *                  blocks fetch/XHR/WebSocket/beacon. No arbitrary hosts.
- *   FULLVIEW_CSP — Full view. Any https for script/style/img/font; connect-src
+ *   FULLVIEW_CSP - Full view. Any https for script/style/img/font; connect-src
  *                  'none' still kills fetch-class egress. Small GET beacons via
  *                  sub-resource URLs remain (inherent to allowing arbitrary CDNs).
  */
 
 // Curated asset CDNs, applied to script/style/font/img in the inline tier so
 // common artifacts render without opening Full view. These serve arbitrary
-// packages, so this does NOT constrain what code runs — containment still rests
+// packages, so this does NOT constrain what code runs - containment still rests
 // on connect-src 'none' + the opaque-origin sandbox. It bounds GET-beacon exfil
 // to these hosts instead of anywhere.
 export const TRUSTED_CDNS = [

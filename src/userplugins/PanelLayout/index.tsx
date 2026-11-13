@@ -714,7 +714,7 @@ function ButtonsDragTab() {
     const [items, setItems] = React.useState<BtnItem[]>(getBtnItems());
     const [listeningId, setListeningId] = React.useState<string | null>(null);
 
-    // Index-based drag state. We never mutate `items` mid-drag — only on drop.
+    // Index-based drag state. We never mutate `items` mid-drag - only on drop.
     // This avoids the flicker/glitchiness that comes from re-sorting the array
     // on every dragEnter (which causes the dragged DOM node to unmount/remount
     // and the browser to lose the drag session).
@@ -777,7 +777,7 @@ function ButtonsDragTab() {
     };
 
     const handleDragEnd = () => {
-        // Fires even if the drop lands outside any valid target — always
+        // Fires even if the drop lands outside any valid target - always
         // clears state so a hovering item never gets stuck mid-drag.
         dragFromIndex.current = null;
         setActiveDragIndex(null);
@@ -968,7 +968,7 @@ function PanelLayoutModal({ modalProps }: { modalProps: ModalProps; }) {
             </ModalHeader>
 
             <ModalContent style={{ padding: "24px" }}>
-                {/* Fixed-height body — switching tabs changes content, never the modal's footprint */}
+                {/* Fixed-height body - switching tabs changes content, never the modal's footprint */}
                 <div className="deracul-scrollbar" style={{ height: `${MODAL_BODY_HEIGHT}px`, overflowY: "auto", paddingRight: "4px" }}>
                     <Flex flexDirection="column" gap={16}>
 

@@ -20,7 +20,7 @@ const SYNC_PREFIX = "\u200b\u200c\u200bNC_WP:";
 const settings = definePluginSettings({
     wallpapers: {
         type: OptionType.STRING,
-        description: "Wallpapers JSON — do not modify manually (managed by plugin)",
+        description: "Wallpapers JSON - do not modify manually (managed by plugin)",
         default: "{}",
         hidden: true,
         restartNeeded: false,

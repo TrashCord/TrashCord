@@ -131,7 +131,7 @@ function resolveMessage(messageId: string): Message | null {
     return selectedMessages.get(messageId)!
   }
 
-  // 2. MessageStore lookup — this works while the message is still cached
+  // 2. MessageStore lookup - this works while the message is still cached
   try {
     const storeMessages = MessageStore.getMessages(currentChannelId)?._array as Message[] | undefined
     if (storeMessages) {
@@ -139,10 +139,10 @@ function resolveMessage(messageId: string): Message | null {
       if (found) return found
     }
   } catch {
-    // MessageStore unavailable — fall through
+    // MessageStore unavailable - fall through
   }
 
-  // 3. DOM fallback — extract what we can from the visible message element
+  // 3. DOM fallback - extract what we can from the visible message element
   const el = document.getElementById(`chat-messages-${messageId}`)
     ?? document.querySelector(`[id$="-${messageId}"]`)
   if (el) {
@@ -294,7 +294,7 @@ export function copySelectedMessages(): void {
     return
   }
 
-  // Use the persistent Map — never touch MessageStore here.
+  // Use the persistent Map - never touch MessageStore here.
   // Sort by snowflake ID to guarantee chronological order regardless of
   // which order messages were selected or in which direction the user scrolled.
   const sortedMessages    = sortMessagesBySnowflake(Array.from(selectedMessages.values()))
@@ -346,7 +346,7 @@ export function enterSelectionMode(channelId: string): void {
 
 export function exitSelectionMode(): void {
   setIsSelectionMode(false)
-  // Clear the persistent map on explicit exit — this is the ONLY place it is
+  // Clear the persistent map on explicit exit - this is the ONLY place it is
   // cleared (other than enterSelectionMode). Scroll, MutationObserver, DOM
   // recycling, and checkbox re-renders must NOT clear the map.
   selectedMessages.clear()

@@ -88,7 +88,7 @@ export async function fetchTextUrl(_: IpcMainInvokeEvent, url: string): Promise<
 }
 
 export async function fetchUrlViaProxy(_: IpcMainInvokeEvent, url: string, proxy: string): Promise<NativeProxyResponse> {
-    console.debug(`[QuestRegions/Native] fetchUrlViaProxy called — url=${url} proxy=${proxy}`);
+    console.debug(`[QuestRegions/Native] fetchUrlViaProxy called - url=${url} proxy=${proxy}`);
     try {
         const target = new URL(url);
         if (target.protocol !== "https:") return { status: -1, body: "", error: "Only https URLs are supported" };
@@ -423,7 +423,7 @@ export async function fetchQuestsViaProxy(
     proxy: string,
     token: string,
 ): Promise<NativeProxyResponse> {
-    console.debug(`[QuestRegions/Native] fetchQuestsViaProxy called — proxy=${proxy} tokenLen=${token.length}`);
+    console.debug(`[QuestRegions/Native] fetchQuestsViaProxy called - proxy=${proxy} tokenLen=${token.length}`);
     try {
         const [host, portStr] = proxy.split(":");
         const port = parseInt(portStr, 10);
@@ -436,7 +436,7 @@ export async function fetchQuestsViaProxy(
         const socket = await openProxyTunnel(host, port);
         const result = await proxyRequest(socket, "GET", "/api/v9/quests/@me", token);
         socket.destroy();
-        console.debug(`[QuestRegions/Native] fetchQuestsViaProxy: done — status=${result.status}`);
+        console.debug(`[QuestRegions/Native] fetchQuestsViaProxy: done - status=${result.status}`);
         return { status: result.status, body: result.body };
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -542,7 +542,7 @@ export async function enrollQuestViaProxy(
     token: string,
     payload: string,
 ): Promise<NativeProxyResponse> {
-    console.debug(`[QuestRegions/Native] enrollQuestViaProxy called — questId=${questId} proxy=${proxy} tokenLen=${token.length}`);
+    console.debug(`[QuestRegions/Native] enrollQuestViaProxy called - questId=${questId} proxy=${proxy} tokenLen=${token.length}`);
     try {
         const [host, portStr] = proxy.split(":");
         const port = parseInt(portStr, 10);
@@ -555,7 +555,7 @@ export async function enrollQuestViaProxy(
         const socket = await openProxyTunnel(host, port);
         const result = await proxyRequest(socket, "POST", `/api/v9/quests/${questId}/enroll`, token, payload);
         socket.destroy();
-        console.debug(`[QuestRegions/Native] enrollQuestViaProxy: done — status=${result.status} body=${result.body.slice(0, 200)}`);
+        console.debug(`[QuestRegions/Native] enrollQuestViaProxy: done - status=${result.status} body=${result.body.slice(0, 200)}`);
         return { status: result.status, body: result.body };
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -579,7 +579,7 @@ export async function geoCheckProxy(
     const GEO_PATH = "/json/?fields=countryCode";
     const geoTimeoutMs = Math.max(3000, Math.min(timeoutMs, 30_000));
 
-    console.debug(`[QuestRegions/Native] geoCheckProxy called — proxy=${proxy}`);
+    console.debug(`[QuestRegions/Native] geoCheckProxy called - proxy=${proxy}`);
 
     try {
         const [host, portStr] = proxy.split(":");
@@ -653,7 +653,7 @@ export async function claimQuestViaProxy(
     token: string,
     payload: string,
 ): Promise<NativeProxyResponse> {
-    console.debug(`[QuestRegions/Native] claimQuestViaProxy called — questId=${questId} proxy=${proxy} tokenLen=${token.length}`);
+    console.debug(`[QuestRegions/Native] claimQuestViaProxy called - questId=${questId} proxy=${proxy} tokenLen=${token.length}`);
     try {
         const [host, portStr] = proxy.split(":");
         const port = parseInt(portStr, 10);
@@ -666,7 +666,7 @@ export async function claimQuestViaProxy(
         const socket = await openProxyTunnel(host, port);
         const result = await proxyRequest(socket, "POST", `/api/v9/quests/${questId}/claim-reward`, token, payload);
         socket.destroy();
-        console.debug(`[QuestRegions/Native] claimQuestViaProxy: done — status=${result.status} body=${result.body.slice(0, 200)}`);
+        console.debug(`[QuestRegions/Native] claimQuestViaProxy: done - status=${result.status} body=${result.body.slice(0, 200)}`);
         return { status: result.status, body: result.body };
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

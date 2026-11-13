@@ -146,7 +146,7 @@ function FollowUserModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                     </div>
                                     <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>
                                         {followedChannel
-                                            ? `#${followedChannel.name}${followedGuild ? ` — ${followedGuild.name}` : ""}`
+                                            ? `#${followedChannel.name}${followedGuild ? ` - ${followedGuild.name}` : ""}`
                                             : "Not in voice right now"}
                                     </div>
                                 </div>
@@ -201,7 +201,7 @@ function FollowUserModal({ modalProps }: { modalProps: RenderModalProps; }) {
                                                     {friend.username}
                                                 </div>
                                                 <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                    #{friend.channelName} — {friend.guildName}
+                                                    #{friend.channelName} - {friend.guildName}
                                                 </div>
                                             </div>
                                             <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>

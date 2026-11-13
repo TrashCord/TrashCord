@@ -2,7 +2,7 @@
 
 > End-to-end encryption for Discord DMs, implemented as a [Vencord](https://vencord.dev) userplugin.
 
-Uses a **Signal-style Double Ratchet** under the hood: X25519 ECDH for key agreement, HKDF-SHA256 for key derivation, and AES-256-GCM for AEAD encryption. All cryptography runs through the browser's native **Web Crypto API** — no external JavaScript crypto libraries.
+Uses a **Signal-style Double Ratchet** under the hood: X25519 ECDH for key agreement, HKDF-SHA256 for key derivation, and AES-256-GCM for AEAD encryption. All cryptography runs through the browser's native **Web Crypto API** - no external JavaScript crypto libraries.
 
 ---
 
@@ -10,7 +10,7 @@ Uses a **Signal-style Double Ratchet** under the hood: X25519 ECDH for key agree
 
 1. On first run, generates a long-term X25519 identity keypair and stores it locally (Vencord's `DataStore`, backed by IndexedDB).
 2. Adds a lock button (🔓/🔒) to the chat bar in DMs. Clicking it enables E2EE for that conversation.
-3. The handshake is a 2-message round trip (INIT + ACK) carrying both users' identity pubkeys and one-time ephemeral pubkeys. The shared secret is derived from a 4-DH mix (mutual identity × ephemeral) — a trimmed-down X3DH.
+3. The handshake is a 2-message round trip (INIT + ACK) carrying both users' identity pubkeys and one-time ephemeral pubkeys. The shared secret is derived from a 4-DH mix (mutual identity × ephemeral) - a trimmed-down X3DH.
 4. Once the handshake completes, every message is run through the Double Ratchet: a fresh DH ratchet step on every conversation "turn", with a symmetric KDF chain producing a per-message AEAD key.
 5. Out-of-order delivery is handled by caching skipped message keys (capped at 200 per chain).
 6. Decrypted plaintext is cached locally so reloading a channel doesn't re-show ciphertext.
@@ -48,7 +48,7 @@ Either side:   🔐⟨E2EE-RESET v1⟩
 
 **Safety numbers.** The first handshake is trust-on-first-use (TOFU). To defend against a hypothetical MITM (e.g. a malicious Discord), both users should compare their **safety number** out of band (voice call, another channel, in person). It is displayed in a toast when the session becomes ready and in the lock button's tooltip. If your numbers match, your identity keys agree and no MITM is present.
 
-**Key change detection.** Each peer's identity pubkey is pinned (per user ID) the first time a handshake completes, and survives session resets. If a later handshake carries a *different* identity key — which is what a MITM forcing a re-handshake looks like, but also what a peer reinstalling the plugin looks like — a loud ⚠️ warning is shown. Verify the safety number out of band before trusting the new session.
+**Key change detection.** Each peer's identity pubkey is pinned (per user ID) the first time a handshake completes, and survives session resets. If a later handshake carries a *different* identity key - which is what a MITM forcing a re-handshake looks like, but also what a peer reinstalling the plugin looks like - a loud ⚠️ warning is shown. Verify the safety number out of band before trusting the new session.
 
 **Edit blocking.** Discord edits bypass the encryption hook, so editing an encrypted message would send the new text in plaintext. The plugin blocks edits in E2EE channels; send a new message instead.
 
@@ -98,5 +98,5 @@ To disable E2EE for a DM, click 🔒. The session is destroyed and a reset marke
 |---|---|
 | 🔓 | E2EE off |
 | 🟡 | Handshake in progress, awaiting the peer's accept |
-| 📩 | Peer has sent a handshake invitation — click to accept |
-| 🔒 | Secure channel active — hover for safety number |
+| 📩 | Peer has sent a handshake invitation - click to accept |
+| 🔒 | Secure channel active - hover for safety number |

@@ -141,7 +141,7 @@ function NitroBadgeTooltip({ icon, tierName, dateStr, premiumType }: { icon: str
  * a component has already decided to render a ring; this hook is what makes the
  * component decide to render one in the first place (and with which asset).
  * Without it, the avatar component reads the real user's decoration (none) and
- * falls back to the broken placeholder preset — which is the bug. Resolves from
+ * falls back to the broken placeholder preset - which is the bug. Resolves from
  * the active target's avatarDecorationData (set by buildManualActiveTarget for
  * manual mode, or carried from a cloned target).
  */
@@ -186,7 +186,7 @@ function buildOverrides(active: any): Record<string, unknown> {
     const { user: target, profile, isManual, manualData } = active;
 
     // Overlay mode: keep the REAL identity, apply cosmetics only. We must NOT set
-    // username / globalName / avatar / discriminator / id / tag here — overriding
+    // username / globalName / avatar / discriminator / id / tag here - overriding
     // identity on your own user is what makes the patched getCurrentUser resolve
     // against a second "target" that is also you, re-entering and freezing Discord.
     if (manualData?.overlaySelf) {
@@ -217,12 +217,12 @@ function buildOverrides(active: any): Record<string, unknown> {
         banner,
         publicFlags: target.publicFlags ?? target.flags ?? 0,
         flags: target.flags ?? 0,
-        // Never feed Discord premiumType=0 on a patched user — its ProductCatalog
+        // Never feed Discord premiumType=0 on a patched user - its ProductCatalog
         // has no SKU mapping for that value, which throws inside `canRedeemPremiumPerks`
         // / `canUseIncreasedMessageLength` and crashes the user popout with
         // `Cannot read properties of undefined (reading 'length')`. Prefer any
         // non-zero value from target or profile, otherwise default to 2 (Nitro)
-        // — a guaranteed-valid SKU. We deliberately do NOT call back into
+        // - a guaranteed-valid SKU. We deliberately do NOT call back into
         // UserStore.getCurrentUser() here (even the original) because
         // buildOverrides runs inside wrapUser, which runs inside the patched
         // getCurrentUser, and any re-entry can trigger a Flux render loop that
@@ -262,7 +262,7 @@ function buildOverrides(active: any): Record<string, unknown> {
             const parsedDate = new Date(dateStr);
             if (!isNaN(parsedDate.getTime())) {
                 overrides.createdAt = parsedDate;
-                // Do NOT override user.id — that breaks the avatar URL (CDN 404s on
+                // Do NOT override user.id - that breaks the avatar URL (CDN 404s on
                 // a fake snowflake id) and Discord's "is this me" check for the
                 // Edit Profile button. "Member Since" is handled by patchSnowflake /
                 // spoofMemberSinceTimestamp at runtime, which intercepts
@@ -293,7 +293,7 @@ function buildOverrides(active: any): Record<string, unknown> {
             overrides.primary_guild = null;
         }
     } else {
-        // Do NOT override id to target.id — this breaks Discord's
+        // Do NOT override id to target.id - this breaks Discord's
         // UserProfileInteractionContextProvider and hides the "Edit Profile" button.
         // The createdAt is set from the target's snowflake for display purposes only.
         overrides.createdAt = target.createdAt ?? getCreatedAtFromId(target.id);
@@ -511,7 +511,7 @@ function markAccountSwitcherRendering() {
 
 function isAccountSwitcherCall(): boolean {
     // switcherDropdownOpen is updated async (rAF-coalesced), so for up to a frame
-    // after the dropdown opens it's still false — during which getCurrentUser/getUser
+    // after the dropdown opens it's still false - during which getCurrentUser/getUser
     // would hand the switcher a wrapped (fake) user and Discord renders the row as an
     // "Unclaimed Account". The render window stamped synchronously by injectFakes
     // (getUsers is the earliest reliable signal the switcher is rendering) closes that
@@ -592,7 +592,7 @@ function patchStore() {
             const m = originalGetMember!.call(this, guildId, userId);
             if (isActive(guildId) && isCurrentUser(userId)) {
                 const active = getActiveTargetForGuild(guildId);
-                // Overlay mode keeps your REAL identity — return your genuine member
+                // Overlay mode keeps your REAL identity - return your genuine member
                 // (real nick/name) so sent messages and the member list show you, not
                 // "FakeUser". Cosmetics are applied elsewhere, not via the member nick.
                 if (active?.manualData?.overlaySelf) return m;
@@ -655,7 +655,7 @@ function patchStore() {
         GuildMemberStore.getNick = function (guildId: string, userId: string) {
             if (isActive(guildId) && isCurrentUser(userId)) {
                 const active = getActiveTargetForGuild(guildId);
-                // Overlay mode keeps your REAL nick — fall through to the original.
+                // Overlay mode keeps your REAL nick - fall through to the original.
                 if (active?.manualData?.overlaySelf) return originalGetNick!.call(this, guildId, userId);
                 if (active) {
                     if (active.isManual) {
@@ -760,7 +760,7 @@ function patchUtils() {
         if (isActive() && user && (isCurrentUser(user.id) || user.id === "0")) {
             const active = getActiveTargetForGuild(undefined);
             if (active) {
-                // Overlay mode keeps the REAL account's avatar — only cosmetics are
+                // Overlay mode keeps the REAL account's avatar - only cosmetics are
                 // applied on top, identity (incl. pfp) stays the logged-in user.
                 if (active.manualData?.overlaySelf) {
                     return originalGetUserAvatarURL!.call(this, user, animated, size, format);
@@ -809,7 +809,7 @@ function patchUtils() {
 
     // When manual mode is active (especially with a spoofed creation date that makes
     // the synthetic user.id a fake snowflake not present in UserStore), do NOT hand
-    // the synthetic user back to Discord's name selectors — they internally re-query
+    // the synthetic user back to Discord's name selectors - they internally re-query
     // UserStore.getUser(syntheticId), which round-trips through our patch and can end
     // up returning the raw real user, breaking the displayed name in the user-area
     // popout and the full profile popup. Instead, short-circuit and return the spoofed
@@ -817,7 +817,7 @@ function patchUtils() {
     function getManualDisplayName(): string | undefined {
         const active = getActiveTargetForGuild(undefined);
         if (!active?.isManual) return undefined;
-        // Overlay mode keeps your REAL name — return undefined so name resolvers fall
+        // Overlay mode keeps your REAL name - return undefined so name resolvers fall
         // through to the genuine account instead of the spoofed "FakeUser".
         if (active.manualData?.overlaySelf) return undefined;
         const md = active.manualData;
@@ -840,7 +840,7 @@ function patchUtils() {
         return md?.manualUsername || md?.name || (active.user as any)?.username || "FakeUser";
     }
 
-    // Overlay mode keeps your real identity — never override your name in any name
+    // Overlay mode keeps your real identity - never override your name in any name
     // resolver, so messages, the member list, etc. all show your genuine account.
     const isOverlayActive = () => !!getActiveTargetForGuild(undefined)?.manualData?.overlaySelf;
 
@@ -908,7 +908,7 @@ function patchUtils() {
     //
     // These are React hooks. Monkey-patching a hook at runtime is unsafe because
     // the hook's internal call count can shift between renders when its input
-    // (the `user` object) changes shape — which is exactly what happens when
+    // (the `user` object) changes shape - which is exactly what happens when
     // spoofing flips on, because UserStore.getCurrentUser starts returning a
     // wrapped user with a different id. React then crashes with
     // "Should have a queue. You are likely calling Hooks conditionally".
@@ -917,7 +917,7 @@ function patchUtils() {
     // getUserTag) already cover every name-display path. The synthetic
     // USER_UPDATE dispatch from notifyUpdate() will cause any component using
     // useName/useUserTag to re-render, and on re-render those hooks read from
-    // UserStore.getUser — which IS patched — so the spoofed name still appears.
+    // UserStore.getUser - which IS patched - so the spoofed name still appears.
 }
 
 function unpatchUtils() {
@@ -1254,7 +1254,7 @@ function notifyUpdate() {
             // Do NOT dispatch CURRENT_USER_UPDATE with a spread (`{...me}`): `me` is a
             // User class instance whose email/username/verified live on the prototype,
             // so a shallow spread drops them. Discord's CURRENT_USER_UPDATE reducer then
-            // writes that stripped object into your REAL account state — blanking your
+            // writes that stripped object into your REAL account state - blanking your
             // username/email and triggering the "claim your account" banner. Under heavy
             // message sending notifyUpdate runs often enough that the blank state sticks.
             // USER_UPDATE above already drives the re-renders we need.
@@ -1311,7 +1311,7 @@ function FakeUserSwitcherButton({ iconForeground, hideTooltips, nameplate }: Use
     const tooltip = hideTooltips
         ? undefined
         : active
-            ? `Spoofing as ${displayName} — click to manage`
+            ? `Spoofing as ${displayName} - click to manage`
             : "Fake User Switcher";
 
     return (
@@ -1417,7 +1417,7 @@ const dynamicBadge: ProfileBadge = {
             });
         }
 
-        // Boost tier badge (manual mode only — derived from the chosen boost tier)
+        // Boost tier badge (manual mode only - derived from the chosen boost tier)
         const boostMonths: number = manual?.manualBoostMonths ?? -1;
         if (boostMonths >= 0 && boostMonths < BOOST_BADGE_ICONS.length) {
             // Prefer the user-specified 'Boosting since' date; fall back to the auto date.
@@ -1908,7 +1908,7 @@ const plugin = definePlugin({
 
     async start() {
         const generation = ++switcherGeneration;
-        logger.info("[FUS-BUILD-CHECK] build loaded — badge+overlay+message fixes v3 active");
+        logger.info("[FUS-BUILD-CHECK] build loaded - badge+overlay+message fixes v3 active");
         loadCacheFromSettings();
         addProfileBadge(dynamicBadge);
         startSwitcherDropdownObserver();
@@ -1953,7 +1953,7 @@ const plugin = definePlugin({
             waitFor(["getUsers", "getValidUsers", "getHasLoggedInAccounts"], (mod: any) => {
                 if (!switcherRunning) return;
                 if (!looksLikeMultiAccountStore(mod)) {
-                    logger.warn("Store ignored — doesn't look like MultiAccountStore:", mod);
+                    logger.warn("Store ignored - doesn't look like MultiAccountStore:", mod);
                     return;
                 }
                 multiAccountStore = mod;
@@ -2301,7 +2301,7 @@ const plugin = definePlugin({
             // Propagate fake creation date into the profile object so the popout's "Member Since"
             // section reflects the manual date. Discord reads user.createdAt for this; we shadow it
             // on the wrapped user above. We also pass it on the profile for any code that checks it there.
-            // Skipped in overlay mode — your real Member Since stays intact.
+            // Skipped in overlay mode - your real Member Since stays intact.
             const manualDateStr = manualData?.manualCreatedAt || settings.store.manualCreatedAt;
             if (!overlaySelf && manualDateStr && manualDateStr.trim() !== "") {
                 const parsedManualDate = new Date(manualDateStr);
@@ -2311,7 +2311,7 @@ const plugin = definePlugin({
                     overrides.premiumGuildSince = overrides.premiumGuildSince; // no-op, just keeping context
                 }
             }
-            // Overlay mode is cosmetics-only — bio and pronouns are profile content,
+            // Overlay mode is cosmetics-only - bio and pronouns are profile content,
             // not cosmetics, so leave the real account's values intact (same rule as
             // createdAt above).
             if (!overlaySelf) {
@@ -2505,12 +2505,12 @@ const plugin = definePlugin({
             // De-dupe real vs spoofed tier badges. When the user picks a spoofed Nitro
             // or Boost tier, Discord still renders their REAL Nitro/boost badge from the
             // profile's badges array, and dynamicBadge.getBadges adds the spoofed tier on
-            // top — producing two of the same kind (e.g. real Bronze + spoofed Opal).
+            // top - producing two of the same kind (e.g. real Bronze + spoofed Opal).
             // Strip the native premium / guild-boost badges here so only the spoofed
             // tier (rendered by the dynamic profile badge) remains.
             const spoofingNitroTier = isManual && (manualData?.manualNitroLevel ?? -1) >= 0;
             const spoofingBoostTier = isManual && (manualData?.manualBoostMonths ?? -1) >= 0;
-            logger.info("[FUS-BADGE] profileHook badges — spoofNitro=", spoofingNitroTier, "spoofBoost=", spoofingBoostTier, "rawBadges=", JSON.stringify((Array.isArray(baseBadges) ? baseBadges : []).map((b: any) => ({ id: b?.id, desc: b?.description }))));
+            logger.info("[FUS-BADGE] profileHook badges - spoofNitro=", spoofingNitroTier, "spoofBoost=", spoofingBoostTier, "rawBadges=", JSON.stringify((Array.isArray(baseBadges) ? baseBadges : []).map((b: any) => ({ id: b?.id, desc: b?.description }))));
             if (Array.isArray(baseBadges) && (spoofingNitroTier || spoofingBoostTier)) {
                 baseBadges = baseBadges.filter((b: any) => {
                     const id = String(b?.id ?? "");
@@ -2628,7 +2628,7 @@ const plugin = definePlugin({
     onBeforeMessageSend(channelId, msg, options) {
         if (!isActive() || !settings.store.fakeMessages) return;
         // Overlay mode keeps your REAL identity (only cosmetics are applied), so a
-        // message must send for real, as you — never replaced by a local fake authored
+        // message must send for real, as you - never replaced by a local fake authored
         // as "FakeUser". Returning here lets Discord's normal send path run unchanged.
         const active = getActiveTargetForGuild(undefined);
         if (active?.manualData?.overlaySelf) return;

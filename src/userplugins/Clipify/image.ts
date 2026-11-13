@@ -32,7 +32,7 @@ export interface RectMark extends Rect {
     type: "rect";
 }
 
-/** A free-hand censor stroke (paint with the brush) — a polyline with thickness. */
+/** A free-hand censor stroke (paint with the brush) - a polyline with thickness. */
 export interface BrushMark {
     type: "brush";
     points: Point[];
@@ -43,7 +43,7 @@ export interface BrushMark {
 /** Anything the user can paint to censor. */
 export type CensorMark = RectMark | BrushMark;
 
-/** The censor look shared by all marks — a single global level, as set by the slider. */
+/** The censor look shared by all marks - a single global level, as set by the slider. */
 export interface CensorSettings {
     style: CensorStyle;
     /** 0–100 intensity. */
@@ -161,7 +161,7 @@ function buildMaskCanvas(marks: readonly CensorMark[], w: number, h: number, sca
             const r = Math.max(1, mark.radius * scale);
             const pts = mark.points;
             if (pts.length === 1) {
-                // A single dab — fill a dot.
+                // A single dab - fill a dot.
                 ctx.beginPath();
                 ctx.arc(pts[0].x * scale, pts[0].y * scale, r, 0, Math.PI * 2);
                 ctx.fill();
@@ -181,7 +181,7 @@ function buildMaskCanvas(marks: readonly CensorMark[], w: number, h: number, sca
 
 /**
  * Bake every censor mark onto `ctx` at the given `scale`. The effect is rendered
- * once over the whole image, then masked to the union of all marks — so boxes
+ * once over the whole image, then masked to the union of all marks - so boxes
  * and free-hand brush strokes composite cleanly, even where they overlap.
  */
 function applyCensor(
@@ -212,7 +212,7 @@ function applyCensor(
 
 /**
  * Render the full (uncropped) image plus baked-in censor marks onto `canvas`
- * at the given `scale`. Used for the live preview (display scale) — the export
+ * at the given `scale`. Used for the live preview (display scale) - the export
  * path reuses {@link applyCensor} at scale = 1.
  */
 export function renderPreview(
@@ -258,7 +258,7 @@ function outputType(file: File, format: OutputFormat = "auto"): { type: string; 
     if (ext === "png") return FORMAT_TYPE.png;
     if (ext === "webp") return FORMAT_TYPE.webp;
     if (ext === "jpg" || ext === "jpeg") return FORMAT_TYPE.jpeg;
-    // Fall back to PNG — lossless and universally supported by canvas.
+    // Fall back to PNG - lossless and universally supported by canvas.
     return FORMAT_TYPE.png;
 }
 

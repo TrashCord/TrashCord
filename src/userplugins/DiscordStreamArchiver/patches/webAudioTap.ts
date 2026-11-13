@@ -13,7 +13,7 @@
 // registry simply stays empty on Desktop.
 //
 // The hook mirrors the location volumeBooster uses (`.volume=this._volume/100;`
-// inside Discord's stream source node updater) — we just read the `StreamData`
+// inside Discord's stream source node updater) - we just read the `StreamData`
 // argument rather than overriding its volume.
 
 import { logger } from "../utils";
@@ -76,7 +76,7 @@ export function notifyTapChange(): void {
     notifyChange();
 }
 
-// Called from the webpack-injected hook. Must be defensive — any throw here
+// Called from the webpack-injected hook. Must be defensive - any throw here
 // propagates into Discord's rendering code.
 let diagnosticCallsLogged = 0;
 export function onStreamDataSeen(data: DiscordStreamData): void {
@@ -107,7 +107,7 @@ export function onStreamDataSeen(data: DiscordStreamData): void {
         // Discord's RTC layer can fire this hook with the same `data.id` (the
         // user id) for both a user's voice Output and their screenshare /
         // camera Output. Keying both under the same slot lets whichever
-        // stream arrives second clobber the first — observed as: when
+        // stream arrives second clobber the first - observed as: when
         // recording starts while someone is already streaming, voice is
         // silent in the recording but their stream's desktop/game audio
         // plays through. Distinguish by track composition so they coexist:

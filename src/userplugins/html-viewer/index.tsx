@@ -25,7 +25,7 @@ export default definePlugin({
     // Suppress Discord's own render of the html attachment (the inline source
     // preview and the file chip) so only our card shows. We filter a COPY of the
     // attachments array at the top of the Message class's renderAttachments,
-    // before Discord classifies the file — so it removes whatever native form
+    // before Discord classifies the file - so it removes whatever native form
     // the html would take while leaving other attachments (images) intact.
     // message.attachments is untouched, so renderMessageAccessory still sees it.
     // Anchor from HideMedia; match from FakeNitro (both target this same module).

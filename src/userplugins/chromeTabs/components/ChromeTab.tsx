@@ -227,7 +227,7 @@ export function ChromeTab({
 
         const channel = ChannelStore.getChannel(tab.channelId);
         const guild = GuildStore.getGuild(tab.guildId);
-        if (guild && channel) return `#${channel.name} — ${guild.name}`;
+        if (guild && channel) return `#${channel.name} - ${guild.name}`;
         return channel?.name ?? "Unknown Channel";
     })();
 

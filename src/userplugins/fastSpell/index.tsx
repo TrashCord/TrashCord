@@ -48,7 +48,7 @@ function isEligible(word: string, preceding: string) {
 
 /*
  * Corrections are applied through the slate editor instance itself
- * (deleteBackward + insertText), which is fully synchronous — no timing races,
+ * (deleteBackward + insertText), which is fully synchronous - no timing races,
  * no duplicated words when typing fast. Never mutate the slate DOM directly
  * (execCommand, Selection.modify): it desyncs slate and the chat box stops
  * responding to backspace/typing. Dispatching INSERT_TEXT after setting a DOM
@@ -103,7 +103,7 @@ function isLineStart(node: Node): boolean {
 }
 
 // Sentence-ending punctuation, optionally followed by closing quotes/brackets.
-// The lookbehind keeps "..." (and …) from capitalizing the next word — trailing
+// The lookbehind keeps "..." (and …) from capitalizing the next word - trailing
 // dots in chat are a pause, not a sentence end.
 const SENTENCE_END = /(?<![.…])[.!?]["')\]]*$/;
 
@@ -245,7 +245,7 @@ async function loadDictionary() {
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let retriesLeft = 10;
 
-/** Keeps retrying until the dictionary is up — a load attempt during Discord's boot can fail transiently. */
+/** Keeps retrying until the dictionary is up - a load attempt during Discord's boot can fail transiently. */
 async function loadDictionaryWithRetry() {
     await loadDictionary();
     if (!isLoaded() && retriesLeft-- > 0) {
@@ -260,7 +260,7 @@ let ccRetriesLeft = 5;
 /** Loads custom corrections from DataStore, migrating any pairs still stored in settings. */
 async function loadCorrectionsWithRetry() {
     // older versions kept the pairs in settings.json, which every Discord branch
-    // shares and rewrites wholesale — migrate them out so they stop getting lost
+    // shares and rewrites wholesale - migrate them out so they stop getting lost
     const legacy = { ...(settings.store.customCorrections ?? {}) };
     try {
         await loadCustomCorrections(legacy);

@@ -30,7 +30,7 @@ export function extractCodeBlocks(raw: string, tokens: TokenMap): string {
     /```([^\n`]*)\n?([\s\S]*?)```/g,
     (_, rawLang, code) => {
       const lang = rawLang.trim()
-      // Escape the code content — this is the ONLY place code content is escaped
+      // Escape the code content - this is the ONLY place code content is escaped
       const safeCode = escapeHtml(code)
       const langAttr = lang ? ` data-lang="${escapeAttribute(lang)}"` : ""
       const langLabel = lang
@@ -186,7 +186,7 @@ function renderLists(escaped: string): string {
 //   ~~   -> strikethrough
 //   ||   -> spoiler
 //
-// We deliberately do NOT use a recursive parser here — a simple sequential
+// We deliberately do NOT use a recursive parser here - a simple sequential
 // regex approach is sufficient for Discord's relatively flat markdown.
 // Each regex only matches within a single "segment" (no cross-<tag> matches)
 // because we split on HTML tags before applying inline formatting (see
@@ -239,7 +239,7 @@ function applyInlineFormatting(text: string): string {
 }
 
 /**
- * Apply inline formatting only to plain-text segments — not inside HTML tags.
+ * Apply inline formatting only to plain-text segments - not inside HTML tags.
  * This prevents formatting markers inside attribute values from being processed.
  */
 function renderInlineFormatting(mixed: string): string {
@@ -323,7 +323,7 @@ export interface RenderContext {
  * Input:  raw untrusted message content string
  * Output: safe HTML string suitable for direct insertion into the export page
  *
- * The function is pure — it produces no side effects and uses no DOM APIs.
+ * The function is pure - it produces no side effects and uses no DOM APIs.
  */
 export function renderDiscordMarkdown(
   content: string,
@@ -338,7 +338,7 @@ export function renderDiscordMarkdown(
   out = extractCustomEmojis(out, tokens)
 
   // Phase 4: escape all remaining raw text
-  // Tokens are \x02…\x03 control characters — not touched by escapeHtml
+  // Tokens are \x02…\x03 control characters - not touched by escapeHtml
   out = escapeHtml(out)
 
   // Phase 5–8: block and inline markdown on escaped text

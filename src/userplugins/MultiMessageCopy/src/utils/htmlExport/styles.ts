@@ -168,11 +168,11 @@ body {
 
 .messages-begin-sub { font-size: 14px; color: #949ba4; }
 
-/* ── Message layout — stable two-column grid ── */
+/* ── Message layout - stable two-column grid ── */
 /*
  * Every <article class="message"> is a two-column flex row:
- *   col 1  .avatar-slot    — fixed 72px (16px padding + 40px avatar + 16px gap)
- *   col 2  .message-main   — flex: 1, all text/media/embeds inside
+ *   col 1  .avatar-slot    - fixed 72px (16px padding + 40px avatar + 16px gap)
+ *   col 2  .message-main   - flex: 1, all text/media/embeds inside
  *
  * Grouped messages have the same col 1 width (empty slot) so everything
  * aligns perfectly. No negative margins. No absolute positioning hacks.
@@ -194,7 +194,7 @@ body {
   padding-bottom: 1px;
 }
 
-/* Avatar column — always 56px wide (40px avatar + 16px right margin) */
+/* Avatar column - always 56px wide (40px avatar + 16px right margin) */
 .avatar-slot {
   width: 56px;
   min-width: 56px;
@@ -818,7 +818,7 @@ a.embed-title:hover { text-decoration: underline; }
   word-break: break-all;
 }
 
-/* Sticker wrap — wrapper element for img + fallback pair */
+/* Sticker wrap - wrapper element for img + fallback pair */
 .sticker-wrap {
   display: inline-flex;
   flex-direction: column;

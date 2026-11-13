@@ -245,7 +245,7 @@ export async function restoreCursors(_: any): Promise<{ ok: boolean; error?: str
                 );
             } catch { }
         } else {
-            // No backup — we set everything to empty (Windows default cursors)
+            // No backup - we set everything to empty (Windows default cursors)
             for (const regKey of Object.keys(CURSOR_MAP)) {
                 try {
                     execSync(

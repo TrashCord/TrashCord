@@ -16,7 +16,7 @@ const settings = definePluginSettings({
     },
     // DISABLED: optimizeDispatch patch strips parts of the READY event handler that other plugins
     // rely on (e.g. plugins hooking into dispatcher internals). Re-enable only after verifying
-    // no conflicts with your installed plugins — it will likely cause crashes or silent failures.
+    // no conflicts with your installed plugins  it will likely cause crashes or silent failures.
     // optimizeDispatch: {
     //     type: OptionType.BOOLEAN,
     //     description: "Optimizes the READY event dispatcher - skips unnecessary operations on startup and reconnect.",

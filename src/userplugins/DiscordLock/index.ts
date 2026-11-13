@@ -36,19 +36,19 @@ const settings = definePluginSettings({
     },
     lockedGuilds: {
         type: OptionType.STRING,
-        description: "Lock when entering these servers — comma-separated server IDs",
+        description: "Lock when entering these servers - comma-separated server IDs",
         default: "",
         restartNeeded: false,
     },
     lockedChannels: {
         type: OptionType.STRING,
-        description: "Lock when entering these channels — comma-separated channel IDs",
+        description: "Lock when entering these channels - comma-separated channel IDs",
         default: "",
         restartNeeded: false,
     },
     lockedUsers: {
         type: OptionType.STRING,
-        description: "Lock when opening DMs with these users — comma-separated user IDs",
+        description: "Lock when opening DMs with these users - comma-separated user IDs",
         default: "",
         restartNeeded: false,
     },
@@ -103,7 +103,7 @@ function unbindActivity() {
 
 // ─── Lock ─────────────────────────────────────────────────────────────
 
-// full lock — clears session memory (startup / inactivity)
+// full lock - clears session memory (startup / inactivity)
 function lockFull() {
     unlockedGuilds.clear();
     unlockedChannels.clear();
@@ -411,7 +411,7 @@ function createOverlay() {
     function tryUnlock() {
         const now = Date.now();
         if (now < lockUntil) {
-            showError(`Too many attempts — wait ${Math.ceil((lockUntil - now) / 1000)}s`);
+            showError(`Too many attempts - wait ${Math.ceil((lockUntil - now) / 1000)}s`);
             return;
         }
         if (input.value === settings.store.password) { unlock(); return; }
@@ -420,7 +420,7 @@ function createOverlay() {
         if (attempts >= 5) {
             lockUntil = Date.now() + 15_000;
             attempts = 0;
-            showError("Too many attempts — locked for 15s");
+            showError("Too many attempts - locked for 15s");
         } else {
             showError(`Wrong password  (${attempts} / 5)`);
         }

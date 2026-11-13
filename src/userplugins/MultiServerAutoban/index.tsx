@@ -926,7 +926,7 @@ export default definePlugin({
     }
 });
 
-// Deferred ban/check timers — tracked so stop() can cancel any still pending after teardown
+// Deferred ban/check timers - tracked so stop() can cancel any still pending after teardown
 const pendingBanTimeouts = new Set<ReturnType<typeof setTimeout>>();
 
 const voiceStateCallback = async (e: any) => {

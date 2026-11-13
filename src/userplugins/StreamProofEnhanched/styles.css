@@ -11,7 +11,7 @@
     border-radius: 4px;
 }
 
-/* Embeds (Spotify, links, YouTube, etc.) — Discord wraps all embeds in <article> */
+/* Embeds (Spotify, links, YouTube, etc.) - Discord wraps all embeds in <article> */
 .stream-proof-enabled [id^="message-accessories-"] article:not(.stream-proof-revealed) {
     filter: blur(20px);
     transition: filter 0.2s ease-in-out;
@@ -31,7 +31,7 @@
     cursor: pointer !important;
 }
 
-/* Voice messages / audio — catch all possible wrapper patterns */
+/* Voice messages / audio - catch all possible wrapper patterns */
 .stream-proof-enabled [class*="wrapperPaused_"]:not(.stream-proof-revealed),
 .stream-proof-enabled [class*="wrapperPlaying_"]:not(.stream-proof-revealed),
 .stream-proof-enabled [class*="voiceMessage_"]:not(.stream-proof-revealed),

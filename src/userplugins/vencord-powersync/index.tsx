@@ -35,7 +35,7 @@ const settings = definePluginSettings({
         default: ""
     },
     blacklist: {
-        description: "Ignored processes — comma-separated, e.g: spotify.exe, code.exe",
+        description: "Ignored processes - comma-separated, e.g: spotify.exe, code.exe",
         type: OptionType.STRING,
         default: "spotify.exe, chrome.exe"
     },

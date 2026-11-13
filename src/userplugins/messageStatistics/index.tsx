@@ -205,7 +205,7 @@ export default definePlugin({
                     return count;
                 };
                 sendBotMessage(ctx.channel.id, {
-                    content: `📊 **Your messages** — today **${stats.days[dayKey(now)] ?? 0}** · week **${since(7 * DAY)}** · month **${since(30 * DAY)}** · year **${since(365 * DAY)}** · all-time **${stats.total}**`
+                    content: `📊 **Your messages** - today **${stats.days[dayKey(now)] ?? 0}** · week **${since(7 * DAY)}** · month **${since(30 * DAY)}** · year **${since(365 * DAY)}** · all-time **${stats.total}**`
                 });
             }
         }

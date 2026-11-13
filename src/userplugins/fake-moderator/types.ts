@@ -6,7 +6,7 @@
 
 /**
  * The kind of (purely cosmetic) moderation action the user triggered.
- * These are NEVER sent to Discord — they only describe local, fake events.
+ * These are NEVER sent to Discord - they only describe local, fake events.
  */
 export type FakeActionType = "ban" | "kick" | "timeout" | "mute" | "deafen" | "warn";
 
@@ -35,7 +35,7 @@ export interface FakeActionRecord {
 
 /**
  * The local, fake voice state held for a user. Mirrors the on/off nature of
- * Discord's native server Mute/Deafen checkboxes — but is purely cosmetic.
+ * Discord's native server Mute/Deafen checkboxes - but is purely cosmetic.
  */
 export interface FakeVoiceState {
     muted?: boolean;

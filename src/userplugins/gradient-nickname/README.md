@@ -12,16 +12,16 @@ Vencord/Equicord userplugin: gradient nicknames mimicking Discord's boost role-c
 
 Everything is configured in **User Settings → Appearance**, in the "Gradient Nickname" panel that mounts under the theme section.
 
-- **Color stops** — one or more hex colors (`#rrggbb`), draggable to reorder.
-- **Animation** — `none`, `slide`, `pulse`, `wave`, `hue`.
-- **Slide direction** — `left` / `right` / `up` / `down` (when slide is active).
-- **Speed** — 1–10 (maps to 10s … 1s duration).
-- **Font** — Discord-native, Google Fonts (lazy-loaded), or system.
-- **Glow** — with animated variants (`orbit`, `spin-fast`, `pulse`, `wave`, `bounce`, `flicker`).
+- **Color stops** - one or more hex colors (`#rrggbb`), draggable to reorder.
+- **Animation** - `none`, `slide`, `pulse`, `wave`, `hue`.
+- **Slide direction** - `left` / `right` / `up` / `down` (when slide is active).
+- **Speed** - 1–10 (maps to 10s … 1s duration).
+- **Font** - Discord-native, Google Fonts (lazy-loaded), or system.
+- **Glow** - with animated variants (`orbit`, `spin-fast`, `pulse`, `wave`, `bounce`, `flicker`).
 
 Then click **Copy bio tag** and paste the invisible tag into **User Settings → Profiles → About Me**. Other users running the plugin see your gradient within ~60s of viewing your name.
 
-> ⚠️ The plugin does **not** auto-patch your bio. This is intentional — it avoids Discord's automation-rule territory. You must paste the tag manually.
+> ⚠️ The plugin does **not** auto-patch your bio. This is intentional - it avoids Discord's automation-rule territory. You must paste the tag manually.
 
 ## How it works
 
@@ -32,7 +32,7 @@ Then click **Copy bio tag** and paste the invisible tag into **User Settings →
 
 ## Local config vs. rendered gradient
 
-The panel's local config (in DataStore) drives only the **preview** and the tag generation. What you actually see rendered on your own name comes from **your bio** — the same path used for other users. So:
+The panel's local config (in DataStore) drives only the **preview** and the tag generation. What you actually see rendered on your own name comes from **your bio** - the same path used for other users. So:
 
 - Edit config → panel preview updates immediately.
 - Click **Copy bio tag** → paste into About Me → save → your rendered name updates on next fetch (usually within seconds, forced by `USER_PROFILE_UPDATE_SUCCESS`).

@@ -6,7 +6,7 @@
 
 // Finds Discord's own loaded <img>/<video> elements by URL, so getFrame can
 // reuse them as drawImage sources when the user is viewing the recording
-// channel. This is a pure optimization — when the channel isn't in the
+// channel. This is a pure optimization - when the channel isn't in the
 // current viewport, find() returns null and the caller falls back to the
 // worker-decoded bitmap cache.
 //
@@ -32,7 +32,7 @@ export class DiscordMediaIndex {
         // CORS gate: drawImage on a non-CORS-clean element taints the
         // destination canvas. The taint propagates from chatCanvas to the
         // compositor canvas, and Chromium ends a tainted canvas's
-        // captureStream video track — which corrupts the recording (audio
+        // captureStream video track - which corrupts the recording (audio
         // continues, video stops). Discord doesn't set crossOrigin on its
         // own DOM <img>/<video> elements (it has no canvas-safety reason
         // to), so we can almost never use this fast path safely. When the

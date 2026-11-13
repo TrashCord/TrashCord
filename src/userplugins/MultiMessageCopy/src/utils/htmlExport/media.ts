@@ -284,7 +284,7 @@ export function renderStickers(stickers: ExportSticker[]): string {
         `</div>`
       )
     } else {
-      // Lottie or unknown format — show pill card
+      // Lottie or unknown format - show pill card
       out += `<div class="sticker-fallback-card"><span class="sticker-chip">${stickerName}</span></div>`
     }
   }

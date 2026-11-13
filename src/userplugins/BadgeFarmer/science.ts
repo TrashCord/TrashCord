@@ -12,6 +12,9 @@ const SCIENCE_URL = "/science";
 const ME_URL = "/users/@me";
 const TOKEN_MAX_AGE = 12 * 60 * 60 * 1_000;
 const MIN_DURATION_MS = 60_000;
+const HOUR_MS = 3_600_000;
+
+export const TURBO_HOURS_PER_MINUTE = 10;
 
 const SuperProperties: { getSuperProperties(): Record<string, unknown>; } = findByPropsLazy("getSuperProperties");
 const RunningGameStore: {
@@ -59,9 +62,10 @@ async function getAnalyticsToken(): Promise<string> {
     return analyticsToken;
 }
 
-let cachedSession: { heartbeatSession: string; launchSignature: string; locale: string; } | null = null;
+interface ClientSession { heartbeatSession: string; launchSignature: string; locale: string; }
+let cachedSession: ClientSession | null = null;
 
-function clientSession(): { heartbeatSession: string; launchSignature: string; locale: string; } {
+function clientSession(): ClientSession {
     if (cachedSession != null) return cachedSession;
 
     let properties: Record<string, unknown> = {};
@@ -151,7 +155,7 @@ function buildHeartbeat(game: CreditableGame, durationMs: number, gameSession: s
     };
 }
 
-const MAX_BACKDATE_MS = 24 * 60 * 60 * 1_000;
+const MAX_BACKDATE_MS = 24 * HOUR_MS;
 
 function resolveStart(duration: number, startedAt: number | undefined): number {
     const now = Date.now();
@@ -179,7 +183,6 @@ export async function creditPlaytime(game: CreditableGame, durationMs: number, s
             ]
         }
     });
-
 }
 
 export interface StreamLocation {
@@ -187,28 +190,73 @@ export interface StreamLocation {
     channelId: string;
 }
 
+export type StreamPhase = "waiting" | "slow" | "turbo";
+
+export interface LiveContext {
+    location: StreamLocation | null;
+    viewers: number;
+}
+
+export interface LiveStreamOptions {
+    targetHours: number;
+    autoSwitch: boolean;
+    context: () => LiveContext;
+    shouldContinue: () => boolean;
+    onProgress: (creditedHours: number) => void;
+    onPhase: (phase: StreamPhase) => void;
+    onError: (message: string) => void;
+}
+
 export interface LiveStreamHandle {
-    stop(): Promise<void>;
+    stop(): void;
+    finished: Promise<void>;
 }
 
-export function startLiveStream(
-    location: StreamLocation,
-    shouldContinue: () => boolean,
-    onMinutes: (totalMinutes: number) => void
-): LiveStreamHandle {
-    let stopped = false;
-    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-    let resolveEnd: () => void = () => { };
-    const ended = new Promise<void>(resolve => { resolveEnd = resolve; });
+type ScienceEvent = { type: string; properties: Record<string, unknown>; };
 
-    void (async () => {
-        const token = await getAnalyticsToken();
+const POLL_MS = 5_000;
+const MINUTE_MS = 60_000;
+
+export function startLiveStream(o: LiveStreamOptions): LiveStreamHandle {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let wake: (() => void) | null = null;
+
+    const pause = (ms: number) => new Promise<boolean>(resolve => {
+        wake = () => resolve(false);
+        timer = setTimeout(() => { wake = null; resolve(true); }, ms);
+    });
+
+    const finished = (async () => {
         const heartbeatSessionId = crypto.randomUUID();
         const launchSignature = crypto.randomUUID();
-        const streamStartTime = Date.now();
 
-        async function postScienceEvents(events: Array<{ type: string; properties: Record<string, unknown>; }>): Promise<boolean> {
+        let fatal: string | null = null;
+        let lastFailure = "";
+        let joined: string | null = null;
+        let joinedAt = 0;
+        let claimedMs = 0;
+        let turboHours = 0;
+        let slowMinutes = 0;
+        let slowMs = 0;
+        let lastTurbo = 0;
+        let lastTick = Date.now();
+        let failures = 0;
+        let locked: boolean | null = null;
+        let phase: StreamPhase | null = null;
+        let props: Record<string, unknown> = {};
+
+        const credited = () => turboHours + slowMinutes / 60;
+
+        const setPhase = (next: StreamPhase) => {
+            if (next === phase) return;
+            phase = next;
+            o.onPhase(next);
+        };
+
+        const send = async (events: ScienceEvent[]): Promise<boolean> => {
             try {
+                const token = await getAnalyticsToken();
                 await RestAPI.post({
                     url: SCIENCE_URL,
                     body: {
@@ -228,185 +276,106 @@ export function startLiveStream(
                     }
                 });
                 return true;
-            } catch {
+            } catch (error) {
+                lastFailure = String(error);
+                if (lastFailure.includes("analytics_token")) fatal = lastFailure;
                 return false;
             }
-        }
-
-        const streamProps = {
-            guild_id: location.guildId,
-            channel_id: location.channelId,
-            channel_type: 2
         };
 
-        await postScienceEvents([
-            { type: "media_session_joined", properties: { ...streamProps } },
-            { type: "video_stream_started", properties: { ...streamProps } }
-        ]);
+        const beat = (ms: number): ScienceEvent => ({
+            type: "video_stream_heartbeat",
+            properties: { ...props, duration_tracked_ms: ms, total_duration_ms: claimedMs + ms }
+        });
 
-        let minutes = 0;
-        let consecutiveFailures = 0;
+        const leave = async () => {
+            if (joined == null) return;
+            joined = null;
+            await send([{ type: "video_stream_ended", properties: { ...props, duration_ms: claimedMs || Date.now() - joinedAt } }]);
+        };
 
-        heartbeatTimer = setInterval(async () => {
-            if (stopped) return;
-            if (!shouldContinue()) {
-                resolveEnd();
-                return;
-            }
+        try {
+            while (!stopped && fatal == null && o.shouldContinue() && credited() < o.targetHours) {
+                const now = Date.now();
+                const delta = now - lastTick;
+                lastTick = now;
+                const ctx = o.context();
 
-            const totalDurationMs = Date.now() - streamStartTime;
-            const ok = await postScienceEvents([
-                {
-                    type: "video_stream_heartbeat",
-                    properties: {
-                        ...streamProps,
-                        duration_tracked_ms: 60000,
-                        total_duration_ms: totalDurationMs
+                if (ctx.location == null) {
+                    setPhase("waiting");
+                    await leave();
+                    slowMs = 0;
+                    if (!await pause(POLL_MS)) break;
+                    continue;
+                }
+
+                const key = `${ctx.location.guildId}:${ctx.location.channelId}`;
+                if (key !== joined) {
+                    await leave();
+                    props = { guild_id: ctx.location.guildId, channel_id: ctx.location.channelId, channel_type: 2 };
+                    await send([
+                        { type: "media_session_joined", properties: { ...props } },
+                        { type: "video_stream_started", properties: { ...props } }
+                    ]);
+                    joined = key;
+                    joinedAt = Date.now();
+                    claimedMs = 0;
+                    slowMs = 0;
+                    lastTurbo = 0;
+                }
+
+                let turbo = ctx.viewers > 0;
+                if (!o.autoSwitch) {
+                    locked ??= turbo;
+                    turbo = locked;
+                }
+                setPhase(turbo ? "turbo" : "slow");
+
+                if (turbo) {
+                    slowMs = 0;
+                    if (now - lastTurbo >= MINUTE_MS) {
+                        const claim = Math.min(TURBO_HOURS_PER_MINUTE, o.targetHours - credited());
+                        if (await send([beat(claim * HOUR_MS)])) {
+                            failures = 0;
+                            claimedMs += claim * HOUR_MS;
+                            turboHours += claim;
+                            lastTurbo = Date.now();
+                            o.onProgress(credited());
+                        } else failures++;
+                    }
+                } else {
+                    slowMs += delta;
+                    if (slowMs >= MINUTE_MS) {
+                        slowMs -= MINUTE_MS;
+                        if (await send([beat(MINUTE_MS)])) {
+                            failures = 0;
+                            claimedMs += MINUTE_MS;
+                            slowMinutes++;
+                            o.onProgress(credited());
+                        } else failures++;
                     }
                 }
-            ]);
 
-            if (ok) {
-                consecutiveFailures = 0;
-                minutes++;
-                onMinutes(minutes);
-            } else if (++consecutiveFailures >= 10) {
-                resolveEnd();
+                if (failures >= 10) {
+                    fatal = lastFailure || "errHb";
+                    break;
+                }
+                if (!await pause(POLL_MS)) break;
             }
-        }, 60000);
+        } catch (error) {
+            fatal = String(error);
+        }
 
-        await ended;
-
-        if (heartbeatTimer != null) clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-
-        const durationMs = stopped || !shouldContinue() ? Date.now() - streamStartTime : 0;
-        await postScienceEvents([
-            {
-                type: "video_stream_ended",
-                properties: { ...streamProps, duration_ms: durationMs }
-            }
-        ]);
-        resolveEnd();
+        if (fatal != null) o.onError(fatal);
+        else await leave();
     })();
 
     return {
-        stop(): Promise<void> {
+        stop() {
             stopped = true;
-            resolveEnd();
-            return ended;
-        }
-    };
-}
-
-export function startTurboLiveStream(
-    location: StreamLocation,
-    targetHours: number,
-    shouldContinue: () => boolean,
-    onHours: (totalHours: number) => void
-): LiveStreamHandle {
-    const HOURS_PER_TICK = 10;
-    let stopped = false;
-    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-    let resolveEnd: () => void = () => { };
-    const ended = new Promise<void>(resolve => { resolveEnd = resolve; });
-
-    void (async () => {
-        const token = await getAnalyticsToken();
-        const heartbeatSessionId = crypto.randomUUID();
-        const launchSignature = crypto.randomUUID();
-
-        async function postScienceEvents(events: Array<{ type: string; properties: Record<string, unknown>; }>): Promise<boolean> {
-            try {
-                await RestAPI.post({
-                    url: SCIENCE_URL,
-                    body: {
-                        token,
-                        events: events.map(ev => ({
-                            type: ev.type,
-                            properties: {
-                                client_track_timestamp: Date.now(),
-                                client_send_timestamp: Date.now(),
-                                client_heartbeat_session_id: heartbeatSessionId,
-                                launch_signature: launchSignature,
-                                event_sequence_number: ++sequence,
-                                client_app_state: "focused",
-                                ...ev.properties
-                            }
-                        }))
-                    }
-                });
-                return true;
-            } catch {
-                return false;
-            }
-        }
-
-        const streamProps = {
-            guild_id: location.guildId,
-            channel_id: location.channelId,
-            channel_type: 2
-        };
-
-        await postScienceEvents([
-            { type: "media_session_joined", properties: { ...streamProps } },
-            { type: "video_stream_started", properties: { ...streamProps } }
-        ]);
-
-        let creditedHours = 0;
-        let consecutiveFailures = 0;
-
-        async function tick(): Promise<void> {
-            if (stopped) return;
-            if (!shouldContinue() || creditedHours >= targetHours) {
-                resolveEnd();
-                return;
-            }
-
-            const claimHours = Math.min(HOURS_PER_TICK, targetHours - creditedHours);
-            const ok = await postScienceEvents([
-                {
-                    type: "video_stream_heartbeat",
-                    properties: {
-                        ...streamProps,
-                        duration_tracked_ms: claimHours * 3_600_000,
-                        total_duration_ms: (creditedHours + claimHours) * 3_600_000
-                    }
-                }
-            ]);
-
-            if (ok) {
-                consecutiveFailures = 0;
-                creditedHours += claimHours;
-                onHours(creditedHours);
-            } else if (++consecutiveFailures >= 10) {
-                resolveEnd();
-            }
-        }
-
-        await tick();
-        heartbeatTimer = setInterval(() => void tick(), 60_000);
-
-        await ended;
-
-        if (heartbeatTimer != null) clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-
-        const durationMs = creditedHours * 3_600_000;
-        await postScienceEvents([
-            {
-                type: "video_stream_ended",
-                properties: { ...streamProps, duration_ms: durationMs }
-            }
-        ]);
-        resolveEnd();
-    })();
-
-    return {
-        stop(): Promise<void> {
-            stopped = true;
-            resolveEnd();
-            return ended;
-        }
+            if (timer != null) clearTimeout(timer);
+            wake?.();
+        },
+        finished
     };
 }

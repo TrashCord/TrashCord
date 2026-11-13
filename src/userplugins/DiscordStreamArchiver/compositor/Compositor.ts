@@ -28,7 +28,7 @@ export interface CompositorCallbacks {
     onChunk: (bytes: Uint8Array) => Promise<void>;
     onError: (err: Error) => void;
     getAvatar: (tile: TileSpec) => HTMLImageElement | ImageBitmap | null;
-    // TIMING PROBE — when set (debug mode on), per-second capture diagnostics
+    // TIMING PROBE - when set (debug mode on), per-second capture diagnostics
     // are written here (→ debug.log in the recording dir) instead of the console.
     debugLog?: (line: string) => void;
 }
@@ -55,7 +55,7 @@ export class Compositor {
     private sourceCounters = new Map<string, { count: number }>();
     // Set on tile changes so a no-stream grid change emits promptly.
     private contentDirty = true;
-    // TIMING PROBE — diagnostic counters for the "missing frames" investigation.
+    // TIMING PROBE - diagnostic counters for the "missing frames" investigation.
     private probeTickCount = 0;
     private probeSourceAdv = 0;
     private probeLastTs = 0;
@@ -149,7 +149,7 @@ export class Compositor {
                 return;
             }
             chunkCount++;
-            // TIMING PROBE — accumulate bytes/chunks for the per-second probe line.
+            // TIMING PROBE - accumulate bytes/chunks for the per-second probe line.
             if (this.cb.debugLog) {
                 this.probeChunkBytes += ev.data.size;
                 this.probeChunkCount++;
@@ -185,7 +185,7 @@ export class Compositor {
         // Start the scheduler loop AFTER the recorder is running.
         this.rAFHandle = requestAnimationFrame(this.tick);
 
-        // TIMING PROBE — log window visibility transitions; rAF + canvas capture
+        // TIMING PROBE - log window visibility transitions; rAF + canvas capture
         // throttle hard when the document is hidden/occluded, which is the
         // leading suspect for randomly-choppy recordings. Only when debug is on.
         if (this.cb.debugLog) {
@@ -205,7 +205,7 @@ export class Compositor {
     }
 
     async stop(): Promise<void> {
-        // TIMING PROBE — detach the visibility listener.
+        // TIMING PROBE - detach the visibility listener.
         if (this.onVisibility) {
             document.removeEventListener("visibilitychange", this.onVisibility);
             this.onVisibility = null;
@@ -286,7 +286,7 @@ export class Compositor {
             this.emitFrame(ts);
         }
 
-        // TIMING PROBE — once-per-second snapshot to localize the missing-frames
+        // TIMING PROBE - once-per-second snapshot to localize the missing-frames
         // bug: rAFticks≈1 means rAF is throttled (window hidden/occluded);
         // rAFticks high but bytes≈0 means the capture track/encoder isn't
         // capturing despite frames being requested. Only runs when debug is on.
@@ -337,7 +337,7 @@ export class Compositor {
         const gridRect: Rect = { x: 0, y: 0, width: videoW, height };
 
         // When one or more screenshares are active, take over the grid with
-        // just those — the whole point of viewing is to see the stream, and
+        // just those - the whole point of viewing is to see the stream, and
         // cramping it into one small tile next to avatar boxes defeats that.
         // Falls back to the full participant grid when nobody is streaming.
         //

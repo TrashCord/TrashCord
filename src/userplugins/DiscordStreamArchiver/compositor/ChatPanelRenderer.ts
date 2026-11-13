@@ -27,7 +27,7 @@ const CODE_BG = "#2b2d31";
 const MESSAGE_PADDING = 12;
 const AVATAR_SIZE = 32;
 const REPLY_AVATAR_SIZE = 16;
-// Emotes inside the reply preview render at line height — small, never jumbo,
+// Emotes inside the reply preview render at line height - small, never jumbo,
 // regardless of how the replied-to message itself was sized.
 const REPLY_EMOTE_SIZE = 16;
 const ATTACHMENT_MAX_WIDTH = 280;
@@ -47,7 +47,7 @@ export class ChatPanelRenderer {
     private messageHeights = new Map<string, number>();
     private messageTokens = new Map<string, ContentToken[]>();
     // Parallel to messageTokens but holds the originalContent's parsed
-    // tokens — only populated for edited messages. The renderer draws
+    // tokens - only populated for edited messages. The renderer draws
     // these in gray above the current content as edit history.
     private messageOriginalTokens = new Map<string, ContentToken[]>();
     // Parsed tokens for the reply preview's snippet, so custom emotes/mentions
@@ -230,7 +230,7 @@ export class ChatPanelRenderer {
                 // emb.thumbnail (Discord's API uses thumbnail for the
                 // small preview, even when there's no separate image
                 // field). Route through animated cache when the URL looks
-                // like it could be animated — .gif, or a /stickers/
+                // like it could be animated - .gif, or a /stickers/
                 // URL (which is APNG and often animated even with a .png
                 // extension).
                 if (isUrlLikelyAnimated(emb.thumbnail.url)) this.preloadMaybeAnimated(emb.thumbnail.url, true);
@@ -243,7 +243,7 @@ export class ChatPanelRenderer {
             }
             if (emb.video?.url) {
                 // MP4/WebM (Tenor/Giphy/Twitter gifv) can't go through
-                // HTMLImageElement at all — route them to VideoFrameCache
+                // HTMLImageElement at all - route them to VideoFrameCache
                 // which mounts a hidden <video> element and plays it on
                 // loop. The drawMedia path will pick it up via the
                 // frame-lookup chain.
@@ -314,7 +314,7 @@ export class ChatPanelRenderer {
         // Partial top message: when a message overflowed the top edge and
         // there's empty space above the first fully-visible message, draw that
         // message's bottom portion into the gap, clipped at the canvas top
-        // (negative y — the canvas discards the off-top pixels). Without this a
+        // (negative y - the canvas discards the off-top pixels). Without this a
         // tall message (e.g. a big GIF) vanishes the instant its top crosses
         // the panel border, leaving a blank band until it fully scrolls off.
         const partial = partialIdx >= 0 && y0 > 0 ? this.messages[partialIdx] : null;
@@ -563,7 +563,7 @@ export class ChatPanelRenderer {
 
     // Single-line reply preview: text inline with small (line-height) custom
     // emotes, truncated with an ellipsis when it overruns the available width.
-    // Distinct from the main content layout — that path wraps and can render
+    // Distinct from the main content layout - that path wraps and can render
     // jumbo; a reply preview never does either.
     private drawReplySnippet(
         ctx: CanvasRenderingContext2D,
@@ -719,7 +719,7 @@ export class ChatPanelRenderer {
             ctx.fillRect(x, y, size, size);
         }
         ctx.restore();
-        // restore() does NOT reset the current path — the clip arc above
+        // restore() does NOT reset the current path - the clip arc above
         // would otherwise linger as the active sub-path and get filled by the
         // next roundRect-based draw (reaction pill, code block). Clear it so
         // no later fill() can accidentally paint over the avatar.
@@ -768,7 +768,7 @@ function flattenReplyTokens(tokens: ContentToken[]): ReplyPart[] {
 
 // URL-heuristic for "could this be animated media?". .gif is obvious; the
 // trickier case is Discord's /stickers/<id>.<ext> URLs, which are usually
-// APNG even with a .png extension — we route those through the animated
+// APNG even with a .png extension - we route those through the animated
 // decoder and let the decoder itself decide (it skips recursive scheduling
 // when the file turns out to be single-frame, so the cost of a false
 // positive is just one decode).

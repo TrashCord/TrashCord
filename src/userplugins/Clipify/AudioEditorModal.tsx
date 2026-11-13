@@ -228,7 +228,7 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
                 return await trimAudioWithFFmpeg(file, start, end, { mode, bitrateK: bitrate, gain: gain / 100, signal: signalRef.current, onProgress: setProgress });
             } catch (err) {
                 if (signalRef.current.cancelled) throw err;
-                showToast({ text: "FFmpeg unavailable — exporting offline as WAV." });
+                showToast({ text: "FFmpeg unavailable - exporting offline as WAV." });
             }
         }
         return trimAudioWebAudio(file, start, end, gain / 100);
@@ -325,7 +325,7 @@ function AudioEditorInner({ modalProps, file, engine, defaultMode, defaultLayout
                                 {!useFFmpeg
                                     ? "Exporting offline as lossless WAV."
                                     : mode === "lossless"
-                                        ? "Lossless cut — almost instant."
+                                        ? "Lossless cut - almost instant."
                                         : "Re-encoding to AAC (FFmpeg)."}
                             </div>
                         </div>

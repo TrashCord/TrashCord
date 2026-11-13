@@ -37,7 +37,7 @@ export async function analyzeUserWithCordCat(userId: string, username: string): 
     const parts: string[] = [];
     if (statements.length > 0) parts.push(`${statements.length} sanction${statements.length !== 1 ? "s" : ""}`);
     if (breachCount > 0) parts.push(`${breachCount} breach${breachCount !== 1 ? "es" : ""}`);
-    const suffix = parts.length > 0 ? ` — ${parts.join(", ")}` : "";
+    const suffix = parts.length > 0 ? ` - ${parts.join(", ")}` : "";
 
     const title = `CordCat: ${data.userInfo?.global_name || username}${suffix}`;
 

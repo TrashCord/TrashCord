@@ -113,9 +113,9 @@ async function killZombieServer(): Promise<void> {
             new Promise<boolean>(r => setTimeout(() => r(false), 500))
         ]);
         if (res) {
-            // A server is responding — check if it's ours or a zombie
+            // A server is responding - check if it's ours or a zombie
             if (!serverProc) {
-                // Not our process — it's a zombie from a previous crash
+                // Not our process - it's a zombie from a previous crash
                 // Try to stop it via the HTTP API
                 try {
                     await new Promise<void>(resolve => {
@@ -267,7 +267,7 @@ async function api(endpoint: string, body?: object, timeoutMs = 15000): Promise<
                 catch { resolve({ ok: false, error: "Invalid JSON" }); }
             });
         });
-        // FIX: 15s timeout instead of 90s — prevents freezing the Discord UI
+        // FIX: 15s timeout instead of 90s - prevents freezing the Discord UI
         req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error(`Timeout ${timeoutMs / 1000}s`)); });
         req.on("error", reject);
         if (data) req.write(data);
@@ -278,7 +278,7 @@ async function api(endpoint: string, body?: object, timeoutMs = 15000): Promise<
 export async function listAudioInputDevices(_: any): Promise<{ label: string; dshowName: string; }[]> {
     // FIX: try the ghost-server FIRST (fast, < 1s if available).
     // Before this fix, if the ghost-server wasn't ready, we spawned ffmpeg directly
-    // on the main Electron process with an 8s timeout — which froze the Discord UI
+    // on the main Electron process with an 8s timeout - which froze the Discord UI
     // for 8 seconds and explained the "loading for a long time" on the screen selector.
     // Now: ghost-server in 1s → ffmpeg fallback in 5s max (reduced from 8s).
     try {
@@ -295,7 +295,7 @@ export async function listAudioInputDevices(_: any): Promise<{ label: string; ds
         }
     } catch { }
 
-    // Fallback ffmpeg direct — timeout reduced to 5s (instead of 8s)
+    // Fallback ffmpeg direct - timeout reduced to 5s (instead of 8s)
     return new Promise(resolve => {
         const ghostServerNodeModules = path.join(process.resourcesPath ?? "", "ghost-server", "node_modules");
         const ffmpegCandidates = [
@@ -390,7 +390,7 @@ export async function disconnectGhost(_: any, userId: string): Promise<void> {
 
 export async function init(_: any): Promise<void> {
     const script = findServerScript();
-    console.log("[GhostNative] init — server.js:", script ?? "NOT FOUND");
+    console.log("[GhostNative] init - server.js:", script ?? "NOT FOUND");
     console.log("[GhostNative] node exe:", findNode());
 
     const ok = await ensureServer();

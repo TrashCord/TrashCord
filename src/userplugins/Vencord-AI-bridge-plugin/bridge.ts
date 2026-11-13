@@ -143,7 +143,7 @@ function _connect(url: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Message handler — process commands from the AI backend
+// Message handler - process commands from the AI backend
 // ---------------------------------------------------------------------------
 
 interface BridgeCommand {
@@ -192,7 +192,7 @@ function sendEvent(event: string, payload: Record<string, any>) {
 }
 
 // ---------------------------------------------------------------------------
-// Command executor — maps actions to Discord API calls
+// Command executor - maps actions to Discord API calls
 // ---------------------------------------------------------------------------
 
 async function executeCommand(action: string, payload: Record<string, any>): Promise<Record<string, any>> {
@@ -312,7 +312,7 @@ function cmdTyping(payload: Record<string, any>): Record<string, any> {
 function cmdGetChannels(): Record<string, any> {
     const guildId = SelectedGuildStore.getGuildId();
     if (!guildId) {
-        // DMs — get private channels
+        // DMs - get private channels
         const channels = ChannelStore.getSortedPrivateChannels?.() ?? [];
         return {
             channels: channels.map((ch: any) => ({
@@ -437,7 +437,7 @@ function cmdConfigUpdated(payload: Record<string, any>): Record<string, any> {
 }
 
 // ---------------------------------------------------------------------------
-// Event forwarding — send Discord events to the AI backend
+// Event forwarding - send Discord events to the AI backend
 // ---------------------------------------------------------------------------
 
 export function startForwarding(forwardMessages: boolean, forwardVoice: boolean, forwardTyping: boolean) {

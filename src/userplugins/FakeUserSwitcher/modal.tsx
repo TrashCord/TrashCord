@@ -61,7 +61,7 @@ const NITRO_TIER_MIN_MONTHS = [0, 0, 1, 2, 3, 6, 12, 24, 36, 72];
 // Boost tier minimum months, indexed to BOOST_LEVELS (0 = None, then 1/2/3/6/9/12/15/18/24).
 const BOOST_TIER_MIN_MONTHS = [0, 1, 2, 3, 6, 9, 12, 15, 18, 24];
 
-// Discord Nitro/boosting can't predate the platform — floor the picker here.
+// Discord Nitro/boosting can't predate the platform - floor the picker here.
 const SINCE_MIN_DATE = "2015-01-01";
 
 function toDateInputValue(d: Date): string {
@@ -109,7 +109,7 @@ const FLAG_BADGE_OPTIONS = [
 
 const CUSTOM_BADGE_OPTIONS = [
     { id: "quest", label: "Completed a quest", icon: "https://cdn.discordapp.com/badge-icons/7d9ae358c8c5e118768335dbe68b4fb8.png" },
-    { id: "orbs", label: "Orbs — Apprentice", icon: "https://cdn.discordapp.com/badge-icons/83d8a1eb09a8d64e59233eec5d4d5c2d.png" },
+    { id: "orbs", label: "Orbs - Apprentice", icon: "https://cdn.discordapp.com/badge-icons/83d8a1eb09a8d64e59233eec5d4d5c2d.png" },
     { id: "oldname", label: "Old username", icon: "https://cdn.discordapp.com/badge-icons/6de6d34650760ba5551a79732e98ed60.png" },
 ];
 
@@ -1582,7 +1582,7 @@ export function FakeUserSwitcherModal({ modalProps }: { modalProps: ModalProps; 
                                             <span className="fus-mf-nameplate-label">None</span>
                                         </div>
                                         {nameplates.map((n, i) => (
-                                            <div key={n.asset || n.src || i} className={`fus-mf-nameplate-item ${n.asset && settings.store.manualNameplateAsset === n.asset ? "fus-mf-nameplate-item--selected" : ""} ${!n.asset ? "fus-mf-nameplate-item--disabled" : ""}`} title={n.asset ? n.name : `${n.name} (preview only — not spoofable)`} onClick={() => { if (!n.asset) { showToast({ text: "That nameplate has no spoofable asset ID.", variant: "critical" }); return; } const nv = settings.store.manualNameplateAsset === n.asset ? "" : n.asset; settings.store.manualNameplateAsset = nv; settings.store.manualNameplateSkuId = nv; notify(); forceUpdate(); }}>
+                                            <div key={n.asset || n.src || i} className={`fus-mf-nameplate-item ${n.asset && settings.store.manualNameplateAsset === n.asset ? "fus-mf-nameplate-item--selected" : ""} ${!n.asset ? "fus-mf-nameplate-item--disabled" : ""}`} title={n.asset ? n.name : `${n.name} (preview only - not spoofable)`} onClick={() => { if (!n.asset) { showToast({ text: "That nameplate has no spoofable asset ID.", variant: "critical" }); return; } const nv = settings.store.manualNameplateAsset === n.asset ? "" : n.asset; settings.store.manualNameplateAsset = nv; settings.store.manualNameplateSkuId = nv; notify(); forceUpdate(); }}>
                                             <div className="fus-mf-nameplate-preview"><img src={n.src} alt={n.name} className="fus-mf-nameplate-img" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} /></div>
                                                 <span className="fus-mf-nameplate-label">{n.name}</span>
                                             </div>

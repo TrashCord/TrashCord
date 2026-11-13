@@ -5,7 +5,7 @@
  */
 
 // Pure helpers: parse / serialize / mutate comma-separated ID lists.
-// No Vencord imports here — testable under vitest.
+// No Vencord imports here - testable under vitest.
 
 export function parseCsvIds(raw: string): string[] {
     if (!raw.trim()) return [];

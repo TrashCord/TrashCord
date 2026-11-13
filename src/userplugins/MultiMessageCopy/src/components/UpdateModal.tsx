@@ -26,7 +26,7 @@ interface RemoteVersionInfo {
 
 interface UpdateModalProps {
     remoteInfo: RemoteVersionInfo
-    /** Installed version — PLUGIN_VERSION constant passed by the checker */
+    /** Installed version - PLUGIN_VERSION constant passed by the checker */
     installedVersion: string
     onDismiss: () => void
     modalProps: any
@@ -55,7 +55,7 @@ export function UpdateModal({ remoteInfo, installedVersion, onDismiss, modalProp
                 showToast({ text: "Update command copied. Paste it into PowerShell.", variant: "success" })
             } catch {}
         } catch {
-            // Clipboard not available — ignore silently.
+            // Clipboard not available - ignore silently.
         }
     }
 
@@ -90,7 +90,7 @@ export function UpdateModal({ remoteInfo, installedVersion, onDismiss, modalProp
                     <Paragraph style={{ color: "var(--text-muted)" }}>
                         Copy the command below, paste it into PowerShell, and run it.
                         The updater will replace plugin files and rebuild Vencord.
-                        It will ask before restarting Discord — it will not do so automatically.
+                        It will ask before restarting Discord - it will not do so automatically.
                     </Paragraph>
 
                     <Paragraph

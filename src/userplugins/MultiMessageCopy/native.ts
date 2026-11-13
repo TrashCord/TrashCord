@@ -22,7 +22,7 @@ interface RemoteVersionInfo {
     changelog?: string
 }
 
-/** Wraps every native IPC response — mirrors Vencord's IpcRes<V> convention. */
+/** Wraps every native IPC response - mirrors Vencord's IpcRes<V> convention. */
 type NativeResult<T> =
     | { ok: true;  value: T }
     | { ok: false; error: string }

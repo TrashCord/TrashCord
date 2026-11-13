@@ -351,7 +351,7 @@ export async function startExport(
     let batch: any[]
 
     try {
-      // Vencord exposes `RestAPI` for internal use — use the already-
+      // Vencord exposes `RestAPI` for internal use - use the already-
       // provided webpack modules instead of a raw fetch to stay within
       // Vencord's sandboxed environment.
       const { RestAPI } = await import("@webpack/common")
@@ -418,7 +418,7 @@ export async function startExport(
   // Sort oldest → newest
   allMessages.sort((a, b) => (a.timestamp > b.timestamp ? 1 : -1))
 
-  // Build participants map — use the most recently seen data per user
+  // Build participants map - use the most recently seen data per user
   const participantsMap: Record<string, ExportParticipant> = {}
   for (const msg of allMessages) {
     const uid = msg.author_id
@@ -448,7 +448,7 @@ export async function startExport(
   }
 
   if (channel?.type === DM_CHANNEL_TYPE) {
-    // Normal DM — find the other participant
+    // Normal DM - find the other participant
     const recipientIds: string[] = Array.isArray(channel?.recipientIDs)
       ? channel.recipientIDs.map(String)
       : Array.isArray(channel?.recipient_ids)
@@ -479,7 +479,7 @@ export async function startExport(
       } catch { /* ignore */ }
     }
   } else if (channel?.type === GROUP_DM_CHANNEL_TYPE) {
-    // Group DM — collect all recipient participants
+    // Group DM - collect all recipient participants
     const recipientIds: string[] = Array.isArray(channel?.recipientIDs)
       ? channel.recipientIDs.map(String)
       : Array.isArray(channel?.recipient_ids)
@@ -609,7 +609,7 @@ export async function startExport(
 
   const mimeType = getExportMimeType(format)
 
-  // Try to resolve UserStore for better DM filenames — optional, best-effort
+  // Try to resolve UserStore for better DM filenames - optional, best-effort
   let userStore: any = undefined
   try {
     userStore = UserStore

@@ -5,26 +5,26 @@
  */
 
 /*
- * ServerBadges — a Vencord userplugin
+ * ServerBadges - a Vencord userplugin
  *
  * Makes a server you OWN read as Verified and/or a Discord Partner, using
- * Discord's OWN native rendering — not a fake overlay icon.
+ * Discord's OWN native rendering - not a fake overlay icon.
  *
  * How it works:
  *   - It injects the "VERIFIED" / "PARTNERED" strings into the guild's client
  *     -side `features` set (GuildStore) AND into GuildProfileStore's separate
  *     per-guild `features` array. Discord's own code then draws the real badge in
  *     the header, the server-icon hover tooltip, the server-profile card and the
- *     invite embed — correct position, tooltip and styling.
+ *     invite embed - correct position, tooltip and styling.
  *   - For Partnered servers it injects the real "Partnered Server Owner" badge
  *     object into your profile's `badges` array, positioned right after Nitro to
  *     match Discord's native badge order.
  *
- * Everything is client-side and cosmetic — it only changes what YOU see on YOUR
+ * Everything is client-side and cosmetic - it only changes what YOU see on YOUR
  * client, and nothing is ever sent to Discord's servers.
  *
  * Because these are the real native badges, there are deliberately NO size /
- * icon / position options — it looks exactly like Discord's own.
+ * icon / position options - it looks exactly like Discord's own.
  */
 
 import { definePluginSettings } from "@api/Settings";
@@ -224,7 +224,7 @@ function addArrayFeatures(obj: any, features: string[]) {
 }
 
 // The "server profile" card (server-settings preview) reads GuildProfileStore,
-// which has its OWN plain-array `features` — separate from the GuildStore record.
+// which has its OWN plain-array `features` - separate from the GuildStore record.
 function syncGuildProfiles() {
     if (!GuildProfileStore?.getProfile) return;
     for (const { guild, features } of ownedOverriddenGuilds())
@@ -243,7 +243,7 @@ function syncInvites() {
         addArrayFeatures(inv?.profile, features);
     };
 
-    // Resolved invites (what the embed renders) are keyed by code — look up the
+    // Resolved invites (what the embed renders) are keyed by code - look up the
     // code for each owned guild.
     for (const { guild, features } of owned) {
         const code = InviteStore.getInviteKeyForGuildId?.(guild.id);

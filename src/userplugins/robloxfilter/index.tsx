@@ -69,7 +69,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:cp|c\.s\.a\.m|child\s*porn|kiddie\s*porn|pedo\s*file|child\s*lover|young\s*lover|jailbait|hebephil|ephebophil|pedophil|pedophili)\b/i,
         category: "Child Exploitation",
-        reason: "References to child exploitation or CSAM — violates Discord ToS and criminal law worldwide.",
+        reason: "References to child exploitation or CSAM - violates Discord ToS and criminal law worldwide.",
         replacements: [
             { word: /\bcp\b/i, sfw: "computer" },
             { word: /child\s*porn/i, sfw: "innocent content" },
@@ -82,7 +82,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:naked\s*kid|nude\s*child|child\s*nude|kid\s*naked|kid\s*nude|naked\s*minor|nude\s*minor|child\s*sex|kid\s*sex|minor\s*sex|underage\s*sex|teen\s*sex(?:ual)?|lolita|loli\s*sex|shota\s*sex|shotacon|lolicon)\b/i,
         category: "Child Exploitation",
-        reason: "Sexualization of minors — illegal and violates Discord ToS.",
+        reason: "Sexualization of minors - illegal and violates Discord ToS.",
         replacements: [
             { word: /naked\s*kid/i, sfw: "young person" },
             { word: /nude\s*child/i, sfw: "young person" },
@@ -98,18 +98,18 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:12\s*yo|13\s*yo|14\s*yo|under\s*age|underage|minor|under.?age|under\s*18|under\s*16|under\s*14|under\s*13|under\s*12)\s*(?:sexy|hot|nude|naked|sexual|sex|porn|hentai)\b/i,
         category: "Child Exploitation",
-        reason: "Sexual content involving minors — violates Discord ToS and criminal law.",
+        reason: "Sexual content involving minors - violates Discord ToS and criminal law.",
     },
     {
         regex: /\b(?:im\s*1[0-4]\b|i'?m\s*1[0-4]\b|i\s*am\s*1[0-4]\b|age\s*1[0-4]\b|1[0-4]\s*years?\s*old)\b/i,
         category: "Age Disclosure (Minor)",
-        reason: "Announcing you're a young minor (under 15) — can be dangerous in risky contexts.",
+        reason: "Announcing you're a young minor (under 15) - can be dangerous in risky contexts.",
     },
 
     {
         regex: /\b(?:isis|al[\s-]*qaeda|boko\s*haram|taliban|al[\s-]*shabaab|hamas|hezbollah|jemaah\s*islamiyah|abu\s*sayyaf|ansar\s*bayt\s*al[\s-]*maqdis)\b/i,
         category: "Terrorism",
-        reason: "References to designated terrorist organizations — promoting or supporting them violates Discord ToS.",
+        reason: "References to designated terrorist organizations - promoting or supporting them violates Discord ToS.",
         replacements: [
             { word: /\bisis\b/i, sfw: "the group" },
             { word: /al[\s-]*qaeda/i, sfw: "the organization" },
@@ -122,7 +122,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:jihad|caliphate|khilafah|sharia\s*state|islamic\s*state|isil|daesh)\b(?:\s*(?:support|join|fight|victory|praise|allahu|akbar|state|flag|soldier|recruit))?\b/i,
         category: "Terrorism / Violent Extremism",
-        reason: "References to terrorist organizations or violent extremism — violates Discord ToS.",
+        reason: "References to terrorist organizations or violent extremism - violates Discord ToS.",
         replacements: [
             { word: /\bjihad\b/i, sfw: "struggle" },
             { word: /\bcaliphate\b/i, sfw: "historical state" },
@@ -136,7 +136,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:mass\s*shooting|school\s*shooting|active\s*shooter|shooting\s*rampage|go\s*on\s*a\s*rampage|kill\s*them\s*all|murder\s*everyone|bomb\s*threat|bomb\s*plot|terrorist?\s*attack)\b/i,
         category: "Violent Threats / Terrorism",
-        reason: "Threats of mass violence or terrorism — violates Discord ToS and may be illegal.",
+        reason: "Threats of mass violence or terrorism - violates Discord ToS and may be illegal.",
         replacements: [
             { word: /mass\s*shooting/i, sfw: "tragic event" },
             { word: /school\s*shooting/i, sfw: "tragic event" },
@@ -153,7 +153,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:i'?ll\s*(?:kill|murder|slaughter|beat|stab|shoot|rape|hurt|harm|destroy)\s*(?:you|him|her|them|ur|ya)|gonna\s*(?:kill|murder|slaughter|rape)|going\s*to\s*(?:kill|murder|rape))\b/i,
         category: "Real-Life Threats",
-        reason: "Direct threats of violence against someone — violates Discord ToS and may be criminal.",
+        reason: "Direct threats of violence against someone - violates Discord ToS and may be criminal.",
         replacements: [
             { word: /i'?ll\s*kill\s*you/i, sfw: "I'll argue with you" },
             { word: /i'?ll\s*murder\s*you/i, sfw: "I'll strongly disagree with you" },
@@ -172,7 +172,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:dox|doxx|drop\s*dox|drop\s*ip|swat|swatt|leak\s*(?:your|their|his|her)\s*(?:address|ip|location|phone|real\s*name|where\s*(?:you|they|he|she)\s*live))\b/i,
         category: "Doxxing / Privacy Violations",
-        reason: "Threatening to share someone's private information — violates Discord ToS.",
+        reason: "Threatening to share someone's private information - violates Discord ToS.",
         replacements: [
             { word: /\bdox(?:x)?\b/i, sfw: "share public info" },
             { word: /drop\s*dox/i, sfw: "share info" },
@@ -184,13 +184,13 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:dox|doxx)\b(?:ing|ed)?\s*(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|\d{3}[\s-]?\d{3}[\s-]?\d{4})/i,
         category: "Doxxing",
-        reason: "Sharing personal information (IP, email, phone) — violates Discord ToS.",
+        reason: "Sharing personal information (IP, email, phone) - violates Discord ToS.",
     },
 
     {
         regex: /\b(?:kill\s*myself|kms|kys|end\s*(?:my|your|their)\s*life|end\s*it\s*all|commit\s*suicide|kill\s*(?:me|yourself|myself)|want\s*to\s*die|gonna\s*die|going\s*to\s*die|i'?ll\s*die|i\s*want\s*to\s*die)\b/i,
         category: "Self-Harm / Suicide",
-        reason: "References to self-harm or suicide — Discord takes this seriously. Please seek help if you're struggling.",
+        reason: "References to self-harm or suicide - Discord takes this seriously. Please seek help if you're struggling.",
         replacements: [
             { word: /kill\s*myself/i, sfw: "take care of myself" },
             { word: /\bkms\b/i, sfw: "I'm okay" },
@@ -209,13 +209,13 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:how\s*to\s*(?:kill\s*myself|commit\s*suicide|end\s*my\s*life)|suicide\s*(?:methods|ways|how|help|tips|guide))\b/i,
         category: "Self-Harm Methods",
-        reason: "Seeking information about self-harm — Discord may intervene with safety resources.",
+        reason: "Seeking information about self-harm - Discord may intervene with safety resources.",
     },
 
     {
         regex: /\b(?:how\s*to\s*(?:make|buy|create|synthesize|cook)\s*(?:meth|methamphetamine|fentanyl|heroin|cocaine|crack|lsd|mdma|ecstasy|bath\s*salt|synthetic?\s*cannabis|fent))\b/i,
         category: "Illegal Drug Manufacturing",
-        reason: "Instructions for manufacturing illegal controlled substances — violates Discord ToS and criminal law.",
+        reason: "Instructions for manufacturing illegal controlled substances - violates Discord ToS and criminal law.",
         replacements: [
             { word: /\bmeth(?:amphetamine)?\b/i, sfw: "chemistry" },
             { word: /\bfentanyl\b/i, sfw: "medication" },
@@ -230,12 +230,12 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:buy|purchase|get|order|source)\s*(?:(?:il)?legal|black\s*market|dark\s*web|darknet)\s*(?:gun|firearm|weapon|bomb|explosive|drug|heroin|meth|fentanyl|cocaine|crack|ak[\s-]?47|ar[\s-]?15|handgun|silencer)\b/i,
         category: "Illegal Weapons / Drugs",
-        reason: "Attempting to purchase illegal weapons or drugs — violates Discord ToS and may violate criminal law.",
+        reason: "Attempting to purchase illegal weapons or drugs - violates Discord ToS and may violate criminal law.",
     },
     {
         regex: /\b(?:hack|steal|crack|bypass)\s*(?:some)?one'?s?\s*(?:account|password|bank|credit\s*card|social\s*security|ssn|id|identity|wallet|crypto)\b/i,
         category: "Account Theft / Identity Crime",
-        reason: "Discussing stealing or hacking into someone's account — violates Discord ToS.",
+        reason: "Discussing stealing or hacking into someone's account - violates Discord ToS.",
         replacements: [
             { word: /\bhack\b/i, sfw: "access" },
             { word: /\bsteal\b/i, sfw: "borrow" },
@@ -247,7 +247,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:revenge\s*porn|leaked\s*(?:nude|naked|sexy|explicit|porn|tape|video|photo|pic)|leak\s*(?:her|his|their|your|my)\s*(?:nude|naked|sexy|explicit|porn|tape|video|photo|pic)|without\s*(?:her|his|their|your|my)\s*(?:consent|permission|knowledge))\b/i,
         category: "Non-Consensual Intimate Imagery",
-        reason: "Sharing intimate content without consent — violates Discord ToS and is illegal in many places.",
+        reason: "Sharing intimate content without consent - violates Discord ToS and is illegal in many places.",
         replacements: [
             { word: /revenge\s*porn/i, sfw: "private content" },
             { word: /leaked\s*(?:nude|naked|sexy|explicit|porn)/i, sfw: "shared content" },
@@ -258,7 +258,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:nigga|nig(?:g|g)?er|fag(?:got)?|tranny|chink|spic|gook|kike|wetback|cracker|redskin|paki|coon|towel\s*head|camel\s*jockey|raghead|gypsy|retard|retarded|mongoloid|dumb\s*retard)\b/i,
         category: "Hate Speech / Slurs",
-        reason: "Use of racial/ethnic slurs or hate speech — violates Discord Community Guidelines.",
+        reason: "Use of racial/ethnic slurs or hate speech - violates Discord Community Guidelines.",
         replacements: [
             { word: /\bnigga\b/i, sfw: "dark skinned mate" },
             { word: /\bnig(?:g|g)?er\b/i, sfw: "dark skinned person" },
@@ -285,7 +285,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:white\s*power|white\s*genocide|heil\s*hitler|nazi|reich|kkk|klan|aryan\s*suprem|black\s*power|israel\s*(?:must|should|will)\s*(?:die|be\s*destroyed)|kill\s*(?:all\s*)?(?:jews|blacks|whites|arabs|muslims|christians|hindus))\b/i,
         category: "Hate Speech / Extremism",
-        reason: "Promoting hate speech or extremist ideologies — violates Discord ToS.",
+        reason: "Promoting hate speech or extremist ideologies - violates Discord ToS.",
         replacements: [
             { word: /white\s*power/i, sfw: "solidarity" },
             { word: /white\s*genocide/i, sfw: "demographic change" },
@@ -301,7 +301,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:grabify|ip\s*log|ip\s*grab|token\s*grab|token\s*log|steal\s*tokens|steal\s*passwords|phishing?\s*link|fake\s*login|fake\s*discord|fake\s*nitro|nitro\s*scam|nitro\s*generator|free\s*nitro\s*(?:here|link|click|giveaway|generator))\b/i,
         category: "Malware / Phishing / Scams",
-        reason: "Sharing tools or links designed to steal accounts — violates Discord ToS.",
+        reason: "Sharing tools or links designed to steal accounts - violates Discord ToS.",
         replacements: [
             { word: /\bgrabify\b/i, sfw: "link tracker" },
             { word: /ip\s*log/i, sfw: "ip checker" },
@@ -317,7 +317,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:malware|virus|trojan|keylog|ransomware|cryptolocker|rootkit|backdoor|remote\s*access\s*trojan|rat\s*(?:virus|malware|download))\b/i,
         category: "Malware Distribution",
-        reason: "Discussing or distributing malware — violates Discord ToS and may be criminal.",
+        reason: "Discussing or distributing malware - violates Discord ToS and may be criminal.",
         replacements: [
             { word: /\bmalware\b/i, sfw: "harmful software" },
             { word: /\bvirus\b/i, sfw: "harmful code" },
@@ -332,7 +332,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:gore|decapitat|beheading|live\s*leak|(?:live)?leak\s*(?:video|gore|death)|crackhead|suicide\s*(?:video|note|footage)|snuff|execution\s*(?:video|footage)|torture\s*(?:video|gore|porn))\b/i,
         category: "Gore / Extreme Violence",
-        reason: "Sharing or requesting gore, execution, or torture content — violates Discord ToS.",
+        reason: "Sharing or requesting gore, execution, or torture content - violates Discord ToS.",
         replacements: [
             { word: /\bgore\b/i, sfw: "graphic content" },
             { word: /decapitat/i, sfw: "historical event" },
@@ -350,7 +350,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:rape|rapist|sexual\s*assault|forced\s*sex|non[- ]consensual|consent(?:ual)?\s*(?:sex|rape|abuse))\b/i,
         category: "Sexual Violence",
-        reason: "References to sexual violence — violates Discord ToS and is criminal behavior.",
+        reason: "References to sexual violence - violates Discord ToS and is criminal behavior.",
         replacements: [
             { word: /\brape\b/i, sfw: "assault" },
             { word: /\brapist\b/i, sfw: "assailant" },
@@ -362,7 +362,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:animal\s*(?:abuse|torture|kill|rape|crush|bestiality|zoophilia)|pet\s*(?:abuse|torture|kill))\b/i,
         category: "Animal Abuse",
-        reason: "Content depicting or promoting animal abuse — violates Discord ToS.",
+        reason: "Content depicting or promoting animal abuse - violates Discord ToS.",
         replacements: [
             { word: /animal\s*abuse/i, sfw: "animal mistreatment" },
             { word: /animal\s*torture/i, sfw: "animal mistreatment" },
@@ -374,7 +374,7 @@ const VIOLATION_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:raid|nuke|spam)\s*(?:server|guild|channel|group)\b/i,
         category: "Platform Abuse",
-        reason: "Organizing raids, server nuking, or spam attacks — violates Discord ToS.",
+        reason: "Organizing raids, server nuking, or spam attacks - violates Discord ToS.",
         replacements: [
             { word: /raid\s*(?:server|guild|channel|group)/i, sfw: "visit the community" },
             { word: /nuke\s*(?:server|guild|channel|group)/i, sfw: "clean the server" },
@@ -388,7 +388,7 @@ const STRICT_PATTERNS: ViolationPattern[] = [
     {
         regex: /\b(?:die|death|dead|kill|murder|destroy|annihilate|eliminate)\b.{0,20}\b(?:you|him|her|them|ur|ya)\b/i,
         category: "Violent Language",
-        reason: "Violent language directed at someone — may violate Discord Community Guidelines.",
+        reason: "Violent language directed at someone - may violate Discord Community Guidelines.",
         replacements: [
             { word: /die\b.{0,20}(?:you|him|her|them)/i, sfw: "disagree with you" },
             { word: /kill\b.{0,20}(?:you|him|her|them)/i, sfw: "argue with you" },
@@ -451,7 +451,7 @@ function censorContent(content: string, violations: ViolationPattern[]): { newCo
                 }
             }
         } else {
-            // No specific replacements — censor the whole match
+            // No specific replacements - censor the whole match
             const match = modified.match(violation.regex);
             if (match) {
                 if (action === "censor") {
@@ -475,7 +475,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
     if (settings.store.allowOverride) {
         const modifierKeys = FluxDispatcher._subscriptions?.MODIFIER_KEY_EVENT?.[0]?.();
         if (modifierKeys?.shiftKey) {
-            Flogger.warn("Shift override detected — allowing message through");
+            Flogger.warn("Shift override detected - allowing message through");
             return;
         }
     }
@@ -489,7 +489,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
     if (action === "block") {
         // BLOCK: Cancel the send entirely
         if (settings.store.logBlockedMessages) {
-            Flogger.error("BLOCKED MESSAGE — Violations:", categories.join(", "));
+            Flogger.error("BLOCKED MESSAGE - Violations:", categories.join(", "));
             Flogger.error("Content preview:", content.substring(0, 100) + (content.length > 100 ? "..." : ""));
         }
 
@@ -499,7 +499,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
 
         if (settings.store.showWarningNotification) {
             showNotification({
-                title: "🛡️ RobloxFilter — Message Blocked",
+                title: "🛡️ RobloxFilter - Message Blocked",
                 body: `Blocked for: ${categories.join(", ")}`,
                 color: "#ff0000",
             });
@@ -514,7 +514,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
         messageObj.content = newContent;
 
         if (settings.store.logBlockedMessages) {
-            Flogger.warn(`${action.toUpperCase()} APPLIED — Violations:`, categories.join(", "));
+            Flogger.warn(`${action.toUpperCase()} APPLIED - Violations:`, categories.join(", "));
             Flogger.warn("Original:", content.substring(0, 100));
             Flogger.warn("Modified:", newContent.substring(0, 100));
         }
@@ -527,7 +527,7 @@ async function onBeforeMessageSend(channelId: string, messageObj: { content: str
         if (settings.store.showWarningNotification) {
             const actionLabel = action === "censor" ? "Censored" : "Replaced";
             showNotification({
-                title: `🛡️ RobloxFilter — Message ${actionLabel}`,
+                title: `🛡️ RobloxFilter - Message ${actionLabel}`,
                 body: `${actionLabel} for: ${categories.join(", ")}`,
                 color: "#ffaa00",
             });

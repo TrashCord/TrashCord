@@ -1,6 +1,6 @@
 # OBSStatus
 
-A [Vencord](https://vencord.dev) userplugin that **automatically changes your Discord custom status when OBS Studio is running** — perfect for streamers who want people to see they're live without setting it manually every time.
+A [Vencord](https://vencord.dev) userplugin that **automatically changes your Discord custom status when OBS Studio is running** - perfect for streamers who want people to see they're live without setting it manually every time.
 
 Open OBS → your status switches to your custom "live" message. Close OBS → it clears. That's it.
 
@@ -9,17 +9,17 @@ Open OBS → your status switches to your custom "live" message. Close OBS → i
 ## ✨ Features
 
 - 🔴 Auto-detects when OBS Studio is running and updates your Discord custom status
-- 💬 Fully custom status message — set it to whatever you want
+- 💬 Fully custom status message - set it to whatever you want
 - 😀 Supports normal emojis **and** custom/animated server emotes (Nitro)
 - 🧹 Automatically clears your status when you close OBS
 - ⚙️ Configurable check interval and OBS WebSocket port
-- 🪶 Lightweight — uses OBS's built-in WebSocket, no extra software needed
+- 🪶 Lightweight - uses OBS's built-in WebSocket, no extra software needed
 
 ---
 
 ## 📋 Requirements
 
-- A **Vencord dev build** (or **Vesktop** pointed at a custom Vencord build) — userplugins don't work on the normal one-click Vencord installer
+- A **Vencord dev build** (or **Vesktop** pointed at a custom Vencord build) - userplugins don't work on the normal one-click Vencord installer
 - **OBS Studio 28 or newer** (WebSocket server is built in)
 - **Discord Nitro** *only if* you want to use a custom/animated emote (normal emojis work without Nitro)
 
@@ -51,7 +51,7 @@ The plugin detects OBS through its WebSocket server, so you need to turn that on
 3. Make sure the **Server Port** is **4455**
 4. **Uncheck Enable Authentication** (easiest), then click **OK**
 
-That's all — open OBS and your status updates within a few seconds.
+That's all - open OBS and your status updates within a few seconds.
 
 ---
 
@@ -103,9 +103,9 @@ If you want a **custom server emote** (like `:alert:`) in your status:
 
 ## 👤 Author
 
-Made by **tomper** — come say hi on stream!
+Made by **tomper** - come say hi on stream!
 - Twitch: https://twitch.tv/tomperyeeter
 
 ## 📝 License
 
-GPL-3.0 — same as Vencord. Free to use, modify, and share.
+GPL-3.0 - same as Vencord. Free to use, modify, and share.

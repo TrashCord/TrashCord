@@ -35,7 +35,7 @@ function BridgeStatusBar() {
     return (
         <div
             className={`vc-aibridge-status ${connected ? "vc-aibridge-connected" : "vc-aibridge-disconnected"}`}
-            title={connected ? "AI Bridge connected" : "AI Bridge disconnected — click to reconnect"}
+            title={connected ? "AI Bridge connected" : "AI Bridge disconnected  click to reconnect"}
             onClick={() => {
                 if (!connected) {
                     connectBridge(settings.store.backendUrl);

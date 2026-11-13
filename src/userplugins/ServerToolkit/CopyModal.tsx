@@ -38,7 +38,7 @@ type AnyGuild = {
 };
 
 export function openCopyModal(guild: AnyGuild) {
-    openModal(props => <CopyModal modalProps={{ ...props, title: `Duplicate Server — ${guild.name}` }} guild={guild} />);
+    openModal(props => <CopyModal modalProps={{ ...props, title: `Duplicate Server - ${guild.name}` }} guild={guild} />);
 }
 
 function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGuild; }) {
@@ -157,7 +157,7 @@ function CopyModal({ modalProps, guild }: { modalProps: ModalProps; guild: AnyGu
             onClose={closeModal}
             size="lg"
             className="guild-toolkit-modal"
-            title={`Duplicate Server — ${guild.name}`}
+            title={`Duplicate Server - ${guild.name}`}
         >
             <ModalContent className="guild-toolkit-content">
                 <section title="Target">

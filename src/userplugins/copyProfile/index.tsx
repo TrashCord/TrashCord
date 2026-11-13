@@ -79,7 +79,7 @@ async function cloneProfile(user: User) {
         if (accent != null) prof.accent_color = accent;
         await patch("/users/@me/profile", prof);
 
-        // --- profile theme colours (gradient) — attempted whether or not you have Nitro ---
+        // --- profile theme colours (gradient) - attempted whether or not you have Nitro ---
         const themeColors = profile.themeColors ?? profile.theme_colors;
         const themeApplied = Array.isArray(themeColors) && themeColors.length
             ? await patch("/users/@me/profile", { theme_colors: themeColors })

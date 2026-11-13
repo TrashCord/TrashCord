@@ -84,7 +84,7 @@ YYYY-MM-DD HH:MM:SS
 
 ## License
 
-GPL-3.0 — see [LICENSE][license]
+GPL-3.0 - see [LICENSE][license]
 
 <!-- LINKS -->
 [vencord]: https://vencord.dev

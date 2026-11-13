@@ -71,12 +71,12 @@ export const settings = definePluginSettings({
     blockedStrings: {
         type: OptionType.STRING, restartNeeded: true,
         default: ["sentry", "google", "tracking", "stats", "\\.spotify", "pagead", "analytics", "doubleclick"].join(", "),
-        description: "Comma-separated substrings — any XHR URL containing one is blocked (regex syntax allowed).",
+        description: "Comma-separated substrings - any XHR URL containing one is blocked (regex syntax allowed).",
     },
     allowedStrings: {
         type: OptionType.STRING, restartNeeded: true,
         default: ["videoplayback", "discord-attachments", "googleapis", "search", "api.spotify", "discord.com/assets/sentry."].join(", "),
-        description: "Comma-separated substrings whitelisted — overrides the blocklist (regex syntax allowed).",
+        description: "Comma-separated substrings whitelisted - overrides the blocklist (regex syntax allowed).",
     },
 
     // ── CSP / UA / Embeds (native) ─────────────────────────────────────
@@ -200,7 +200,7 @@ const INV_REGEX = /( \u200c|\u200d |[\u2060-\u2064])[^\u200b]/;
 async function ensureStegCloak() {
     if (steggo) return steggo;
     const { default: StegCloak } = await getStegCloak();
-    // (encrypt=true, integrity=false) — same as InvisibleChat
+    // (encrypt=true, integrity=false) - same as InvisibleChat
     steggo = new StegCloak(true, false);
     return steggo;
 }
@@ -221,7 +221,7 @@ function tryDecrypt(content: string): string | null {
             // If the decryption used the right password, the marker survives.
             if (decrypted.endsWith("\u200b"))
                 return decrypted.slice(0, -1);
-        } catch { /* wrong password — keep trying */ }
+        } catch { /* wrong password - keep trying */ }
     }
     return null;
 }
@@ -258,7 +258,7 @@ const onSend: MessageSendListener = async (_channelId, msg) => {
     try {
         const sc = await ensureStegCloak();
         const safeCover = cover.split(/\s+/).length >= 2 ? cover : "Super secret message";
-        // \u200b acts as our "correct password" sentinel — see tryDecrypt
+        // \u200b acts as our "correct password" sentinel - see tryDecrypt
         msg.content = sc.hide(msg.content + "\u200b", passwords[0], safeCover);
     } catch (err) {
         logger.error("Failed to encrypt outgoing message:", err);

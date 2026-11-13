@@ -559,7 +559,7 @@ function isAgeRestrictedRating(value: unknown): boolean {
 }
 
 function isQuestAgeRestricted(quest: unknown): boolean {
-    // Discord's quest objects don't expose any age-gate fields — rely solely on
+    // Discord's quest objects don't expose any age-gate fields - rely solely on
     // the gist restriction data (show_age_gate) which is indexed by quest ID.
     const id = getStringProperty(quest, "id");
     return id ? ageGatedQuestIds.has(id) : false;
@@ -622,7 +622,7 @@ async function fetchUserQuests(): Promise<unknown[]> {
 
 async function fetchRegionalUserQuestEntries(signal: AbortSignal): Promise<Map<string, InferredRegionRestriction>> {
     // Only count regions that the external per-region URLs explicitly report.
-    // Do NOT fold in the current user's live quests as a regional signal — a quest
+    // Do NOT fold in the current user's live quests as a regional signal - a quest
     // visible to the current user but absent from all other regional URLs is likely
     // global, not US-only. (e.g. Subnautica was falsely labelled "United States"
     // because it only appeared in user-quests-us.json but is available globally.)
@@ -811,9 +811,9 @@ function getToken(): string {
     const TokenModule = Vencord.Webpack.findByProps("getToken") as { getToken(): string; } | null;
     const token = TokenModule?.getToken?.() ?? "";
     if (!token) {
-        console.debug("[QuestRegions] getToken: FAILED — TokenModule found:", !!TokenModule, "getToken fn:", typeof TokenModule?.getToken);
+        console.debug("[QuestRegions] getToken: FAILED - TokenModule found:", !!TokenModule, "getToken fn:", typeof TokenModule?.getToken);
     } else {
-        console.debug(`[QuestRegions] getToken: OK — token length=${token.length} prefix=${token.slice(0, 6)}…`);
+        console.debug(`[QuestRegions] getToken: OK - token length=${token.length} prefix=${token.slice(0, 6)}…`);
     }
     return token;
 }
@@ -825,7 +825,7 @@ function getNative(): PluginNative<typeof import("./native")> | null {
         | PluginNative<typeof import("./native")>
         | undefined;
     if (!native) {
-        console.debug("[QuestRegions] getNative: native helper NOT found — is this desktop?");
+        console.debug("[QuestRegions] getNative: native helper NOT found - is this desktop?");
     }
     return native ?? null;
 }
@@ -1055,7 +1055,7 @@ async function tryProxiesSequentially<T extends { status: number; body: string; 
 
             if (result.error || result.status < 200 || result.status >= 300) {
                 const reason = result.error ?? `HTTP ${result.status}`;
-                console.debug(`[QuestRegions] ${label}: proxy ${proxy.raw} FAILED — ${reason}`);
+                console.debug(`[QuestRegions] ${label}: proxy ${proxy.raw} FAILED - ${reason}`);
                 errors.push(`${proxy.raw}: ${reason}`);
                 continue;
             }
@@ -1691,7 +1691,7 @@ async function loadQuestRegions(signal: AbortSignal): Promise<QuestRegionCard[]>
         questMap.set(restriction.id, restriction);
     }
 
-    // Fire inferred region fetch in the background — it only merges supplemental
+    // Fire inferred region fetch in the background - it only merges supplemental
     // regions into existing gist entries and isn't needed for the initial render.
     // Quests not in the gist are intentionally skipped (they are global).
     fetchRegionalUserQuestEntries(signal).then(inferred => {
@@ -1981,7 +1981,7 @@ function getRandomAutoStartDelayMs(): number {
     return Math.round(AUTO_START_MIN_DELAY_MS + Math.random() * (AUTO_START_MAX_DELAY_MS - AUTO_START_MIN_DELAY_MS));
 }
 
-// ─── Context menu — right-click on quest tile ─────────────────────────────────
+// ─── Context menu - right-click on quest tile ─────────────────────────────────
 
 /**
  * Injected into the "quests-entry" context menu (same hook as Questify uses).
@@ -2002,7 +2002,7 @@ function QuestRegionContextMenu(children: React.ReactNode[], props: { quest: unk
                     id="vc-quest-regions-fetch"
                     label={`Start via ${regionLabel} Proxy`}
                     action={async () => {
-                        console.debug(`[QuestRegions] context menu: Start via proxy — quest=${questId} country=${country}`);
+                        console.debug(`[QuestRegions] context menu: Start via proxy - quest=${questId} country=${country}`);
                         showNotification({
                             title: "QuestRegions",
                             body: `Starting quest via ${regionLabel} proxy…`,
@@ -2021,7 +2021,7 @@ function QuestRegionContextMenu(children: React.ReactNode[], props: { quest: unk
                             const msg = err instanceof Error ? err.message : String(err);
                             console.debug("[QuestRegions] context menu: error:", msg);
                             showNotification({
-                                title: "QuestRegions — Error",
+                                title: "QuestRegions - Error",
                                 body: msg.slice(0, 200),
                                 dismissOnClick: true,
                             });
@@ -2275,7 +2275,7 @@ const QuestRegionsAbout = () => (
             Join <Link href={QUEST_DATA_INVITE_URL}>{QUEST_DATA_INVITE_URL}</Link> for access to more recent region quest data.
         </Paragraph>
         <Paragraph style={{ margin: 0, fontSize: 13, opacity: 0.75 }}>
-            When using API sources, proxies are fetched directly filtered by the quest's country — no geo-detection needed.
+            When using API sources, proxies are fetched directly filtered by the quest's country - no geo-detection needed.
             Right-click any region quest tile to start it via a matching proxy.
         </Paragraph>
         <ProxyFilePicker />
@@ -2336,7 +2336,7 @@ export default definePlugin({
         stopProxyDiscoveryTimer();
     },
 
-    // Right-click context menu on quest tiles — same hook as Questify
+    // Right-click context menu on quest tiles - same hook as Questify
     contextMenus: {
         "quests-entry": QuestRegionContextMenu,
     },
@@ -2438,7 +2438,7 @@ export default definePlugin({
             options: [
                 {
                     name: "country",
-                    description: "Country code (e.g. US, DE, JP) — required for API sources",
+                    description: "Country code (e.g. US, DE, JP) - required for API sources",
                     type: ApplicationCommandOptionType.STRING,
                     required: false,
                 },
@@ -2479,8 +2479,8 @@ export default definePlugin({
                     }
 
                     const shown = proxies.slice(0, limit);
-                    const lines = shown.map((p, i) => `\`${i + 1}.\` \`${p.raw}\`${p.source ? ` *(${p.source})*` : ""}${p.country ? ` — ${getRegionEmoji(p.country)} ${p.country}` : ""}`);
-                    const header = `**${proxies.length} proxies**${countryInput ? ` for ${getRegionEmoji(countryInput)} **${getRegionName(countryInput)}**` : ""} (source: **${src}**)${proxies.length > limit ? ` — showing first ${limit}` : ""}:`;
+                    const lines = shown.map((p, i) => `\`${i + 1}.\` \`${p.raw}\`${p.source ? ` *(${p.source})*` : ""}${p.country ? ` - ${getRegionEmoji(p.country)} ${p.country}` : ""}`);
+                    const header = `**${proxies.length} proxies**${countryInput ? ` for ${getRegionEmoji(countryInput)} **${getRegionName(countryInput)}**` : ""} (source: **${src}**)${proxies.length > limit ? ` - showing first ${limit}` : ""}:`;
                     sendBotMessageChunks(ctx.channel.id, `${header}\n${lines.join("\n")}`);
                 } catch (err) {
                     const msg = err instanceof Error ? err.message : String(err);
@@ -2702,7 +2702,7 @@ export default definePlugin({
                         } catch (err) {
                             const msg = err instanceof Error ? err.message : String(err);
                             console.debug(`[QuestRegions] auto-start: FAILED quest=${questId}:`, msg);
-                            const result = `❌ \`${questId}\` — ${regionLabel}: ${msg}`;
+                            const result = `❌ \`${questId}\` - ${regionLabel}: ${msg}`;
                             results.push(result);
                             sendBotMessage(ctx.channel.id, { content: `[${i + 1}/${entries.length}] ${result}` });
                         }
@@ -2794,7 +2794,7 @@ export default definePlugin({
 
                     const questId = getQuestId(target)!;
                     console.debug(`[QuestRegions] /claim-region-quest: target=${questId}, enrolling then claiming`);
-                    sendBotMessage(ctx.channel.id, { content: `Found quest \`${questId}\` — enrolling via \`${proxy.raw}\`…` });
+                    sendBotMessage(ctx.channel.id, { content: `Found quest \`${questId}\` - enrolling via \`${proxy.raw}\`…` });
 
                     await enrollQuestViaProxy(questId, proxy);
                     console.debug(`[QuestRegions] /claim-region-quest: enrolled ${questId}`);

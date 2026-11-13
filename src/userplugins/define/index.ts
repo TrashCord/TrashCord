@@ -45,7 +45,7 @@ export default definePlugin({
                     for (const meaning of entry.meanings.slice(0, 3)) {
                         const def = meaning.definitions[0];
                         if (!def) continue;
-                        lines.push(`> *${meaning.partOfSpeech}* — ${def.definition}`);
+                        lines.push(`> *${meaning.partOfSpeech}* - ${def.definition}`);
                         if (def.example) lines.push(`> _e.g. ${def.example}_`);
                     }
 

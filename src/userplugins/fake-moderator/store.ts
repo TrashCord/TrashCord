@@ -13,7 +13,7 @@ import { FakeActionRecord, FakeActionType, FakeVoiceState } from "./types";
  * reads/writes here keeps persistence concerns out of the UI and guarantees the
  * newest-first ordering + size cap are always applied.
  *
- * Nothing in this module ever touches the network — the "history" is just a
+ * Nothing in this module ever touches the network - the "history" is just a
  * local array saved alongside the plugin's other settings.
  */
 

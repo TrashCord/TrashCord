@@ -27,7 +27,7 @@ export function EmojisTab({ guild }: { guild: Guild; }) {
     const renderEmoji = (e: any) => {
         const url = `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? "gif" : "png"}?size=48&quality=lossless`;
         return (
-            <div key={e.id} className="gt-emoji" title={`:${e.name}: — ${e.id}`} onClick={() => copyWithToast(`<${e.animated ? "a" : ""}:${e.name}:${e.id}>`)}>
+            <div key={e.id} className="gt-emoji" title={`:${e.name}: - ${e.id}`} onClick={() => copyWithToast(`<${e.animated ? "a" : ""}:${e.name}:${e.id}>`)}>
                 <img src={url} alt={e.name} />
                 <span className="gt-emoji-name">:{e.name}:</span>
             </div>

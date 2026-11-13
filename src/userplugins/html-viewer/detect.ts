@@ -21,7 +21,7 @@ export function isHtmlAttachment(att: AttachmentLike | null | undefined): boolea
 }
 
 // Sub-resource references the locked preview CSP will block. Anchors (<a href>)
-// are excluded — they load nothing. Only drives an advisory hint, so
+// are excluded - they load nothing. Only drives an advisory hint, so
 // approximate matching is fine.
 const EXTERNAL_PATTERNS: RegExp[] = [
     /<script\b[^>]*\bsrc\s*=\s*["']?\s*(?:https?:)?\/\//i,
@@ -52,7 +52,7 @@ function collectRefUrls(html: string): string[] {
 
 /**
  * True if the HTML references a remote sub-resource whose origin is NOT in
- * `trusted`. Those are the refs the inline (locked) CSP will block — so this
+ * `trusted`. Those are the refs the inline (locked) CSP will block - so this
  * drives the "open Full view" hint now that the inline tier allows trusted CDNs.
  */
 export function hasUntrustedRefs(html: string, trusted: string[]): boolean {

@@ -46,7 +46,7 @@ export function describeAction(record: FakeActionRecord): string {
     const meta = ACTIONS[record.type];
     const parts = [`${record.targetName} was ${meta.verb}`];
     if (record.duration) parts.push(`for ${formatDuration(record.duration)}`);
-    if (record.reason) parts.push(`— ${record.reason}`);
+    if (record.reason) parts.push(`- ${record.reason}`);
     return parts.join(" ");
 }
 

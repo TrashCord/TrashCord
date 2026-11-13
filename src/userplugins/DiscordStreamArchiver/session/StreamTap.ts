@@ -125,7 +125,7 @@ export class StreamTap {
             this.ownedVideoEl.remove();
             this.ownedVideoEl = null;
         }
-        // We don't stop ownedStream's tracks — we don't own them; Discord does.
+        // We don't stop ownedStream's tracks - we don't own them; Discord does.
         this.ownedStream = null;
         this.result?.dispose();
         this.result = null;

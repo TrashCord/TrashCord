@@ -77,7 +77,7 @@ export async function isOnACPower(_frame: unknown): Promise<boolean> {
     try {
         const { stdout } = await execAsync("WMIC Path Win32_Battery Get BatteryStatus /value");
 
-        // No battery found — assume desktop, treat as always plugged in
+        // No battery found - assume desktop, treat as always plugged in
         if (!stdout.includes("BatteryStatus")) return true;
 
         // BatteryStatus=2 means AC power connected

@@ -5,7 +5,7 @@
 On Linux, Discord's native voice engine ignores the input device you select in
 **Voice & Video**. It logs your choice, pretends to switch, and then records from the
 PipeWire/PulseAudio *default* source anyway. Nothing changes until you fully restart
-Discord — and even then you get whatever the system default happens to be.
+Discord - and even then you get whatever the system default happens to be.
 
 This plugin watches Discord's capture stream and reroutes it to the device you actually
 picked, live, without a restart.
@@ -20,7 +20,7 @@ Discord's Linux voice engine is the WebRTC PulseAudio ADM
 
 1. `SetRecordingDevice(uint16_t index)` refuses to run once recording is initialised
    (`if (_recIsInitialized) return -1;`), and the string/`WindowsDeviceType` overloads
-   that Discord's web app uses are stubs on Linux —
+   that Discord's web app uses are stubs on Linux -
    `SetRecordingDevice: Not supported on this platform`.
 2. The device *name* the ADM resolves for a non-zero index never makes it onto the
    stream: `pa_stream_connect_record()` ends up with the default source, so the capture
@@ -62,11 +62,11 @@ Instead:
    the stream.
 
 The actual audio path is changed, so the person on the other end hears the right
-microphone — not just a UI label.
+microphone - not just a UI label.
 
 ## Requirements
 
-- Linux with PipeWire or PulseAudio (`pactl` on `PATH` — `pulseaudio-utils` / `pipewire-pulse`)
+- Linux with PipeWire or PulseAudio (`pactl` on `PATH` - `pulseaudio-utils` / `pipewire-pulse`)
 - Discord **desktop** (the `native.ts` half needs Electron)
 - A **source-built** Vencord (userplugins do not work in the prebuilt release)
 
@@ -84,7 +84,7 @@ restart once more so the native half is loaded.
 
 ## Usage
 
-Just pick a microphone in *Voice & Video* — it now applies immediately. Choosing
+Just pick a microphone in *Voice & Video* - it now applies immediately. Choosing
 **Default** hands control back to the system default source.
 
 Plugin settings:
@@ -110,7 +110,7 @@ Expected: `RESULT: reroute=PASS  re-enforce=PASS`.
 ## Notes / limitations
 
 - **Dead virtual devices will faithfully be selected.** This plugin routes your audio to
-  whatever you picked — if you pick a virtual source whose backing plugin is broken, you
+  whatever you picked - if you pick a virtual source whose backing plugin is broken, you
   get exactly what that source produces (usually silence). A common Linux case:
   NoiseTorch keeps its `module-ladspa-source` loaded after a reboot while its
   `/tmp/librnnoise-*.so` is gone, so the source still exists but outputs pure silence
@@ -119,7 +119,7 @@ Expected: `RESULT: reroute=PASS  re-enforce=PASS`.
   so pick a real microphone (or unload the stale module with
   `pactl unload-module $(pactl list modules short | awk '/noisetorch/{print $1}')`).
 - If a pinned device disappears while pinned, the pin is dropped and control returns to
-  the system default — the plugin never holds a stream on a dead target.
+  the system default - the plugin never holds a stream on a dead target.
 - Matching is by PipeWire *description*; if you rename a source's description so it no
   longer matches Discord's device name, the pin is skipped with a toast.
 - The watcher only ever touches streams whose `application.name` is

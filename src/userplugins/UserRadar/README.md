@@ -1,6 +1,6 @@
 # UserRadar
 
-A Vencord plugin for keeping tabs on specific people on Discord. Add someone to your watchlist and UserRadar logs everything they do in the background — messages, voice activity, profile changes, status, music, games — and saves it all into a searchable activity log you can open anytime.
+A Vencord plugin for keeping tabs on specific people on Discord. Add someone to your watchlist and UserRadar logs everything they do in the background - messages, voice activity, profile changes, status, music, games - and saves it all into a searchable activity log you can open anytime.
 
 ---
 
@@ -11,9 +11,9 @@ A Vencord plugin for keeping tabs on specific people on Discord. Add someone to 
 - Add anyone by user ID or by right-clicking their profile
 - Give people a custom nickname so you don't lose track of who's who
 - Search through your list, sort by name or date added
-- **Pin/favorite users** — pinned people always float to the top of the list regardless of sort order
+- **Pin/favorite users** - pinned people always float to the top of the list regardless of sort order
 - Each person can have their own tracking settings, independent of everyone else
-- Auto-cleanup — logs for a person can be deleted automatically the moment you remove them from the watchlist (on by default, toggle in plugin settings)
+- Auto-cleanup - logs for a person can be deleted automatically the moment you remove them from the watchlist (on by default, toggle in plugin settings)
   <p>
   <img src="https://github.com/k1ng0p/UserRadar/blob/main/Previews/Screenshot%202026-08-04%20005223.png?raw=true" width="550" />
   &nbsp;&nbsp;
@@ -54,7 +54,7 @@ A Vencord plugin for keeping tabs on specific people on Discord. Add someone to 
 - Online / idle / DND / offline changes
 - Which platform they're using
 - Custom status (the emoji + text people set manually) with before/after
-- Smart enough to tell a real status change apart from someone briefly reconnecting — won't spam you every time their internet blips
+- Smart enough to tell a real status change apart from someone briefly reconnecting - won't spam you every time their internet blips
  <p>
   <img src="https://github.com/k1ng0p/UserRadar/blob/main/Previews/Screenshot%202026-08-04%20012606.png?raw=true" width="600" />
  </p>
@@ -75,18 +75,18 @@ Every profile field is tracked individually, each with a clean **before → afte
 ### 🔔 Notifications
 
 Get a desktop notification the instant something happens. Fully customizable per category, with:
-- **Quiet Hours** — mute notifications during set hours (e.g. 11pm–7am)
-- **Silent Mode** — global presets to mute everything at once
+- **Quiet Hours** - mute notifications during set hours (e.g. 11pm–7am)
+- **Silent Mode** - global presets to mute everything at once
 - Spam protection so the same event never double-notifies you
 
 ### 📋 Activity Log
 
-- **Quick stats header** — see messages sent, voice time, status changes, and total events for today at a glance
-- Filter by category (messages, voice, profile, status, etc.) with one tap — the active filter blinks so you always know what you're looking at
+- **Quick stats header** - see messages sent, voice time, status changes, and total events for today at a glance
+- Filter by category (messages, voice, profile, status, etc.) with one tap - the active filter blinks so you always know what you're looking at
 - Search across your entire log
 - Expand any card for full detail
-- **Compact view** — toggle a denser layout to fit more on screen at once
-- Export your log to a file — export everything, or just one category (messages only, voice only, etc.)
+- **Compact view** - toggle a denser layout to fit more on screen at once
+- Export your log to a file - export everything, or just one category (messages only, voice only, etc.)
 - Import a log back in
 - Clear all logs whenever you want a fresh start
   <p>
@@ -97,10 +97,10 @@ Get a desktop notification the instant something happens. Fully customizable per
 ### ⚙️ Global Presets
 
 Switch tracking behavior instantly with built-in modes:
-- **Custom** — fully manual control over every toggle
-- **Stalker** — track absolutely everything
-- **Lite** — track only the essentials (messages, deletes, typing, avatar, voice, status)
-- **Silent** — pause all notifications without losing any logged data
+- **Custom** - fully manual control over every toggle
+- **Stalker** - track absolutely everything
+- **Lite** - track only the essentials (messages, deletes, typing, avatar, voice, status)
+- **Silent** - pause all notifications without losing any logged data
   <p>
   <img src="https://github.com/k1ng0p/UserRadar/blob/main/Previews/Screenshot%202026-08-04%20014003.png?raw=true" width="600" />
   </p>
@@ -147,4 +147,4 @@ Every setting above (except cleanup and compact view) can also be overridden per
 
 ## Privacy
 
-Everything is stored **locally on your device only**. UserRadar doesn't send your data anywhere — it only reads the same public profile and presence info Discord already shows you in the app.
+Everything is stored **locally on your device only**. UserRadar doesn't send your data anywhere - it only reads the same public profile and presence info Discord already shows you in the app.

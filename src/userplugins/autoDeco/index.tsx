@@ -202,7 +202,7 @@ export const settings = definePluginSettings({
     enabled: {
         type: OptionType.BOOLEAN,
         default: true,
-        description: "Enable AutoDeco — auto-disconnect when tracked users join your channel",
+        description: "Enable AutoDeco - auto-disconnect when tracked users join your channel",
     },
     showToasts: {
         type: OptionType.BOOLEAN,
@@ -249,11 +249,11 @@ export const settings = definePluginSettings({
     _sepRvFilters: {
         type: OptionType.COMPONENT,
         description: "",
-        component: () => SectionSeparator("🔢 RandomVoice — Channel Filters"),
+        component: () => SectionSeparator("🔢 RandomVoice - Channel Filters"),
     },
     rvUserAmountOperation: {
         type: OptionType.SELECT,
-        description: "User amount filter operation — set to Off to ignore this filter",
+        description: "User amount filter operation - set to Off to ignore this filter",
         options: [...OP_OPTIONS],
     },
     rvUserAmount: {
@@ -265,7 +265,7 @@ export const settings = definePluginSettings({
     },
     rvSpacesLeftOperation: {
         type: OptionType.SELECT,
-        description: "Spaces left filter operation — set to Off to ignore this filter",
+        description: "Spaces left filter operation - set to Off to ignore this filter",
         options: [...OP_OPTIONS],
     },
     rvSpacesLeft: {
@@ -277,7 +277,7 @@ export const settings = definePluginSettings({
     },
     rvVcLimitOperation: {
         type: OptionType.SELECT,
-        description: "Voice channel limit filter operation — set to Off to ignore this filter",
+        description: "Voice channel limit filter operation - set to Off to ignore this filter",
         options: [...OP_OPTIONS],
     },
     rvVcLimit: {
@@ -291,7 +291,7 @@ export const settings = definePluginSettings({
     _sepRvBehavior: {
         type: OptionType.COMPONENT,
         description: "",
-        component: () => SectionSeparator("⚙️ RandomVoice — Behavior"),
+        component: () => SectionSeparator("⚙️ RandomVoice - Behavior"),
     },
     rvAutoNavigate: {
         type: OptionType.BOOLEAN,
@@ -337,7 +337,7 @@ export const settings = definePluginSettings({
     _sepRvStates: {
         type: OptionType.COMPONENT,
         description: "",
-        component: () => SectionSeparator("🎭 RandomVoice — State Filters"),
+        component: () => SectionSeparator("🎭 RandomVoice - State Filters"),
     },
     rvFilterVideo: {
         type: OptionType.BOOLEAN,
@@ -523,7 +523,7 @@ function AutoDecoHeaderButton() {
 
     return (
         <ChannelToolbarButton
-            tooltip={`AutoDeco active: ${names} — click to clear all`}
+            tooltip={`AutoDeco active: ${names} - click to clear all`}
             position="bottom"
             icon={AutoDecoIcon}
             onClick={() => {

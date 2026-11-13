@@ -372,7 +372,7 @@ function GifSpamModal(props: ModalProps) {
                             <input type="text" value={gs.delay} placeholder="2s"
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => { gs.delay = e.target.value; saveSettings(); update(); }}
                                 style={{ width: 80, padding: "4px 8px", borderRadius: 4, fontSize: 12 }} />
-                            <span style={s}>ms · s · m · h — e.g. 500ms · 2s · 1.5m</span>
+                            <span style={s}>ms · s · m · h - e.g. 500ms · 2s · 1.5m</span>
                         </div>
                         <div className="gs-hint">Parsed delay: <b style={{ color: "#c0c4d0" }}>{parseDelay(gs.delay).toLocaleString()} ms</b></div>
                     </div>
@@ -425,11 +425,11 @@ function GifSpamModal(props: ModalProps) {
                             <span style={{ fontSize: 11, color: "#9096a8" }}>ms</span>
                         </>)}
                     </div>
-                    <div className="gs-hint">Adds a random ±N ms offset to each delay — makes timing less predictable and harder for Discord to flag as automated.</div>
+                    <div className="gs-hint">Adds a random ±N ms offset to each delay - makes timing less predictable and harder for Discord to flag as automated.</div>
                 </div>
 
                 <div className="gs-sec">
-                    <span className="gs-lbl">Keybind — hold modifiers (Ctrl/Shift/Alt/Meta) then press any key</span>
+                    <span className="gs-lbl">Keybind - hold modifiers (Ctrl/Shift/Alt/Meta) then press any key</span>
                     <KeybindRecorder update={update} />
                 </div>
 
@@ -441,7 +441,7 @@ function GifSpamModal(props: ModalProps) {
                             on="🔒 Locked to start channel" off="🔓 Follows current channel" />
                     </div>
                     <div className="gs-hint">
-                        When <b style={{ color: "#ff9800" }}>ON</b>: switching channels won't stop the spammer — GIFs keep going to where it started.<br />
+                        When <b style={{ color: "#ff9800" }}>ON</b>: switching channels won't stop the spammer - GIFs keep going to where it started.<br />
                         When <b style={{ color: "#c0c4d0" }}>OFF</b>: switching channels stops the spammer automatically.
                     </div>
                 </div>
@@ -527,7 +527,7 @@ const GifContextMenu: NavContextMenuPatchCallback = children => {
 
 export default definePlugin({
     name: "GifSpammer",
-    description: "Send all your favorite GIFs with sequential/random modes, jitter, keybind, lock to channel, ChatBar button and context menu — ported from AutoMessageRepeater.",
+    description: "Send all your favorite GIFs with sequential/random modes, jitter, keybind, lock to channel, ChatBar button and context menu - ported from AutoMessageRepeater.",
     authors: [{ name: "zfrancesck1", id: 456195985404592149n }, { name: "nnenaza", id: 0n }],
     tags: ["Media", "Fun"],
     enabledByDefault: false,
@@ -543,7 +543,7 @@ export default definePlugin({
             inputType: ApplicationCommandInputType.BUILT_IN,
             options: [
                 { name: "mode",    description: "sequential | random (default: saved setting)",                       type: ApplicationCommandOptionType.STRING,  required: false },
-                { name: "delay",   description: "Delay between GIFs — e.g. 500ms, 2s, 1m (default: saved setting)",  type: ApplicationCommandOptionType.STRING,  required: false },
+                { name: "delay",   description: "Delay between GIFs - e.g. 500ms, 2s, 1m (default: saved setting)",  type: ApplicationCommandOptionType.STRING,  required: false },
                 { name: "shuffle", description: "Shuffle order (default: saved setting)",                             type: ApplicationCommandOptionType.BOOLEAN, required: false },
                 { name: "reverse", description: "Reverse order (default: saved setting)",                             type: ApplicationCommandOptionType.BOOLEAN, required: false },
                 { name: "limit",   description: "Max GIFs to send, 0 = all (default: saved setting)",                type: ApplicationCommandOptionType.NUMBER,  required: false },
@@ -585,7 +585,7 @@ export default definePlugin({
                 try { count = getFavoriteGifUrls().length; } catch { }
                 sendBotMessage(ctx.channel.id, {
                     content: [
-                        `**GifSpammer** — ${isRunning ? "🟢 Running" : "🔴 Stopped"}`,
+                        `**GifSpammer** - ${isRunning ? "🟢 Running" : "🔴 Stopped"}`,
                         `**Mode:** ${gs.mode} | **Delay:** ${gs.delay} (${parseDelay(gs.delay).toLocaleString()} ms)`,
                         `**Jitter:** ${gs.jitterEnabled ? `ON ±${gs.jitterMs}ms` : "OFF"} | **Lock to channel:** ${gs.lockToChannel ? "ON" : "OFF"}`,
                         `**Shuffle:** ${gs.shuffle ? "ON" : "OFF"} | **Reverse:** ${gs.reverse ? "ON" : "OFF"} | **Limit:** ${gs.limit || "all"} | **Repeat:** ${gs.repeat}×`,
@@ -621,7 +621,7 @@ export default definePlugin({
                 const totalPages = Math.ceil(urls.length / perPage);
                 const page = Math.min(Math.max(1, (args.find(a => a.name === "page")?.value as number) ?? 1), totalPages);
                 const lines = urls.slice((page - 1) * perPage, page * perPage).map((u, i) => `**${(page - 1) * perPage + i + 1}.** ${u}`).join("\n");
-                sendBotMessage(ctx.channel.id, { content: `🎞️ **Favorite GIFs** — Page **${page}/${totalPages}** (${urls.length} total)\n\n${lines}` });
+                sendBotMessage(ctx.channel.id, { content: `🎞️ **Favorite GIFs** - Page **${page}/${totalPages}** (${urls.length} total)\n\n${lines}` });
             },
         },
         {

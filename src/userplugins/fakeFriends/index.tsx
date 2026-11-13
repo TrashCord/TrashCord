@@ -12,15 +12,15 @@ import { findByProps } from "@webpack";
 import { ChannelStore, FluxDispatcher, GuildMemberStore, Menu, React, RelationshipStore, UserStore, UserUtils, showToast } from "@webpack/common";
 const DS_KEY = "FakeFriends_state";
 
-// fakeState is in memory only — does NOT persist across restarts
+// fakeState is in memory only - does NOT persist across restarts
 const fakeState = new Map<string, "pending" | "accepted">();
 
 async function persistState() {
-    // No persistence — fakeState reset on restart intentionally
+    // No persistence - fakeState reset on restart intentionally
 }
 
 async function loadState() {
-    // No loading at startup — fakeState starts empty
+    // No loading at startup - fakeState starts empty
 }
 
 const FAKE_DM_PHRASES = [
@@ -848,7 +848,7 @@ const guildContextPatch: NavContextMenuPatchCallback = (children, props) => {
                 action={() => floodGuild(guildId)} />
         ];
 
-        // "Remove fake friend requests" button — only visible if fakes exist for this server
+        // "Remove fake friend requests" button - only visible if fakes exist for this server
         if (fakeCount > 0) {
             items.push(
                 <Menu.MenuItem
@@ -899,7 +899,7 @@ export default definePlugin({
         removeContextMenuPatch("user-context", userContextPatch);
         removeContextMenuPatch("guild-context", guildContextPatch);
         unpatchAcceptFriend();
-        // We don't clear fakeState on stop — intentionally persistent
+        // We don't clear fakeState on stop - intentionally persistent
         // To reset: click Reset in the plugin or "Remove fake friend requests"
         unpatchStore();
         unpatchChannelStore();

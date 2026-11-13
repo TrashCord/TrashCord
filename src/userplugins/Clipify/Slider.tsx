@@ -20,7 +20,7 @@ export interface SliderProps {
 }
 
 /**
- * The thick-track / blurple-fill / white-knob slider used across every editor —
+ * The thick-track / blurple-fill / white-knob slider used across every editor -
  * a custom-styled range input so it matches the rest of the UI instead of the
  * browser default.
  */

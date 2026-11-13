@@ -21,7 +21,7 @@ export interface RowMeta {
     blockquote?: { rows: LayoutOp[][]; rowMeta: RowMeta[] };
     height: number;
     // x-coordinate where the row's last visible op ends, in row-local
-    // pixels. Inline rows only — undefined for code/blockquote. Used by
+    // pixels. Inline rows only - undefined for code/blockquote. Used by
     // the chat panel to position trailing inline labels (e.g. the gray
     // "(edit time)" after an edited message's last content line).
     endX?: number;

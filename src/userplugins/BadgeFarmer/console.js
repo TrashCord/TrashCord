@@ -5,7 +5,7 @@
  */
 
 /**
- * BadgeFarmer Console Edition — mobile + desktop
+ * BadgeFarmer Console Edition - mobile + desktop
  *
  * Runs anywhere Discord's JS console exists: Kettu's eval command,
  * Revenge/Bunny dev tools, desktop DevTools. No webpack, no plugin API.
@@ -15,7 +15,7 @@
  *
  * Game Time and Variety: backdated session chunks, same engine as the
  * Equicord plugin. Streaming: live heartbeats (lawerth's telemetry shape)
- * — go live with a viewer first, or those hours won't count.
+ * - go live with a viewer first, or those hours won't count.
  *
  * MIT. Telemetry schemas from lawerth/discord-streamer, game-time engine
  * from Accentaro/gameSessionSpoofer via aboveproof/BadgeFarmer.
@@ -144,7 +144,7 @@
                 state.creditedHours += chunk;
                 log(`${state.creditedHours}/${hours}h credited`, true);
             } catch (e) {
-                log(`chunk failed: ${e.message} — retrying in 5s`);
+                log(`chunk failed: ${e.message} - retrying in 5s`);
                 await sleep(5000);
             }
             await sleep(800);
@@ -186,7 +186,7 @@
         const target = hours * 60;
         const streamProps = { guild_id: "0", channel_id: "0", channel_type: 2 };
 
-        log(`Streaming: ${hours}h target. Go live with a viewer NOW — 1h per real hour.`);
+        log(`Streaming: ${hours}h target. Go live with a viewer NOW - 1h per real hour.`);
         await postScience([
             { type: "media_session_joined", properties: baseProps({ ...streamProps }) },
             { type: "video_stream_started", properties: baseProps({ ...streamProps }) }
@@ -205,7 +205,7 @@
                 fails = 0;
                 if (state.streamMinutes % 30 === 0) log(`${state.streamMinutes}/${target}min credited`, true);
             } catch (e) {
-                if (++fails >= 10) { log("10 straight failures — aborting"); break; }
+                if (++fails >= 10) { log("10 straight failures - aborting"); break; }
             }
         }
 

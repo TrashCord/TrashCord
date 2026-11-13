@@ -69,7 +69,7 @@
     margin-top: 8px;
 }
 
-/* Nameplate picker — wide rectangular tiles (nameplates are banners, not
+/* Nameplate picker - wide rectangular tiles (nameplates are banners, not
    circular like avatar decorations). */
 .fus-mf-nameplate-grid {
     display: flex;

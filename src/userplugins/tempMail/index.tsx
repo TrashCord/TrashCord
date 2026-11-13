@@ -31,7 +31,7 @@ function TempMailButton() {
 
 export default definePlugin({
     name: "TempMail",
-    description: "Disposable email addresses powered by mail.tm — create, receive and save emails inside Discord",
+    description: "Disposable email addresses powered by mail.tm - create, receive and save emails inside Discord",
     managedStyle,
     authors: [{ name: "lastclipped", id: 0n }],
     tags: ["Utility", "Privacy"],

@@ -2,7 +2,7 @@
 
 # 🔔 Mention Saver
 
-**A [Vencord](https://github.com/Vendicated/Vencord) plugin that catches and stores every Discord mention — so you never miss one again.**
+**A [Vencord](https://github.com/Vendicated/Vencord) plugin that catches and stores every Discord mention - so you never miss one again.**
 
 [![Made with TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vencord](https://img.shields.io/badge/Vencord-Plugin-5865F2?style=flat)](https://vencord.dev/)
@@ -14,7 +14,7 @@
 
 ## Overview
 
-Discord's built-in inbox is great — until you accidentally dismiss a mention and it's gone forever. **Mention Saver** fixes that. It runs silently in the background, intercepts every message that mentions you, and stores it locally. A small bell icon lives in your Discord title bar, ready whenever you need it.
+Discord's built-in inbox is great - until you accidentally dismiss a mention and it's gone forever. **Mention Saver** fixes that. It runs silently in the background, intercepts every message that mentions you, and stores it locally. A small bell icon lives in your Discord title bar, ready whenever you need it.
 
 **Especially useful when:**
 - 💣 A channel gets **nuked** before you had the chance to read your mention
@@ -26,11 +26,11 @@ Discord's built-in inbox is great — until you accidentally dismiss a mention a
 
 | | |
 |---|---|
-| 🔔 | **Title bar button** — a subtle bell icon right next to Discord's native controls |
-| 🔴 | **Live badge counter** — see your unread mention count at a glance |
-| 💾 | **Persistent storage** — mentions survive Discord restarts |
-| ✕ | **One-click clear** — wipe all saved mentions instantly |
-| ⚙️ | **Settings panel** — tweak max storage, timestamps, and auto-clear |
+| 🔔 | **Title bar button** - a subtle bell icon right next to Discord's native controls |
+| 🔴 | **Live badge counter** - see your unread mention count at a glance |
+| 💾 | **Persistent storage** - mentions survive Discord restarts |
+| ✕ | **One-click clear** - wipe all saved mentions instantly |
+| ⚙️ | **Settings panel** - tweak max storage, timestamps, and auto-clear |
 | 🐱 | *Made with love by Mika Jonkovič* |
 
 ## Installation
@@ -78,7 +78,7 @@ pnpm build
 
 ## License
 
-[MIT](LICENSE) — free to use, modify and share.
+[MIT](LICENSE) - free to use, modify and share.
 
 ---
 

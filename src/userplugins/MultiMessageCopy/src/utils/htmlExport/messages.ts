@@ -104,7 +104,7 @@ export function renderMessage(
     embedUrls
   )
 
-  // Collect URLs to suppress in the text (Tenor embeds + CDN media links) — returns Set<string>
+  // Collect URLs to suppress in the text (Tenor embeds + CDN media links) - returns Set<string>
   const suppressedUrls = collectSuppressedUrls(msg.content, msg.embeds, directMediaLinks)
 
   // ── Layout ────────────────────────────────────────────────────────────────

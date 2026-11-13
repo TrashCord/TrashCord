@@ -29,7 +29,7 @@ const settings = definePluginSettings({
     },
     excludedServers: {
         type: OptionType.STRING,
-        description: "Server IDs to NEVER touch — comma separated. Right-click server icon → Copy Server ID. Example: 123456789,987654321",
+        description: "Server IDs to NEVER touch - comma separated. Right-click server icon → Copy Server ID. Example: 123456789,987654321",
         default: "",
         restartNeeded: false,
     },
@@ -102,8 +102,8 @@ function ToggleSlider() {
     }
 
     const title = paused
-        ? "ServerMuteScheduler: OFF — click to enable"
-        : "ServerMuteScheduler: ON — click to pause";
+        ? "ServerMuteScheduler: OFF - click to enable"
+        : "ServerMuteScheduler: ON - click to pause";
 
     return React.createElement(
         "div",

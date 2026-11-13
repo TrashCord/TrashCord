@@ -104,7 +104,7 @@ function injectMacOsButtons() {
     const sep = document.createElement("div");
     sep.className = "macos-sep";
 
-    // Red — Close
+    // Red - Close
     const btnClose = document.createElement("button");
     btnClose.className = "macos-btn macos-btn-close";
     btnClose.title = "Close";
@@ -113,7 +113,7 @@ function injectMacOsButtons() {
     handlers.close = e => { e.stopPropagation(); Native.closeWindow(); };
     btnClose.addEventListener("click", handlers.close);
 
-    // Yellow — Minimize
+    // Yellow - Minimize
     const btnMin = document.createElement("button");
     btnMin.className = "macos-btn macos-btn-min";
     btnMin.title = "Minimize";
@@ -121,7 +121,7 @@ function injectMacOsButtons() {
     handlers.min = e => { e.stopPropagation(); Native.minimizeWindow(); };
     btnMin.addEventListener("click", handlers.min);
 
-    // Green — Maximize
+    // Green - Maximize
     const btnMax = document.createElement("button");
     btnMax.className = "macos-btn macos-btn-max";
     btnMax.title = "Maximize / Restore";
@@ -193,7 +193,7 @@ function removeMacOsButtons() {
 
 export default definePlugin({
     name: "MacOsButtons",
-    description: "Replaces Windows buttons with macOS-style buttons — red, yellow, green.",
+    description: "Replaces Windows buttons with macOS-style buttons - red, yellow, green.",
     authors: [{ name: "Nightcord", id: 0n }],
     tags: ["Appearance", "Utility"],
     enabledByDefault: false,

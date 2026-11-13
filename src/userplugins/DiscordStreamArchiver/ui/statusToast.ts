@@ -16,7 +16,7 @@ export function show(message: string, onClick?: () => void): void {
 
 export function showError(message: string): void {
     Notifications.showNotification({
-        title: "Discord Stream Archiver — error",
+        title: "Discord Stream Archiver - error",
         body: message
     });
 }

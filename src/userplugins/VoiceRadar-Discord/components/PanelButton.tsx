@@ -115,7 +115,7 @@ function PanelTooltip({ live }: { live: LiveUser[]; }) {
                                 src={getAvatarUrl(user.id) ?? DEFAULT_AVATAR_URL}
                                 alt=""
                             />
-                            {user.name} <span className={cl("dim")}>— {user.where}</span>
+                            {user.name} <span className={cl("dim")}>- {user.where}</span>
                         </div>
                     ))}
                     {live.length > TOOLTIP_MAX_USERS && (

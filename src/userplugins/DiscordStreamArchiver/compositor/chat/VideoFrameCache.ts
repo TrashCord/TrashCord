@@ -24,7 +24,7 @@ interface CachedVideo {
 // Why not `transform:scale(0)` like ImageCache? Video playback has a
 // separate optimization path from image decoding: Chromium stops updating
 // the video texture when the element's compositor layer has zero area,
-// even after `play()` succeeded — which left drawImage sampling frame 0
+// even after `play()` succeeded - which left drawImage sampling frame 0
 // forever. Images don't care because the image decoder ticks on paint
 // regardless of compositor scale.
 //
@@ -73,7 +73,7 @@ export class VideoFrameCache {
     private async doLoad(url: string): Promise<HTMLVideoElement | null> {
         const video = document.createElement("video");
         // muted is required for autoplay without a user gesture in modern
-        // Chromium — and we never want audio from these anyway.
+        // Chromium - and we never want audio from these anyway.
         video.muted = true;
         video.loop = true;
         video.autoplay = true;
@@ -87,7 +87,7 @@ export class VideoFrameCache {
             // doesn't send Access-Control-Allow-Origin for .mp4 responses,
             // so a direct <video src=tenor-mp4-url> either fails the CORS
             // check (with crossOrigin="anonymous") or taints the canvas
-            // (without it) — the taint ends the captureStream video track
+            // (without it) - the taint ends the captureStream video track
             // and corrupts the recording. Main-process fetch has no CORS
             // policy; we wrap the bytes in a same-origin Blob URL, which
             // the <video> element loads cleanly with no canvas taint risk
@@ -99,7 +99,7 @@ export class VideoFrameCache {
                 video.onerror = () => reject(new Error(`video load failed: ${url} (code=${video.error?.code ?? "?"} msg=${video.error?.message ?? "?"})`));
                 video.src = blobUrl!;
             });
-            // Kick playback explicitly — autoplay should have started it,
+            // Kick playback explicitly - autoplay should have started it,
             // but some frames take a beat and we want to be sure.
             video.play().catch(err => logger.warn(`video.play failed for ${url}`, err));
             this.setAndEvict(url, { video, blobUrl });

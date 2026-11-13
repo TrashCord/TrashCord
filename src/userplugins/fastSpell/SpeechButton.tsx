@@ -106,7 +106,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
                     return;
                 }
                 if (!res.text) {
-                    showToast({ text: "FastSpell: didn't catch that — no speech detected" });
+                    showToast({ text: "FastSpell: didn't catch that - no speech detected" });
                     return;
                 }
 
@@ -118,7 +118,7 @@ export const SpeechChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
                     } else {
                         const translated = await Native.translateText({ apiKey, baseUrl, model: translateModel, text, targetLanguage });
                         if (translated.ok && translated.text) text = translated.text;
-                        else showToast({ text: "FastSpell: translation failed, inserting what you said instead — " + (translated.error ?? "unknown error"), variant: "critical" });
+                        else showToast({ text: "FastSpell: translation failed, inserting what you said instead - " + (translated.error ?? "unknown error"), variant: "critical" });
                     }
                 }
 

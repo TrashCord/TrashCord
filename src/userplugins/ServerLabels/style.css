@@ -1,5 +1,5 @@
 /* ============================================================
-   ServerLabels — label styles
+   ServerLabels - label styles
    Font size, weight, and max-width come from CSS variables
    set by the plugin's start() method, so they update without
    needing a rebuild when changed in settings.
@@ -63,9 +63,9 @@
 }
 
 /*
- * Folder labels: 38px — reduced from the 48px folderPreviewWrapper height to reduce empty space.
+ * Folder labels: 38px - reduced from the 48px folderPreviewWrapper height to reduce empty space.
  * Standalone server labels: 32px base height, border-radius: 16px to match folder style.
- * In-folder servers: 34px — slightly shorter than folder labels to avoid overlap.
+ * In-folder servers: 34px - slightly shorter than folder labels to avoid overlap.
  */
 .vc-serverlabels-name[data-folder-id] {
     height: 38px;
@@ -81,7 +81,7 @@
 
 /*
  * Connector drawn on the iconSpan (the direct parent of the label) rather than
- * on the label itself — the label has overflow:hidden for text ellipsis, which
+ * on the label itself - the label has overflow:hidden for text ellipsis, which
  * clips ::before. The iconSpan already has position:relative and overflow:visible.
  */
 .vc-serverlabels-active :has(> .vc-serverlabels-name[data-in-folder="true"])::before {
@@ -90,7 +90,7 @@
     left: 100%;
     margin-left: 8px;   /* sits in the gap between icon and label */
     top: -50%;          /* vertical line reaches upward toward the item above */
-    bottom: 50%;        /* stops at vertical center — the elbow of the L */
+    bottom: 50%;        /* stops at vertical center - the elbow of the L */
     width: 8px;
     border-left: 1.5px solid var(--text-muted);
     border-bottom: 1.5px solid var(--text-muted);
@@ -103,26 +103,26 @@
     display: none;
 }
 
-/* Colored variant — folder color at ~40% opacity to match the folder icon transparency */
+/* Colored variant - folder color at ~40% opacity to match the folder icon transparency */
 .vc-serverlabels-name[data-has-color="true"] {
     background-color: color-mix(in srgb, var(--serverlabels-folder-color) 40%, transparent);
     color: #ffffff;
 }
 
-/* Open folder — more transparent to match Discord's folder icon open state */
+/* Open folder - more transparent to match Discord's folder icon open state */
 [aria-expanded="true"] > .vc-serverlabels-name[data-has-color="true"] {
     background-color: color-mix(in srgb, var(--serverlabels-folder-color) 20%, transparent);
 }
 
-/* In-folder server labels — JS toggles this class via aria-expanded observation */
+/* In-folder server labels - JS toggles this class via aria-expanded observation */
 .vc-serverlabels-name.vc-serverlabels-folder-open[data-has-color="true"] {
     background-color: color-mix(in srgb, var(--serverlabels-folder-color) 20%, transparent);
 }
 
 /*
- * Light theme overrides — Discord adds .theme-light to the <html> element.
+ * Light theme overrides - Discord adds .theme-light to the <html> element.
  * The base rule swaps to dark text on a subtle dark-tinted background.
- * The [data-has-color] rule restores the folder color and white text —
+ * The [data-has-color] rule restores the folder color and white text -
  * it needs the extra attribute selector to beat the base rule's specificity.
  */
 .theme-light .vc-serverlabels-name {
@@ -131,25 +131,25 @@
 }
 
 .theme-light .vc-serverlabels-name[data-has-color="true"] {
-    /* 60% opacity (vs 40% in dark theme) — dark folder colors need more saturation for legibility on light backgrounds */
+    /* 60% opacity (vs 40% in dark theme) - dark folder colors need more saturation for legibility on light backgrounds */
     background-color: color-mix(in srgb, var(--serverlabels-folder-color) 60%, transparent);
 }
 
-/* Open-state overrides for light theme — bump from 20% to 40% for the same reason */
+/* Open-state overrides for light theme - bump from 20% to 40% for the same reason */
 .theme-light [aria-expanded="true"] > .vc-serverlabels-name[data-has-color="true"],
 .theme-light .vc-serverlabels-name.vc-serverlabels-folder-open[data-has-color="true"] {
     background-color: color-mix(in srgb, var(--serverlabels-folder-color) 40%, transparent);
 }
 
 /*
- * User-specified font color — placed after the light-theme rules so it wins in the
+ * User-specified font color - placed after the light-theme rules so it wins in the
  * cascade at equal specificity. Only applied when the user sets a non-empty fontColor.
  */
 .vc-serverlabels-custom-color .vc-serverlabels-name {
     color: var(--serverlabels-color);
 }
 
-/* Inner text span — must be inline-block so transform animates it independently */
+/* Inner text span - must be inline-block so transform animates it independently */
 .vc-serverlabels-name > span {
     display: inline-block;
     white-space: nowrap;
@@ -199,7 +199,7 @@
    everything to the right of the icon column.
    ============================================================ */
 
-/* Top-level guild sidebar — scales with the max-width setting.
+/* Top-level guild sidebar - scales with the max-width setting.
    Offset: ~80px icon column + 8px gap + 12px buffer = 100px.
    At the default maxWidth of 160px this equals the previous hardcoded 260/300px. */
 .vc-serverlabels-active nav:has(.vc-serverlabels-name) {
@@ -209,7 +209,7 @@
     overflow: visible;
 }
 
-/* Folder group container — let labels overflow through it */
+/* Folder group container - let labels overflow through it */
 .vc-serverlabels-active div:has(> ul[id^="folder-items-"]) {
     overflow: visible;
 }
@@ -227,7 +227,7 @@
 }
 
 /* ============================================================
-   Settings shortcut button — injected directly into guildsNav
+   Settings shortcut button - injected directly into guildsNav
    ============================================================ */
 
 .vc-serverlabels-settings-btn {
@@ -276,7 +276,7 @@
 
 
 /* ============================================================
-   Settings panel — 2-column layout rows
+   Settings panel - 2-column layout rows
    ============================================================ */
 
 .vc-serverlabels-settings-row {

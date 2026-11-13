@@ -138,7 +138,7 @@ export default definePlugin({
                 const result = await fetchFemboy();
                 if (!result) {
                     sendBotMessage(ctx.channel.id, {
-                        content: "❌ Couldn't fetch a femboy picture — all APIs failed. Try again in a moment."
+                        content: "❌ Couldn't fetch a femboy picture - all APIs failed. Try again in a moment."
                     });
                     return;
                 }

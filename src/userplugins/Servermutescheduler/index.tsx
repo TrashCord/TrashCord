@@ -13,7 +13,7 @@ import { Menu, showToast } from "@webpack/common";
 const settings = definePluginSettings({
     protectedUsers: {
         type: OptionType.STRING,
-        description: "User IDs to NEVER mute — comma separated. Example: 123456789012345678,987654321098765432",
+        description: "User IDs to NEVER mute - comma separated. Example: 123456789012345678,987654321098765432",
         default: "",
         restartNeeded: false,
     },

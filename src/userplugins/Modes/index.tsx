@@ -261,7 +261,7 @@ function ModeImportCardInner({ message }: { message: Message; }) {
                     showToast({ text: `Switched to "${mode.name}".`, variant: "success" });
                     if (restartNeeded) {
                         showNotification({
-                            title: "Mode applied — restart needed",
+                            title: "Mode applied  restart needed",
                             body: "Some plugins in this mode need a restart to fully apply. Click to restart now.",
                             onClick: () => (IS_WEB ? location.reload() : relaunch())
                         });
@@ -310,7 +310,7 @@ function ModesModal({ rootProps }: { rootProps: RenderModalProps; }) {
             showToast({ text: `Switched to "${mode.name}".`, variant: "success" });
             if (restartNeeded) {
                 showNotification({
-                    title: "Mode applied — restart needed",
+                    title: "Mode applied  restart needed",
                     body: "Some plugins in this mode need a restart to fully apply. Click to restart now.",
                     onClick: () => (IS_WEB ? location.reload() : relaunch())
                 });
@@ -332,7 +332,7 @@ function ModesModal({ rootProps }: { rootProps: RenderModalProps; }) {
             </ModalHeader>
             <ModalContent>
                 {modes.length === 0
-                    ? <Text size="md" weight="normal" style={{ padding: "16px 0" }}>No modes yet. Set up your client how you like it, then create one — it captures your status, custom status and themes.</Text>
+                    ? <Text size="md" weight="normal" style={{ padding: "16px 0" }}>No modes yet. Set up your client how you like it, then create one  it captures your status, custom status and themes.</Text>
                     : modes.map(mode => (
                         <Flex key={mode.id} style={{ gap: 8, alignItems: "center", padding: "8px 0" }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -349,9 +349,9 @@ function ModesModal({ rootProps }: { rootProps: RenderModalProps; }) {
                                 <ShareFileModal
                                     rootProps={props}
                                     title={`Share "${mode.emoji ? mode.emoji + " " : ""}${mode.name}"`}
-                                    blurb="Friends get a one-tap import card. Nothing personal is included — just the mode itself."
+                                    blurb="Friends get a one-tap import card. Nothing personal is included  just the mode itself."
                                     buildFile={() => buildModeFile(mode)}
-                                    defaultNote={`Here's my "${mode.name}" mode — add it with one tap!`}
+                                    defaultNote={`Here's my "${mode.name}" mode  add it with one tap!`}
                                 />
                             ))}>Share</Button>
                             <Button size="small" variant="dangerPrimary" onClick={async () => { await deleteMode(mode.id); forceUpdate(); }}>Delete</Button>
@@ -368,7 +368,7 @@ function ModesModal({ rootProps }: { rootProps: RenderModalProps; }) {
 
 export default definePlugin({
     name: "Modes",
-    description: "Switch your whole Discord with one tap: status, custom status, themes and which plugins are on — bundled into named modes like Work, Gaming or Focus.",
+    description: "Switch your whole Discord with one tap: status, custom status, themes and which plugins are on  bundled into named modes like Work, Gaming or Focus.",
     authors: [Devs.sirphantom89],
     tags: ["Utility", "Customisation", "Appearance"],
     enabledByDefault: false,

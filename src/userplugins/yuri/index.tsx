@@ -120,7 +120,7 @@ export default definePlugin({
                 const result = await fetchYuri();
                 if (!result) {
                     sendBotMessage(ctx.channel.id, {
-                        content: "❌ Couldn't fetch a yuri picture — all APIs failed. Try again in a moment."
+                        content: "❌ Couldn't fetch a yuri picture - all APIs failed. Try again in a moment."
                     });
                     return;
                 }

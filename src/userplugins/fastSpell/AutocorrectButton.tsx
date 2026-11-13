@@ -31,7 +31,7 @@ export const AutocorrectChatBarButton: ChatBarButtonFactory = ({ isMainChat }) =
 
     return (
         <ChatBarButton
-            tooltip={autocorrect ? "Autocorrect: on — click for options, right-click to turn off" : "Autocorrect: off — click for options, right-click to turn on"}
+            tooltip={autocorrect ? "Autocorrect: on - click for options, right-click to turn off" : "Autocorrect: off - click for options, right-click to turn on"}
             onClick={e => {
                 if (e.shiftKey) return toggle();
                 openFastSpellModal();

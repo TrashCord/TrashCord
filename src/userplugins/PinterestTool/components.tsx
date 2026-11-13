@@ -2571,7 +2571,7 @@ export function PinterestProfileModal({ target, onEditFile, onApplied, ...props 
                                 // Hand the file to Discord's own upload/editor flow. The
                                 // previous flashing/disappearing editor was actually caused
                                 // by handing the file to the wrong <input> (the chat
-                                // attachment uploader) — now that the correct dialog input
+                                // attachment uploader) - now that the correct dialog input
                                 // is used, Discord's real editor should open and stay open.
                                 const editorResult = await onEditFile(file, () => {
                                     // Close Pinterest as soon as Discord's Apply button is pressed,
