@@ -7,7 +7,7 @@
 import { Settings } from "@api/Settings";
 import { useForceUpdater } from "@utils/react";
 import { ApplicationStreamingStore, React, SelectedChannelStore, TextInput, useEffect, useMemo, useState, useStateFromStores, UserProfileStore, UserStore } from "@webpack/common";
-import type { JSX, ReactNode } from "react";
+import type { CSSProperties, JSX, ReactNode } from "react";
 
 import type { DetectableApp, FarmerStatus } from "./farmer";
 import * as Farmer from "./farmer";
@@ -450,6 +450,47 @@ const TOGGLES: Array<{ key: string; label: Key; hint: Key; def: boolean; }> = [
     { key: "showGamePresence", label: "optPresence", hint: "optPresenceH", def: false }
 ];
 
+const BOX_BASE: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: "0 0 auto",
+    boxSizing: "border-box",
+    width: 18,
+    height: 18,
+    marginTop: 1,
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderRadius: 4,
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: 800,
+    lineHeight: "14px"
+};
+
+const BOX_ON: CSSProperties = { ...BOX_BASE, borderColor: "#5865f2", backgroundColor: "#5865f2" };
+const BOX_OFF: CSSProperties = { ...BOX_BASE, borderColor: "#80848e", backgroundColor: "transparent" };
+
+const INPUT_HIDDEN: CSSProperties = {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    margin: 0,
+    opacity: 0,
+    pointerEvents: "none"
+};
+
+const SELECT_STYLE: CSSProperties = {
+    padding: "4px 8px",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#80848e",
+    borderRadius: 4,
+    backgroundColor: "#1e1f22",
+    color: "#dbdee1",
+    fontSize: 13
+};
+
 function OptionsPanel({ onLanguage }: { onLanguage: () => void; }): JSX.Element {
     const update = useForceUpdater();
     const store = (Settings.plugins as any).BadgeFarmer;
@@ -459,7 +500,8 @@ function OptionsPanel({ onLanguage }: { onLanguage: () => void; }): JSX.Element 
             <span className={cl("field-name")}>{t("optTitle")}</span>
             {TOGGLES.map(o => (
                 <label key={o.key} className={cl("opt")}>
-                    <input type="checkbox" checked={opt(o.key, o.def)} onChange={e => { store[o.key] = e.target.checked; update(); }} />
+                    <input type="checkbox" style={INPUT_HIDDEN} checked={opt(o.key, o.def)} onChange={e => { store[o.key] = e.target.checked; update(); }} />
+                    <span style={opt(o.key, o.def) ? BOX_ON : BOX_OFF} aria-hidden="true">{opt(o.key, o.def) ? "\u2713" : ""}</span>
                     <span className={cl("opt-text")}>
                         <span>{t(o.label)}</span>
                         <Note text={t(o.hint)} />
@@ -467,7 +509,7 @@ function OptionsPanel({ onLanguage }: { onLanguage: () => void; }): JSX.Element 
                 </label>
             ))}
             <label className={`${cl("opt")} ${cl("opt-lang")}`}>
-                <select className={cl("select")} value={store?.language ?? "auto"} onChange={e => { store.language = e.target.value; onLanguage(); }}>
+                <select className={cl("select")} style={SELECT_STYLE} value={store?.language ?? "auto"} onChange={e => { store.language = e.target.value; onLanguage(); }}>
                     {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.value === "auto" ? t("langAuto") : l.label}</option>)}
                 </select>
                 <span>{t("optLang")}</span>
