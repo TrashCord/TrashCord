@@ -11,7 +11,7 @@ import type { JSX } from "react";
 
 import * as Farmer from "./farmer";
 import { t } from "./i18n";
-import { loadCatalogue, remainingText, statusText, useFarmerStatus, useLiveInfo } from "./ui";
+import { remainingText, statusText, useFarmerStatus, useLiveInfo } from "./ui";
 
 type IconProps = { className?: string; width?: number | string; height?: number | string; color?: string; };
 
@@ -25,25 +25,29 @@ export function IconIdle({ className, width = 24, height = 24, color }: IconProp
     );
 }
 
-export function IconBusy({ className, width = 24, height = 24, color }: IconProps) {
-    return (
-        <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
-            <path fill={color ?? "currentColor"} d={PAD} />
-            <circle cx="19" cy="5" r="4" fill="var(--text-positive, #23a55a)" />
-        </svg>
-    );
+function busyIcon(dot: string) {
+    return function BusyIcon({ className, width = 24, height = 24, color }: IconProps) {
+        return (
+            <svg className={className} width={width} height={height} viewBox="0 0 24 24" aria-hidden="true">
+                <path fill={color ?? "currentColor"} d={PAD} />
+                <circle cx="19" cy="5" r="4" fill={dot} />
+            </svg>
+        );
+    };
 }
+
+export const IconBusy = busyIcon("var(--text-positive, #23a55a)");
+
+const BUSY_ICONS: Record<string, typeof IconIdle> = {
+    GAME_TIME: busyIcon("#e09400"),
+    VARIETY: busyIcon("#1fb85a"),
+    STREAM: busyIcon("#e8478b"),
+    MAX_ALL: busyIcon("#5865f2")
+};
 
 function openSettings() {
     const plugin = (Vencord.Plugins.plugins as any).BadgeFarmer;
     if (plugin) openPluginModal(plugin);
-}
-
-function startMaxAll() {
-    loadCatalogue().then(
-        apps => void Farmer.maxAll(apps),
-        error => Farmer.notice(t("listErr", { e: String(error?.message ?? error) }), "warning")
-    );
 }
 
 function FarmerMenu() {
@@ -59,9 +63,7 @@ function FarmerMenu() {
             {eta != null && <Menu.MenuItem id="bf-eta" label={`\u23F1 ${eta}`} disabled />}
             <Menu.MenuItem id="bf-live" label={t("menuLive", { v: mark(info.inVoice), l: mark(info.live), n: info.viewers })} disabled />
             <Menu.MenuSeparator />
-            {busy
-                ? <Menu.MenuItem id="bf-stop" label={`\u25A0 ${t("stop")}`} color="danger" action={() => Farmer.stop()} />
-                : <Menu.MenuItem id="bf-maxall" label={t("maxAll")} action={startMaxAll} disabled={Farmer.isLocked()} />}
+            {busy && <Menu.MenuItem id="bf-stop" label={`\u25A0 ${t("stop")}`} color="danger" action={() => Farmer.stop()} />}
             <Menu.MenuItem id="bf-settings" label={t("hdrSettings")} action={openSettings} />
         </Menu.Menu>
     );
@@ -78,7 +80,7 @@ export function createHeaderButton(useVisible: () => boolean) {
 
         return (
             <HeaderBarButton
-                icon={busy ? IconBusy : IconIdle}
+                icon={busy ? (BUSY_ICONS[status.mode] ?? IconBusy) : IconIdle}
                 tooltip={`${t("hdrTitle")}: ${statusText(status)}${eta != null ? ` \u00B7 ${eta}` : ""}`}
                 onClick={e => ContextMenuApi.openContextMenu(e, () => <FarmerMenu />)}
             />

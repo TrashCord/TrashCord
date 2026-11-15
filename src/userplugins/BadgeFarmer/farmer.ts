@@ -11,7 +11,7 @@ import type { RunningGame } from "@vencord/discord-types";
 import { findStoreLazy } from "@webpack";
 import { ApplicationStreamingStore, FluxDispatcher, SelectedChannelStore, showToast } from "@webpack/common";
 
-import { t } from "./i18n";
+import { fmt, t } from "./i18n";
 import { creditPlaytime, fingerprintFor, type LiveContext, startLiveStream, type StreamLocation, type StreamPhase } from "./science";
 
 export interface DetectableApp {
@@ -179,7 +179,7 @@ export async function checkInterrupted(): Promise<void> {
         const saved = await get(RUN_KEY);
         if (saved?.running !== true) return;
         await set(RUN_KEY, { running: false });
-        finishedMessage = t("interrupted", { g: saved.games ?? 0, h: Math.round(saved.hours ?? 0), s: Math.round(saved.stream ?? 0) });
+        finishedMessage = t("interrupted", { g: fmt(saved.games ?? 0), h: fmt(saved.hours ?? 0), s: fmt(saved.stream ?? 0) });
         notice(finishedMessage, "warning");
         notify(true);
     } catch { }
@@ -430,7 +430,7 @@ export async function startGameTime(app: DetectableApp, hours = MAX_BADGE_HOURS,
     try {
         await runGameTime(spec, hours, chunkHours);
         if (running && hoursCredited >= hours) {
-            markFinished(t("doneGame", { h: Math.round(hoursCredited), name: spec.name }));
+            markFinished(t("doneGame", { h: fmt(hoursCredited), name: spec.name }));
         }
     } catch (error) {
         lastError = friendly(error);
@@ -465,7 +465,7 @@ export async function startStream(hours = MAX_BADGE_HOURS): Promise<void> {
     try {
         await runStream(hours);
         if (running && streamHoursCredited >= hours) {
-            markFinished(t("doneStream", { h: Math.round(streamHoursCredited) }));
+            markFinished(t("doneStream", { h: fmt(streamHoursCredited) }));
         }
     } catch (error) {
         lastError = friendly(error);
@@ -495,7 +495,7 @@ export async function maxAll(apps: DetectableApp[]): Promise<void> {
         }
 
         if (running && gamesCredited >= varietyList.length && hoursCredited >= MAX_BADGE_HOURS) {
-            markFinished(t("doneAll", { g: gamesCredited, h: Math.round(hoursCredited), s: Math.round(streamHoursCredited) }));
+            markFinished(t("doneAll", { g: fmt(gamesCredited), h: fmt(hoursCredited), s: fmt(streamHoursCredited) }));
         }
     } catch (error) {
         lastError = friendly(error);

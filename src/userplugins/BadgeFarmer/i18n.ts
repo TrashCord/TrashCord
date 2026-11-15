@@ -126,7 +126,9 @@ const en = {
     stopHint: "What was already credited is kept.",
     etaTotal: "Total",
     etaNoStream: "no Streaming",
-    etaLeft: "About {eta} left"
+    etaLeft: "About {eta} left",
+    unitDay: "d",
+    maxN: "max {n}"
 };
 
 export type Key = keyof typeof en;
@@ -252,7 +254,9 @@ const it: Dict = {
     stopHint: "Quello già accreditato resta.",
     etaTotal: "Totale",
     etaNoStream: "senza streaming",
-    etaLeft: "Mancano circa {eta}"
+    etaLeft: "Mancano circa {eta}",
+    unitDay: "g",
+    maxN: "max {n}"
 };
 
 const es: Dict = {
@@ -347,7 +351,9 @@ const es: Dict = {
     stopHint: "Lo ya acreditado se conserva.",
     etaTotal: "Total",
     etaNoStream: "sin streaming",
-    etaLeft: "Faltan unos {eta}"
+    etaLeft: "Faltan unos {eta}",
+    unitDay: "d",
+    maxN: "máx. {n}"
 };
 
 const fr: Dict = {
@@ -442,7 +448,9 @@ const fr: Dict = {
     stopHint: "Ce qui est déjà crédité est conservé.",
     etaTotal: "Total",
     etaNoStream: "sans streaming",
-    etaLeft: "Il reste environ {eta}"
+    etaLeft: "Il reste environ {eta}",
+    unitDay: "j",
+    maxN: "max {n}"
 };
 
 const de: Dict = {
@@ -537,7 +545,9 @@ const de: Dict = {
     stopHint: "Bereits Gutgeschriebenes bleibt erhalten.",
     etaTotal: "Gesamt",
     etaNoStream: "ohne Streaming",
-    etaLeft: "Noch etwa {eta}"
+    etaLeft: "Noch etwa {eta}",
+    unitDay: "T",
+    maxN: "max. {n}"
 };
 
 const ptBR: Dict = {
@@ -632,7 +642,9 @@ const ptBR: Dict = {
     stopHint: "O que já foi creditado é mantido.",
     etaTotal: "Total",
     etaNoStream: "sem streaming",
-    etaLeft: "Faltam cerca de {eta}"
+    etaLeft: "Faltam cerca de {eta}",
+    unitDay: "d",
+    maxN: "máx. {n}"
 };
 
 const dict: Record<string, Dict> = { it, es, fr, de, "pt-BR": ptBR };
@@ -662,4 +674,8 @@ export function t(key: Key, vars?: Record<string, string | number>): string {
     let text = dict[resolveLang()]?.[key] ?? en[key];
     if (vars) text = text.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
     return text;
+}
+
+export function fmt(n: number, digits = 0): string {
+    return n.toLocaleString(resolveLang(), { maximumFractionDigits: digits });
 }

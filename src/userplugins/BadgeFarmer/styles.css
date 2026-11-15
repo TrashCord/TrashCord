@@ -441,3 +441,26 @@
     background: var(--background-secondary);
     font-weight: 600;
 }
+
+.vc-bf .vc-bf-acc-4 { --bf-acc: #5865f2; }
+
+.vc-bf .vc-bf-run.vc-bf-acc-1,
+.vc-bf .vc-bf-run.vc-bf-acc-2,
+.vc-bf .vc-bf-run.vc-bf-acc-3,
+.vc-bf .vc-bf-run.vc-bf-acc-4 {
+    border-color: var(--bf-acc);
+    background: color-mix(in srgb, var(--bf-acc) 10%, var(--background-secondary));
+}
+
+.vc-bf .vc-bf-pill-on.vc-bf-acc-1,
+.vc-bf .vc-bf-pill-on.vc-bf-acc-2,
+.vc-bf .vc-bf-pill-on.vc-bf-acc-3,
+.vc-bf .vc-bf-pill-on.vc-bf-acc-4 {
+    border-color: var(--bf-acc);
+    color: var(--bf-acc);
+}
+
+.vc-bf .vc-bf-run .vc-bf-dot,
+.vc-bf .vc-bf-pill-on .vc-bf-dot {
+    background: var(--bf-acc, #1fb85a);
+}
