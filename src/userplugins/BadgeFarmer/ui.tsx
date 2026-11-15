@@ -171,7 +171,7 @@ function formatHours(hours: number): string {
 }
 
 function formatDuration(minutes: number): string {
-    if (minutes < 1) return "<1 min";
+    if (minutes < 1) return `${Math.max(1, Math.round(minutes * 60))} s`;
     if (minutes < 120) return `${Math.round(minutes)} min`;
     const hours = minutes / 60;
     return hours < 48 ? `${hours.toFixed(1)} h` : `${(hours / 24).toFixed(1)} d`;
@@ -204,7 +204,45 @@ export function statusText(s: FarmerStatus): string {
     }
 }
 
-const HL = /(\d[\d.,]*(?:-\d+)?(?:\s?(?:h|min)\b)?|Turbo|Lento|Lent|Langsam|Slow|Max All)/;
+function leftByRate(s: FarmerStatus, done: number, total: number): number | null {
+    if (done <= 0) return null;
+    return ((Date.now() - s.startedAt) * Math.max(total - done, 0)) / done;
+}
+
+function streamLeft(s: FarmerStatus): number | null {
+    const left = Math.max(s.streamTarget - s.streamHoursCreditedThisRun, 0);
+    if (s.streamPhase === "turbo") return (left / TURBO_HOURS_PER_MINUTE) * 60_000;
+    if (s.streamPhase === "slow") return left * 3_600_000;
+    return null;
+}
+
+function leftMs(s: FarmerStatus): number | null {
+    switch (s.mode) {
+        case "GAME_TIME":
+            return leftByRate(s, s.hoursCreditedThisRun, s.gameTarget);
+        case "VARIETY":
+            return leftByRate(s, s.gamesCreditedThisRun, s.varietyTotal);
+        case "STREAM":
+            return streamLeft(s);
+        case "MAX_ALL": {
+            if (s.gamesCreditedThisRun >= s.varietyTotal && s.hoursCreditedThisRun >= s.gameTarget) return streamLeft(s);
+            const done = s.gamesCreditedThisRun + Math.ceil(s.hoursCreditedThisRun / Farmer.DEFAULT_CHUNK_HOURS);
+            const total = s.varietyTotal + Math.ceil(s.gameTarget / Farmer.DEFAULT_CHUNK_HOURS);
+            const rest = leftByRate(s, done, total);
+            if (rest == null || Farmer.getLiveInfo().viewers <= 0) return rest;
+            return rest + (s.streamTarget / TURBO_HOURS_PER_MINUTE) * 60_000;
+        }
+        default:
+            return null;
+    }
+}
+
+export function remainingText(s: FarmerStatus): string | null {
+    const ms = leftMs(s);
+    return ms == null ? null : t("etaLeft", { eta: formatDuration(ms / 60_000) });
+}
+
+const HL = /(\d[\d.,]*(?:-\d+)?(?:\s?(?:h|min|s|d)\b)?|Turbo|Lento|Lent|Langsam|Slow|Max All)/;
 
 function Note({ text }: { text: string; }) {
     return (
@@ -213,6 +251,17 @@ function Note({ text }: { text: string; }) {
         </span>
     );
 }
+
+function Eta({ text }: { text: string; }) {
+    return (
+        <div className={cl("eta")}>
+            <span aria-hidden="true">{"\u23F1"}</span>
+            <Note text={text} />
+        </div>
+    );
+}
+
+type EtaSetter = (index: number, minutes: number | null) => void;
 
 function Field({ label, hint, value, onChange, error }: {
     label: string; hint: string; value: string; onChange: (v: string) => void; error: string | null;
@@ -277,8 +326,8 @@ export function LiveCheck(): JSX.Element {
     );
 }
 
-function GameTimeCard({ apps, loadError, status, busy }: {
-    apps: DetectableApp[] | null; loadError: string | null; status: FarmerStatus; busy: boolean;
+function GameTimeCard({ apps, loadError, status, busy, onEta }: {
+    apps: DetectableApp[] | null; loadError: string | null; status: FarmerStatus; busy: boolean; onEta: EtaSetter;
 }) {
     const [query, setQuery] = useState("");
     const [selected, setSelected] = useState<DetectableApp | null>(null);
@@ -305,6 +354,9 @@ function GameTimeCard({ apps, loadError, status, busy }: {
     const parsedHours = parseNum(hours, 1, Farmer.MAX_TIME_HOURS);
     const parsedChunk = parseNum(chunk, 1, 500, true);
     const requests = parsedHours != null && parsedChunk != null ? Math.ceil(parsedHours / parsedChunk) : null;
+    const minutes = requests == null ? null : requests / 60;
+
+    useEffect(() => onEta(0, minutes), [minutes, onEta]);
 
     function clear() {
         setSelected(null);
@@ -352,7 +404,7 @@ function GameTimeCard({ apps, loadError, status, busy }: {
             {adv && <Field label={t("gtChunkL")} hint={t("gtChunkH")} value={chunk} onChange={setChunk}
                 error={rangeError(parsedChunk, 1, 500, true)} />}
             {selected == null && <Note text={t("gtRandom")} />}
-            {requests != null && <Note text={t("etaReq", { n: requests, eta: formatDuration(requests / 60) })} />}
+            {minutes != null && <Eta text={`~${formatDuration(minutes)}`} />}
 
             <button
                 className={cl("btn")}
@@ -368,7 +420,7 @@ function GameTimeCard({ apps, loadError, status, busy }: {
     );
 }
 
-function VarietyCard({ apps, status, busy }: { apps: DetectableApp[] | null; status: FarmerStatus; busy: boolean; }) {
+function VarietyCard({ apps, status, busy, onEta }: { apps: DetectableApp[] | null; status: FarmerStatus; busy: boolean; onEta: EtaSetter; }) {
     const [minutes, setMinutes] = useState("2");
     const [count, setCount] = useState("100");
     const [adv, setAdv] = useState(false);
@@ -376,6 +428,9 @@ function VarietyCard({ apps, status, busy }: { apps: DetectableApp[] | null; sta
     const parsedMinutes = parseNum(minutes, 1, 1440);
     const maxGames = apps?.length ?? 1000;
     const parsedCount = parseNum(count, 1, maxGames, true);
+    const minutesTotal = parsedCount == null ? null : parsedCount / 60;
+
+    useEffect(() => onEta(1, minutesTotal), [minutesTotal, onEta]);
 
     return (
         <Card
@@ -392,7 +447,7 @@ function VarietyCard({ apps, status, busy }: { apps: DetectableApp[] | null; sta
             <button className={cl("link")} onClick={() => setAdv(a => !a)}>{adv ? "\u25BE " : "\u25B8 "}{adv ? t("advClose") : t("advOpen")}</button>
             {adv && <Field label={t("varMinL")} hint={t("varMinH")} value={minutes} onChange={setMinutes}
                 error={rangeError(parsedMinutes, 1, 1440)} />}
-            {parsedCount != null && <Note text={t("etaReq", { n: parsedCount, eta: formatDuration(parsedCount / 60) })} />}
+            {minutesTotal != null && <Eta text={`~${formatDuration(minutesTotal)}`} />}
 
             <button
                 className={cl("btn")}
@@ -405,15 +460,19 @@ function VarietyCard({ apps, status, busy }: { apps: DetectableApp[] | null; sta
     );
 }
 
-function StreamCard({ status, busy }: { status: FarmerStatus; busy: boolean; }) {
+function StreamCard({ status, busy, onEta }: { status: FarmerStatus; busy: boolean; onEta: EtaSetter; }) {
     const [hours, setHours] = useState("5000");
-    const info = useLiveInfo();
 
     const parsedHours = parseNum(hours, 1, Farmer.MAX_TIME_HOURS);
-    const turbo = info.live && info.viewers > 0;
-    const eta = parsedHours == null ? null
-        : turbo ? t("etaTurbo", { eta: formatDuration(Math.ceil(parsedHours / TURBO_HOURS_PER_MINUTE)) })
-            : t("etaSlow", { eta: formatDuration(parsedHours * 60) });
+    const turboMin = parsedHours == null ? null : Math.ceil(parsedHours / TURBO_HOURS_PER_MINUTE);
+    const slowMin = parsedHours == null ? null : parsedHours * 60;
+    const eta = turboMin == null || slowMin == null ? null
+        : `${t("modeTurbo")} ~${formatDuration(turboMin)} \u00B7 ${t("modeSlow")} ~${formatDuration(slowMin)}`;
+
+    useEffect(() => {
+        onEta(2, turboMin);
+        onEta(3, slowMin);
+    }, [turboMin, slowMin, onEta]);
 
     return (
         <Card
@@ -428,7 +487,7 @@ function StreamCard({ status, busy }: { status: FarmerStatus; busy: boolean; }) 
             <LiveCheck />
             <Field label={t("stHoursL")} hint={t("stHoursH")} value={hours} onChange={setHours}
                 error={rangeError(parsedHours, 1, Farmer.MAX_TIME_HOURS)} />
-            {eta != null && <Note text={eta} />}
+            {eta != null && <Eta text={eta} />}
             {opt("autoSwitch", true) && <Note text={t("autoNote")} />}
 
             <button className={cl("btn")} disabled={busy || parsedHours == null} onClick={() => void Farmer.startStream(parsedHours!)}>
@@ -518,11 +577,41 @@ function OptionsPanel({ onLanguage }: { onLanguage: () => void; }): JSX.Element 
     );
 }
 
+function TotalEta({ etas }: { etas: Array<number | null>; }): JSX.Element | null {
+    const [game, variety, turbo, slow] = etas;
+    if (game == null && variety == null && turbo == null) return null;
+
+    const base = (game ?? 0) + (variety ?? 0);
+    const text = turbo == null || slow == null
+        ? `~${formatDuration(base)}`
+        : `${t("modeTurbo")} ~${formatDuration(base + turbo)} \u00B7 ${t("modeSlow")} ~${formatDuration(base + slow)}`;
+
+    return (
+        <div className={cl("eta-total")}>
+            <span>{"\u23F1 "}{t("etaTotal")}</span>
+            <Note text={text} />
+        </div>
+    );
+}
+
+function MaxAllEta(): JSX.Element {
+    const info = useLiveInfo();
+    const withStream = info.viewers > 0;
+    const base = (Farmer.MAX_VARIETY_GAMES + Math.ceil(Farmer.MAX_BADGE_HOURS / Farmer.DEFAULT_CHUNK_HOURS)) / 60;
+    const total = withStream ? base + Math.ceil(Farmer.MAX_BADGE_HOURS / TURBO_HOURS_PER_MINUTE) : base;
+    return <Eta text={`~${formatDuration(total)}${withStream ? "" : ` \u00B7 ${t("etaNoStream")}`}`} />;
+}
+
 export function BadgeFarmerDashboard(): JSX.Element {
     const { apps, error } = useCatalogue();
     const status = useFarmerStatus();
     const busy = status.mode !== "IDLE";
+    const eta = busy ? remainingText(status) : null;
     const refresh = useForceUpdater();
+    const [etas, setEtas] = useState<Array<number | null>>([null, null, null, null]);
+    const setEta = React.useCallback<EtaSetter>((index, minutes) => {
+        setEtas(prev => (prev[index] === minutes ? prev : prev.map((v, i) => (i === index ? minutes : v))));
+    }, []);
     const [forced, setForced] = useState(false);
     const consentOff = Farmer.personalizationOff();
     const locked = consentOff && !forced;
@@ -552,11 +641,11 @@ export function BadgeFarmerDashboard(): JSX.Element {
             {busy && (
                 <div className={cl("run")}>
                     <span className={cl("title")}><span className={cl("dot")} />{statusText(status)}</span>
+                    {eta != null && <Eta text={eta} />}
                     {status.lastError != null && <span className={cl("err")}>{status.lastError}</span>}
                     <Note text={`${t("runHint")}${opt("headerButton", true) ? ` ${t("runHintHeader")}` : ""}`} />
                     <div className={cl("stop-row")}>
-                        <button className={cl("stop")} onClick={() => Farmer.stop()}>{"\u25A0"} {t("stopRun")}</button>
-                        <span className={cl("muted")}>{t("stopHint")}</span>
+                        <button className={cl("stop")} title={t("stopHint")} onClick={() => Farmer.stop()}>{"\u25A0"} {t("stop")}</button>
                     </div>
                 </div>
             )}
@@ -581,13 +670,18 @@ export function BadgeFarmerDashboard(): JSX.Element {
 
             <fieldset className={cl("fs")} disabled={locked}>
             <div className={cl("cards")}>
-                <GameTimeCard apps={apps} loadError={error} status={status} busy={busy} />
-                <VarietyCard apps={apps} status={status} busy={busy} />
-                <StreamCard status={status} busy={busy} />
+                <GameTimeCard apps={apps} loadError={error} status={status} busy={busy} onEta={setEta} />
+                <VarietyCard apps={apps} status={status} busy={busy} onEta={setEta} />
+                <StreamCard status={status} busy={busy} onEta={setEta} />
             </div>
 
+            <TotalEta etas={etas} />
+
             <div className={cl("maxall")}>
-                <Note text={t("maxAllDesc", { n: Farmer.MAX_VARIETY_GAMES, h: Farmer.MAX_BADGE_HOURS })} />
+                <div className={cl("col")}>
+                    <Note text={t("maxAllDesc", { n: Farmer.MAX_VARIETY_GAMES, h: Farmer.MAX_BADGE_HOURS })} />
+                    <MaxAllEta />
+                </div>
                 <button className={cl("btn")} disabled={busy || apps == null} onClick={() => void Farmer.maxAll(apps!)}>
                     {t("maxAll")}
                 </button>

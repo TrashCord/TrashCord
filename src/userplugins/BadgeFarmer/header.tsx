@@ -11,7 +11,7 @@ import type { JSX } from "react";
 
 import * as Farmer from "./farmer";
 import { t } from "./i18n";
-import { loadCatalogue, statusText, useFarmerStatus, useLiveInfo } from "./ui";
+import { loadCatalogue, remainingText, statusText, useFarmerStatus, useLiveInfo } from "./ui";
 
 type IconProps = { className?: string; width?: number | string; height?: number | string; color?: string; };
 
@@ -50,11 +50,13 @@ function FarmerMenu() {
     const status = useFarmerStatus();
     const info = useLiveInfo();
     const busy = status.mode !== "IDLE";
+    const eta = busy ? remainingText(status) : null;
     const mark = (ok: boolean) => (ok ? "\u2713" : "\u2717");
 
     return (
         <Menu.Menu navId="badge-farmer-menu" onClose={ContextMenuApi.closeContextMenu} aria-label="Badge Farmer">
             <Menu.MenuItem id="bf-status" label={statusText(status)} disabled />
+            {eta != null && <Menu.MenuItem id="bf-eta" label={`\u23F1 ${eta}`} disabled />}
             <Menu.MenuItem id="bf-live" label={t("menuLive", { v: mark(info.inVoice), l: mark(info.live), n: info.viewers })} disabled />
             <Menu.MenuSeparator />
             {busy
@@ -72,11 +74,12 @@ export function createHeaderButton(useVisible: () => boolean) {
         if (!visible) return null;
 
         const busy = status.mode !== "IDLE";
+        const eta = busy ? remainingText(status) : null;
 
         return (
             <HeaderBarButton
                 icon={busy ? IconBusy : IconIdle}
-                tooltip={`${t("hdrTitle")}: ${statusText(status)}`}
+                tooltip={`${t("hdrTitle")}: ${statusText(status)}${eta != null ? ` \u00B7 ${eta}` : ""}`}
                 onClick={e => ContextMenuApi.openContextMenu(e, () => <FarmerMenu />)}
             />
         );

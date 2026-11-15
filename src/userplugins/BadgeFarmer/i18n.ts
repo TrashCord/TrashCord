@@ -123,7 +123,10 @@ const en = {
     forceBtn: "Unlock anyway",
     pillOn: "Running",
     stopRun: "Stop the current run",
-    stopHint: "What was already credited is kept."
+    stopHint: "What was already credited is kept.",
+    etaTotal: "Total",
+    etaNoStream: "no Streaming",
+    etaLeft: "About {eta} left"
 };
 
 export type Key = keyof typeof en;
@@ -246,7 +249,10 @@ const it: Dict = {
     forceBtn: "Sblocca comunque",
     pillOn: "In esecuzione",
     stopRun: "Ferma l'operazione in corso",
-    stopHint: "Quello già accreditato resta."
+    stopHint: "Quello già accreditato resta.",
+    etaTotal: "Totale",
+    etaNoStream: "senza streaming",
+    etaLeft: "Mancano circa {eta}"
 };
 
 const es: Dict = {
@@ -338,7 +344,10 @@ const es: Dict = {
     forceBtn: "Desbloquear igualmente",
     pillOn: "En marcha",
     stopRun: "Detener la operación en curso",
-    stopHint: "Lo ya acreditado se conserva."
+    stopHint: "Lo ya acreditado se conserva.",
+    etaTotal: "Total",
+    etaNoStream: "sin streaming",
+    etaLeft: "Faltan unos {eta}"
 };
 
 const fr: Dict = {
@@ -430,7 +439,10 @@ const fr: Dict = {
     forceBtn: "Déverrouiller quand même",
     pillOn: "En cours",
     stopRun: "Arrêter l'opération en cours",
-    stopHint: "Ce qui est déjà crédité est conservé."
+    stopHint: "Ce qui est déjà crédité est conservé.",
+    etaTotal: "Total",
+    etaNoStream: "sans streaming",
+    etaLeft: "Il reste environ {eta}"
 };
 
 const de: Dict = {
@@ -522,7 +534,10 @@ const de: Dict = {
     forceBtn: "Trotzdem entsperren",
     pillOn: "Läuft",
     stopRun: "Laufenden Vorgang stoppen",
-    stopHint: "Bereits Gutgeschriebenes bleibt erhalten."
+    stopHint: "Bereits Gutgeschriebenes bleibt erhalten.",
+    etaTotal: "Gesamt",
+    etaNoStream: "ohne Streaming",
+    etaLeft: "Noch etwa {eta}"
 };
 
 const ptBR: Dict = {
@@ -614,7 +629,10 @@ const ptBR: Dict = {
     forceBtn: "Desbloquear mesmo assim",
     pillOn: "Em execução",
     stopRun: "Parar a operação em andamento",
-    stopHint: "O que já foi creditado é mantido."
+    stopHint: "O que já foi creditado é mantido.",
+    etaTotal: "Total",
+    etaNoStream: "sem streaming",
+    etaLeft: "Faltam cerca de {eta}"
 };
 
 const dict: Record<string, Dict> = { it, es, fr, de, "pt-BR": ptBR };

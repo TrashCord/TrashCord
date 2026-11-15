@@ -419,3 +419,25 @@
 }
 
 .vc-bf .vc-bf-opt-lang .vc-bf-select { margin: 0; }
+
+.vc-bf .vc-bf-eta {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bf-acc, #5865f2) 14%, transparent);
+}
+
+.vc-bf .vc-bf-eta-total {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+    padding: 6px 10px;
+    border: 1px solid color-mix(in srgb, #5865f2 40%, var(--border-subtle));
+    border-radius: 8px;
+    background: var(--background-secondary);
+    font-weight: 600;
+}

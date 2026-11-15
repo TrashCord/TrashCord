@@ -46,6 +46,7 @@ export interface FarmerStatus {
     errors: number;
     lastError: string | null;
     finishedMessage: string | null;
+    startedAt: number;
 }
 
 export interface LiveInfo {
@@ -83,6 +84,7 @@ let finishedMessage: string | null = null;
 let running = false;
 let abortToken = 0;
 let cursor = 0;
+let runStartedAt = 0;
 let presenceShown = false;
 
 const listeners = new Set<() => void>();
@@ -123,7 +125,8 @@ export function getStatus(): FarmerStatus {
         streamTarget,
         errors,
         lastError,
-        finishedMessage
+        finishedMessage,
+        startedAt: runStartedAt
     };
 }
 
@@ -404,6 +407,7 @@ function begin(nextMode: FarmerMode): boolean {
     lastError = null;
     finishedMessage = null;
     cursor = Date.now();
+    runStartedAt = cursor;
     abortToken++;
     persist(true);
     notify(true);
