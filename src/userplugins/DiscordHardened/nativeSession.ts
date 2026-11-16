@@ -6,11 +6,13 @@
 
 import { RendererSettings } from "@main/settings";
 import { escapeRegExp } from "@utils/text";
-import { app, type OnBeforeRequestListenerDetails, type Session, session, type WebContents, type WebRequestFilter } from "electron";
+import { app, type AuthenticationResponseDetails, type AuthInfo, type OnBeforeRequestListenerDetails, type Session, session, type WebContents, type WebRequestFilter } from "electron";
 
 import { installPermissionControls } from "./nativePermissions";
+import { decryptProxyCredentials, getSavedProxyCredentials } from "./nativeProxyAuth";
 import { installRequestLog } from "./nativeRequestLog";
 import { DEFAULT_ALLOWED_PATTERNS, DEFAULT_BLOCKED_PATTERNS, DEFAULT_FIREWALL_URLS, getBlockedRequestKind, getRequestRuleDecision } from "./network";
+import { getHttpProxyEndpoint, isValidProxyValue } from "./proxy";
 
 type RequestListener = NonNullable<Parameters<Session["webRequest"]["onBeforeRequest"]>[0]>;
 type ProxyStatus = "Disabled" | "Pending" | "Active" | "Failed";
@@ -20,6 +22,7 @@ interface SessionState {
     permissionsInstalled: boolean;
     proxyStatus: ProxyStatus;
     proxyKey: string;
+    proxyAuth?: ReturnType<typeof decryptProxyCredentials> & { host: string; port: number; };
     ready: Promise<boolean>;
     restore: () => void;
 }
@@ -154,28 +157,38 @@ export function getSessionRequestLog(ses: Session) {
 
 export async function configureSessionProxy(ses: Session, proxyRules: unknown, proxyBypassRules: unknown): Promise<boolean> {
     const state = prepareSession(ses);
-    const key = typeof proxyRules === "string" && typeof proxyBypassRules === "string" ? `${proxyRules}\0${proxyBypassRules}` : "";
+    const rules = isValidProxyValue(proxyRules, false) && isValidProxyValue(proxyBypassRules, true) ? { proxyRules, proxyBypassRules } : null;
+    const endpoint = getHttpProxyEndpoint(rules?.proxyRules);
+    const saved = getSavedProxyCredentials();
+    const credentials = endpoint && saved?.endpoint === endpoint.origin ? { endpoint, saved } : null;
+    const key = rules ? `${rules.proxyRules}\0${rules.proxyBypassRules}\0${credentials?.saved.encrypted ?? ""}` : "";
     if (key && state.proxyKey === key) return state.ready;
     state.proxyKey = key;
-    if (typeof proxyRules !== "string" || typeof proxyBypassRules !== "string"
-        || !proxyRules.trim() || proxyRules.length > 4096 || proxyBypassRules.length > 4096 || /[\r\n\0@]/.test(proxyRules + proxyBypassRules)) {
-        state.proxyStatus = "Failed";
-        state.ready = Promise.resolve(false);
-        return false;
-    }
     state.proxyStatus = "Pending";
-    state.ready = state.ready.then(async () => {
+    const pending = state.ready.then(async () => {
+        if (!rules) {
+            if (state.ready === pending) state.proxyStatus = "Failed";
+            return false;
+        }
         try {
-            await ses.setProxy({ proxyRules, proxyBypassRules });
+            const proxyAuth = credentials ? {
+                ...decryptProxyCredentials(credentials.saved),
+                host: credentials.endpoint.hostname.replace(/^\[|\]$/g, ""),
+                port: Number(credentials.endpoint.port || (credentials.endpoint.protocol === "https:" ? 443 : 80)),
+            } : undefined;
+            await ses.setProxy({ ...rules, proxyRules: credentials?.endpoint.origin ?? rules.proxyRules });
+            if (state.proxyAuth || proxyAuth) await ses.clearAuthCache();
             await ses.closeAllConnections();
-            if (state.proxyKey === key) state.proxyStatus = "Active";
+            state.proxyAuth = proxyAuth;
+            if (state.ready === pending) state.proxyStatus = "Active";
             return true;
         } catch {
-            if (state.proxyKey === key) state.proxyStatus = "Failed";
+            if (state.ready === pending) state.proxyStatus = "Failed";
             return false;
         }
     });
-    return state.ready;
+    state.ready = pending;
+    return pending;
 }
 
 export async function releaseSession(ses: Session): Promise<boolean> {
@@ -183,8 +196,10 @@ export async function releaseSession(ses: Session): Promise<boolean> {
     if (!state) return true;
     await state.ready;
     if (state.proxyStatus !== "Disabled") {
+        state.proxyStatus = "Pending";
         try {
             await ses.setProxy({ mode: "system" });
+            if (state.proxyAuth) await ses.clearAuthCache();
             await ses.closeAllConnections();
         } catch {
             state.proxyStatus = "Failed";
@@ -197,16 +212,28 @@ export async function releaseSession(ses: Session): Promise<boolean> {
     return true;
 }
 
+function authenticateProxy(event: Electron.Event, contents: WebContents | null, details: AuthenticationResponseDetails, auth: AuthInfo, callback: (username?: string, password?: string) => void): void {
+    if (!auth.isProxy || !contents || event.defaultPrevented || ("firstAuthAttempt" in details && details.firstAuthAttempt === false)) return;
+    const state = sessions.get(contents.session);
+    if (state?.proxyStatus !== "Active" || !state.proxyAuth) return;
+    const { host, port, username, password } = state.proxyAuth;
+    if (auth.host.toLowerCase().replace(/^\[|\]$/g, "") !== host || auth.port !== port) return;
+    event.preventDefault();
+    callback(username, password);
+}
+
 function protectWindow(_event: Electron.Event, contents: WebContents): void {
     if (contents.session === session.defaultSession) prepareSession(contents.session);
 }
 
 function stop(): void {
+    app.removeListener("login", authenticateProxy);
     app.removeListener("web-contents-created", protectWindow);
     for (const state of sessions.values()) state.restore();
     sessions.clear();
 }
 
+app.on("login", authenticateProxy);
 app.on("web-contents-created", protectWindow);
 app.once("will-quit", stop);
 void app.whenReady().then(() => prepareSession(session.defaultSession));
