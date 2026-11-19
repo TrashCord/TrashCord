@@ -374,7 +374,7 @@ const settings = definePluginSettings({
     useNoneCap: {
         type: OptionType.BOOLEAN,
         description: "Use NoneCap to solve redemption hCaptchas when an API key is configured.",
-        default: true,
+        default: false,
         restartNeeded: false
     },
     noneCapApiKey: {
