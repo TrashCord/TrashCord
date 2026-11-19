@@ -306,7 +306,6 @@ function CaptchaWarning() {
     );
 }
 
-// Migrate settings from the old multi-provider version (NoneCap only now).
 const previousSettings: Record<string, unknown> | undefined = PlainSettings.plugins?.NitroSniper;
 const removedSettings = ["captchaProvider", "noCaptchaAiApiKey", "voidSolverApiKey", "voidSolverProxy"];
 if (previousSettings && removedSettings.some(key => Object.hasOwn(previousSettings, key))) {
