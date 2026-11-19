@@ -42,8 +42,8 @@ const VENNIE_DONATOR_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/ho
 const EQUICORD_DONOR_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashCord_icon.png";
 const COZY_CONTRIB_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashCord_icon.png";
 
-const DONOR_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?quality=40";
-const CONTRIB_BACKGROUND_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/images/urumagod.jpg?quality=40";
+const DONOR_BACKGROUND_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/images/ohgoofy.gif";
+const CONTRIB_BACKGROUND_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/images/urumagod.jpg";
 
 type KeysOfType<Object, Type> = {
     [K in keyof Object]: Object[K] extends Type ? K : never;
