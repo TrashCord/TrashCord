@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { isObject } from "@utils/misc";
 import type { Event, WebContents } from "electron";
 
 import { isDiscordAppUrl } from "./nativeSecurity";
 import { type createRequestLog, sanitizeRequestUrl } from "./requestLog";
+
+function isObject(value: unknown): value is object {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export function createAdvancedRequestLog(contents: WebContents, log: ReturnType<typeof createRequestLog>, webSockets: boolean, localResources: boolean) {
     const debuggerApi = contents.debugger;

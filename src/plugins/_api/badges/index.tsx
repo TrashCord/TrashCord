@@ -31,6 +31,7 @@ import { ContextMenuApi, Menu, showToast, UserStore } from "@webpack/common";
 
 import Plugins, { PluginMeta } from "~plugins";
 
+import { BadgeDirectoryDetail } from "./BadgeDirectoryDetail";
 import { EquicordDonorModal, EquicordTranslatorModal, IllegalcordDonorModal, TrashCordDonorModal, VencordDonorModal } from "./modals";
 
 const ContributorBadge: ProfileBadge = {
@@ -99,6 +100,11 @@ let EquicordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge",
 let DirectoryBadges = {} as Record<string, DirectoryBadge>;
 let IllegalcordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 let TrashCordDonorBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
+let directoryState = {} as {
+    badge?: DirectoryBadge;
+    userId?: string;
+    isViewingOtherUser?: boolean;
+};
 
 async function loadBadges(url: string, noCache = false) {
     const init = {} as RequestInit;
@@ -137,7 +143,9 @@ function toDirectoryBadge(b: ProfileBadge, userId: string): DirectoryBadge {
         is_earnable: false,
         owned: true,
         hidden: false,
-        tiers: []
+        tiers: [],
+        userId,
+        originalBadgeId: b.id
     };
 }
 
@@ -218,10 +226,20 @@ export default definePlugin({
         },
         {
             find: "badge_directory_closed",
-            replacement: {
-                match: /(\i\.\i\.getBadges\((\i)\))(?=:\[\],\[\2\]\))/,
-                replace: "[...$1,...$self.getDirectoryBadges($2)]"
-            }
+            replacement: [
+                {
+                    match: /(\i\.\i\.getBadges\((\i)\))(?=:\[\],\[\2\]\))/,
+                    replace: "[...$1,...$self.getDirectoryBadges($2)]"
+                },
+                {
+                    match: /(?<=\}\),)(?=null!=(\i)&&(?:\(\i\?)?\(0,\i\.jsx\)\(\i,\{badge:\1,.{0,100}?isViewingOtherUser:(\i),.{0,100}?displayedUserId:(\i))/,
+                    replace: "$self.setDirectoryBadgeState($1,$3,$2),"
+                },
+                {
+                    match: /(?<=!\i&&\i)(?=\]\}\))/,
+                    replace: ",$self.renderDirectoryBadgeContent()"
+                }
+            ]
         }
     ],
 
@@ -252,6 +270,7 @@ export default definePlugin({
     async stop() {
         clearInterval(intervalId);
         DirectoryBadges = {};
+        directoryState = {};
     },
 
     getBadges(profile: { userId: string; guildId: string; }) {
@@ -288,6 +307,29 @@ export default definePlugin({
         const Component = badge.component!;
         return <Component {...badge} />;
     }, { noop: true }),
+
+    setDirectoryBadgeState(badge?: DirectoryBadge, userId?: string, isViewingOtherUser?: boolean) {
+        directoryState = { badge, userId, isViewingOtherUser };
+        return null;
+    },
+
+    renderDirectoryBadgeContent() {
+        const badgeId = typeof directoryState.badge?.badge_id === "string"
+            ? directoryState.badge.badge_id
+            : typeof directoryState.badge?.badge_id === "number"
+                ? String(directoryState.badge.badge_id)
+                : "";
+
+        return (
+            <ErrorBoundary key={badgeId} noop>
+                <BadgeDirectoryDetail
+                    badge={directoryState.badge}
+                    userId={directoryState.userId}
+                    isViewingOtherUser={directoryState.isViewingOtherUser}
+                />
+            </ErrorBoundary>
+        );
+    },
 
     getBadgeMouseEventHandlers(badge: ProfileBadge & BadgeUserArgs) {
         const handlers = {} as Record<string, (e: React.MouseEvent) => void>;
@@ -342,7 +384,7 @@ export default definePlugin({
             iconSrc: badge.badge,
             description: badge.tooltip,
             name: badge.tooltip,
-            infoLabel: "Equicord Donor",
+            infoLabel: badge.tooltip === "Equicord Translator" ? "Equicord" : "Equicord Donor",
             rarity: BadgeRarity.MYTHIC,
             position: BadgePosition.START,
             props: {

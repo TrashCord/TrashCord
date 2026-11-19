@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Logger } from "@utils/Logger";
 import { execFileSync, spawn } from "child_process";
 import type { IpcMainInvokeEvent } from "electron";
 import { unzipSync } from "fflate";
@@ -12,7 +11,6 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { get as httpsGet } from "https";
 import { dirname, isAbsolute, join, relative, resolve } from "path";
 
-const logger = new Logger("GhostSelfbotNative");
 const GITHUB_RELEASE_API_URL = "https://api.github.com/repos/ghostselfbot/ghost/releases/latest";
 const GHOST_WINDOWS_ZIP_URL = "https://github.com/ghostselfbot/ghost/releases/latest/download/Ghost-Windows.zip";
 const GHOST_WINDOWS_DIR = "Ghost-Windows";
@@ -241,17 +239,11 @@ function extractZip(zipData: Buffer, targetDir: string, stripRoot: boolean): voi
 }
 
 export function getGhostExePath(): string {
-    const pluginDir = detectGhostPluginPath();
-    const exePath = join(pluginDir, GHOST_WINDOWS_DIR, "Ghost.exe");
-    logger.log("Checking Ghost.exe at:", exePath);
-    return exePath;
+    return join(detectGhostPluginPath(), GHOST_WINDOWS_DIR, "Ghost.exe");
 }
 
 export function getGhostSourcePath(): string {
-    const pluginDir = detectGhostPluginPath();
-    const sourcePath = join(pluginDir, GHOST_SOURCE_DIR);
-    logger.log("Checking Ghost source at:", sourcePath);
-    return sourcePath;
+    return join(detectGhostPluginPath(), GHOST_SOURCE_DIR);
 }
 
 export function getGhostConfigPath(): string {
@@ -319,9 +311,6 @@ export async function installGhostPayloads(_event: IpcMainInvokeEvent, force = f
             version
         };
     } catch (error) {
-        const message = getErrorMessage(error);
-        logger.error("Failed to install Ghost payloads:", message);
-
         return {
             success: false,
             downloaded: false,
@@ -330,7 +319,7 @@ export async function installGhostPayloads(_event: IpcMainInvokeEvent, force = f
             pythonFound: false,
             requirementsFound: existsSync(getGhostRequirementsPath()),
             version,
-            error: message
+            error: getErrorMessage(error)
         };
     }
 }
@@ -348,71 +337,50 @@ export function installRequirements(_event: IpcMainInvokeEvent, pythonPath: stri
     try {
         const requirementsPath = getGhostRequirementsPath();
 
-        if (!requirementsPath) {
-            logger.error("Could not find requirements.txt path");
-            return false;
-        }
+        if (!requirementsPath || !existsSync(requirementsPath)) return false;
 
-        if (!existsSync(requirementsPath)) {
-            logger.error("requirements.txt not found in Ghost source directory");
-            return false;
-        }
-
-        logger.log("Installing Python requirements...");
         execFileSync(getSafePythonPath(pythonPath), ["-m", "pip", "install", "-r", requirementsPath], {
-            stdio: "inherit"
+            stdio: "ignore"
         });
 
-        logger.log("Python requirements installed successfully");
         return true;
-    } catch (error) {
-        logger.error("Failed to install requirements:", error);
+    } catch {
         return false;
     }
 }
 
-export function updateGhostConfig(_event: IpcMainInvokeEvent, token: string): boolean {
+export function updateGhostConfig(_event: IpcMainInvokeEvent, token: string, userId: string | null = null, username: string | null = null): boolean {
     try {
         const ghostConfigPath = getGhostConfigPath();
         const ghostTokensPath = getGhostTokensPath();
 
-        if (!existsSync(ghostConfigPath)) {
-            logger.error("Ghost config not found. Please run Ghost.exe first to create config.");
-            return false;
-        }
+        if (!existsSync(ghostConfigPath)) return false;
 
         const config = JSON.parse(readFileSync(ghostConfigPath, "utf-8"));
         config.token = token;
         writeFileSync(ghostConfigPath, JSON.stringify(config, null, 4));
 
-        if (existsSync(ghostTokensPath)) {
+        if (userId && username && existsSync(ghostTokensPath)) {
             const tokens: GhostToken[] = JSON.parse(readFileSync(ghostTokensPath, "utf-8"));
-            const { UserStore } = require("@webpack/common");
-            const currentUser = UserStore.getCurrentUser();
-            const existingIndex = tokens.findIndex((t: GhostToken) => t.id === currentUser.id);
+            const existingIndex = tokens.findIndex((t: GhostToken) => t.id === userId);
 
             if (existingIndex >= 0) {
                 tokens[existingIndex].token = token;
-                tokens[existingIndex].username = currentUser.username;
+                tokens[existingIndex].username = username;
             } else {
-                tokens.push({
-                    token: token,
-                    username: currentUser.username,
-                    id: currentUser.id
-                });
+                tokens.push({ token, username, id: userId });
             }
 
             writeFileSync(ghostTokensPath, JSON.stringify(tokens, null, 4));
         }
 
         return true;
-    } catch (error) {
-        logger.error("Failed to update Ghost config:", error);
+    } catch {
         return false;
     }
 }
 
-export function launchGhostExe(_event: IpcMainInvokeEvent, autoFillToken: boolean, token: string | null, nitroWebhookUrl: string, privnoteWebhookUrl: string, autoSetupWebhooks: boolean): void {
+export function launchGhostExe(_event: IpcMainInvokeEvent, autoFillToken: boolean, token: string | null, nitroWebhookUrl: string, privnoteWebhookUrl: string, autoSetupWebhooks: boolean, userId: string | null = null, username: string | null = null): void {
     const ghostExePath = getGhostExePath();
 
     if (!ghostExePath || !existsSync(ghostExePath)) {
@@ -420,8 +388,7 @@ export function launchGhostExe(_event: IpcMainInvokeEvent, autoFillToken: boolea
     }
 
     if (autoFillToken && token) {
-        updateGhostConfig(_event, token);
-        logger.log("Token updated in Ghost config");
+        updateGhostConfig(_event, token, userId, username);
     }
 
     if (nitroWebhookUrl || privnoteWebhookUrl) {
@@ -432,29 +399,19 @@ export function launchGhostExe(_event: IpcMainInvokeEvent, autoFillToken: boolea
         enableWebhookSetup(_event);
     }
 
-    // Ensure fonts and data are accessible by setting working directory
     const ghostPluginDir = dirname(ghostExePath);
-    const options = {
+    const child = spawn(ghostExePath, [], {
         cwd: ghostPluginDir,
         env: {
             ...process.env,
             GHOST_PLUGIN_DIR: ghostPluginDir
         }
-    };
-
-    logger.log("Launching Ghost.exe from directory:", ghostPluginDir);
-    const child = spawn(ghostExePath, [], options);
-
-    child.on("error", error => {
-        logger.error("Failed to start Ghost.exe:", error.message);
     });
 
-    child.on("exit", code => {
-        logger.log("Ghost.exe exited with code:", code);
-    });
+    child.on("error", () => { });
 }
 
-export function launchGhostSource(_event: IpcMainInvokeEvent, autoFillToken: boolean, autoInstallRequirements: boolean, pythonPath: string, token: string | null, nitroWebhookUrl: string, privnoteWebhookUrl: string, autoSetupWebhooks: boolean): void {
+export function launchGhostSource(_event: IpcMainInvokeEvent, autoFillToken: boolean, autoInstallRequirements: boolean, pythonPath: string, token: string | null, nitroWebhookUrl: string, privnoteWebhookUrl: string, autoSetupWebhooks: boolean, userId: string | null = null, username: string | null = null): void {
     const ghostSourcePath = getGhostSourcePath();
 
     if (!ghostSourcePath || !existsSync(ghostSourcePath)) {
@@ -472,8 +429,7 @@ export function launchGhostSource(_event: IpcMainInvokeEvent, autoFillToken: boo
     }
 
     if (autoFillToken && token) {
-        updateGhostConfig(_event, token);
-        logger.log("Token updated in Ghost config");
+        updateGhostConfig(_event, token, userId, username);
     }
 
     if (nitroWebhookUrl || privnoteWebhookUrl) {
@@ -496,6 +452,7 @@ export function launchGhostSource(_event: IpcMainInvokeEvent, autoFillToken: boo
         stdio: "ignore"
     });
 
+    child.on("error", () => { });
     child.unref();
 }
 
@@ -516,10 +473,7 @@ export function updateGhostWebhooks(_event: IpcMainInvokeEvent, nitroWebhookUrl:
     try {
         const ghostConfigPath = getGhostConfigPath();
 
-        if (!existsSync(ghostConfigPath)) {
-            logger.error("Ghost config not found. Please run Ghost.exe first to create config.");
-            return false;
-        }
+        if (!existsSync(ghostConfigPath)) return false;
 
         const config = JSON.parse(readFileSync(ghostConfigPath, "utf-8"));
 
@@ -527,20 +481,17 @@ export function updateGhostWebhooks(_event: IpcMainInvokeEvent, nitroWebhookUrl:
             if (!config.snipers) config.snipers = {};
             if (!config.snipers.nitro) config.snipers.nitro = {};
             config.snipers.nitro.webhook = nitroWebhookUrl;
-            logger.log("Nitro sniper webhook updated");
         }
 
         if (privnoteWebhookUrl) {
             if (!config.snipers) config.snipers = {};
             if (!config.snipers.privnote) config.snipers.privnote = {};
             config.snipers.privnote.webhook = privnoteWebhookUrl;
-            logger.log("Privnote sniper webhook updated");
         }
 
         writeFileSync(ghostConfigPath, JSON.stringify(config, null, 4));
         return true;
-    } catch (error) {
-        logger.error("Failed to update Ghost webhooks:", error);
+    } catch {
         return false;
     }
 }
@@ -551,14 +502,12 @@ export function enableWebhookSetup(_event: IpcMainInvokeEvent): boolean {
         const webhookFlagPath = join(cacheDir, "CREATE_WEBHOOKS");
 
         if (!existsSync(cacheDir)) {
-            require("fs").mkdirSync(cacheDir, { recursive: true });
+            mkdirSync(cacheDir, { recursive: true });
         }
 
         writeFileSync(webhookFlagPath, "True");
-        logger.log("Webhook auto-setup enabled");
         return true;
-    } catch (error) {
-        logger.error("Failed to enable webhook setup:", error);
+    } catch {
         return false;
     }
 }

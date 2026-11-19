@@ -39,6 +39,7 @@ const DEFAULT_DONATE_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/ho
 const SHIGGY_DONATE_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashCord_icon.png";
 
 const VENNIE_DONATOR_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashCord_icon.png";
+const EQUICORD_DONOR_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashCord_icon.png";
 const COZY_CONTRIB_IMAGE = "https://cdn.jsdelivr.net/gh/TrashCord/main@main/host/icons/TrashCord_icon.png";
 
 const DONOR_BACKGROUND_IMAGE = "https://i.pinimg.com/originals/73/e6/3f/73e63f75bf550561054671836b5479b2.gif?quality=40";
@@ -182,6 +183,7 @@ function EquicordSettings() {
         <SettingsTab>
             {(isEquicordDonor(user?.id) || isVencordDonor(user?.id)) ? (
                 <SpecialCard
+                    className={isEquicordDonor(user?.id) && !isVencordDonor(user?.id) ? "vc-special-card-dark" : ""}
                     title="Donations"
                     subtitle="Thank you for donating!"
                     description={
@@ -191,19 +193,20 @@ function EquicordSettings() {
                                 ? "All Vencord/Equicord users can see your badge! You can manage your perks by messaging @vending.machine or Equicord's server."
                                 : "All TrashCord users can see your badge!"
                     }
-                    cardImage={VENNIE_DONATOR_IMAGE}
+                    cardImage={isEquicordDonor(user?.id) && !isVencordDonor(user?.id) ? EQUICORD_DONOR_IMAGE : VENNIE_DONATOR_IMAGE}
                     backgroundImage={DONOR_BACKGROUND_IMAGE}
-                    backgroundColor="#ED87A9"
+                    backgroundColor={isEquicordDonor(user?.id) && !isVencordDonor(user?.id) ? "#232428" : "#ED87A9"}
                 >
                     <DonateButtonComponent donated={true} />
                 </SpecialCard>
             ) : (
                 <SpecialCard
+                    className="vc-special-card-dark"
                     title="Support the Project"
                     description="Please consider supporting the development of TrashCord by donating!"
                     cardImage={donateImage}
                     backgroundImage={DONOR_BACKGROUND_IMAGE}
-                    backgroundColor="#c3a3ce"
+                    backgroundColor="#232428"
                 >
                     <DonateButtonComponent />
                 </SpecialCard>

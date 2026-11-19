@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { escapeRegExp } from "@utils/text";
-
 import type { BlockCategory } from "./session";
+
+export function escapeRegExp(value: string): string {
+    return value.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
 
 export const DEFAULT_FIREWALL_URLS = [
     "https://*/api/v*/science",

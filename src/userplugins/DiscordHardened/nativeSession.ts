@@ -5,13 +5,12 @@
  */
 
 import { RendererSettings } from "@main/settings";
-import { escapeRegExp } from "@utils/text";
 import { app, type AuthenticationResponseDetails, type AuthInfo, type OnBeforeRequestListenerDetails, type Session, session, type WebContents, type WebRequestFilter } from "electron";
 
 import { installPermissionControls } from "./nativePermissions";
 import { decryptProxyCredentials, getSavedProxyCredentials } from "./nativeProxyAuth";
 import { installRequestLog } from "./nativeRequestLog";
-import { DEFAULT_ALLOWED_PATTERNS, DEFAULT_BLOCKED_PATTERNS, DEFAULT_FIREWALL_URLS, getBlockedRequestKind, getRequestRuleDecision } from "./network";
+import { DEFAULT_ALLOWED_PATTERNS, DEFAULT_BLOCKED_PATTERNS, DEFAULT_FIREWALL_URLS, escapeRegExp, getBlockedRequestKind, getRequestRuleDecision } from "./network";
 import { getHttpProxyEndpoint, isValidProxyValue } from "./proxy";
 
 type RequestListener = NonNullable<Parameters<Session["webRequest"]["onBeforeRequest"]>[0]>;
