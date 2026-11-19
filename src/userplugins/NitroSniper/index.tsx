@@ -5,14 +5,25 @@
  */
 
 import { showNotification } from "@api/Notifications";
-import { definePluginSettings } from "@api/Settings";
+import { definePluginSettings, PlainSettings, SettingsStore } from "@api/Settings";
+import { Button } from "@components/Button";
 import { Notice } from "@components/Notice";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
-import { findByPropsLazy } from "@webpack";
-import { Button } from "@components/Button";
+import { filters, find, findByPropsLazy } from "@webpack";
 import { ChannelStore, GuildStore, RestAPI, showToast, UserStore } from "@webpack/common";
 
 const GiftActions = findByPropsLazy("redeemGiftCode");
+
+const UNKNOWN_GIFT_CODE = 10038;
+const GIFT_REDEMPTION_EXHAUSTED = 50050;
+
+interface GiftCodeStore {
+    get(code: string): { redeemed: boolean; isClaimed: boolean; revoked: boolean; } | null;
+    getError(code: string): { code?: number; } | undefined;
+    getIsResolved(code: string): boolean;
+}
+
+let giftCodeStore: GiftCodeStore | null = null;
 
 function getNative() {
     return (globalThis as any).VencordNative?.pluginHelpers?.NitroSniper as PluginNative<typeof import("./native")> | undefined;
@@ -32,7 +43,6 @@ interface ClaimRequest {
     guildId?: string;
     guildName?: string;
     messageId?: string;
-    task?: VoidSolverTaskResult;
 }
 
 interface NightyGiftDetection {
@@ -76,22 +86,12 @@ interface CaptchaResult {
     captcha_session_id?: string;
 }
 
-interface VoidSolverTaskResult {
-    taskId: string;
-    externalTaskId?: string;
-    status: string;
-    solveTime?: number;
-    site?: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
-
 const SUCCESS_COLOR = 0x43b581;
 const FAILURE_COLOR = 0xf04747;
 const TEST_COLOR = 0x5865f2;
 const WEBHOOK_NAME = "NitroSniper";
 const SEEN_CAP = 5000;
-const GIFT_REGEX = /discord(?:\.gift|\.com\/gifts|app\.com\/gifts)\/([a-zA-Z0-9]{16,24})/g;
+const GIFT_REGEX = /discord(?:\.gift|\.com\/gifts?|app\.com\/gifts?)\/([a-zA-Z0-9]{16,24})(?![a-zA-Z0-9])/g;
 
 const seen = new Set<string>();
 
@@ -101,6 +101,7 @@ let attempts = 0;
 let successes = 0;
 let successAudio: HTMLAudioElement | null = null;
 let altListenerId = 0;
+let running = false;
 let current: ClaimRequest | undefined;
 let releaseCaptchaWait: (() => void) | undefined;
 const queue: ClaimRequest[] = [];
@@ -126,6 +127,16 @@ function markSeen(code: string) {
         let i = 0;
         for (const k of seen) { if (i++ >= evict) break; seen.delete(k); }
     }
+}
+
+function isUnavailableGift(code: string) {
+    if (!giftCodeStore) return false;
+    const gift = giftCodeStore.get(code);
+    if (gift) return gift.redeemed || gift.isClaimed || gift.revoked;
+    const error = giftCodeStore.getError(code);
+    return error
+        ? error.code === UNKNOWN_GIFT_CODE || error.code === GIFT_REDEMPTION_EXHAUSTED
+        : giftCodeStore.getIsResolved(code);
 }
 
 function parseWebhookUrl(webhookUrl: string) {
@@ -194,44 +205,7 @@ function buildClaimLinkField(r: ClaimRequest): WebhookField {
     return { name: "Claim link:", value: `[Open Nitro gift](https://discord.gift/${r.code})`, inline: false };
 }
 
-function formatVoidSolverTimestamp(value: string | undefined) {
-    if (!value) return "Unknown";
-    const timestamp = Date.parse(value);
-    return Number.isFinite(timestamp) ? `<t:${Math.floor(timestamp / 1000)}:F>` : escapeMarkdown(value);
-}
-
-function buildVoidSolverFields(task: VoidSolverTaskResult | undefined): WebhookField[] {
-    if (!task) return [];
-    return [
-        {
-            name: "VoidSolver task:",
-            value: `${escapeMarkdown(task.taskId)}${task.externalTaskId ? `\nExternal: ${escapeMarkdown(task.externalTaskId)}` : ""}`,
-            inline: false
-        },
-        {
-            name: "Task status:",
-            value: `${escapeMarkdown(task.status)}\nToken received: ${task.status === "success" ? "Yes" : "No"}`,
-            inline: true
-        },
-        {
-            name: "Solve time:",
-            value: task.solveTime === undefined ? "Unknown" : `${task.solveTime.toFixed(2)} seconds`,
-            inline: true
-        },
-        {
-            name: "Solved site:",
-            value: escapeMarkdown(task.site ?? "Unknown"),
-            inline: true
-        },
-        {
-            name: "Task timeline:",
-            value: `Created: ${formatVoidSolverTimestamp(task.createdAt)}\nUpdated: ${formatVoidSolverTimestamp(task.updatedAt)}`,
-            inline: false
-        }
-    ];
-}
-
-function buildClaimFields(request: ClaimRequest, giftType: string | null, task?: VoidSolverTaskResult) {
+function buildClaimFields(request: ClaimRequest, giftType: string | null) {
     return [
         buildGiftTypeField(giftType),
         buildDetectionField(request),
@@ -239,8 +213,7 @@ function buildClaimFields(request: ClaimRequest, giftType: string | null, task?:
         buildChannelField(request),
         buildAuthorField(request),
         buildMessageField(request),
-        buildClaimLinkField(request),
-        ...buildVoidSolverFields(task)
+        buildClaimLinkField(request)
     ].filter((f): f is WebhookField => f != null)
         .map(f => ({ ...f, value: f.value.slice(0, 1024) }));
 }
@@ -251,13 +224,13 @@ function getResultPresentation(result: WebhookResult) {
         : { title: "Failed to claim Nitro..", color: FAILURE_COLOR };
 }
 
-function buildClaimEmbed(result: WebhookResult, request: ClaimRequest, giftType: string | null, task?: VoidSolverTaskResult): WebhookEmbed {
+function buildClaimEmbed(result: WebhookResult, request: ClaimRequest, giftType: string | null): WebhookEmbed {
     const presentation = getResultPresentation(result);
     const name = request.authorName ?? request.authorUsername;
     return {
         title: presentation.title,
         color: presentation.color,
-        fields: buildClaimFields(request, giftType, task),
+        fields: buildClaimFields(request, giftType),
         timestamp: new Date().toISOString(),
         author: name ? { name, icon_url: request.authorAvatarUrl } : undefined,
         footer: { text: WEBHOOK_NAME }
@@ -282,12 +255,12 @@ async function postWebhook(url: URL, payload: WebhookPayload) {
     if (status < 200 || status >= 300) throw new Error(parseWebhookError(data, status));
 }
 
-async function sendClaimWebhook(webhookUrl: string, result: WebhookResult, request: ClaimRequest, giftType: string | null, task?: VoidSolverTaskResult) {
+async function sendClaimWebhook(webhookUrl: string, result: WebhookResult, request: ClaimRequest, giftType: string | null) {
     const url = parseWebhookUrl(webhookUrl);
     if (!url) return;
     await postWebhook(url, {
         username: WEBHOOK_NAME,
-        embeds: [buildClaimEmbed(result, request, giftType, task)],
+        embeds: [buildClaimEmbed(result, request, giftType)],
         allowed_mentions: { parse: [] }
     });
 }
@@ -328,9 +301,20 @@ function TestWebhookButton() {
 function CaptchaWarning() {
     return (
         <Notice.Warning>
-            NitroSniper redeems Nitro gift codes automatically, which may violate Discord's Terms of Service. Automatic CAPTCHA solving sends the site key, request data, page URL and user agent to the selected third-party provider and may spend credits. If solving fails or no provider is configured, Discord's normal CAPTCHA modal opens instead.
+            NitroSniper redeems Nitro gift codes automatically, which may violate Discord&apos;s Terms of Service. When enabled, NoneCap receives the site key, request data, Discord page URL and your user agent, and may spend credits. If NoneCap is disabled, has no API key, or fails, Discord&apos;s normal CAPTCHA modal opens instead.
         </Notice.Warning>
     );
+}
+
+// Migrate settings from the old multi-provider version (NoneCap only now).
+const previousSettings: Record<string, unknown> | undefined = PlainSettings.plugins?.NitroSniper;
+const removedSettings = ["captchaProvider", "noCaptchaAiApiKey", "voidSolverApiKey", "voidSolverProxy"];
+if (previousSettings && removedSettings.some(key => Object.hasOwn(previousSettings, key))) {
+    if (typeof previousSettings.captchaProvider === "string" && previousSettings.captchaProvider !== "nonecap") {
+        previousSettings.useNoneCap ??= false;
+    }
+    for (const key of removedSettings) delete previousSettings[key];
+    SettingsStore.markAsChanged();
 }
 
 const settings = definePluginSettings({
@@ -369,7 +353,7 @@ const settings = definePluginSettings({
     },
     prevalidate: {
         type: OptionType.BOOLEAN,
-        description: "Pre-check codes before redeeming (reduces captchas, slightly slower)",
+        description: "Pre-check codes before redeeming: skips gifts Discord already knows are unavailable, then checks via API (reduces captchas, slightly slower)",
         default: false,
         restartNeeded: false
     },
@@ -377,47 +361,29 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Also snipe codes detected by Nighty Selfbot's Nitro Sniper log (requires Nighty running locally)",
         default: false,
-        restartNeeded: false
+        restartNeeded: false,
+        onChange(enabled: boolean) {
+            if (!running) return;
+            if (enabled) {
+                void listenForNightyAltGifts();
+            } else {
+                altListenerId++;
+                void getNative()?.stopNightyAltDetection();
+            }
+        }
     },
-    captchaProvider: {
-        type: OptionType.SELECT,
-        description: "Service used to automatically solve redemption hCaptchas",
-        options: [
-            { label: "NoneCap", value: "nonecap", default: true },
-            { label: "NoCaptchaAI", value: "nocaptchaai" },
-            { label: "VoidSolver", value: "voidsolver" }
-        ]
+    useNoneCap: {
+        type: OptionType.BOOLEAN,
+        description: "Use NoneCap to solve redemption hCaptchas when an API key is configured.",
+        default: true,
+        restartNeeded: false
     },
     noneCapApiKey: {
         type: OptionType.STRING,
         description: "NoneCap API key. Leave empty to use Discord's CAPTCHA modal instead.",
         default: "",
         placeholder: "nc_live_...",
-        hidden: () => settings.store.captchaProvider !== "nonecap",
         componentProps: { type: "password", autoComplete: "new-password" }
-    },
-    noCaptchaAiApiKey: {
-        type: OptionType.STRING,
-        description: "NoCaptchaAI API key. Leave empty to use Discord's CAPTCHA modal instead.",
-        default: "",
-        placeholder: "nocap_...",
-        hidden: () => settings.store.captchaProvider !== "nocaptchaai",
-        componentProps: { type: "password", autoComplete: "new-password" }
-    },
-    voidSolverApiKey: {
-        type: OptionType.STRING,
-        description: "VoidSolver API key. Leave empty to use Discord's CAPTCHA modal instead.",
-        default: "",
-        placeholder: "VoidSolver API key",
-        hidden: () => settings.store.captchaProvider !== "voidsolver",
-        componentProps: { type: "password", autoComplete: "new-password" }
-    },
-    voidSolverProxy: {
-        type: OptionType.STRING,
-        description: "Optional proxy sent to VoidSolver in http://user:pass@ip:port format.",
-        default: "",
-        placeholder: "http://user:pass@ip:port",
-        hidden: () => settings.store.captchaProvider !== "voidsolver"
     },
     notifySuccess: {
         type: OptionType.BOOLEAN,
@@ -506,7 +472,7 @@ function notifySuccess(request: ClaimRequest, giftType: string | null) {
         showNotification({ title: "NitroSniper - Claimed!", body: buildSummary(`Code: ${request.code.slice(0, 16)}`, giftType, location) });
     }
     playSuccessSound();
-    void sendClaimWebhook(settings.store.webhookUrl, "claimed", request, giftType, request.task).catch(e => err("claim webhook failed", e));
+    void sendClaimWebhook(settings.store.webhookUrl, "claimed", request, giftType).catch(e => err("claim webhook failed", e));
 }
 
 function notifyFailure(request: ClaimRequest, reason: string, giftType: string | null = null) {
@@ -514,7 +480,7 @@ function notifyFailure(request: ClaimRequest, reason: string, giftType: string |
     if (settings.store.notifyFail) {
         showToast({ text: `Failed | ${buildSummary(request.code.slice(0, 16), giftType, reason)}`, variant: "critical" });
     }
-    void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType, request.task).catch(e => err("failure webhook failed", e));
+    void sendClaimWebhook(settings.store.webhookUrl, "failed", request, giftType).catch(e => err("failure webhook failed", e));
 }
 
 function extractGiftType(body: any): string | null {
@@ -594,6 +560,11 @@ function waitForCaptchaFlow(request: ClaimRequest, giftType: Promise<string | nu
 }
 
 async function redeemCode(request: ClaimRequest, retries = 0, giftTypePromise?: Promise<string | null>) {
+    if (retries === 0 && settings.store.prevalidate && isUnavailableGift(request.code)) {
+        log(`Skipped ${request.code}: already known unavailable`);
+        return;
+    }
+
     if (retries === 0) attempts++;
     let pendingGiftType: Promise<string | null>;
 
@@ -700,7 +671,7 @@ async function listenForNightyAltGifts() {
 
 export default definePlugin({
     name: "NitroSniper",
-    description: "Advanced Nitro sniper with adaptive logic, auto CAPTCHA solving and Nighty alt detection. ⚠️ Use at your own risk.",
+    description: "Advanced Nitro sniper with adaptive logic, auto CAPTCHA solving (NoneCap) and Nighty alt detection. ⚠️ Use at your own risk.",
     authors: [{ name: "neoarz", id: 218675193592283137n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Utility", "Fun", "Chat", "Nitro"],
     enabledByDefault: false,
@@ -717,23 +688,16 @@ export default definePlugin({
 
     async solveCaptcha(props: CaptchaProps, showCaptcha: (props: CaptchaProps) => Promise<CaptchaResult>) {
         const native = getNative();
-        const { captchaProvider } = settings.store;
-        const apiKey = captchaProvider === "nocaptchaai"
-            ? settings.store.noCaptchaAiApiKey.trim()
-            : captchaProvider === "voidsolver"
-                ? settings.store.voidSolverApiKey.trim()
-                : settings.store.noneCapApiKey.trim();
-        const request = current;
-        if (!request || !apiKey || props.captchaService !== "hcaptcha" || !native) {
+        const { noneCapApiKey, useNoneCap } = settings.store;
+        const apiKey = noneCapApiKey.trim();
+        if (!current || !useNoneCap || !apiKey || props.captchaService !== "hcaptcha" || !native) {
             return showCaptcha(props);
         }
 
         let result: Awaited<ReturnType<typeof native.solveCaptcha>>;
         try {
             result = await native.solveCaptcha(
-                captchaProvider,
                 apiKey,
-                captchaProvider === "voidsolver" ? settings.store.voidSolverProxy.trim() || undefined : undefined,
                 props.sitekey,
                 props.options.rqdata,
                 `${location.origin}/channels/@me`,
@@ -743,7 +707,6 @@ export default definePlugin({
             err("native captcha call failed", e);
             return showCaptcha(props);
         }
-        request.task = result.task;
         if (!result.success || !result.token) {
             warn(result.error ?? "captcha solve failed");
             return showCaptcha(props);
@@ -757,6 +720,8 @@ export default definePlugin({
     },
 
     start() {
+        running = true;
+        giftCodeStore = find(filters.byStoreName("GiftCodeStore"), { isIndirect: true });
         resetState();
         (globalThis as any).NitroSniper = {
             stats: () => ({
@@ -776,8 +741,10 @@ export default definePlugin({
     },
 
     stop() {
+        running = false;
         delete (globalThis as any).NitroSniper;
         altListenerId++;
+        giftCodeStore = null;
         const native = getNative();
         void native?.stopNightyAltDetection();
         native?.cancelCaptchaSolves();
