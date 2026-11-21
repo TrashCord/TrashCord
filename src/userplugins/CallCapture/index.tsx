@@ -445,7 +445,7 @@ const settings = definePluginSettings({
     replaySeconds: {
         type: OptionType.NUMBER,
         description: "Length in seconds (0 = unlimited, uses more RAM)",
-        default: 120,
+        default: 180,
         onChange: (v: number) => setRewindSeconds(v)
     },
     replayType: pick("replay", "Type", "Type", TYPES, "voice"),

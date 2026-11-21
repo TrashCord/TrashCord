@@ -5,15 +5,14 @@
  */
 
 import * as DataStore from "@api/DataStore";
-import { React, UserStore } from "@webpack/common";
-import type { DispatchWithoutAction } from "react";
+import { React } from "@webpack/common";
 
 import type { MutualScannerConfig, MutualScannerData, MutualScannerMatch, MutualScannerRun, MutualScannerRunStats } from "./types";
 
 const STORAGE_PREFIX = "kamidere-mutual-scanner:";
 const MAX_RUN_HISTORY = 12;
 const cache = new Map<string, MutualScannerData>();
-const signals = new Set<DispatchWithoutAction>();
+const listeners = new Set<() => void>();
 
 const DEFAULT_CONFIG: MutualScannerConfig = {
     selectedGuildIds: [],
@@ -37,13 +36,7 @@ const EMPTY_STATS: MutualScannerRunStats = {
     countOnlyMatches: 0,
 };
 
-function emit() {
-    signals.forEach(signal => signal());
-}
-
-function getStorageKey(userId: string) {
-    return `${STORAGE_PREFIX}${userId}`;
-}
+const byLabel = (left: string, right: string) => left.localeCompare(right);
 
 function cloneConfig(config?: Partial<MutualScannerConfig>): MutualScannerConfig {
     return {
@@ -62,22 +55,9 @@ function normalizeMatch(match: MutualScannerMatch): MutualScannerMatch {
     return {
         ...match,
         guildIds: Array.from(new Set(match.guildIds)),
-        guildNames: Array.from(new Set(match.guildNames)).sort((left, right) => left.localeCompare(right)),
-        mutualFriendLabels: Array.from(new Set(match.mutualFriendLabels ?? [])).sort((left, right) => left.localeCompare(right)),
+        guildNames: Array.from(new Set(match.guildNames)).sort(byLabel),
+        mutualFriendLabels: Array.from(new Set(match.mutualFriendLabels ?? [])).sort(byLabel),
         matchSource: match.matchSource ?? "count",
-    };
-}
-
-function cloneStats(stats?: Partial<MutualScannerRunStats>): MutualScannerRunStats {
-    return {
-        guildCount: stats?.guildCount ?? EMPTY_STATS.guildCount,
-        candidateCount: stats?.candidateCount ?? EMPTY_STATS.candidateCount,
-        scannedCount: stats?.scannedCount ?? EMPTY_STATS.scannedCount,
-        matchedCount: stats?.matchedCount ?? EMPTY_STATS.matchedCount,
-        skippedBots: stats?.skippedBots ?? EMPTY_STATS.skippedBots,
-        skippedExistingFriends: stats?.skippedExistingFriends ?? EMPTY_STATS.skippedExistingFriends,
-        profileErrors: stats?.profileErrors ?? EMPTY_STATS.profileErrors,
-        countOnlyMatches: stats?.countOnlyMatches ?? EMPTY_STATS.countOnlyMatches,
     };
 }
 
@@ -85,9 +65,9 @@ function normalizeRun(run: MutualScannerRun): MutualScannerRun {
     return {
         ...run,
         configSnapshot: cloneConfig(run.configSnapshot),
-        stats: cloneStats(run.stats),
-        matches: [...run.matches].map(normalizeMatch).sort((left, right) =>
-            left.label.localeCompare(right.label) || left.userId.localeCompare(right.userId),
+        stats: { ...EMPTY_STATS, ...run.stats },
+        matches: run.matches.map(normalizeMatch).sort((left, right) =>
+            byLabel(left.label, right.label) || byLabel(left.userId, right.userId),
         ),
     };
 }
@@ -95,112 +75,72 @@ function normalizeRun(run: MutualScannerRun): MutualScannerRun {
 function normalizeData(data?: Partial<MutualScannerData> | null): MutualScannerData {
     return {
         config: cloneConfig(data?.config),
-        runs: [...(data?.runs ?? [])]
+        runs: (data?.runs ?? [])
             .map(normalizeRun)
             .sort((left, right) => right.startedAt - left.startedAt)
             .slice(0, MAX_RUN_HISTORY),
     };
 }
 
-function getCachedData(userId: string | null) {
-    if (!userId) return normalizeData();
-    return cache.get(userId) ?? normalizeData();
-}
+const EMPTY_DATA = normalizeData();
 
-function setCachedData(userId: string | null, data: MutualScannerData) {
-    if (!userId) return;
-    cache.set(userId, normalizeData(data));
+const getStorageKey = (userId: string) => `${STORAGE_PREFIX}${userId}`;
+const emit = () => listeners.forEach(listener => listener());
+
+function subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => void listeners.delete(listener);
 }
 
 export async function getMutualScannerData(userId: string | null) {
-    if (!userId) return normalizeData();
-    const stored = await DataStore.get(getStorageKey(userId)) as MutualScannerData | undefined;
-    const normalized = normalizeData(stored);
-    setCachedData(userId, normalized);
-    return normalized;
+    if (!userId) return EMPTY_DATA;
+
+    const cached = cache.get(userId);
+    if (cached) return cached;
+
+    const data = normalizeData(await DataStore.get<MutualScannerData>(getStorageKey(userId)));
+    if (!cache.has(userId)) {
+        cache.set(userId, data);
+        emit();
+    }
+
+    return cache.get(userId)!;
 }
 
-export async function updateMutualScannerData(
-    userId: string | null,
-    updater: (current: MutualScannerData) => MutualScannerData,
-) {
-    if (!userId) return normalizeData();
+async function update(userId: string | null, updater: (current: MutualScannerData) => MutualScannerData) {
+    if (!userId) return;
 
-    let nextData = getCachedData(userId);
-
-    await DataStore.update(getStorageKey(userId), (existing: MutualScannerData | undefined) => {
-        nextData = normalizeData(updater(normalizeData(existing)));
-        return nextData;
-    });
-
-    setCachedData(userId, nextData);
+    const next = updater(await getMutualScannerData(userId));
+    cache.set(userId, next);
     emit();
-    return nextData;
+    await DataStore.set(getStorageKey(userId), next);
 }
 
-export async function updateMutualScannerConfig(userId: string | null, patch: Partial<MutualScannerConfig>) {
-    return updateMutualScannerData(userId, current => ({
-        ...current,
-        config: cloneConfig({ ...current.config, ...patch }),
-    }));
+export function updateMutualScannerConfig(userId: string | null, patch: Partial<MutualScannerConfig>) {
+    return update(userId, current => ({ ...current, config: cloneConfig({ ...current.config, ...patch }) }));
 }
 
-export async function addMutualScannerRun(userId: string | null, run: MutualScannerRun) {
-    return updateMutualScannerData(userId, current => ({
+export function addMutualScannerRun(userId: string | null, run: MutualScannerRun) {
+    return update(userId, current => ({
         ...current,
         runs: [normalizeRun(run), ...current.runs.filter(existing => existing.id !== run.id)].slice(0, MAX_RUN_HISTORY),
     }));
 }
 
-export async function removeMutualScannerRun(userId: string | null, runId: string) {
-    return updateMutualScannerData(userId, current => ({
-        ...current,
-        runs: current.runs.filter(run => run.id !== runId),
-    }));
+export function removeMutualScannerRun(userId: string | null, runId: string) {
+    return update(userId, current => ({ ...current, runs: current.runs.filter(run => run.id !== runId) }));
 }
 
-export async function clearMutualScannerRuns(userId: string | null) {
-    return updateMutualScannerData(userId, current => ({
-        ...current,
-        runs: [],
-    }));
+export function clearMutualScannerRuns(userId: string | null) {
+    return update(userId, current => ({ ...current, runs: [] }));
 }
 
 export function useMutualScannerData(userId: string | null) {
-    const [signal, setSignal] = React.useReducer(value => value + 1, 0);
-    const [data, setData] = React.useState<MutualScannerData>(() => getCachedData(userId));
-    const [pending, setPending] = React.useState(() => !!userId && !cache.has(userId));
-    const previousUserIdRef = React.useRef<string | null | undefined>(void 0);
+    const data = React.useSyncExternalStore(subscribe, () => (userId && cache.get(userId)) || EMPTY_DATA);
 
     React.useEffect(() => {
-        signals.add(setSignal);
-        return () => void signals.delete(setSignal);
-    }, []);
+        void getMutualScannerData(userId);
+    }, [userId]);
 
-    React.useEffect(() => {
-        let isAlive = true;
-        const userChanged = previousUserIdRef.current !== userId;
-        previousUserIdRef.current = userId;
-
-        if (userChanged) {
-            setData(getCachedData(userId));
-            setPending(!!userId && !cache.has(userId));
-        }
-
-        void getMutualScannerData(userId).then(nextData => {
-            if (!isAlive) return;
-            setData(nextData);
-            setPending(false);
-        });
-
-        return () => {
-            isAlive = false;
-        };
-    }, [signal, userId]);
-
-    return [data, pending] as const;
-}
-
-export function getMutualScannerCurrentUserId() {
-    return UserStore.getCurrentUser()?.id ?? null;
+    return [data, userId !== null && data === EMPTY_DATA] as const;
 }

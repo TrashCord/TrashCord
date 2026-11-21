@@ -39,6 +39,7 @@ export interface SentTrailRecord {
 
 export interface PendingSendDraft {
     localId: string;
+    ownerId: string;
     channelId: string;
     createdAt: number;
     content: string;
@@ -78,3 +79,5 @@ export interface MediaExtractionInput {
 export interface UploadSignatureInput {
     uploads?: CloudUpload[];
 }
+
+export type SendTrailMessage = Partial<Message> & Pick<Message, "id" | "channel_id">;

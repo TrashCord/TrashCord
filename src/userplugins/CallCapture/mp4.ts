@@ -152,10 +152,12 @@ export function muxMp4(
         skip: 0,
         seg: 0,
         entry: box(
-            "avc1",
+            video.codec === "vp9" ? "vp09" : "avc1",
             zeros(6), u16(1), zeros(16), u16(video.width), u16(video.height),
             u32(0x00480000), u32(0x00480000), u32(0), u16(1), zeros(32), u16(0x0018), u16(0xFFFF),
-            box("avcC", video.description ?? new Uint8Array(0))
+            video.codec === "vp9"
+                ? full("vpcC", 0x01000000, u8(0), u8(video.level ?? 40), u8(0x82), u8(1), u8(1), u8(1), u16(0))
+                : box("avcC", video.description ?? new Uint8Array(0))
         )
     };
 

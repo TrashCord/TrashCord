@@ -154,7 +154,7 @@ const Patches: Record<string, ConfigurablePatchDefinition> = {
         patches: {
             find: "app-download-button",
             replacement: {
-                match: /(function\s\i\(\){)(?=.{0,100}?id:"app-download-button")/,
+                match: /(function \i\(\)\{)(?=.{0,300}?id:"app-download-button")/,
                 replace: "$1return null;"
             }
         }

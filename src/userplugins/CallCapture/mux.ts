@@ -7,10 +7,11 @@
 import { opusHead } from "./ogg";
 
 export interface MuxVideo {
-    codec: "avc" | "vp8";
+    codec: "avc" | "vp8" | "vp9";
     width: number;
     height: number;
     description?: Uint8Array;
+    level?: number;
 }
 
 export interface MuxPacket {

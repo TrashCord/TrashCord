@@ -21,6 +21,21 @@ interface NativeCaptchaResponse {
     error?: string;
 }
 
+interface CaptchaSolverOptions {
+    provider: "nonecap" | "bruxsolver";
+    proxy?: string;
+    powType?: "" | "hsw" | "hsl";
+}
+
+interface NativeSolverAccountResponse {
+    success: boolean;
+    remainingSolves?: number;
+    threadLimit?: number;
+    threadsInUse?: number;
+    availableThreads?: number;
+    error?: string;
+}
+
 interface NightyGiftDetection {
     code: string;
     accountName: string;
@@ -30,6 +45,14 @@ interface NightyGiftDetection {
 }
 
 const NONECAP_SOLVES_URL = "https://api.nonecap.com/v1/solves";
+const BRUXSOLVER_API_URL = "https://bruxsolver.org";
+const BRUXSOLVER_ERRORS: Record<string, string> = {
+    MISSING_API_KEY: "BruxSolver API key is missing.",
+    INVALID_API_KEY: "BruxSolver API key is invalid or revoked.",
+    INSUFFICIENT_BALANCE: "No BruxSolver solves remaining.",
+    THREAD_LIMIT_REACHED: "BruxSolver concurrent request limit reached.",
+    MISSING_PROXY: "BruxSolver requires a proxy for this request."
+};
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const SOLVE_TIMEOUT_MS = 115_000;
 const activeSolves = new Set<AbortController>();
@@ -106,6 +129,27 @@ async function requestNoneCap(url: string, apiKey: string, signal: AbortSignal, 
     return data;
 }
 
+async function requestBruxSolver(endpoint: "solve" | "balance" | "threads", apiKey: string, signal: AbortSignal, body?: string) {
+    const response = await fetch(`${BRUXSOLVER_API_URL}/${endpoint}`, {
+        method: body ? "POST" : "GET",
+        headers: {
+            "x-api-key": apiKey,
+            ...(body ? { "Content-Type": "application/json" } : {})
+        },
+        body,
+        redirect: "error",
+        signal
+    });
+    const data = await readJson(response);
+    if (!isRecord(data) || !response.ok || data.success !== true) {
+        const errorCode = isRecord(data) && typeof data.error_code === "string" ? data.error_code : "";
+        throw new Error(BRUXSOLVER_ERRORS[errorCode] ?? (response.ok
+            ? "BruxSolver returned an invalid response."
+            : `BruxSolver returned status ${response.status}.`));
+    }
+    return data;
+}
+
 function parseSolve(data: unknown) {
     if (!isRecord(data)) throw new Error("NoneCap returned an invalid response.");
 
@@ -150,7 +194,8 @@ export async function solveCaptcha(
     sitekey: string,
     rqdata: string | undefined,
     pageUrl: string,
-    userAgent: string
+    userAgent: string,
+    options: CaptchaSolverOptions
 ): Promise<NativeCaptchaResponse> {
     const key = typeof apiKey === "string" ? apiKey.trim() : "";
     const url = typeof pageUrl === "string" ? validatePageUrl(pageUrl) : null;
@@ -159,22 +204,85 @@ export async function solveCaptcha(
     if (rqdata !== undefined && (typeof rqdata !== "string" || rqdata.length > 20_000)) return { success: false, error: "CAPTCHA request data is invalid." };
     if (!url) return { success: false, error: "Discord page URL is invalid." };
     if (typeof userAgent !== "string" || userAgent.length > 512 || /[\r\n]/.test(userAgent)) return { success: false, error: "User agent is invalid." };
+    if (!isRecord(options) || options.provider !== "nonecap" && options.provider !== "bruxsolver") return { success: false, error: "CAPTCHA provider is invalid." };
+    if (options.provider === "bruxsolver") {
+        if (options.proxy !== undefined && (typeof options.proxy !== "string" || options.proxy.length > 2048 || /[\r\n]/.test(options.proxy))) {
+            return { success: false, error: "BruxSolver proxy URL is invalid." };
+        }
+        if (options.proxy) {
+            try {
+                const proxy = new URL(options.proxy);
+                if (proxy.protocol !== "http:" && proxy.protocol !== "https:" || !proxy.hostname) {
+                    return { success: false, error: "BruxSolver proxy must use HTTP or HTTPS." };
+                }
+            } catch {
+                return { success: false, error: "BruxSolver proxy URL is invalid." };
+            }
+        }
+        if (options.powType !== undefined && options.powType !== "" && options.powType !== "hsw" && options.powType !== "hsl") {
+            return { success: false, error: "BruxSolver proof of work type must be HSW or HSL." };
+        }
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), SOLVE_TIMEOUT_MS);
     activeSolves.add(controller);
 
     try {
+        if (options.provider === "bruxsolver") {
+            const data = await requestBruxSolver("solve", key, controller.signal, JSON.stringify({
+                ...(options.proxy ? { proxy: options.proxy } : {}),
+                sitekey,
+                href: url,
+                ...(rqdata ? { rqdata } : {}),
+                ...(options.powType ? { pow_type: options.powType } : {})
+            }));
+            const token = typeof data.token === "string" && data.token ? data.token : data.solution;
+            if (data.status !== "challenge_pass" || typeof token !== "string" || !token) {
+                return { success: false, error: "BruxSolver could not solve the CAPTCHA." };
+            }
+            return { success: true, token };
+        }
         return await solveWithNoneCap(key, sitekey, rqdata, url, userAgent, controller.signal);
     } catch (error) {
         return {
             success: false,
             error: error instanceof Error && error.name === "AbortError"
-                ? "NoneCap solve timed out."
+                ? "CAPTCHA request was cancelled or timed out."
                 : error instanceof Error
                     ? error.message
                     : "CAPTCHA solve failed."
         };
+    } finally {
+        clearTimeout(timeout);
+        activeSolves.delete(controller);
+    }
+}
+
+export async function getBruxSolverAccount(_: IpcMainInvokeEvent, apiKey: string): Promise<NativeSolverAccountResponse> {
+    const key = typeof apiKey === "string" ? apiKey.trim() : "";
+    if (!key || key.length > 512 || /[\r\n]/.test(key)) return { success: false, error: "BruxSolver API key is invalid." };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    activeSolves.add(controller);
+    try {
+        const [balance, threads] = await Promise.all([
+            requestBruxSolver("balance", key, controller.signal),
+            requestBruxSolver("threads", key, controller.signal)
+        ]);
+        if (![balance.remaining_solves, threads.thread_limit, threads.threads_in_use, threads.available_threads]
+            .every(value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0)) {
+            return { success: false, error: "BruxSolver returned invalid account details." };
+        }
+        return {
+            success: true,
+            remainingSolves: balance.remaining_solves as number,
+            threadLimit: threads.thread_limit as number,
+            threadsInUse: threads.threads_in_use as number,
+            availableThreads: threads.available_threads as number
+        };
+    } catch {
+        return { success: false, error: "Could not check the BruxSolver account. Check your API key and try again." };
     } finally {
         clearTimeout(timeout);
         activeSolves.delete(controller);

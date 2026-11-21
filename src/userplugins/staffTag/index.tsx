@@ -5,18 +5,14 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { managedStyleRootNode } from "@api/Styles";
 import { Devs } from "@utils/constants";
-import { createAndAppendStyle } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
-import { GuildMemberStore, GuildRoleStore, GuildStore, PermissionsBits, SelectedGuildStore, Tooltip, UserStore, useStateFromStores } from "@webpack/common";
-
-type StaffKind = "owner" | "admin" | "management";
+import { GuildMemberStore, GuildRoleStore, GuildStore, PermissionsBits, SelectedGuildStore, UserStore, useStateFromStores } from "@webpack/common";
 
 const settings = definePluginSettings({
     useCrown: { type: OptionType.BOOLEAN, description: "Show a crown instead of a text tag.", default: true },
     useRoleColor: { type: OptionType.BOOLEAN, description: "Color badges with the member's role color.", default: true },
-    ignoreBots: { type: OptionType.BOOLEAN, description: "Hide badges for bots.", default: false },
+    ignoreBots: { type: OptionType.BOOLEAN, description: "Hide badges for bots.", default: true },
     ignoreSelf: { type: OptionType.BOOLEAN, description: "Hide your own badge.", default: false },
     owners: { type: OptionType.BOOLEAN, description: "Mark server owners.", default: true },
     admins: { type: OptionType.BOOLEAN, description: "Mark members with Administrator permission.", default: true },
@@ -30,87 +26,91 @@ const settings = definePluginSettings({
     managementLabel: { type: OptionType.STRING, description: "Label for moderators and managers.", default: "Management" }
 });
 
-const reactiveSettings = ["useCrown", "useRoleColor", "ignoreBots", "ignoreSelf", "owners", "admins", "management", "voiceList", "memberList", "messages", "profiles", "ownerLabel", "adminLabel", "managementLabel"] as const;
+const placeKey = { voice: "voiceList", member: "memberList", message: "messages", profile: "profiles" } as const;
+const colors = { owner: "#faa61a", admin: "#aaa9ad", management: "#b88954" } as const;
+const labelKey = { owner: "ownerLabel", admin: "adminLabel", management: "managementLabel" } as const;
+const managementNames = ["MANAGE_GUILD", "MANAGE_CHANNELS", "MANAGE_ROLES", "KICK_MEMBERS", "BAN_MEMBERS", "MANAGE_MESSAGES", "MANAGE_THREADS", "MANAGE_EVENTS", "MODERATE_MEMBERS", "MUTE_MEMBERS", "DEAFEN_MEMBERS", "MOVE_MEMBERS"] as const;
 
-// Plugin managedStyle expects the name of an imported "?managed" stylesheet, not CSS text,
-// so the rules are added in start() to keep this plugin a single file.
-const css = `
-.vc-stafftag { display: inline-flex; align-items: center; flex: none; vertical-align: middle; margin-left: 4px; line-height: 1; }
-.vc-stafftag svg { display: block; }
-.vc-stafftag-label { display: inline-block; padding: 2px 4px; border-radius: 3px; border: 1px solid currentColor; font-size: 10px; font-weight: 700; }
-.vc-stafftag-voice { margin-right: 3px; }
-`;
-let style: HTMLStyleElement | undefined;
+const wrapStyle = { display: "inline-flex", alignItems: "center", flex: "none", verticalAlign: "middle", marginLeft: 4, lineHeight: 1 } as const;
+const voiceStyle = { ...wrapStyle, marginRight: 3 } as const;
+const svgStyle = { display: "block" } as const;
+const labelStyle = { padding: "2px 4px", borderRadius: 3, border: "1px solid currentColor", fontSize: 10, fontWeight: 700 } as const;
 
-function getStaffKind(guildId: string, userId: string): StaffKind | null {
-    const guild = GuildStore.getGuild(guildId);
-    const user = UserStore.getUser(userId);
-    if (!guild || !user || settings.store.ignoreBots && user.bot || settings.store.ignoreSelf && userId === UserStore.getCurrentUser()?.id) return null;
+let managementMask: bigint | undefined;
 
-    if (guild.ownerId === userId) return settings.store.owners ? "owner" : null;
-
-    const member = GuildMemberStore.getMember(guildId, userId);
-    if (!member) return null;
-
-    const roles = GuildRoleStore.getRolesSnapshot(guildId);
-    let permissions = roles[guildId]?.permissions ?? 0n;
-    for (const roleId of member.roles) permissions |= roles[roleId]?.permissions ?? 0n;
-
-    if (permissions & PermissionsBits.ADMINISTRATOR) return settings.store.admins ? "admin" : null;
-    const managementBits = PermissionsBits.MANAGE_GUILD | PermissionsBits.MANAGE_CHANNELS |
-        PermissionsBits.MANAGE_ROLES | PermissionsBits.KICK_MEMBERS | PermissionsBits.BAN_MEMBERS |
-        PermissionsBits.MANAGE_MESSAGES | PermissionsBits.MANAGE_THREADS | PermissionsBits.MANAGE_EVENTS |
-        PermissionsBits.MUTE_MEMBERS | PermissionsBits.DEAFEN_MEMBERS | PermissionsBits.MOVE_MEMBERS;
-    if ((permissions & managementBits) !== 0n && settings.store.management) return "management";
-    return null;
+function getManagementMask(): bigint {
+    if (managementMask === undefined) {
+        let mask = 0n;
+        for (const name of managementNames) mask |= PermissionsBits[name] ?? 0n;
+        managementMask = mask;
+    }
+    return managementMask;
 }
 
-function StaffBadge({ guildId, userId, place }: { guildId: string; userId: string; place: string; }) {
-    settings.use([...reactiveSettings]);
-    const kind = useStateFromStores([GuildStore, GuildMemberStore, GuildRoleStore, UserStore], () => getStaffKind(guildId, userId));
-    const color = useStateFromStores([GuildMemberStore], () => GuildMemberStore.getMember(guildId, userId)?.colorString);
-    if (!kind || !settings.store[place === "voice" ? "voiceList" : place === "member" ? "memberList" : place === "message" ? "messages" : "profiles"]) return null;
+function getTag(guildId: string, userId: string): string {
+    const s = settings.store;
+    const guild = GuildStore.getGuild(guildId);
+    const user = UserStore.getUser(userId);
+    if (!guild || !user) return "";
+    if (s.ignoreBots && user.bot) return "";
+    if (s.ignoreSelf && userId === UserStore.getCurrentUser()?.id) return "";
 
-    const label = {
-        owner: settings.store.ownerLabel,
-        admin: settings.store.adminLabel,
-        management: settings.store.managementLabel
-    }[kind] || kind;
-    const fallbackColor = kind === "owner" ? "#faa61a" : kind === "admin" ? "#aaa9ad" : "#b88954";
+    const member = GuildMemberStore.getMember(guildId, userId);
+    let kind: keyof typeof colors;
 
-    return <Tooltip text={label}>
-        {tooltipProps => <span
-            {...tooltipProps}
-            className={`vc-stafftag vc-stafftag-${place}`}
-            role="img"
-            aria-label={label}
-            style={{ color: settings.store.useRoleColor && color || fallbackColor }}
-        >
+    if (guild.ownerId === userId) {
+        if (!s.owners) return "";
+        kind = "owner";
+    } else {
+        if (!member?.roles) return "";
+        let perms = 0n;
+        const everyone = GuildRoleStore.getRole(guildId, guildId);
+        if (everyone) perms |= BigInt(everyone.permissions);
+        for (const id of member.roles) {
+            const role = GuildRoleStore.getRole(guildId, id);
+            if (role) perms |= BigInt(role.permissions);
+        }
+
+        if ((perms & PermissionsBits.ADMINISTRATOR) !== 0n) {
+            if (!s.admins) return "";
+            kind = "admin";
+        } else if ((perms & getManagementMask()) !== 0n) {
+            if (!s.management) return "";
+            kind = "management";
+        } else return "";
+    }
+
+    return `${kind}|${s.useRoleColor && member?.colorString || ""}`;
+}
+
+function StaffBadge({ guildId, userId, place }: { guildId: string; userId: string; place: keyof typeof placeKey; }) {
+    settings.use(["useCrown", "useRoleColor", "ignoreBots", "ignoreSelf", "owners", "admins", "management", placeKey[place], "ownerLabel", "adminLabel", "managementLabel"]);
+    const tag = useStateFromStores([GuildStore, GuildMemberStore, GuildRoleStore], () => getTag(guildId, userId));
+
+    if (!tag || !settings.store[placeKey[place]]) return null;
+
+    const [kind, color] = tag.split("|") as [keyof typeof colors, string];
+    const label = settings.store[labelKey[kind]] || kind;
+
+    return (
+        <span title={label} role="img" aria-label={label} style={{ ...(place === "voice" ? voiceStyle : wrapStyle), color: color || colors[kind] }}>
             {settings.store.useCrown
-                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={svgStyle}>
                     <path d="M2 7.5a1.5 1.5 0 1 1 2.6 1.02L8.3 12l2.4-5.5a1.5 1.5 0 1 1 2.6 0l2.4 5.5 3.7-3.48A1.5 1.5 0 1 1 22 7.5L20.5 18h-17L2 7.5ZM4 20h16v2H4v-2Z" />
                 </svg>
-                : <span className="vc-stafftag-label">{label}</span>}
-        </span>}
-    </Tooltip>;
+                : <span style={labelStyle}>{label}</span>}
+        </span>
+    );
 }
 
 export default definePlugin({
     name: "StaffTag",
     description: "Show owner, administrator and moderator badges in voice channels, member lists, messages and profiles.",
-    authors: [Devs.DavidHiFi],
+    authors: [Devs.DavidHiFi, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Servers"],
     enabledByDefault: false,
     dependencies: ["MemberListDecoratorsAPI", "MessageDecorationsAPI", "NicknameIconsAPI"],
     settings,
-    start() {
-        style = createAndAppendStyle("vc-stafftag-style", managedStyleRootNode);
-        style.textContent = css;
-    },
-    stop() {
-        style?.remove();
-        style = undefined;
-    },
     renderMemberListDecorator({ type, user, channel }) {
         if (type !== "guild" || !user) return null;
         const guildId = channel?.guild_id ?? SelectedGuildStore.getGuildId();

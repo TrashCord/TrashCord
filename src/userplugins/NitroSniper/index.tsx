@@ -10,7 +10,7 @@ import { Button } from "@components/Button";
 import { Notice } from "@components/Notice";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { filters, find, findByPropsLazy } from "@webpack";
-import { ChannelStore, GuildStore, RestAPI, showToast, UserStore } from "@webpack/common";
+import { ChannelStore, GuildStore, RestAPI, showToast, useState, UserStore } from "@webpack/common";
 
 const GiftActions = findByPropsLazy("redeemGiftCode");
 
@@ -298,19 +298,54 @@ function TestWebhookButton() {
     );
 }
 
+const BRUXSOLVER_KEYS = ["bruxSolverApiKey"] as const;
+
+function BruxSolverAccountButton() {
+    const { bruxSolverApiKey } = settings.use(BRUXSOLVER_KEYS);
+    const [checking, setChecking] = useState(false);
+    return (
+        <Button
+            disabled={checking || !bruxSolverApiKey.trim() || !getNative()}
+            onClick={async () => {
+                const native = getNative();
+                if (!native) return;
+                setChecking(true);
+                try {
+                    const result = await native.getBruxSolverAccount(bruxSolverApiKey.trim());
+                    showToast({
+                        text: result.success
+                            ? `Remaining solves: ${result.remainingSolves}. Threads in use: ${result.threadsInUse}/${result.threadLimit}. Available threads: ${result.availableThreads}.`
+                            : result.error ?? "Could not check the BruxSolver account.",
+                        variant: result.success ? "success" : "critical"
+                    });
+                } catch {
+                    showToast({ text: "Could not check the BruxSolver account.", variant: "critical" });
+                } finally {
+                    setChecking(false);
+                }
+            }}
+        >
+            Check Balance and Threads
+        </Button>
+    );
+}
+
 function CaptchaWarning() {
     return (
         <Notice.Warning>
-            NitroSniper redeems Nitro gift codes automatically, which may violate Discord&apos;s Terms of Service. When enabled, NoneCap receives the site key, request data, Discord page URL and your user agent, and may spend credits. If NoneCap is disabled, has no API key, or fails, Discord&apos;s normal CAPTCHA modal opens instead.
+            NitroSniper redeems Nitro gift codes automatically, which may violate Discord&apos;s Terms of Service. The selected service receives the site key, request data, and Discord page URL, and may spend credits. NoneCap also receives your user agent. BruxSolver also receives your proxy if configured. If the service is unavailable, has no API key, or fails, Discord&apos;s normal CAPTCHA modal opens instead.
         </Notice.Warning>
     );
 }
 
 const previousSettings: Record<string, unknown> | undefined = PlainSettings.plugins?.NitroSniper;
-const removedSettings = ["captchaProvider", "noCaptchaAiApiKey", "voidSolverApiKey", "voidSolverProxy"];
+const removedSettings = ["useNoneCap", "noCaptchaAiApiKey", "voidSolverApiKey", "voidSolverProxy"];
 if (previousSettings && removedSettings.some(key => Object.hasOwn(previousSettings, key))) {
-    if (typeof previousSettings.captchaProvider === "string" && previousSettings.captchaProvider !== "nonecap") {
-        previousSettings.useNoneCap ??= false;
+    if (previousSettings.captchaProvider !== "bruxsolver") {
+        previousSettings.captchaProvider = previousSettings.useNoneCap === true
+            && (previousSettings.captchaProvider === undefined || previousSettings.captchaProvider === "nonecap")
+            ? "nonecap"
+            : "manual";
     }
     for (const key of removedSettings) delete previousSettings[key];
     SettingsStore.markAsChanged();
@@ -371,18 +406,57 @@ const settings = definePluginSettings({
             }
         }
     },
-    useNoneCap: {
-        type: OptionType.BOOLEAN,
-        description: "Use NoneCap to solve redemption hCaptchas when an API key is configured.",
-        default: false,
-        restartNeeded: false
+    captchaProvider: {
+        type: OptionType.SELECT,
+        description: "Choose how to solve Nitro redemption CAPTCHAs.",
+        options: [
+            { label: "Discord CAPTCHA modal", value: "manual", default: true },
+            { label: "NoneCap", value: "nonecap" },
+            { label: "BruxSolver", value: "bruxsolver" }
+        ]
     },
     noneCapApiKey: {
         type: OptionType.STRING,
         description: "NoneCap API key. Leave empty to use Discord's CAPTCHA modal instead.",
         default: "",
         placeholder: "nc_live_...",
+        hidden: () => settings.store.captchaProvider !== "nonecap",
         componentProps: { type: "password", autoComplete: "new-password" }
+    },
+    bruxSolverApiKey: {
+        type: OptionType.STRING,
+        displayName: "BruxSolver API Key",
+        description: "BruxSolver API key for automatically solving Nitro redemption CAPTCHAs.",
+        default: "",
+        hidden: () => settings.store.captchaProvider !== "bruxsolver",
+        componentProps: { type: "password", autoComplete: "new-password" }
+    },
+    bruxSolverProxy: {
+        type: OptionType.STRING,
+        displayName: "BruxSolver Proxy",
+        description: "Optional proxy URL for BruxSolver CAPTCHA requests. Leave empty to try without a proxy.",
+        default: "",
+        placeholder: "http://user:pass@host:port",
+        hidden: () => settings.store.captchaProvider !== "bruxsolver",
+        componentProps: { type: "password", autoComplete: "new-password" }
+    },
+    bruxSolverPowType: {
+        type: OptionType.SELECT,
+        displayName: "BruxSolver Proof of Work",
+        description: "Choose the proof of work type for BruxSolver CAPTCHA requests.",
+        hidden: () => settings.store.captchaProvider !== "bruxsolver",
+        options: [
+            { label: "Automatic", value: "", default: true },
+            { label: "HSW", value: "hsw" },
+            { label: "HSL", value: "hsl" }
+        ]
+    },
+    bruxSolverAccount: {
+        type: OptionType.COMPONENT,
+        displayName: "BruxSolver Account",
+        description: "Check remaining solves and concurrent request usage.",
+        hidden: () => settings.store.captchaProvider !== "bruxsolver",
+        component: BruxSolverAccountButton
     },
     notifySuccess: {
         type: OptionType.BOOLEAN,
@@ -670,7 +744,7 @@ async function listenForNightyAltGifts() {
 
 export default definePlugin({
     name: "NitroSniper",
-    description: "Advanced Nitro sniper with adaptive logic, auto CAPTCHA solving (NoneCap) and Nighty alt detection. ⚠️ Use at your own risk.",
+    description: "Advanced Nitro sniper with adaptive logic, auto CAPTCHA solving (NoneCap / BruxSolver) and Nighty alt detection. ⚠️ Use at your own risk.",
     authors: [{ name: "neoarz", id: 218675193592283137n }, { name: "zfrancesck1", id: 456195985404592149n }],
     tags: ["Utility", "Fun", "Chat", "Nitro"],
     enabledByDefault: false,
@@ -687,9 +761,9 @@ export default definePlugin({
 
     async solveCaptcha(props: CaptchaProps, showCaptcha: (props: CaptchaProps) => Promise<CaptchaResult>) {
         const native = getNative();
-        const { noneCapApiKey, useNoneCap } = settings.store;
-        const apiKey = noneCapApiKey.trim();
-        if (!current || !useNoneCap || !apiKey || props.captchaService !== "hcaptcha" || !native) {
+        const { captchaProvider, noneCapApiKey, bruxSolverApiKey, bruxSolverProxy, bruxSolverPowType } = settings.store;
+        const apiKey = (captchaProvider === "bruxsolver" ? bruxSolverApiKey : noneCapApiKey).trim();
+        if (!current || captchaProvider === "manual" || !apiKey || props.captchaService !== "hcaptcha" || !native) {
             return showCaptcha(props);
         }
 
@@ -700,7 +774,8 @@ export default definePlugin({
                 props.sitekey,
                 props.options.rqdata,
                 `${location.origin}/channels/@me`,
-                navigator.userAgent
+                navigator.userAgent,
+                { provider: captchaProvider, proxy: bruxSolverProxy.trim(), powType: bruxSolverPowType }
             );
         } catch (e) {
             err("native captcha call failed", e);

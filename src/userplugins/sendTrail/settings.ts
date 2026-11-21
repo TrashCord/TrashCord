@@ -18,16 +18,7 @@ function normalizeCommaList(value: string) {
     )).join(",");
 }
 
-export function parseProtectedDmChannels(value: string) {
-    return new Set(
-        value
-            .split(",")
-            .map(part => part.trim())
-            .filter(Boolean),
-    );
-}
-
-export function parseProtectedDmUserIds(value: string) {
+export function parseIdList(value: string) {
     return new Set(
         value
             .split(",")

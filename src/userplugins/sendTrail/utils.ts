@@ -197,7 +197,7 @@ export function isForwardedMessage(message: Partial<Message>) {
         try {
             if (message.hasFlag(MessageFlags.HAS_SNAPSHOT)) return true;
         } catch {
-            // Ignore invalid message instances and fall through to raw flag checks.
+            return (Number(message.flags ?? 0) & MessageFlags.HAS_SNAPSHOT) !== 0;
         }
     }
 
@@ -205,7 +205,7 @@ export function isForwardedMessage(message: Partial<Message>) {
     return (rawFlags & MessageFlags.HAS_SNAPSHOT) !== 0;
 }
 
-export function getMessageTimestamp(message: Pick<Message, "timestamp">) {
+export function getMessageTimestamp(message: Partial<Pick<Message, "timestamp">>) {
     const value = new Date(message.timestamp as unknown as string | number | Date).getTime();
     return Number.isFinite(value) ? value : Date.now();
 }

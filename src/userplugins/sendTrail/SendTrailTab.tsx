@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
-
-import { Text } from "@components/Text";
+import { BaseText } from "@components/BaseText";
 import { Button, TextButton } from "@components/Button";
 import { Card } from "@components/Card";
-import { HeadingTertiary } from "@components/LegacyHeading";
 import { Heading } from "@components/Heading";
 import { CogWheel, DeleteIcon, LogIcon, MagnifyingGlassIcon, OpenExternalIcon } from "@components/Icons";
 import { Notice } from "@components/Notice";
@@ -20,67 +17,49 @@ import { Switch } from "@components/Switch";
 import { classNameFactory } from "@utils/css";
 import { Margins } from "@utils/margins";
 import { sleep } from "@utils/misc";
-import type { RenderModalProps, User } from "@vencord/discord-types";
-import { Alerts, ChannelStore, IconUtils, MessageActions, Modal, NavigationRouter, openModal, React, Select, TextInput, showToast as showDiscordToast, UserStore, UserUtils, useStateFromStores } from "@webpack/common";
+import type { Channel, RenderModalProps, ToastVariant, User } from "@vencord/discord-types";
+import { Alerts, ChannelStore, IconUtils, MessageActions, Modal, NavigationRouter, openModal, React, Select, showToast as showDiscordToast, TextInput, UserStore, UserUtils, useStateFromStores } from "@webpack/common";
 
 import { BRAND_ICON_DATA_URL, BRAND_NAME } from "../_kamidereCompat/branding";
-import { removeKamidereRuntimeTask, upsertKamidereRuntimeTask } from "../_kamidereCompat/runtimeActivity";
-import { parseProtectedDmChannels, parseProtectedDmUserIds, SendTrailPurgeTarget,settings } from "./settings";
+import { getKamidereRuntimeTask, removeKamidereRuntimeTask, SEND_TRAIL_PURGE_TASK_ID, subscribeKamidereRuntimeActivity, upsertKamidereRuntimeTask } from "../_kamidereCompat/runtimeActivity";
+import { parseIdList, SendTrailPurgeTarget, settings } from "./settings";
 import { clearSentTrailRecords, removeSentTrailRecord, useSentTrailRecords } from "./store";
 import type { SentTrailMediaItem, SentTrailRecord } from "./types";
 import { buildSearchIndex, formatDayLabel, formatTime, getRecordRecipientIds, recordMatchesScope, resolveRecordContext } from "./utils";
-
-const cl = classNameFactory("vc-send-trail-");
-const LIVE_DELETE_DELAY_MS = 850;
-const PURGE_STATUS_HIDE_DELAY_MS = 2400;
-const PURGE_STATUS_TRANSITION_MS = 280;
-const DEFAULT_PAGE_SIZE: PageSizeValue = "5";
-const PURGE_RUNTIME_TASK_ID = "kamidere-send-trail:purge";
-
-const HERO_BACKGROUND = `data:image/svg+xml;utf8,${encodeURIComponent(
-    [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600">',
-        "<defs>",
-        '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">',
-        '<stop stop-color="#101114"/>',
-        '<stop offset="0.45" stop-color="#22272E"/>',
-        '<stop offset="1" stop-color="#3A332A"/>',
-        "</linearGradient>",
-        "</defs>",
-        '<rect width="1200" height="600" fill="url(#g)"/>',
-        '<circle cx="980" cy="120" r="150" fill="#F4BD6A" opacity=".10"/>',
-        '<circle cx="220" cy="470" r="180" fill="#9FB5D1" opacity=".08"/>',
-        '<path d="M-40 440C132 342 260 332 396 368s254 53 380 15 250-39 464 86V640H-40Z" fill="#0C0E12" opacity=".62"/>',
-        '<path d="M160 54 720 614" stroke="#FFE9BF" stroke-opacity=".05" stroke-width="28"/>',
-        '<path d="M560 -20 1140 560" stroke="#FFE9BF" stroke-opacity=".06" stroke-width="18"/>',
-        "</svg>",
-    ].join(""),
-)}`;
 
 type ScopeValue = "all" | "dms" | `guild:${string}`;
 type KindValue = "all" | "text" | "media";
 type PeriodValue = "all" | "24h" | "7d";
 type PageSizeValue = "5" | "10" | "20" | "30" | "50";
-type PurgeStatusPhase = "idle" | "running" | "success" | "partial" | "failure";
+type PurgePhase = "idle" | "running" | "success" | "partial" | "failure";
+type IdListKey = "protectedDmChannels" | "protectedDmUserIds";
 
-interface SelectOption<T extends string> {
+interface Option<T extends string> {
     label: string;
     value: T;
 }
 
-interface RecordGroup {
-    label: string;
-    records: SentTrailRecord[];
-}
-
-interface PurgeStatusState {
-    phase: PurgeStatusPhase;
+interface PurgeStatus {
+    phase: PurgePhase;
     total: number;
     processed: number;
     deleted: number;
     failed: number;
     skipped: number;
     currentLabel?: string;
+}
+
+interface RawUser {
+    avatar?: string | null;
+    username?: string;
+    globalName?: string;
+    global_name?: string;
+}
+
+interface UserIdentity {
+    label: string;
+    details: string;
+    avatarUrl: string;
 }
 
 interface DmConversation {
@@ -90,161 +69,97 @@ interface DmConversation {
     count: number;
 }
 
-interface DmUserContact {
+interface DmUserContact extends UserIdentity {
     userId: string;
-    label: string;
-    details: string;
     count: number;
-    avatarUrl: string;
 }
 
-function showToast(message: string, type: "default" | "success" | "critical") {
-    showDiscordToast({
-        text: message,
-        variant: type,
-        position: "bottom"
-    });
+const cl = classNameFactory("vc-send-trail-");
+const DELETE_DELAY_MS = 850;
+const PURGE_SETTINGS: Array<keyof typeof settings.def> = ["purgeTarget", "protectAllDms", "protectedDmChannels", "protectedDmUserIds"];
+const EMPTY_STATUS: PurgeStatus = { phase: "idle", total: 0, processed: 0, deleted: 0, failed: 0, skipped: 0 };
+const HERO_BACKGROUND = `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 4"><rect width="8" height="4" fill="#27221d"/></svg>')}`;
+const requestedUsers = new Set<string>();
+
+const PURGE_TARGET_OPTIONS: Option<SendTrailPurgeTarget>[] = [
+    { label: "Everything", value: "all" },
+    { label: "Direct Messages only", value: "dms" },
+    { label: "Servers only", value: "servers" },
+];
+const PERIOD_OPTIONS: Option<PeriodValue>[] = [
+    { label: "All time", value: "all" },
+    { label: "Last 24 hours", value: "24h" },
+    { label: "Last 7 days", value: "7d" },
+];
+const KIND_OPTIONS: Option<KindValue>[] = [
+    { label: "Everything", value: "all" },
+    { label: "Text only", value: "text" },
+    { label: "Media only", value: "media" },
+];
+const PAGE_SIZE_OPTIONS: Option<PageSizeValue>[] = [
+    { label: "5", value: "5" },
+    { label: "10", value: "10" },
+    { label: "20", value: "20" },
+    { label: "30", value: "30" },
+    { label: "50", value: "50" },
+];
+
+function showToast(message: string, variant: ToastVariant) {
+    showDiscordToast({ text: message, variant, position: "bottom" });
 }
 
-function makeEmptyPurgeStatus(): PurgeStatusState {
-    return {
-        phase: "idle",
-        total: 0,
-        processed: 0,
-        deleted: 0,
-        failed: 0,
-        skipped: 0,
-    };
+function plural(count: number, one: string, many = `${one}s`) {
+    return `${count} ${count === 1 ? one : many}`;
 }
 
-function syncPurgeRuntimeTask(status: PurgeStatusState, startedAt: number) {
-    if (status.phase === "idle") {
-        removeKamidereRuntimeTask(PURGE_RUNTIME_TASK_ID);
-        return;
-    }
-
-    const isRunning = status.phase === "running";
-    const subtitle = isRunning
-        ? status.currentLabel
-            ? `Deleting ${status.currentLabel}`
-            : "Purging queued messages"
-        : status.phase === "success"
-            ? `Deleted ${status.deleted} message${status.deleted === 1 ? "" : "s"}`
-            : status.phase === "partial"
-                ? `Deleted ${status.deleted}, failed ${status.failed}`
-                : status.skipped > 0
-                    ? `${status.skipped} protected entr${status.skipped === 1 ? "y skipped" : "ies skipped"}`
-                    : "No messages could be deleted";
-
-    const detail = status.total > 0
-        ? `${status.processed}/${status.total}`
-        : status.deleted > 0
-            ? `${status.deleted} deleted`
-            : status.failed > 0
-                ? `${status.failed} failed`
-                : "idle";
-
-    upsertKamidereRuntimeTask({
-        id: PURGE_RUNTIME_TASK_ID,
-        toolId: "send-trail-purge",
-        name: "Send Trail Purge",
-        status: isRunning
-            ? "running"
-            : status.phase === "failure"
-                ? "failed"
-                : "completed",
-        subtitle,
-        detail,
-        progressCurrent: status.total > 0 ? status.processed : undefined,
-        progressTotal: status.total > 0 ? status.total : null,
-        startedAt,
-    });
-}
-
-function shouldIgnoreRecordToggle(target: HTMLElement | null) {
-    return !!target?.closest("[data-send-trail-action='true'], button, a, input, textarea, select");
-}
-
-function isDirectMessageRecord(record: SentTrailRecord) {
+function isDm(record: SentTrailRecord) {
     return record.guildId === "@me";
 }
 
-function isRecordProtected(
+function isProtected(
     record: SentTrailRecord,
     purgeTarget: SendTrailPurgeTarget,
     protectAllDms: boolean,
-    protectedDmChannels: Set<string>,
-    protectedDmUserIds: Set<string>,
+    protectedChannels: Set<string>,
+    protectedUsers: Set<string>,
 ) {
-    const isDm = isDirectMessageRecord(record);
+    const dm = isDm(record);
 
-    if (purgeTarget === "dms" && !isDm) return true;
-    if (purgeTarget === "servers" && isDm) return true;
-    if (isDm && protectAllDms) return true;
-    if (isDm && protectedDmChannels.has(record.channelId)) return true;
-    if (isDm && getRecordRecipientIds(record).some(id => protectedDmUserIds.has(id))) return true;
-
-    return false;
+    if (purgeTarget === "dms" && !dm) return true;
+    if (purgeTarget === "servers" && dm) return true;
+    if (!dm) return false;
+    if (protectAllDms || protectedChannels.has(record.channelId)) return true;
+    return getRecordRecipientIds(record).some(id => protectedUsers.has(id));
 }
 
-function getDefaultAvatarUrl(userId: string) {
-    return IconUtils.getDefaultAvatarURL(userId);
-}
-
-function buildRecipientIdentityFromUser(
-    recipientId: string,
-    user: { avatar?: string | null; username?: string; globalName?: string; global_name?: string; },
-) {
-    const avatarHash = user.avatar;
-    const avatarUrl = avatarHash
-        ? IconUtils.getUserAvatarURL({ id: recipientId, avatar: avatarHash } as User, true, 80)
-        : getDefaultAvatarUrl(recipientId);
+function identityFromUser(userId: string, user: RawUser): UserIdentity {
+    const name = user.globalName || user.global_name;
 
     return {
-        label: user.globalName || user.global_name || user.username || recipientId,
-        details: (user.globalName || user.global_name) && user.username && (user.globalName || user.global_name) !== user.username
-            ? `@${user.username}`
-            : `User ID ${recipientId}`,
-        avatarUrl,
+        label: name || user.username || userId,
+        details: user.username && name && name !== user.username ? `@${user.username}` : `User ID ${userId}`,
+        avatarUrl: user.avatar
+            ? IconUtils.getUserAvatarURL({ id: userId, avatar: user.avatar } as User, true, 80)
+            : IconUtils.getDefaultAvatarURL(userId),
     };
 }
 
-function resolveRecipientIdentity(recipientId: string, channel?: ReturnType<typeof ChannelStore.getChannel>) {
-    const user = UserStore.getUser(recipientId) as { avatar?: string | null; username?: string; globalName?: string; global_name?: string; } | undefined;
-    if (user) {
-        return buildRecipientIdentityFromUser(recipientId, user);
-    }
+function resolveIdentity(userId: string, channel?: Channel): UserIdentity {
+    const user = UserStore.getUser(userId) as RawUser | undefined;
+    if (user) return identityFromUser(userId, user);
 
-    const rawRecipient = (channel as { rawRecipients?: Array<{ id?: string; username?: string; global_name?: string; }>; } | undefined)
+    const raw = (channel as { rawRecipients?: Array<RawUser & { id?: string; }>; } | undefined)
         ?.rawRecipients
-        ?.find(recipient => recipient?.id === recipientId);
+        ?.find(recipient => recipient?.id === userId);
 
-    return {
-        label: rawRecipient?.global_name || rawRecipient?.username || recipientId,
-        details: rawRecipient?.username && rawRecipient.username !== rawRecipient.global_name
-            ? `@${rawRecipient.username}`
-            : `User ID ${recipientId}`,
-        avatarUrl: getDefaultAvatarUrl(recipientId),
-    };
+    return identityFromUser(userId, raw ?? {});
 }
 
 function buildDmConversations(records: SentTrailRecord[]) {
     const conversations = new Map<string, DmConversation>();
 
     for (const record of records) {
-        if (!isDirectMessageRecord(record)) continue;
-
-        const context = resolveRecordContext(record);
-        const channel = ChannelStore.getChannel(record.channelId);
-        const recipientIds = getRecordRecipientIds(record);
-        const recipientNames = recipientIds
-            .map(id => resolveRecipientIdentity(id, channel).label)
-            .filter(Boolean);
-
-        const label = recipientNames[0] ?? context.channelName;
-        const details = recipientNames.length > 1
-            ? recipientNames.join(", ")
-            : context.channelName;
+        if (!isDm(record)) continue;
 
         const existing = conversations.get(record.channelId);
         if (existing) {
@@ -252,10 +167,14 @@ function buildDmConversations(records: SentTrailRecord[]) {
             continue;
         }
 
+        const channel = ChannelStore.getChannel(record.channelId);
+        const names = getRecordRecipientIds(record).map(id => resolveIdentity(id, channel).label);
+        const channelName = resolveRecordContext(record).channelName;
+
         conversations.set(record.channelId, {
             channelId: record.channelId,
-            label,
-            details,
+            label: names[0] ?? channelName,
+            details: names.length > 1 ? names.join(", ") : channelName,
             count: 1,
         });
     }
@@ -263,52 +182,34 @@ function buildDmConversations(records: SentTrailRecord[]) {
     return Array.from(conversations.values()).sort((left, right) => left.label.localeCompare(right.label));
 }
 
-function buildDmUserContacts(
-    records: SentTrailRecord[],
-    protectedDmUserIds: Set<string>,
-    resolvedDmUsers: Record<string, Pick<DmUserContact, "label" | "details" | "avatarUrl">> = {},
-) {
+function buildDmUserContacts(records: SentTrailRecord[], protectedUsers: Set<string>) {
     const contacts = new Map<string, DmUserContact>();
 
     for (const record of records) {
-        if (!isDirectMessageRecord(record)) continue;
+        if (!isDm(record)) continue;
 
-        const channel = ChannelStore.getChannel(record.channelId);
-
-        for (const recipientId of getRecordRecipientIds(record)) {
-            const identity = resolvedDmUsers[recipientId] ?? resolveRecipientIdentity(recipientId, channel);
-            const existing = contacts.get(recipientId);
-
+        let channel: Channel | undefined;
+        for (const userId of getRecordRecipientIds(record)) {
+            const existing = contacts.get(userId);
             if (existing) {
                 existing.count++;
-                if (existing.label === existing.userId && identity.label !== recipientId) {
-                    existing.label = identity.label;
-                }
-                if (existing.details === `User ID ${recipientId}` && identity.details !== existing.details) {
-                    existing.details = identity.details;
-                }
                 continue;
             }
 
-            contacts.set(recipientId, {
-                userId: recipientId,
-                label: identity.label,
-                details: identity.details,
-                count: 1,
-                avatarUrl: identity.avatarUrl,
-            });
+            channel ??= ChannelStore.getChannel(record.channelId);
+            contacts.set(userId, { userId, count: 1, ...resolveIdentity(userId, channel) });
         }
     }
 
-    for (const userId of protectedDmUserIds) {
+    for (const userId of protectedUsers) {
         if (contacts.has(userId)) continue;
 
+        const identity = resolveIdentity(userId);
         contacts.set(userId, {
             userId,
-            label: resolvedDmUsers[userId]?.label ?? userId,
-            details: resolvedDmUsers[userId]?.details ?? "Manual user ID rule",
             count: 0,
-            avatarUrl: resolvedDmUsers[userId]?.avatarUrl ?? getDefaultAvatarUrl(userId),
+            ...identity,
+            details: UserStore.getUser(userId) ? identity.details : "Manual user ID rule",
         });
     }
 
@@ -317,31 +218,39 @@ function buildDmUserContacts(
     );
 }
 
+function writeIdList(key: IdListKey, ids: Set<string>) {
+    settings.store[key] = Array.from(ids).sort().join(",");
+}
+
+function toggleId(key: IdListKey, current: Set<string>, id: string, enabled: boolean) {
+    const next = new Set(current);
+    if (enabled) next.add(id);
+    else next.delete(id);
+    writeIdList(key, next);
+}
+
 function MediaPreview({ media }: { media: SentTrailMediaItem[]; }) {
     if (media.length === 0) return null;
 
     return (
         <div className={cl("preview-grid")}>
             {media.map(item => (
-                <div
-                    key={`${item.source}:${item.kind}:${item.url}`}
-                    className={cl("preview-card")}
-                >
+                <div key={`${item.source}:${item.kind}:${item.url}`} className={cl("preview-card")}>
                     {item.kind === "image" ? (
                         <img
                             className={cl("preview-image")}
                             src={item.url}
                             alt={item.filename ?? "Sent media"}
                             loading="lazy"
+                            decoding="async"
                         />
                     ) : (
                         <video
                             className={cl("preview-video")}
                             src={item.url}
-                            autoPlay
-                            loop
+                            controls
                             muted
-                            preload="metadata"
+                            preload="none"
                             playsInline
                         />
                     )}
@@ -354,173 +263,99 @@ function MediaPreview({ media }: { media: SentTrailMediaItem[]; }) {
     );
 }
 
-function PurgeStatusBanner({ status }: { status: PurgeStatusState; }) {
-    if (status.phase === "idle") return null;
-
-    const isRunning = status.phase === "running";
-    const isSuccess = status.phase === "success";
-    const isPartial = status.phase === "partial";
+function PurgeBanner({ status, onDismiss }: { status: PurgeStatus; onDismiss(): void; }) {
+    const running = status.phase === "running";
+    const skipped = status.skipped ? `, skipped ${status.skipped} protected` : "";
     const progress = status.total > 0 ? Math.max(8, Math.round((status.processed / status.total) * 100)) : 0;
 
-    let title = "Preparing purge";
-    let subtitle = "Checking the current queue.";
+    let title: string;
+    let subtitle: string;
 
-    if (isRunning) {
+    if (running) {
         title = `Purging ${status.processed}/${status.total}`;
         subtitle = status.currentLabel
             ? `Deleting ${status.currentLabel} one message at a time.`
             : "Deleting queued messages one by one to keep the pace safe.";
-    } else if (isSuccess) {
+    } else if (status.phase === "success") {
         title = "Purge complete";
-        subtitle = `Deleted ${status.deleted} message${status.deleted === 1 ? "" : "s"}${status.skipped ? ` and skipped ${status.skipped} protected entr${status.skipped === 1 ? "y" : "ies"}` : ""}.`;
-    } else if (isPartial) {
+        subtitle = `Deleted ${plural(status.deleted, "message")}${skipped}.`;
+    } else if (status.phase === "partial") {
         title = "Purge finished with some skips";
-        subtitle = `Deleted ${status.deleted}, failed ${status.failed}${status.skipped ? `, skipped ${status.skipped} protected` : ""}.`;
+        subtitle = `Deleted ${status.deleted}, failed ${status.failed}${skipped}.`;
     } else {
         title = "Purge could not finish";
-        subtitle = `Nothing was deleted${status.skipped ? ` and ${status.skipped} entr${status.skipped === 1 ? "y was" : "ies were"} protected by config` : ""}.`;
+        subtitle = `Nothing was deleted${status.skipped ? ` and ${status.skipped} entries were protected by config` : ""}.`;
     }
 
     return (
-        <div className={cl("purge-status", status.phase)} aria-live="polite">
-            <div className={cl("purge-status-icon", isRunning ? "spinning" : status.phase)}>
-                {isRunning ? <span className={cl("spinner")} /> : <span className={cl("checkmark")}>OK</span>}
+        <div className={cl("purge-status", `purge-status-${status.phase}`)} aria-live="polite">
+            <div className={cl("purge-status-icon")}>
+                <span className={cl("checkmark")}>{running ? "..." : status.phase === "success" ? "OK" : "!"}</span>
             </div>
 
             <div className={cl("purge-status-body")}>
                 <div className={cl("purge-status-title-row")}>
-                    <Text size="md" weight="semibold">{title}</Text>
-                    <span className={cl("meta-tag", "quiet")}>
+                    <BaseText size="md" weight="semibold">{title}</BaseText>
+                    <span className={cl("meta-tag")}>
                         {status.deleted} deleted{status.failed ? ` / ${status.failed} failed` : ""}{status.skipped ? ` / ${status.skipped} skipped` : ""}
                     </span>
                 </div>
                 <Paragraph className={cl("purge-status-text")}>{subtitle}</Paragraph>
                 <div className={cl("purge-progress-track")}>
-                    <div className={cl("purge-progress-fill")} style={{ width: `${isRunning ? progress : 100}%` }} />
+                    <div className={cl("purge-progress-fill")} style={{ width: `${running ? progress : 100}%` }} />
                 </div>
             </div>
+
+            {!running && (
+                <TextButton variant="secondary" onClick={onDismiss}>Dismiss</TextButton>
+            )}
         </div>
     );
 }
 
-function SendTrailConfigModal({
-    modalProps,
-    close,
-    records,
-}: {
-    modalProps: RenderModalProps;
-    close(): void;
-    records: SentTrailRecord[];
-}) {
-    const config = settings.use();
-    const protectedDmChannels = React.useMemo(() => parseProtectedDmChannels(config.protectedDmChannels), [config.protectedDmChannels]);
-    const protectedDmUserIds = React.useMemo(() => parseProtectedDmUserIds(config.protectedDmUserIds), [config.protectedDmUserIds]);
-    const dmUserIds = React.useMemo(() =>
-        Array.from(new Set([
-            ...protectedDmUserIds,
-            ...records
-                .filter(isDirectMessageRecord)
-                .flatMap(record => getRecordRecipientIds(record)),
-        ])).sort(),
-    [protectedDmUserIds, records]);
-    const dmConversations = React.useMemo(() => buildDmConversations(records), [records]);
-    const [resolvedDmUsers, setResolvedDmUsers] = React.useState<Record<string, Pick<DmUserContact, "label" | "details" | "avatarUrl">>>({});
-    const dmUserContacts = React.useMemo(
-        () => buildDmUserContacts(records, protectedDmUserIds, resolvedDmUsers),
-        [protectedDmUserIds, records, resolvedDmUsers],
-    );
-    const [manualProtectedDmUserId, setManualProtectedDmUserId] = React.useState("");
-    const requestedDmUsersRef = React.useRef<Set<string>>(new Set());
-    const purgeTargetOptions: SelectOption<SendTrailPurgeTarget>[] = [
-        { label: "Everything", value: "all" },
-        { label: "Direct Messages only", value: "dms" },
-        { label: "Servers only", value: "servers" },
-    ];
-
-    const updateProtectedDmChannels = React.useCallback((next: Set<string>) => {
-        settings.store.protectedDmChannels = Array.from(next).sort().join(",");
-    }, []);
-
-    const updateProtectedDmUserIds = React.useCallback((next: Set<string>) => {
-        settings.store.protectedDmUserIds = Array.from(next).sort().join(",");
-    }, []);
-
-    const toggleProtectedDm = React.useCallback((channelId: string, enabled: boolean) => {
-        const next = new Set(protectedDmChannels);
-        if (enabled) next.add(channelId);
-        else next.delete(channelId);
-        updateProtectedDmChannels(next);
-    }, [protectedDmChannels, updateProtectedDmChannels]);
-
-    const toggleProtectedDmUser = React.useCallback((userId: string, enabled: boolean) => {
-        const next = new Set(protectedDmUserIds);
-        if (enabled) next.add(userId);
-        else next.delete(userId);
-        updateProtectedDmUserIds(next);
-    }, [protectedDmUserIds, updateProtectedDmUserIds]);
-
-    const addProtectedDmUser = React.useCallback(() => {
-        const normalized = manualProtectedDmUserId.trim();
-
-        if (!/^\d{5,24}$/.test(normalized)) {
-            showToast("Enter a numeric Discord user ID to save a friend rule.", "critical");
-            return;
-        }
-
-        if (protectedDmUserIds.has(normalized)) {
-            showToast("That DM user ID is already protected.", "critical");
-            return;
-        }
-
-        const next = new Set(protectedDmUserIds);
-        next.add(normalized);
-        updateProtectedDmUserIds(next);
-        setManualProtectedDmUserId("");
-        showToast("Saved permanent DM protection for that user ID.", "success");
-    }, [manualProtectedDmUserId, protectedDmUserIds, updateProtectedDmUserIds]);
+function ConfigModal({ modalProps, records }: { modalProps: RenderModalProps; records: SentTrailRecord[]; }) {
+    const config = settings.use(PURGE_SETTINGS);
+    const protectedChannels = React.useMemo(() => parseIdList(config.protectedDmChannels), [config.protectedDmChannels]);
+    const protectedUsers = React.useMemo(() => parseIdList(config.protectedDmUserIds), [config.protectedDmUserIds]);
+    const [tick, refresh] = React.useReducer((value: number) => value + 1, 0);
+    const [manualId, setManualId] = React.useState("");
+    const conversations = React.useMemo(() => buildDmConversations(records), [records]);
+    const contacts = React.useMemo(() => buildDmUserContacts(records, protectedUsers), [records, protectedUsers, tick]);
 
     React.useEffect(() => {
-        let cancelled = false;
+        let alive = true;
+        const pending: Promise<unknown>[] = [];
 
-        for (const userId of dmUserIds) {
-            const cachedUser = UserStore.getUser(userId) as { avatar?: string | null; username?: string; globalName?: string; global_name?: string; } | undefined;
-            if (cachedUser?.username) {
-                setResolvedDmUsers(current => current[userId]
-                    ? current
-                    : { ...current, [userId]: buildRecipientIdentityFromUser(userId, cachedUser) });
-                continue;
-            }
-
-            if (resolvedDmUsers[userId] || requestedDmUsersRef.current.has(userId)) continue;
-
-            requestedDmUsersRef.current.add(userId);
-            void UserUtils.getUser(userId)
-                .then((user: { avatar?: string | null; username?: string; globalName?: string; global_name?: string; } | null | undefined) => {
-                    if (!user || cancelled) return;
-
-                    setResolvedDmUsers(current => ({
-                        ...current,
-                        [userId]: buildRecipientIdentityFromUser(userId, user),
-                    }));
-                })
-                .catch(() => null);
+        for (const { userId } of contacts) {
+            if (requestedUsers.has(userId) || UserStore.getUser(userId)) continue;
+            requestedUsers.add(userId);
+            pending.push(Promise.resolve(UserUtils.getUser(userId)).catch(() => null));
         }
 
+        if (pending.length) void Promise.all(pending).then(() => alive && refresh());
+
         return () => {
-            cancelled = true;
+            alive = false;
         };
-    }, [dmUserIds, resolvedDmUsers]);
+    }, [contacts]);
+
+    const addUser = () => {
+        const id = manualId.trim();
+
+        if (!/^\d{5,24}$/.test(id)) return showToast("Enter a numeric Discord user ID to save a friend rule.", "critical");
+        if (protectedUsers.has(id)) return showToast("That DM user ID is already protected.", "critical");
+
+        toggleId("protectedDmUserIds", protectedUsers, id, true);
+        setManualId("");
+        showToast("Saved permanent DM protection for that user ID.", "success");
+    };
 
     return (
         <Modal
             {...modalProps}
             size="md"
-            title={<Text size="lg" weight="semibold">Purge Config</Text>}
-            actions={[{
-                text: "Close",
-                variant: "secondary",
-                onClick: close
-            }]}
+            title={<BaseText size="lg" weight="semibold">Purge Config</BaseText>}
+            actions={[{ text: "Close", variant: "secondary", onClick: modalProps.onClose }]}
         >
             <div className={cl("config-modal")}>
                 <Paragraph className={cl("config-copy")}>
@@ -531,7 +366,7 @@ function SendTrailConfigModal({
                     <div className={cl("config-field")}>
                         <span className={cl("field-label")}>Purge Target</span>
                         <Select
-                            options={purgeTargetOptions}
+                            options={PURGE_TARGET_OPTIONS}
                             select={(value: SendTrailPurgeTarget) => settings.store.purgeTarget = value}
                             isSelected={(value: SendTrailPurgeTarget) => value === config.purgeTarget}
                             serialize={(value: SendTrailPurgeTarget) => value}
@@ -540,7 +375,7 @@ function SendTrailConfigModal({
 
                     <div className={cl("config-switch-row")}>
                         <div>
-                            <Text size="md" weight="semibold">Protect all DMs</Text>
+                            <BaseText size="md" weight="semibold">Protect all DMs</BaseText>
                             <Paragraph className={cl("config-hint")}>
                                 When enabled, no DM or group DM is ever purged, even if it is selected.
                             </Paragraph>
@@ -550,15 +385,15 @@ function SendTrailConfigModal({
                 </div>
 
                 <div className={cl("config-list-header")}>
-                    <Text size="md" weight="semibold">Protected DM conversations</Text>
-                    {!!protectedDmChannels.size && (
+                    <BaseText size="md" weight="semibold">Protected DM conversations</BaseText>
+                    {!!protectedChannels.size && (
                         <TextButton variant="secondary" onClick={() => settings.store.protectedDmChannels = ""}>
                             Clear protected DM list
                         </TextButton>
                     )}
                 </div>
 
-                {dmConversations.length === 0 ? (
+                {conversations.length === 0 ? (
                     <Card className={cl("config-empty")} defaultPadding>
                         <Paragraph className={Margins.reset}>
                             No direct-message history has been captured yet. Once you send a DM from this client, it can be protected here.
@@ -566,17 +401,17 @@ function SendTrailConfigModal({
                     </Card>
                 ) : (
                     <div className={cl("config-list")}>
-                        {dmConversations.map(conversation => (
+                        {conversations.map(conversation => (
                             <Card key={conversation.channelId} className={cl("config-item")} defaultPadding>
                                 <div className={cl("config-item-copy")}>
-                                    <Text size="md" weight="semibold">{conversation.label}</Text>
+                                    <BaseText size="md" weight="semibold">{conversation.label}</BaseText>
                                     <Paragraph className={cl("config-hint")}>
-                                        {conversation.details} / {conversation.count} saved message{conversation.count === 1 ? "" : "s"}
+                                        {conversation.details} / {plural(conversation.count, "saved message")}
                                     </Paragraph>
                                 </div>
                                 <Switch
-                                    checked={protectedDmChannels.has(conversation.channelId)}
-                                    onChange={value => toggleProtectedDm(conversation.channelId, value)}
+                                    checked={protectedChannels.has(conversation.channelId)}
+                                    onChange={value => toggleId("protectedDmChannels", protectedChannels, conversation.channelId, value)}
                                 />
                             </Card>
                         ))}
@@ -584,8 +419,8 @@ function SendTrailConfigModal({
                 )}
 
                 <div className={cl("config-list-header")}>
-                    <Text size="md" weight="semibold">Always protected DM users</Text>
-                    {!!protectedDmUserIds.size && (
+                    <BaseText size="md" weight="semibold">Always protected DM users</BaseText>
+                    {!!protectedUsers.size && (
                         <TextButton variant="secondary" onClick={() => settings.store.protectedDmUserIds = ""}>
                             Clear protected user list
                         </TextButton>
@@ -606,30 +441,25 @@ function SendTrailConfigModal({
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="off"
-                            value={manualProtectedDmUserId}
+                            value={manualId}
                             placeholder="Add a friend by user ID"
-                            onChange={setManualProtectedDmUserId}
+                            onChange={setManualId}
                             onKeyDown={event => {
                                 if (event.key !== "Enter") return;
                                 event.preventDefault();
-                                addProtectedDmUser();
+                                addUser();
                             }}
                             spellCheck={false}
                             maxLength={null}
                         />
                     </div>
 
-                    <Button
-                        size="small"
-                        variant="secondary"
-                        className={cl("config-save-button")}
-                        onClick={addProtectedDmUser}
-                    >
+                    <Button size="small" variant="secondary" className={cl("config-save-button")} onClick={addUser}>
                         Save Friend
                     </Button>
                 </div>
 
-                {dmUserContacts.length === 0 ? (
+                {contacts.length === 0 ? (
                     <Card className={cl("config-empty")} defaultPadding>
                         <Paragraph className={Margins.reset}>
                             No DM users are known yet. You can still save a friend manually by Discord user ID above.
@@ -637,7 +467,7 @@ function SendTrailConfigModal({
                     </Card>
                 ) : (
                     <div className={cl("config-list")}>
-                        {dmUserContacts.map(contact => (
+                        {contacts.map(contact => (
                             <Card key={contact.userId} className={cl("config-item")} defaultPadding>
                                 <div className={cl("config-user-row")}>
                                     <img
@@ -645,20 +475,21 @@ function SendTrailConfigModal({
                                         src={contact.avatarUrl}
                                         alt={contact.label}
                                         loading="lazy"
+                                        decoding="async"
                                     />
                                     <div className={cl("config-item-copy")}>
-                                        <Text size="md" weight="semibold">{contact.label}</Text>
+                                        <BaseText size="md" weight="semibold">{contact.label}</BaseText>
                                         <Paragraph className={cl("config-hint")}>
                                             {contact.details} / User ID {contact.userId}
                                             {contact.count
-                                                ? ` / ${contact.count} saved DM message${contact.count === 1 ? "" : "s"}`
+                                                ? ` / ${plural(contact.count, "saved DM message")}`
                                                 : " / no DM history loaded yet"}
                                         </Paragraph>
                                     </div>
                                 </div>
                                 <Switch
-                                    checked={protectedDmUserIds.has(contact.userId)}
-                                    onChange={value => toggleProtectedDmUser(contact.userId, value)}
+                                    checked={protectedUsers.has(contact.userId)}
+                                    onChange={value => toggleId("protectedDmUserIds", protectedUsers, contact.userId, value)}
                                 />
                             </Card>
                         ))}
@@ -669,32 +500,20 @@ function SendTrailConfigModal({
     );
 }
 
-function RecordCard({
+const RecordCard = React.memo(function RecordCard({
     record,
     selected,
     deleting,
     protectedFromPurge,
-    onToggleSelected,
+    onToggle,
 }: {
     record: SentTrailRecord;
     selected: boolean;
     deleting: boolean;
     protectedFromPurge: boolean;
-    onToggleSelected(): void;
+    onToggle(id: string): void;
 }) {
     const context = resolveRecordContext(record);
-    const handleCardClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-        if (deleting || shouldIgnoreRecordToggle(event.target as HTMLElement)) return;
-        onToggleSelected();
-    }, [deleting, onToggleSelected]);
-
-    const handleCardKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (deleting) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        if (shouldIgnoreRecordToggle(event.target as HTMLElement)) return;
-        event.preventDefault();
-        onToggleSelected();
-    }, [deleting, onToggleSelected]);
 
     return (
         <Card
@@ -703,8 +522,15 @@ function RecordCard({
             role="button"
             tabIndex={deleting ? -1 : 0}
             aria-pressed={selected}
-            onClick={handleCardClick}
-            onKeyDown={handleCardKeyDown}
+            onClick={() => {
+                if (!deleting) onToggle(record.id);
+            }}
+            onKeyDown={event => {
+                if (deleting || event.target !== event.currentTarget) return;
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                onToggle(record.id);
+            }}
         >
             <div className={cl("record-header")}>
                 <div className={cl("record-meta")}>
@@ -716,12 +542,8 @@ function RecordCard({
                         <span className={cl("channel-name")}>
                             {context.isDirectMessage ? context.channelName : `#${context.channelName}`}
                         </span>
-                        {protectedFromPurge && (
-                            <span className={cl("record-flag")}>Protected</span>
-                        )}
-                        {selected && (
-                            <span className={cl("record-flag", "record-flag-selected")}>Selected</span>
-                        )}
+                        {protectedFromPurge && <span className={cl("record-flag")}>Protected</span>}
+                        {selected && <span className={cl("record-flag", "record-flag-selected")}>Selected</span>}
                     </div>
 
                     <Paragraph className={cl("record-timestamp")}>
@@ -750,7 +572,6 @@ function RecordCard({
                     <TextButton
                         variant="secondary"
                         className={cl("record-open-button")}
-                        data-send-trail-action="true"
                         onClick={event => {
                             event.stopPropagation();
                             NavigationRouter.transitionTo(record.jumpLink);
@@ -763,37 +584,9 @@ function RecordCard({
             </div>
         </Card>
     );
-}
+});
 
-function PaginationChevron({ direction, double = false }: { direction: "left" | "right"; double?: boolean; }) {
-    return (
-        <span
-            className={cl(
-                "pagination-nav-glyph",
-                direction === "left" ? "pagination-nav-left" : "pagination-nav-right",
-                double && "pagination-nav-double",
-            )}
-            aria-hidden="true"
-        >
-            <span className={cl("pagination-nav-chevron")} />
-            {double && <span className={cl("pagination-nav-chevron")} />}
-        </span>
-    );
-}
-
-function PaginationNavButton({
-    direction,
-    double = false,
-    disabled,
-    label,
-    onClick,
-}: {
-    direction: "left" | "right";
-    double?: boolean;
-    disabled: boolean;
-    label: string;
-    onClick(): void;
-}) {
+function PageButton({ glyph, label, disabled, onClick }: { glyph: string; label: string; disabled: boolean; onClick(): void; }) {
     return (
         <button
             type="button"
@@ -803,353 +596,126 @@ function PaginationNavButton({
             title={label}
             onClick={onClick}
         >
-            <PaginationChevron direction={direction} double={double} />
+            {glyph}
         </button>
     );
 }
 
-function getScrollContainer(node: HTMLElement | null): HTMLElement | Window {
-    let current = node?.parentElement ?? null;
-
-    while (current) {
-        const style = window.getComputedStyle(current);
-        const { overflowY } = style;
-
-        if ((overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") && current.scrollHeight > current.clientHeight) {
-            return current;
-        }
-
-        current = current.parentElement;
-    }
-
-    return window;
+function SendTrailTab() {
+    const userId = useStateFromStores([UserStore], () => UserStore.getCurrentUser()?.id ?? null);
+    return <SendTrailAccount key={userId} userId={userId} />;
 }
 
-function SendTrailTab() {
-    const currentUserId = useStateFromStores([UserStore], () => UserStore.getCurrentUser()?.id ?? null);
-    const [records, pending] = useSentTrailRecords(currentUserId);
-    const purgeConfig = settings.use();
-    const protectedDmChannels = React.useMemo(
-        () => parseProtectedDmChannels(purgeConfig.protectedDmChannels),
-        [purgeConfig.protectedDmChannels],
-    );
-    const protectedDmUserIds = React.useMemo(
-        () => parseProtectedDmUserIds(purgeConfig.protectedDmUserIds),
-        [purgeConfig.protectedDmUserIds],
-    );
-    const purgeTarget = purgeConfig.purgeTarget as SendTrailPurgeTarget;
+function SendTrailAccount({ userId }: { userId: string | null; }) {
+    const [records, pending] = useSentTrailRecords(userId);
+    const config = settings.use(PURGE_SETTINGS);
+    const protectedChannels = React.useMemo(() => parseIdList(config.protectedDmChannels), [config.protectedDmChannels]);
+    const protectedUsers = React.useMemo(() => parseIdList(config.protectedDmUserIds), [config.protectedDmUserIds]);
+    const purgeTarget = config.purgeTarget as SendTrailPurgeTarget;
 
     const [scope, setScope] = React.useState<ScopeValue>("all");
     const [kind, setKind] = React.useState<KindValue>("all");
     const [period, setPeriod] = React.useState<PeriodValue>("all");
-    const [pageSize, setPageSize] = React.useState<PageSizeValue>(DEFAULT_PAGE_SIZE);
-    const [currentPage, setCurrentPage] = React.useState(1);
+    const [pageSize, setPageSize] = React.useState<PageSizeValue>("5");
+    const [page, setPage] = React.useState(1);
     const [query, setQuery] = React.useState("");
     const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
-    const [deletingIds, setDeletingIds] = React.useState<Set<string>>(() => new Set());
-    const [purgeStatus, setPurgeStatus] = React.useState<PurgeStatusState>(makeEmptyPurgeStatus);
-    const [renderedPurgeStatus, setRenderedPurgeStatus] = React.useState<PurgeStatusState>(makeEmptyPurgeStatus);
-    const [isPurgeStatusVisible, setIsPurgeStatusVisible] = React.useState(false);
-    const purgeStatusTimerRef = React.useRef<number | null>(null);
-    const purgeStatusExitTimerRef = React.useRef<number | null>(null);
-    const purgeStatusFrameRef = React.useRef<number | null>(null);
-    const purgeRuntimeTimerRef = React.useRef<number | null>(null);
-    const purgeRuntimeStartedAtRef = React.useRef<number | null>(null);
-    const isMountedRef = React.useRef(true);
-    const historyFooterRef = React.useRef<HTMLDivElement | null>(null);
-    const keepFooterVisibleRef = React.useRef(false);
+    const [deletingId, setDeletingId] = React.useState<string | null>(null);
+    const [status, setStatus] = React.useState<PurgeStatus>(EMPTY_STATUS);
+    const mounted = React.useRef(true);
+    const deferredQuery = React.useDeferredValue(query);
+
+    const busy = React.useSyncExternalStore(subscribeKamidereRuntimeActivity, () =>
+        getKamidereRuntimeTask(SEND_TRAIL_PURGE_TASK_ID)?.status === "running",
+    );
 
     React.useEffect(() => {
+        mounted.current = true;
         return () => {
-            isMountedRef.current = false;
-            if (purgeStatusTimerRef.current) {
-                window.clearTimeout(purgeStatusTimerRef.current);
-            }
-            if (purgeStatusExitTimerRef.current) {
-                window.clearTimeout(purgeStatusExitTimerRef.current);
-            }
-            if (purgeStatusFrameRef.current) {
-                window.cancelAnimationFrame(purgeStatusFrameRef.current);
-            }
+            mounted.current = false;
         };
     }, []);
 
-    const clearPurgeRuntimeTask = React.useCallback((delayMs = 0) => {
-        if (purgeRuntimeTimerRef.current) {
-            window.clearTimeout(purgeRuntimeTimerRef.current);
-            purgeRuntimeTimerRef.current = null;
-        }
+    const checkProtected = (record: SentTrailRecord) =>
+        isProtected(record, purgeTarget, config.protectAllDms, protectedChannels, protectedUsers);
 
-        if (delayMs <= 0) {
-            return;
-        }
-
-        if (delayMs > 0) {
-            purgeRuntimeTimerRef.current = window.setTimeout(() => {
-                removeKamidereRuntimeTask(PURGE_RUNTIME_TASK_ID);
-                purgeRuntimeStartedAtRef.current = null;
-                purgeRuntimeTimerRef.current = null;
-            }, delayMs);
-        }
-    }, []);
-
-    React.useEffect(() => {
-        const recordIds = new Set(records.map(record => record.id));
-        setSelectedIds(current => {
-            const next = new Set(Array.from(current).filter(id => recordIds.has(id)));
-            return next.size === current.size ? current : next;
-        });
-    }, [records]);
-
-    React.useEffect(() => {
-        if (purgeStatus.phase === "running" || purgeStatus.phase === "idle") return;
-
-        if (purgeStatusTimerRef.current) {
-            window.clearTimeout(purgeStatusTimerRef.current);
-        }
-
-        purgeStatusTimerRef.current = window.setTimeout(() => {
-            setPurgeStatus(makeEmptyPurgeStatus());
-            purgeStatusTimerRef.current = null;
-        }, PURGE_STATUS_HIDE_DELAY_MS);
-    }, [purgeStatus]);
-
-    React.useEffect(() => {
-        if (purgeStatus.phase !== "idle") {
-            if (purgeStatusExitTimerRef.current) {
-                window.clearTimeout(purgeStatusExitTimerRef.current);
-                purgeStatusExitTimerRef.current = null;
-            }
-            if (purgeStatusFrameRef.current) {
-                window.cancelAnimationFrame(purgeStatusFrameRef.current);
-            }
-
-            setRenderedPurgeStatus(purgeStatus);
-            purgeStatusFrameRef.current = window.requestAnimationFrame(() => {
-                setIsPurgeStatusVisible(true);
-                purgeStatusFrameRef.current = null;
-            });
-            return;
-        }
-
-        if (renderedPurgeStatus.phase === "idle") return;
-
-        if (purgeStatusFrameRef.current) {
-            window.cancelAnimationFrame(purgeStatusFrameRef.current);
-            purgeStatusFrameRef.current = null;
-        }
-
-        setIsPurgeStatusVisible(false);
-
-        if (purgeStatusExitTimerRef.current) {
-            window.clearTimeout(purgeStatusExitTimerRef.current);
-        }
-
-        purgeStatusExitTimerRef.current = window.setTimeout(() => {
-            setRenderedPurgeStatus(makeEmptyPurgeStatus());
-            purgeStatusExitTimerRef.current = null;
-        }, PURGE_STATUS_TRANSITION_MS);
-    }, [purgeStatus, renderedPurgeStatus.phase]);
-
-    const updateDeletingId = React.useCallback((recordId: string, active: boolean) => {
-        setDeletingIds(current => {
-            const next = new Set(current);
-            if (active) next.add(recordId);
-            else next.delete(recordId);
-            return next;
-        });
-    }, []);
-
-    const publishPurgeRuntimeStatus = React.useCallback((status: PurgeStatusState, startedAt?: number) => {
-        const effectiveStartedAt = startedAt ?? purgeRuntimeStartedAtRef.current ?? Date.now();
-        purgeRuntimeStartedAtRef.current = effectiveStartedAt;
-
-        syncPurgeRuntimeTask(status, effectiveStartedAt);
-
-        if (status.phase === "running") {
-            clearPurgeRuntimeTask();
-            return;
-        }
-
-        clearPurgeRuntimeTask(PURGE_STATUS_HIDE_DELAY_MS + PURGE_STATUS_TRANSITION_MS);
-    }, [clearPurgeRuntimeTask]);
-
-    const applyPurgeStatus = React.useCallback((status: PurgeStatusState, startedAt?: number) => {
-        publishPurgeRuntimeStatus(status, startedAt);
-
-        if (isMountedRef.current) {
-            setPurgeStatus(status);
-        }
-    }, [publishPurgeRuntimeStatus]);
-
-    const scopeOptions = React.useMemo<SelectOption<ScopeValue>[]>(() => {
+    const scopeOptions = React.useMemo<Option<ScopeValue>[]>(() => {
         const guilds = new Map<string, string>();
 
         for (const record of records) {
-            if (record.guildId === "@me") continue;
-
-            const context = resolveRecordContext(record);
-            guilds.set(record.guildId, context.guildName);
+            if (record.guildId === "@me" || guilds.has(record.guildId)) continue;
+            guilds.set(record.guildId, resolveRecordContext(record).guildName);
         }
-
-        const guildEntries = Array.from(guilds.entries())
-            .sort((left, right) => left[1].localeCompare(right[1]))
-            .map(([guildId, name]) => ({
-                label: name,
-                value: `guild:${guildId}` as ScopeValue,
-            }));
 
         return [
             { label: "All destinations", value: "all" },
             { label: "Direct Messages", value: "dms" },
-            ...guildEntries,
+            ...Array.from(guilds.entries())
+                .sort((left, right) => left[1].localeCompare(right[1]))
+                .map(([guildId, name]) => ({ label: name, value: `guild:${guildId}` as ScopeValue })),
         ];
     }, [records]);
 
-    const periodOptions: SelectOption<PeriodValue>[] = [
-        { label: "All time", value: "all" },
-        { label: "Last 24 hours", value: "24h" },
-        { label: "Last 7 days", value: "7d" },
-    ];
+    const searchCache = React.useMemo(() => new Map<string, string>(), [records]);
 
-    const kindOptions: SelectOption<KindValue>[] = [
-        { label: "Everything", value: "all" },
-        { label: "Text only", value: "text" },
-        { label: "Media only", value: "media" },
-    ];
-
-    const pageSizeOptions: SelectOption<PageSizeValue>[] = [
-        { label: "5", value: "5" },
-        { label: "10", value: "10" },
-        { label: "20", value: "20" },
-        { label: "30", value: "30" },
-        { label: "50", value: "50" },
-    ];
-
-    const filteredRecords = React.useMemo(() => {
-        const search = query.trim().toLowerCase();
-        const cutoff = period === "24h"
-            ? Date.now() - 24 * 60 * 60 * 1000
-            : period === "7d"
-                ? Date.now() - 7 * 24 * 60 * 60 * 1000
-                : 0;
+    const filtered = React.useMemo(() => {
+        const search = deferredQuery.trim().toLowerCase();
+        const cutoff = period === "24h" ? Date.now() - 86_400_000 : period === "7d" ? Date.now() - 604_800_000 : 0;
 
         return records.filter(record => {
             if (!recordMatchesScope(record, scope)) return false;
             if (kind === "text" && !record.hasText) return false;
             if (kind === "media" && !record.hasMedia) return false;
             if (cutoff && record.timestamp < cutoff) return false;
-            if (search && !buildSearchIndex(record).includes(search)) return false;
-            return true;
+            if (!search) return true;
+
+            let index = searchCache.get(record.id);
+            if (index === undefined) {
+                index = buildSearchIndex(record);
+                searchCache.set(record.id, index);
+            }
+            return index.includes(search);
         });
-    }, [kind, period, query, records, scope]);
+    }, [deferredQuery, kind, period, records, scope, searchCache]);
 
     const pageSizeNumber = Number(pageSize);
-    const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSizeNumber));
-    const pageStartIndex = (currentPage - 1) * pageSizeNumber;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSizeNumber));
+    const currentPage = Math.min(page, totalPages);
+    const pageStart = (currentPage - 1) * pageSizeNumber;
 
-    React.useEffect(() => {
-        setCurrentPage(1);
-    }, [kind, pageSize, period, query, scope]);
+    const groups = React.useMemo(() => {
+        const byLabel = new Map<string, SentTrailRecord[]>();
 
-    React.useEffect(() => {
-        if (currentPage <= totalPages) return;
-        setCurrentPage(totalPages);
-    }, [currentPage, totalPages]);
-
-    React.useEffect(() => {
-        if (!keepFooterVisibleRef.current) return;
-
-        keepFooterVisibleRef.current = false;
-        const footer = historyFooterRef.current;
-        if (!footer) return;
-
-        window.requestAnimationFrame(() => {
-            const scrollContainer = getScrollContainer(footer);
-            const margin = 20;
-
-            if (scrollContainer === window) {
-                const rect = footer.getBoundingClientRect();
-                const overflow = rect.bottom - (window.innerHeight - margin);
-                if (overflow > 0) {
-                    window.scrollBy({
-                        top: overflow,
-                        behavior: "smooth",
-                    });
-                }
-                return;
-            }
-
-            const container = scrollContainer as HTMLElement;
-            const footerRect = footer.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-            const overflow = footerRect.bottom - (containerRect.bottom - margin);
-
-            if (overflow > 0) {
-                container.scrollBy({
-                    top: overflow,
-                    behavior: "smooth",
-                });
-            }
-        });
-    }, [currentPage, pageSize]);
-
-    const pagedRecords = React.useMemo(
-        () => filteredRecords.slice(pageStartIndex, pageStartIndex + pageSizeNumber),
-        [filteredRecords, pageSizeNumber, pageStartIndex],
-    );
-
-    const groupedRecords = React.useMemo<RecordGroup[]>(() => {
-        const groups = new Map<string, SentTrailRecord[]>();
-
-        for (const record of pagedRecords) {
+        for (const record of filtered.slice(pageStart, pageStart + pageSizeNumber)) {
             const label = formatDayLabel(record.timestamp);
-            const existing = groups.get(label);
-            if (existing) existing.push(record);
-            else groups.set(label, [record]);
+            const list = byLabel.get(label);
+            if (list) list.push(record);
+            else byLabel.set(label, [record]);
         }
 
-        return Array.from(groups.entries()).map(([label, grouped]) => ({
-            label,
-            records: grouped,
-        }));
-    }, [pagedRecords]);
+        return Array.from(byLabel.entries());
+    }, [filtered, pageSizeNumber, pageStart]);
 
     const selectedRecords = React.useMemo(
         () => records.filter(record => selectedIds.has(record.id)),
         [records, selectedIds],
     );
+    const purgeRecords = selectedRecords.length > 0 ? selectedRecords : filtered;
 
-    const purgeActionRecords = React.useMemo(
-        () => selectedRecords.length > 0 ? selectedRecords : filteredRecords,
-        [filteredRecords, selectedRecords],
-    );
-    const purgeActionEligibleRecords = React.useMemo(
-        () => purgeActionRecords.filter(record => !isRecordProtected(record, purgeTarget, purgeConfig.protectAllDms, protectedDmChannels, protectedDmUserIds)),
-        [protectedDmChannels, protectedDmUserIds, purgeActionRecords, purgeConfig.protectAllDms, purgeTarget],
-    );
+    const dmThreadCount = React.useMemo(() => {
+        const channels = new Set<string>();
+        for (const record of records) if (isDm(record)) channels.add(record.channelId);
+        return channels.size;
+    }, [records]);
 
-    const dmConversationCount = React.useMemo(() => buildDmConversations(records).length, [records]);
-    const isBusy = purgeStatus.phase === "running";
-    const shouldHideLoadingState = isBusy || deletingIds.size > 0 || renderedPurgeStatus.phase !== "idle";
     const scopeLabel = scopeOptions.find(option => option.value === scope)?.label ?? "All destinations";
-    const kindLabel = kindOptions.find(option => option.value === kind)?.label ?? "Everything";
-    const periodLabel = periodOptions.find(option => option.value === period)?.label ?? "All time";
-    const pageRangeStart = filteredRecords.length === 0 ? 0 : pageStartIndex + 1;
-    const pageRangeEnd = filteredRecords.length === 0 ? 0 : Math.min(filteredRecords.length, pageStartIndex + pageSizeNumber);
-    const purgeActionLabel = selectedRecords.length > 0 ? "Purge Selected" : "Purge All";
+    const kindLabel = KIND_OPTIONS.find(option => option.value === kind)?.label ?? "Everything";
+    const periodLabel = PERIOD_OPTIONS.find(option => option.value === period)?.label ?? "All time";
+    const rangeStart = filtered.length === 0 ? 0 : pageStart + 1;
+    const rangeEnd = Math.min(filtered.length, pageStart + pageSizeNumber);
+    const navLocked = busy || filtered.length === 0;
 
-    const changePage = React.useCallback((nextPage: number) => {
-        keepFooterVisibleRef.current = true;
-        setCurrentPage(Math.max(1, Math.min(totalPages, nextPage)));
-    }, [totalPages]);
-
-    const changePageSize = React.useCallback((nextPageSize: PageSizeValue) => {
-        keepFooterVisibleRef.current = true;
-        setPageSize(nextPageSize);
-    }, []);
-
-    const toggleRecordSelection = React.useCallback((recordId: string) => {
+    const toggleRecord = React.useCallback((recordId: string) => {
         setSelectedIds(current => {
             const next = new Set(current);
             if (next.has(recordId)) next.delete(recordId);
@@ -1158,172 +724,124 @@ function SendTrailTab() {
         });
     }, []);
 
-    const openConfigModal = React.useCallback(() => {
-        openModal(modalProps => (
-            <SendTrailConfigModal
-                modalProps={modalProps}
-                close={modalProps.onClose}
-                records={records}
-            />
-        ));
-    }, [records]);
+    const runPurge = async (targets: SentTrailRecord[]) => {
+        if (!userId || UserStore.getCurrentUser()?.id !== userId || !targets.length) return;
+        if (getKamidereRuntimeTask(SEND_TRAIL_PURGE_TASK_ID)?.status === "running") return;
 
-    const runPurge = React.useCallback(async (targetRecords: SentTrailRecord[]) => {
-        if (!currentUserId || targetRecords.length === 0) return;
+        const eligible = targets.filter(record => !checkProtected(record));
+        const skipped = targets.length - eligible.length;
 
-        if (purgeStatusTimerRef.current) {
-            window.clearTimeout(purgeStatusTimerRef.current);
-            purgeStatusTimerRef.current = null;
-        }
-        if (purgeRuntimeTimerRef.current) {
-            window.clearTimeout(purgeRuntimeTimerRef.current);
-            purgeRuntimeTimerRef.current = null;
-        }
-
-        const eligibleRecords = targetRecords.filter(record =>
-            !isRecordProtected(record, purgeTarget, purgeConfig.protectAllDms, protectedDmChannels, protectedDmUserIds),
-        );
-        const skipped = targetRecords.length - eligibleRecords.length;
-        const startedAt = Date.now();
-        purgeRuntimeStartedAtRef.current = startedAt;
-
-        if (eligibleRecords.length === 0) {
-            const nextStatus = {
-                phase: "failure",
-                total: 0,
-                processed: 0,
-                deleted: 0,
-                failed: 0,
-                skipped,
-                currentLabel: undefined,
-            } satisfies PurgeStatusState;
-            applyPurgeStatus(nextStatus, startedAt);
+        if (!eligible.length) {
+            setStatus({ ...EMPTY_STATUS, phase: "failure", skipped });
             showToast("Nothing in the current purge target is allowed by your purge config.", "critical");
             return;
         }
 
+        const startedAt = Date.now();
+        const total = eligible.length;
         let deleted = 0;
         let failed = 0;
 
-        const runningStatus = {
-            phase: "running",
-            total: eligibleRecords.length,
-            processed: 0,
-            deleted: 0,
-            failed: 0,
-            skipped,
-            currentLabel: undefined,
-        } satisfies PurgeStatusState;
-        applyPurgeStatus(runningStatus, startedAt);
+        const isCurrent = () =>
+            getKamidereRuntimeTask(SEND_TRAIL_PURGE_TASK_ID)?.startedAt === startedAt
+            && UserStore.getCurrentUser()?.id === userId;
 
-        for (const [index, record] of eligibleRecords.entries()) {
+        const report = (processed: number, currentLabel?: string) => {
+            upsertKamidereRuntimeTask({
+                id: SEND_TRAIL_PURGE_TASK_ID,
+                toolId: "send-trail-purge",
+                name: "Send Trail Purge",
+                status: "running",
+                subtitle: currentLabel ? `Deleting ${currentLabel}` : "Purging queued messages",
+                detail: `${processed}/${total}`,
+                progressCurrent: processed,
+                progressTotal: total,
+                startedAt,
+            });
+            if (mounted.current) setStatus({ phase: "running", total, processed, deleted, failed, skipped, currentLabel });
+        };
+
+        report(0);
+
+        for (let index = 0; index < total; index++) {
+            if (!isCurrent()) break;
+
+            const record = eligible[index];
             const context = resolveRecordContext(record);
-            const currentLabel = context.isDirectMessage ? context.channelName : `#${context.channelName}`;
-
-            updateDeletingId(record.id, true);
-            const currentStatus = {
-                phase: "running",
-                total: eligibleRecords.length,
-                processed: index,
-                deleted,
-                failed,
-                skipped,
-                currentLabel,
-            } satisfies PurgeStatusState;
-            applyPurgeStatus(currentStatus, startedAt);
+            report(index, context.isDirectMessage ? context.channelName : `#${context.channelName}`);
+            if (mounted.current) setDeletingId(record.id);
 
             try {
                 await MessageActions.deleteMessage(record.channelId, record.messageId);
-                await removeSentTrailRecord(currentUserId, record.channelId, record.messageId);
-
+                await removeSentTrailRecord(userId, record.channelId, record.messageId).catch(() => null);
                 deleted++;
-                setSelectedIds(current => {
-                    if (!current.has(record.id)) return current;
-                    const next = new Set(current);
-                    next.delete(record.id);
-                    return next;
-                });
-            } catch (error) {
+                if (mounted.current) {
+                    setSelectedIds(current => {
+                        if (!current.has(record.id)) return current;
+                        const next = new Set(current);
+                        next.delete(record.id);
+                        return next;
+                    });
+                }
+            } catch {
                 failed++;
-            } finally {
-                updateDeletingId(record.id, false);
-                const progressStatus = {
-                    phase: "running",
-                    total: eligibleRecords.length,
-                    processed: index + 1,
-                    deleted,
-                    failed,
-                    skipped,
-                    currentLabel,
-                } satisfies PurgeStatusState;
-                applyPurgeStatus(progressStatus, startedAt);
             }
 
-            if (index < eligibleRecords.length - 1) {
-                await sleep(LIVE_DELETE_DELAY_MS);
-            }
+            if (index < total - 1) await sleep(DELETE_DELAY_MS);
         }
 
-        const phase: PurgeStatusPhase = failed === 0
-            ? "success"
-            : deleted > 0
-                ? "partial"
-                : "failure";
+        if (mounted.current) setDeletingId(null);
 
-        const finishedStatus = {
-            phase,
-            total: eligibleRecords.length,
-            processed: eligibleRecords.length,
-            deleted,
-            failed,
-            skipped,
-            currentLabel: undefined,
-        } satisfies PurgeStatusState;
-        applyPurgeStatus(finishedStatus, startedAt);
+        const cancelled = !isCurrent();
+        removeKamidereRuntimeTask(SEND_TRAIL_PURGE_TASK_ID, startedAt);
 
-        if (phase === "success") {
-            showToast(`Purged ${deleted} message${deleted === 1 ? "" : "s"} from Discord.`, "success");
-        } else if (phase === "partial") {
-            showToast(`Purged ${deleted} message${deleted === 1 ? "" : "s"}, but ${failed} failed.`, "critical");
-        } else {
-            showToast("No selected messages could be purged from Discord.", "critical");
+        if (cancelled) {
+            if (mounted.current) setStatus(EMPTY_STATUS);
+            return;
         }
-    }, [applyPurgeStatus, currentUserId, protectedDmChannels, protectedDmUserIds, purgeConfig.protectAllDms, purgeTarget, updateDeletingId]);
 
-    const confirmPurge = React.useCallback(() => {
-        if (purgeActionRecords.length === 0) return;
+        const phase: PurgePhase = failed === 0 ? "success" : deleted > 0 ? "partial" : "failure";
+        if (mounted.current) setStatus({ phase, total, processed: total, deleted, failed, skipped });
 
-        const isSelectionPurge = selectedRecords.length > 0;
-        const eligibleCount = purgeActionEligibleRecords.length;
-        const skippedCount = purgeActionRecords.length - eligibleCount;
-        const targetLabel = isSelectionPurge ? "selected" : "matching";
+        if (phase === "success") showToast(`Purged ${plural(deleted, "message")} from Discord.`, "success");
+        else if (phase === "partial") showToast(`Purged ${plural(deleted, "message")}, but ${failed} failed.`, "critical");
+        else showToast("No selected messages could be purged from Discord.", "critical");
+    };
+
+    const confirmPurge = () => {
+        if (!purgeRecords.length) return;
+
+        const total = purgeRecords.length;
+        const eligible = purgeRecords.reduce((count, record) => count + (checkProtected(record) ? 0 : 1), 0);
+        const skipped = total - eligible;
+        const label = selectedRecords.length > 0 ? "selected" : "matching";
 
         Alerts.show({
-            title: `Purge ${purgeActionRecords.length} ${targetLabel} message${purgeActionRecords.length === 1 ? "" : "s"}?`,
-            body: eligibleCount === 0
+            title: `Purge ${total} ${label} message${total === 1 ? "" : "s"}?`,
+            body: eligible === 0
                 ? "Everything in the current purge target is currently protected by your purge config."
-                : `Send Trail will delete ${eligibleCount} ${targetLabel} message${eligibleCount === 1 ? "" : "s"} from Discord one by one.${skippedCount ? ` ${skippedCount} ${targetLabel} entr${skippedCount === 1 ? "y is" : "ies are"} protected by config and will be skipped.` : ""}`,
+                : `Send Trail will delete ${plural(eligible, `${label} message`)} from Discord one by one.${skipped ? ` ${plural(skipped, `${label} entry`, `${label} entries`)} protected by config will be skipped.` : ""}`,
             confirmText: "Start Purge",
             cancelText: "Cancel",
-            async onConfirm() {
-                await runPurge(purgeActionRecords);
+            onConfirm() {
+                void runPurge(purgeRecords);
             },
         });
-    }, [purgeActionEligibleRecords.length, purgeActionRecords, runPurge, selectedRecords.length]);
+    };
 
-    const confirmLocalClear = React.useCallback(() => {
+    const confirmLocalClear = () => {
         Alerts.show({
             title: "Clear local Send Trail history?",
-            body: `This removes ${records.length} saved entr${records.length === 1 ? "y" : "ies"} from Send Trail only. It will not delete anything from Discord itself.`,
+            body: `This removes ${plural(records.length, "saved entry", "saved entries")} from Send Trail only. It will not delete anything from Discord itself.`,
             confirmText: "Clear Local History",
             cancelText: "Cancel",
             async onConfirm() {
-                await clearSentTrailRecords(currentUserId);
+                await clearSentTrailRecords(userId);
                 setSelectedIds(new Set());
                 showToast("Cleared local Send Trail history.", "success");
             },
         });
-    }, [currentUserId, records.length]);
+    };
 
     return (
         <SettingsTab>
@@ -1337,9 +855,9 @@ function SendTrailTab() {
             >
                 <div className={cl("hero-metrics")}>
                     <span className={cl("hero-tag")}>{records.length} tracked</span>
-                    <span className={cl("hero-tag")}>{filteredRecords.length} visible</span>
+                    <span className={cl("hero-tag")}>{filtered.length} visible</span>
                     <span className={cl("hero-tag")}>{selectedRecords.length} selected</span>
-                    <span className={cl("hero-tag")}>{dmConversationCount} DM threads known</span>
+                    <span className={cl("hero-tag")}>{dmThreadCount} DM threads known</span>
                 </div>
             </SpecialCard>
 
@@ -1351,7 +869,7 @@ function SendTrailTab() {
             <Card className={cl("history-shell")} defaultPadding>
                 <div className={cl("history-shell-header")}>
                     <div className={cl("history-shell-copy")}>
-                        <HeadingTertiary className={Margins.reset}>Sent Messages</HeadingTertiary>
+                        <Heading tag="h4" className={Margins.reset}>Sent Messages</Heading>
                         <Paragraph className={cl("history-subtitle")}>
                             Review your global send history, narrow it down, and purge the exact set you want.
                         </Paragraph>
@@ -1366,12 +884,11 @@ function SendTrailTab() {
                             </Paragraph>
                             <Paragraph className={cl("history-summary")}>
                                 Purge target: {purgeTarget === "all" ? "everything" : purgeTarget === "dms" ? "DMs only" : "servers only"}
-                                {purgeConfig.protectAllDms ? " / all DMs protected" : ""}
-                                {protectedDmChannels.size ? ` / ${protectedDmChannels.size} DM thread${protectedDmChannels.size === 1 ? "" : "s"} protected` : ""}
-                                {protectedDmUserIds.size ? ` / ${protectedDmUserIds.size} DM user${protectedDmUserIds.size === 1 ? "" : "s"} protected` : ""}
+                                {config.protectAllDms ? " / all DMs protected" : ""}
+                                {protectedChannels.size ? ` / ${plural(protectedChannels.size, "DM thread")} protected` : ""}
+                                {protectedUsers.size ? ` / ${plural(protectedUsers.size, "DM user")} protected` : ""}
                             </Paragraph>
                         </div>
-
                     </div>
 
                     <div className={cl("toolbar-grid")}>
@@ -1379,37 +896,44 @@ function SendTrailTab() {
                             <Paragraph className={cl("field-label")}>Destination</Paragraph>
                             <Select
                                 options={scopeOptions}
-                                select={(value: ScopeValue) => setScope(value)}
+                                select={(value: ScopeValue) => {
+                                    setScope(value);
+                                    setPage(1);
+                                }}
                                 isSelected={(value: ScopeValue) => scope === value}
                                 serialize={(value: ScopeValue) => value}
-                                isDisabled={isBusy}
+                                isDisabled={busy}
                             />
                         </div>
 
                         <div className={cl("toolbar-field")}>
                             <Paragraph className={cl("field-label")}>Content Type</Paragraph>
                             <Select
-                                options={kindOptions}
-                                select={(value: KindValue) => setKind(value)}
+                                options={KIND_OPTIONS}
+                                select={(value: KindValue) => {
+                                    setKind(value);
+                                    setPage(1);
+                                }}
                                 isSelected={(value: KindValue) => kind === value}
                                 serialize={(value: KindValue) => value}
-                                isDisabled={isBusy}
+                                isDisabled={busy}
                             />
                         </div>
 
                         <div className={cl("toolbar-field")}>
                             <Paragraph className={cl("field-label")}>Period</Paragraph>
                             <Select
-                                options={periodOptions}
-                                select={(value: PeriodValue) => setPeriod(value)}
+                                options={PERIOD_OPTIONS}
+                                select={(value: PeriodValue) => {
+                                    setPeriod(value);
+                                    setPage(1);
+                                }}
                                 isSelected={(value: PeriodValue) => period === value}
                                 serialize={(value: PeriodValue) => value}
-                                isDisabled={isBusy}
+                                isDisabled={busy}
                             />
                         </div>
-
                     </div>
-
                 </div>
 
                 <div className={cl("history-actions-row")}>
@@ -1421,8 +945,11 @@ function SendTrailTab() {
                             autoComplete="off"
                             value={query}
                             placeholder="Search messages, channels, servers, or media"
-                            onChange={event => setQuery(event.currentTarget.value)}
-                            disabled={isBusy}
+                            onChange={event => {
+                                setQuery(event.currentTarget.value);
+                                setPage(1);
+                            }}
+                            disabled={busy}
                             spellCheck={false}
                             aria-label="Search sent messages"
                         />
@@ -1433,8 +960,8 @@ function SendTrailTab() {
                             size="iconOnly"
                             variant="secondary"
                             className={cl("action-icon-button")}
-                            disabled={isBusy}
-                            onClick={openConfigModal}
+                            disabled={busy}
+                            onClick={() => openModal(modalProps => <ConfigModal modalProps={modalProps} records={records} />)}
                             title="Open purge config"
                             aria-label="Open purge config"
                         >
@@ -1444,73 +971,63 @@ function SendTrailTab() {
                             size="xs"
                             variant="dangerPrimary"
                             className={cl("action-button", "action-button-purge")}
-                            disabled={purgeActionRecords.length === 0 || isBusy}
+                            disabled={purgeRecords.length === 0 || busy}
                             onClick={confirmPurge}
                         >
                             <DeleteIcon width={13} height={13} />
-                            <span>{purgeActionLabel}</span>
+                            <span>{selectedRecords.length > 0 ? "Purge Selected" : "Purge All"}</span>
                         </Button>
                     </div>
                 </div>
 
-                <div
-                    className={cl(
-                        "purge-status-region",
-                        renderedPurgeStatus.phase !== "idle" ? "purge-status-region-mounted" : "purge-status-region-empty",
-                        isPurgeStatusVisible ? "purge-status-region-visible" : "purge-status-region-hidden",
-                    )}
-                >
-                    {renderedPurgeStatus.phase !== "idle" && (
-                        <PurgeStatusBanner status={renderedPurgeStatus} />
-                    )}
-                </div>
+                {status.phase !== "idle" && (
+                    <PurgeBanner status={status} onDismiss={() => setStatus(EMPTY_STATUS)} />
+                )}
 
                 <div className={cl("history-list")}>
-                    {pending && !shouldHideLoadingState && (
+                    {pending && !busy && (
                         <Card className={cl("empty-card")} defaultPadding>
                             <LogIcon className={cl("empty-icon")} />
-                            <HeadingTertiary>Loading Send Trail history...</HeadingTertiary>
+                            <Heading tag="h4">Loading Send Trail history...</Heading>
                         </Card>
                     )}
 
                     {!pending && records.length === 0 && (
                         <Card className={cl("empty-card")} defaultPadding>
                             <LogIcon className={cl("empty-icon")} />
-                            <HeadingTertiary>No saved sends yet</HeadingTertiary>
+                            <Heading tag="h4">No saved sends yet</Heading>
                             <Paragraph>
                                 Send a message, image, GIF, video, or direct media link from this client and it will start appearing here.
                             </Paragraph>
                         </Card>
                     )}
 
-                    {!pending && records.length > 0 && filteredRecords.length === 0 && (
+                    {!pending && records.length > 0 && filtered.length === 0 && (
                         <Card className={cl("empty-card")} defaultPadding>
                             <LogIcon className={cl("empty-icon")} />
-                            <HeadingTertiary>No results match this view</HeadingTertiary>
+                            <Heading tag="h4">No results match this view</Heading>
                             <Paragraph>
                                 Broaden the destination, type, period, or search query to bring more sent messages into view.
                             </Paragraph>
                         </Card>
                     )}
 
-                    {groupedRecords.map(group => (
-                        <div key={group.label} className={cl("group")}>
+                    {groups.map(([label, list]) => (
+                        <div key={label} className={cl("group")}>
                             <div className={cl("group-header")}>
-                                <HeadingTertiary className={Margins.reset}>{group.label}</HeadingTertiary>
-                                <span className={cl("group-count")}>
-                                    {group.records.length} entr{group.records.length === 1 ? "y" : "ies"}
-                                </span>
+                                <Heading tag="h4" className={Margins.reset}>{label}</Heading>
+                                <span className={cl("group-count")}>{plural(list.length, "entry", "entries")}</span>
                             </div>
 
                             <div className={cl("group-list")}>
-                                {group.records.map(record => (
+                                {list.map(record => (
                                     <RecordCard
                                         key={record.id}
                                         record={record}
                                         selected={selectedIds.has(record.id)}
-                                        deleting={deletingIds.has(record.id)}
-                                        protectedFromPurge={isRecordProtected(record, purgeTarget, purgeConfig.protectAllDms, protectedDmChannels, protectedDmUserIds)}
-                                        onToggleSelected={() => toggleRecordSelection(record.id)}
+                                        deleting={deletingId === record.id}
+                                        protectedFromPurge={checkProtected(record)}
+                                        onToggle={toggleRecord}
                                     />
                                 ))}
                             </div>
@@ -1518,43 +1035,19 @@ function SendTrailTab() {
                     ))}
                 </div>
 
-                <div ref={historyFooterRef} className={cl("history-footer")}>
+                <div className={cl("history-footer")}>
                     <div className={cl("history-footer-main")}>
                         <span className={cl("pagination-summary")}>
-                            Showing {pageRangeStart}-{pageRangeEnd} from {filteredRecords.length}
+                            Showing {rangeStart}-{rangeEnd} from {filtered.length}
                         </span>
 
                         <div className={cl("pagination-center")}>
-                            <PaginationNavButton
-                                direction="left"
-                                double
-                                disabled={currentPage <= 1 || filteredRecords.length === 0 || isBusy}
-                                label="First page"
-                                onClick={() => changePage(1)}
-                            />
-                            <PaginationNavButton
-                                direction="left"
-                                disabled={currentPage <= 1 || filteredRecords.length === 0 || isBusy}
-                                label="Previous page"
-                                onClick={() => changePage(currentPage - 1)}
-                            />
-
+                            <PageButton glyph="«" label="First page" disabled={currentPage <= 1 || navLocked} onClick={() => setPage(1)} />
+                            <PageButton glyph="‹" label="Previous page" disabled={currentPage <= 1 || navLocked} onClick={() => setPage(currentPage - 1)} />
                             <span className={cl("pagination-page-chip")}>{currentPage}</span>
                             <span className={cl("pagination-of-label")}>of {totalPages}</span>
-
-                            <PaginationNavButton
-                                direction="right"
-                                disabled={currentPage >= totalPages || filteredRecords.length === 0 || isBusy}
-                                label="Next page"
-                                onClick={() => changePage(currentPage + 1)}
-                            />
-                            <PaginationNavButton
-                                direction="right"
-                                double
-                                disabled={currentPage >= totalPages || filteredRecords.length === 0 || isBusy}
-                                label="Last page"
-                                onClick={() => changePage(totalPages)}
-                            />
+                            <PageButton glyph="›" label="Next page" disabled={currentPage >= totalPages || navLocked} onClick={() => setPage(currentPage + 1)} />
+                            <PageButton glyph="»" label="Last page" disabled={currentPage >= totalPages || navLocked} onClick={() => setPage(totalPages)} />
                         </div>
 
                         <div className={cl("pagination-page-size")}>
@@ -1562,11 +1055,14 @@ function SendTrailTab() {
                             <div className={cl("pagination-page-size-select")}>
                                 <Select
                                     className={cl("pagination-page-size-control")}
-                                    options={pageSizeOptions}
-                                    select={changePageSize}
+                                    options={PAGE_SIZE_OPTIONS}
+                                    select={(value: PageSizeValue) => {
+                                        setPageSize(value);
+                                        setPage(1);
+                                    }}
                                     isSelected={(value: PageSizeValue) => pageSize === value}
                                     serialize={(value: PageSizeValue) => value}
-                                    isDisabled={isBusy || filteredRecords.length === 0}
+                                    isDisabled={navLocked}
                                 />
                             </div>
                         </div>
@@ -1580,7 +1076,7 @@ function SendTrailTab() {
                         <TextButton
                             variant="secondary"
                             className={cl("history-footer-clear")}
-                            disabled={records.length === 0 || isBusy}
+                            disabled={records.length === 0 || busy}
                             onClick={confirmLocalClear}
                         >
                             Clear Local History

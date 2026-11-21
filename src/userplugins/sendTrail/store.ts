@@ -5,12 +5,38 @@
  */
 
 import * as DataStore from "@api/DataStore";
+import { showNotification } from "@api/Notifications";
+import { makeLazy } from "@utils/lazy";
+import { sleep } from "@utils/misc";
 import { React, UserStore } from "@webpack/common";
 import type { DispatchWithoutAction } from "react";
 
 import type { SentTrailMediaItem, SentTrailRecord } from "./types";
 
 const STORAGE_PREFIX = "kamidere-send-trail:";
+const getLegacyStore = makeLazy(() => DataStore.createStore(IS_REPORTER ? "VencordDataReporter" : "VencordData", "VencordStore"));
+const getStore = makeLazy(() => {
+    const databaseName = IS_REPORTER ? "SendTrailDataReporter" : "SendTrailData";
+    let store = DataStore.createStore(databaseName, "SendTrailStore");
+    const retryStore: DataStore.UseStore = async (mode, callback) => {
+        let opened = false;
+        try {
+            return await store(mode, objectStore => {
+                opened = true;
+                return callback(objectStore);
+            });
+        } catch (error) {
+            if (!(error instanceof DOMException) || error.name !== "UnknownError") throw error;
+            if (!opened) store = DataStore.createStore(databaseName, "SendTrailStore");
+            await sleep(250);
+            return store(mode, callback).catch((cause: unknown) => {
+                throw new Error("Could not access the separate Send Trail history database after retrying.", { cause });
+            });
+        }
+    };
+    return retryStore;
+});
+const migrations = new Map<string, Promise<void>>();
 const signals = new Set<DispatchWithoutAction>();
 const recordCache = new Map<string, SentTrailRecord[]>();
 
@@ -24,12 +50,19 @@ function setCachedRecords(userId: string | null, records: SentTrailRecord[]) {
     recordCache.set(userId, records);
 }
 
+function sameMedia(left: SentTrailMediaItem, right: SentTrailMediaItem) {
+    return left.source === right.source && left.kind === right.kind && left.url === right.url;
+}
+
 export function hasSentTrailRecord(userId: string | null, channelId: string, messageId: string) {
     if (!userId) return false;
-    return getCachedRecords(userId).some(record =>
-        record.channelId === channelId &&
-        record.messageId === messageId,
-    );
+    return getCachedRecords(userId).some(record => record.channelId === channelId && record.messageId === messageId);
+}
+
+export function mayHaveSentTrailRecord(userId: string | null, channelId: string, messageId: string) {
+    if (!userId) return false;
+    const cached = recordCache.get(userId);
+    return !cached || cached.some(record => record.channelId === channelId && record.messageId === messageId);
 }
 
 function emit() {
@@ -40,9 +73,80 @@ function getStorageKey(userId: string) {
     return `${STORAGE_PREFIX}${userId}`;
 }
 
+function migrateRecords(userId: string) {
+    let migration = migrations.get(userId);
+    if (!migration) {
+        migration = (async () => {
+            const key = getStorageKey(userId);
+            if ((await DataStore.keys<string>(getStore())).includes(key)) return;
+            let unreadable = false;
+            const records = await DataStore.get<SentTrailRecord[]>(key, getLegacyStore()).catch((error: unknown) => {
+                if (!(error instanceof DOMException) || (error.name !== "UnknownError" && (error.name !== "NotReadableError" || !error.message.includes("irrecoverable")))) throw error;
+                unreadable = true;
+                return getCachedRecords(userId);
+            });
+            await updateRecords(userId, existing => existing ?? records ?? []);
+            if (unreadable) {
+                void showNotification({
+                    title: "Send Trail uses a separate archive",
+                    body: "The previous history could not be read and was left unchanged. New messages will be saved in a separate archive.",
+                });
+            }
+        })().catch((error: unknown) => {
+            migrations.delete(userId);
+            throw error;
+        });
+        migrations.set(userId, migration);
+    }
+    return migration;
+}
+
+async function updateRecords(userId: string, updater: (records: SentTrailRecord[] | undefined) => SentTrailRecord[] | undefined) {
+    const key = getStorageKey(userId);
+    let recovered = false;
+    await getStore()("readwrite", store => new Promise<void>((resolve, reject) => {
+        recovered = false;
+        const request = store.get(key);
+        void DataStore.promisifyRequest(store.transaction).then(resolve, (error: unknown) =>
+            reject(error ?? new Error("Could not update Send Trail history.")));
+        store.transaction.onerror = (event: Event) => {
+            if (event.target instanceof IDBRequest) reject(event.target.error);
+        };
+        request.onsuccess = request.onerror = (event: Event) => {
+            const { error } = request;
+            if (error) {
+                if (error.name !== "NotReadableError" || !error.message.includes("irrecoverable")) return;
+                event.preventDefault();
+                event.stopPropagation();
+                recovered = true;
+            }
+            try {
+                const existing: SentTrailRecord[] | undefined = recovered ? [...getCachedRecords(userId)] : request.result;
+                const records = updater(existing);
+                if (records !== undefined || recovered) store.put(records ?? existing, key);
+            } catch (error) {
+                reject(error);
+            }
+        };
+    }));
+
+    if (recovered) {
+        void showNotification({
+            title: "Send Trail tracking restored",
+            body: "The saved history was damaged. Tracking has resumed using the entries still available in memory. Earlier entries may be missing.",
+        });
+    }
+}
+
 export async function getSentTrailRecords(userId: string | null) {
     if (!userId) return [];
-    const records = await DataStore.get(getStorageKey(userId)) as SentTrailRecord[] | undefined;
+    await migrateRecords(userId);
+    const records = await DataStore.get<SentTrailRecord[]>(getStorageKey(userId), getStore()).catch(async (error: unknown) => {
+        if (!(error instanceof DOMException) || error.name !== "NotReadableError" || !error.message.includes("irrecoverable")) throw error;
+        let recovered: SentTrailRecord[] = [];
+        await updateRecords(userId, existing => { recovered = existing ?? []; });
+        return recovered;
+    });
     const nextRecords = records ?? [];
     setCachedRecords(userId, nextRecords);
     return nextRecords;
@@ -51,25 +155,22 @@ export async function getSentTrailRecords(userId: string | null) {
 export async function appendSentTrailRecord(record: SentTrailRecord) {
     const userId = UserStore.getCurrentUser()?.id;
     if (!userId) return;
+    await migrateRecords(userId);
     let nextRecords = getCachedRecords(userId);
 
-    await DataStore.update(getStorageKey(userId), (existing: SentTrailRecord[] | undefined) => {
+    await updateRecords(userId, existing => {
         const records = existing ?? [];
-        const index = records.findIndex(existingRecord =>
-            existingRecord.channelId === record.channelId &&
-            existingRecord.messageId === record.messageId,
-        );
+        const index = records.findIndex(item => item.channelId === record.channelId && item.messageId === record.messageId);
 
         if (index === -1) {
             records.unshift(record);
+            if (records.length > 1 && records[1].timestamp > record.timestamp) {
+                records.sort((left, right) => right.timestamp - left.timestamp);
+            }
         } else {
-            records[index] = {
-                ...records[index],
-                ...record,
-            };
+            records[index] = { ...records[index], ...record };
         }
 
-        records.sort((left, right) => right.timestamp - left.timestamp);
         nextRecords = records;
         return records;
     });
@@ -87,28 +188,28 @@ export async function mergeSentTrailRecordMedia(
     const userId = UserStore.getCurrentUser()?.id;
     if (!userId || media.length === 0) return;
 
-    let didChange = false;
-    let nextRecords = getCachedRecords(userId);
+    const cached = recordCache.get(userId);
+    if (cached) {
+        const known = cached.find(record => record.channelId === channelId && record.messageId === messageId);
+        if (!known || media.every(item => known.media.some(existing => sameMedia(existing, item)))) return;
+    }
 
-    await DataStore.update(getStorageKey(userId), (existing: SentTrailRecord[] | undefined) => {
-        const records = existing ?? [];
+    await migrateRecords(userId);
+
+    let nextRecords: SentTrailRecord[] | undefined;
+
+    await updateRecords(userId, records => {
+        if (!records?.length) return;
         const index = records.findIndex(record => record.channelId === channelId && record.messageId === messageId);
-        if (index === -1) return records;
+        if (index === -1) return;
 
         const current = records[index];
-        const nextMedia = [...current.media];
+        let nextMedia = current.media;
 
         for (const item of media) {
-            const duplicate = nextMedia.some(existingMedia =>
-                existingMedia.source === item.source &&
-                existingMedia.kind === item.kind &&
-                existingMedia.url === item.url,
-            );
-
-            if (!duplicate) {
-                nextMedia.push(item);
-                didChange = true;
-            }
+            if (nextMedia.some(existing => sameMedia(existing, item))) continue;
+            if (nextMedia === current.media) nextMedia = [...current.media];
+            nextMedia.push(item);
         }
 
         const nextRecord: SentTrailRecord = {
@@ -123,15 +224,15 @@ export async function mergeSentTrailRecordMedia(
         };
 
         if (
-            nextRecord.hasMedia !== current.hasMedia ||
-            nextRecord.media.length !== current.media.length ||
-            nextRecord.jumpLink !== current.jumpLink ||
-            nextRecord.guildId !== current.guildId ||
-            nextRecord.channelNameSnapshot !== current.channelNameSnapshot ||
-            nextRecord.guildNameSnapshot !== current.guildNameSnapshot ||
-            (nextRecord.recipientUserIds?.join(",") ?? "") !== (current.recipientUserIds?.join(",") ?? "")
+            nextRecord.hasMedia === current.hasMedia &&
+            nextRecord.media === current.media &&
+            nextRecord.jumpLink === current.jumpLink &&
+            nextRecord.guildId === current.guildId &&
+            nextRecord.channelNameSnapshot === current.channelNameSnapshot &&
+            nextRecord.guildNameSnapshot === current.guildNameSnapshot &&
+            (nextRecord.recipientUserIds?.join(",") ?? "") === (current.recipientUserIds?.join(",") ?? "")
         ) {
-            didChange = true;
+            return;
         }
 
         records[index] = nextRecord;
@@ -139,7 +240,7 @@ export async function mergeSentTrailRecordMedia(
         return records;
     });
 
-    if (didChange) {
+    if (nextRecords) {
         setCachedRecords(userId, nextRecords);
         emit();
     }
@@ -147,7 +248,7 @@ export async function mergeSentTrailRecordMedia(
 
 export async function clearSentTrailRecords(userId: string | null) {
     if (!userId) return;
-    await DataStore.set(getStorageKey(userId), []);
+    await DataStore.set(getStorageKey(userId), [], getStore());
     setCachedRecords(userId, []);
     emit();
 }
@@ -157,70 +258,59 @@ export async function clearSentTrailRecordsWhere(
     predicate: (record: SentTrailRecord) => boolean,
 ) {
     if (!userId) return;
-    let nextRecords = getCachedRecords(userId);
+    await migrateRecords(userId);
+    let nextRecords: SentTrailRecord[] | undefined;
 
-    await DataStore.update(getStorageKey(userId), (existing: SentTrailRecord[] | undefined) => {
-        nextRecords = (existing ?? []).filter(record => !predicate(record));
-        return nextRecords;
+    await updateRecords(userId, existing => {
+        const records = existing ?? [];
+        const filtered = records.filter(record => !predicate(record));
+        if (filtered.length === records.length) {
+            if (getCachedRecords(userId).some(predicate)) nextRecords = records;
+            return;
+        }
+        nextRecords = filtered;
+        return filtered;
     });
 
-    setCachedRecords(userId, nextRecords);
-    emit();
+    if (nextRecords) {
+        setCachedRecords(userId, nextRecords);
+        emit();
+    }
 }
 
-export async function removeSentTrailRecord(userId: string | null, channelId: string, messageId: string) {
-    if (!userId) return;
-    let nextRecords = getCachedRecords(userId);
-
-    await DataStore.update(getStorageKey(userId), (existing: SentTrailRecord[] | undefined) => {
-        nextRecords = (existing ?? []).filter(record => !(record.channelId === channelId && record.messageId === messageId));
-        return nextRecords;
-    });
-
-    setCachedRecords(userId, nextRecords);
-    emit();
-}
-
-export async function removeSentTrailRecordsWhere(
-    userId: string | null,
-    predicate: (record: SentTrailRecord) => boolean,
-) {
-    await clearSentTrailRecordsWhere(userId, predicate);
+export function removeSentTrailRecord(userId: string | null, channelId: string, messageId: string) {
+    return clearSentTrailRecordsWhere(userId, record => record.channelId === channelId && record.messageId === messageId);
 }
 
 export function useSentTrailRecords(userId: string | null) {
-    const [signal, setSignal] = React.useReducer(value => value + 1, 0);
+    const [signal, notify] = React.useReducer((value: number) => value + 1, 0);
     const [records, setRecords] = React.useState<SentTrailRecord[]>(() => getCachedRecords(userId));
     const [pending, setPending] = React.useState(() => !!userId && !recordCache.has(userId));
-    const previousUserIdRef = React.useRef<string | null | undefined>(void 0);
 
     React.useEffect(() => {
-        signals.add(setSignal);
-        return () => void signals.delete(setSignal);
+        signals.add(notify);
+        return () => void signals.delete(notify);
     }, []);
 
     React.useEffect(() => {
-        let isAlive = true;
-        const userChanged = previousUserIdRef.current !== userId;
-        previousUserIdRef.current = userId;
-
-        if (userChanged) {
-            const cachedRecords = getCachedRecords(userId);
-            setRecords(cachedRecords);
-            setPending(!!userId && !recordCache.has(userId));
-            if (!userId) setRecords([]);
-        }
+        let alive = true;
+        setRecords(getCachedRecords(userId));
+        setPending(!!userId && !recordCache.has(userId));
 
         void getSentTrailRecords(userId).then(nextRecords => {
-            if (!isAlive) return;
+            if (!alive) return;
             setRecords(nextRecords);
             setPending(false);
         });
 
         return () => {
-            isAlive = false;
+            alive = false;
         };
-    }, [userId, signal]);
+    }, [userId]);
+
+    React.useEffect(() => {
+        if (signal && userId && recordCache.has(userId)) setRecords(getCachedRecords(userId));
+    }, [signal]);
 
     return [records, pending] as const;
 }

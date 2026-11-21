@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { GuildMemberCountStore, GuildStore, React, showToast as showDiscordToast } from "@webpack/common";
+import { GuildStore, React } from "@webpack/common";
 
 import {
     removeKamidereRuntimeTask,
@@ -12,6 +12,7 @@ import {
 } from "../_kamidereCompat/runtimeActivity";
 import {
     createGuildHydrationController,
+    type GuildHydrationSnapshot,
     hydrateGuildMemberCache,
 } from "./memberHydrator";
 import { addMutualScannerRun } from "./store";
@@ -24,33 +25,17 @@ import type {
     MutualScannerRun,
 } from "./types";
 import {
-    createMutualScannerController,
+    clampNumber,
     estimateScanRemainingMs,
     executeMutualScan,
     formatDurationMs,
+    getGuildMemberCount,
     makeLocalId,
+    showToast,
 } from "./utils";
 
 const SCAN_TASK_ID = "kamidere-mutual-scanner:scan";
 const WARMUP_TASK_ID = "kamidere-mutual-scanner:warmup";
-
-function showToast(message: string, type: "default" | "success" | "critical") {
-    showDiscordToast({
-        text: message,
-        variant: type,
-        position: "bottom"
-    });
-}
-
-function clampNumber(value: number, min: number, max: number) {
-    return Math.min(max, Math.max(min, value));
-}
-
-function getGuildTargetCount(guildId: string) {
-    return GuildMemberCountStore.getMemberCount(guildId)
-        ?? (GuildStore.getGuild(guildId) as { memberCount?: number; } | undefined)?.memberCount
-        ?? null;
-}
 
 export interface MutualScannerWarmupProgressState {
     guildId: string;
@@ -67,7 +52,6 @@ export interface MutualScannerWarmupProgressState {
 
 export interface MutualScannerRuntimeState {
     scan: {
-        sessionId: string | null;
         active: boolean;
         startedAt: number | null;
         scopeLabel: string | null;
@@ -78,7 +62,6 @@ export interface MutualScannerRuntimeState {
         revision: number;
     };
     warmup: {
-        sessionId: string | null;
         active: boolean;
         startedAt: number | null;
         status: string | null;
@@ -87,9 +70,11 @@ export interface MutualScannerRuntimeState {
     };
 }
 
+type ScanState = MutualScannerRuntimeState["scan"];
+type WarmupState = MutualScannerRuntimeState["warmup"];
+
 const defaultState = (): MutualScannerRuntimeState => ({
     scan: {
-        sessionId: null,
         active: false,
         startedAt: null,
         scopeLabel: null,
@@ -100,7 +85,6 @@ const defaultState = (): MutualScannerRuntimeState => ({
         revision: 0,
     },
     warmup: {
-        sessionId: null,
         active: false,
         startedAt: null,
         status: null,
@@ -111,182 +95,112 @@ const defaultState = (): MutualScannerRuntimeState => ({
 
 let state = defaultState();
 let scanController: MutualScannerController | null = null;
-let warmupController: ReturnType<typeof createGuildHydrationController> | null = null;
+let warmupController: MutualScannerController | null = null;
 const listeners = new Set<() => void>();
 
-function notify() {
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+function patchScan(patch: Partial<ScanState> | ((scan: ScanState) => Partial<ScanState>)) {
+    const scan = { ...state.scan, ...(typeof patch === "function" ? patch(state.scan) : patch) };
+    state = { ...state, scan };
     listeners.forEach(listener => listener());
 }
 
-function getSnapshot() {
-    return state;
-}
-
-function updateState(updater: (current: MutualScannerRuntimeState) => MutualScannerRuntimeState) {
-    state = updater(state);
-    notify();
-}
-
-function formatScanPhase(
-    progress: MutualScannerProgress | null,
-    scopeLabel: string | null,
-    requestDelayMs: number,
-    startedAt: number | null,
-) {
-    if (!progress) {
-        return {
-            subtitle: scopeLabel ?? "Preparing scan",
-            detail: "Preparing candidates",
-            progressCurrent: 0,
-            progressTotal: null,
-        };
-    }
-
-    const remainingMs = estimateScanRemainingMs(progress, startedAt, requestDelayMs);
-    const etaDetail = remainingMs != null && progress.phase !== "warming" && progress.phase !== "collecting"
-        ? remainingMs === 0
-            ? "finishing now"
-            : `~${formatDurationMs(remainingMs)} left`
-        : null;
-
-    if (progress.phase === "warming") {
-        return {
-            subtitle: progress.currentLabel ?? "Loading member cache",
-            detail: "warming cache",
-            progressCurrent: progress.scannedCount,
-            progressTotal: progress.totalCandidates || null,
-        };
-    }
-
-    if (progress.phase === "collecting") {
-        return {
-            subtitle: progress.currentLabel ?? "Collecting candidates",
-            detail: progress.totalCandidates > 0 ? `${progress.totalCandidates} queued` : "collecting",
-            progressCurrent: progress.scannedCount,
-            progressTotal: progress.totalCandidates || null,
-        };
-    }
-
-    if (progress.phase === "finishing") {
-        return {
-            subtitle: "Finalizing run",
-            detail: etaDetail ?? `${progress.scannedCount}/${progress.totalCandidates || "?"}`,
-            progressCurrent: progress.scannedCount,
-            progressTotal: progress.totalCandidates || null,
-        };
-    }
-
-    return {
-        subtitle: progress.currentLabel ?? scopeLabel ?? "Scanning",
-        detail: etaDetail ?? `${progress.scannedCount}/${progress.totalCandidates || "?"}`,
-        progressCurrent: progress.scannedCount,
-        progressTotal: progress.totalCandidates || null,
-    };
+function patchWarmup(patch: Partial<WarmupState> | ((warmup: WarmupState) => Partial<WarmupState>)) {
+    const warmup = { ...state.warmup, ...(typeof patch === "function" ? patch(state.warmup) : patch) };
+    state = { ...state, warmup };
+    listeners.forEach(listener => listener());
 }
 
 function syncScanTask() {
-    if (!state.scan.active) {
+    const { scan } = state;
+    if (!scan.active) {
         removeKamidereRuntimeTask(SCAN_TASK_ID);
         return;
     }
 
-    const view = formatScanPhase(
-        state.scan.progress,
-        state.scan.scopeLabel,
-        state.scan.requestDelayMs,
-        state.scan.startedAt,
-    );
+    const { progress } = scan;
+    const remainingMs = estimateScanRemainingMs(progress, scan.startedAt, scan.requestDelayMs);
+    const eta = remainingMs == null ? null : remainingMs === 0 ? "finishing now" : `~${formatDurationMs(remainingMs)} left`;
+    const total = progress?.totalCandidates || null;
+    const counts = `${progress?.scannedCount ?? 0}/${total ?? "?"}`;
+
     upsertKamidereRuntimeTask({
         id: SCAN_TASK_ID,
         toolId: "mutual-scanner",
         name: "Mutual Scanner",
         status: "running",
-        subtitle: view.subtitle,
-        detail: view.detail,
-        progressCurrent: view.progressCurrent,
-        progressTotal: view.progressTotal,
-        startedAt: state.scan.startedAt ?? Date.now(),
+        subtitle: progress?.currentLabel ?? scan.scopeLabel ?? "Preparing scan",
+        detail: !progress
+            ? "Preparing candidates"
+            : progress.phase === "warming"
+                ? "warming cache"
+                : progress.phase === "collecting"
+                    ? total ? `${total} queued` : "collecting"
+                    : eta ?? counts,
+        progressCurrent: progress?.scannedCount ?? 0,
+        progressTotal: total,
+        startedAt: scan.startedAt ?? Date.now(),
     });
 }
 
 function syncWarmupTask() {
-    if (!state.warmup.active) {
+    const { warmup } = state;
+    if (!warmup.active) {
         removeKamidereRuntimeTask(WARMUP_TASK_ID);
         return;
     }
 
-    const { progress } = state.warmup;
+    const { progress } = warmup;
     upsertKamidereRuntimeTask({
         id: WARMUP_TASK_ID,
         toolId: "manual-cache-warmup",
         name: "Manual Cache Warmup",
         status: "running",
-        subtitle: progress?.guildLabel ?? state.warmup.status ?? "Hydrating selected servers",
+        subtitle: progress?.guildLabel ?? warmup.status ?? "Hydrating selected servers",
         detail: progress?.targetCount != null
             ? `${progress.indexedCount}/${progress.targetCount}`
-            : progress
-                ? `${progress.indexedCount} indexed`
-                : "warming",
+            : progress ? `${progress.indexedCount} indexed` : "warming",
         progressCurrent: progress?.indexedCount,
         progressTotal: progress?.targetCount ?? null,
-        startedAt: state.warmup.startedAt ?? Date.now(),
+        startedAt: warmup.startedAt ?? Date.now(),
     });
 }
 
-function finishScan(result: MutualScannerExecutionResult) {
-    updateState(current => ({
-        ...current,
-        scan: {
-            ...current.scan,
-            active: false,
-            result,
-            progress: null,
-            revision: current.scan.revision + 1,
-        },
+function finishScan(result: MutualScannerExecutionResult | null) {
+    patchScan(scan => ({
+        active: false,
+        result,
+        progress: null,
+        matches: result?.matches ?? scan.matches,
+        revision: scan.revision + 1,
     }));
     removeKamidereRuntimeTask(SCAN_TASK_ID);
 }
 
 function finishWarmup() {
-    updateState(current => ({
-        ...current,
-        warmup: {
-            ...current.warmup,
-            active: false,
-            revision: current.warmup.revision + 1,
-        },
-    }));
+    patchWarmup(warmup => ({ active: false, revision: warmup.revision + 1 }));
     removeKamidereRuntimeTask(WARMUP_TASK_ID);
 }
 
 export function subscribeMutualScannerRuntime(listener: () => void) {
     listeners.add(listener);
-    return () => {
-        listeners.delete(listener);
-    };
+    return () => void listeners.delete(listener);
 }
 
-export function useMutualScannerRuntimeState() {
-    const [signal, forceUpdate] = React.useReducer(value => value + 1, 0);
-
-    React.useEffect(() => subscribeMutualScannerRuntime(forceUpdate), []);
-
-    return React.useMemo(() => getSnapshot(), [signal]);
-}
-
-export function cancelMutualScannerRuntime() {
-    scanController?.cancel();
-    warmupController?.cancel();
-    removeKamidereRuntimeTask(SCAN_TASK_ID);
-    removeKamidereRuntimeTask(WARMUP_TASK_ID);
+export function useMutualScannerRuntime<T>(selector: (current: MutualScannerRuntimeState) => T) {
+    return React.useSyncExternalStore(subscribeMutualScannerRuntime, () => selector(state));
 }
 
 export function resetMutualScannerRuntime() {
-    cancelMutualScannerRuntime();
+    scanController?.cancel();
+    warmupController?.cancel();
     scanController = null;
     warmupController = null;
+    removeKamidereRuntimeTask(SCAN_TASK_ID);
+    removeKamidereRuntimeTask(WARMUP_TASK_ID);
     state = defaultState();
-    notify();
+    listeners.forEach(listener => listener());
 }
 
 export function cancelMutualScannerRun() {
@@ -302,44 +216,37 @@ export function cancelMutualScannerWarmup() {
 }
 
 export function startMutualScannerRun(ownerId: string | null, config: MutualScannerConfig) {
-    if (!ownerId || state.scan.active) return false;
-    if (config.selectedGuildIds.length === 0) return false;
+    if (!ownerId || state.scan.active || config.selectedGuildIds.length === 0) return false;
 
-    const normalizedConfig = {
+    const normalizedConfig: MutualScannerConfig = {
         ...config,
         requestDelayMs: clampNumber(Number(config.requestDelayMs) || 0, 0, 5000),
         maxMembersPerGuild: clampNumber(Number(config.maxMembersPerGuild) || 0, 0, 50000),
         warmupMemberBudget: clampNumber(Number(config.warmupMemberBudget) || 0, 0, 100000),
     };
     const startedAt = Date.now();
-    const scopeLabel = `${normalizedConfig.selectedGuildIds.length} server${normalizedConfig.selectedGuildIds.length === 1 ? "" : "s"} / any mutual`;
-    const controller = createMutualScannerController();
-    const sessionId = makeLocalId("mutual-runtime-scan");
+    const scopeLabel = `${plural(normalizedConfig.selectedGuildIds.length, "server")} / any mutual`;
+    const controller = createGuildHydrationController();
 
     scanController = controller;
-    updateState(current => ({
-        ...current,
-        scan: {
-            sessionId,
-            active: true,
-            startedAt,
-            scopeLabel,
-            requestDelayMs: normalizedConfig.requestDelayMs,
-            progress: {
-                phase: "collecting",
-                totalCandidates: 0,
-                scannedCount: 0,
-                matchedCount: 0,
-                skippedBots: 0,
-                skippedExistingFriends: 0,
-                profileErrors: 0,
-                countOnlyMatches: 0,
-            },
-            result: null,
-            matches: [],
-            revision: current.scan.revision,
+    patchScan({
+        active: true,
+        startedAt,
+        scopeLabel,
+        requestDelayMs: normalizedConfig.requestDelayMs,
+        progress: {
+            phase: "collecting",
+            totalCandidates: 0,
+            scannedCount: 0,
+            matchedCount: 0,
+            skippedBots: 0,
+            skippedExistingFriends: 0,
+            profileErrors: 0,
+            countOnlyMatches: 0,
         },
-    }));
+        result: null,
+        matches: [],
+    });
     syncScanTask();
 
     void (async () => {
@@ -347,29 +254,17 @@ export function startMutualScannerRun(ownerId: string | null, config: MutualScan
             ownerId,
             controller,
             onProgress: progress => {
-                updateState(current => ({
-                    ...current,
-                    scan: {
-                ...current.scan,
-                requestDelayMs: normalizedConfig.requestDelayMs,
-                progress: { ...progress },
-            },
-                }));
+                if (scanController !== controller) return;
+                patchScan({ progress });
                 syncScanTask();
             },
             onMatch: match => {
-                updateState(current => ({
-                    ...current,
-                    scan: {
-                        ...current.scan,
-                        matches: current.scan.matches.some(existing => existing.userId === match.userId)
-                            ? current.scan.matches
-                            : [...current.scan.matches, match].sort((left, right) => left.label.localeCompare(right.label)),
-                    },
-                }));
-                syncScanTask();
+                if (scanController !== controller) return;
+                patchScan(scan => ({ matches: [...scan.matches.slice(-29), match] }));
             },
         });
+
+        if (scanController !== controller) return;
 
         const run: MutualScannerRun = {
             id: makeLocalId("mutual-run"),
@@ -384,26 +279,24 @@ export function startMutualScannerRun(ownerId: string | null, config: MutualScan
         };
 
         await addMutualScannerRun(ownerId, run);
+        if (scanController !== controller) return;
 
-        updateState(current => ({
-            ...current,
-            scan: {
-                ...current.scan,
-                matches: result.matches,
-            },
-        }));
-
-        finishScan(result);
         scanController = null;
+        finishScan(result);
 
         if (result.status === "completed") {
             showToast(`Mutual scan finished with ${result.matches.length} match${result.matches.length === 1 ? "" : "es"}.`, "success");
         } else if (result.status === "cancelled") {
-            showToast(`Mutual scan cancelled after ${result.stats.scannedCount} profile${result.stats.scannedCount === 1 ? "" : "s"}.`, "default");
+            showToast(`Mutual scan cancelled after ${plural(result.stats.scannedCount, "profile")}.`, "default");
         } else {
             showToast(result.error ?? "Mutual scan failed.", "critical");
         }
-    })();
+    })().catch(() => {
+        if (scanController !== controller) return;
+        scanController = null;
+        finishScan(null);
+        showToast("Could not complete the mutual scan.", "critical");
+    });
 
     return true;
 }
@@ -412,87 +305,70 @@ export function startMutualScannerWarmup(
     ownerId: string | null,
     config: Pick<MutualScannerConfig, "selectedGuildIds" | "warmupMemberBudget" | "warmupTimeoutMs">,
 ) {
-    if (!ownerId || state.warmup.active) return false;
-    if (config.selectedGuildIds.length === 0) return false;
+    if (!ownerId || state.warmup.active || config.selectedGuildIds.length === 0) return false;
 
     const controller = createGuildHydrationController();
-    const sessionId = makeLocalId("mutual-runtime-warmup");
-    const targetGuildIds = [...config.selectedGuildIds];
+    const guildIds = [...config.selectedGuildIds];
     const memberBudget = clampNumber(Number(config.warmupMemberBudget) || 0, 0, 100000);
-    const startedAt = Date.now();
+    const timeoutMs = clampNumber(Number(config.warmupTimeoutMs) || 4000, 500, 20000);
 
     warmupController = controller;
-    updateState(current => ({
-        ...current,
-        warmup: {
-            sessionId,
-            active: true,
-            startedAt,
-            status: `Queueing ${targetGuildIds.length} selected server${targetGuildIds.length === 1 ? "" : "s"} for cache hydration.`,
-            progress: null,
-            revision: current.warmup.revision,
-        },
-    }));
+    patchWarmup({
+        active: true,
+        startedAt: Date.now(),
+        status: `Queueing ${plural(guildIds.length, "selected server")} for cache hydration.`,
+        progress: null,
+    });
     syncWarmupTask();
 
     void (async () => {
         try {
-            const results: Awaited<ReturnType<typeof hydrateGuildMemberCache>>[] = [];
+            const results: GuildHydrationSnapshot[] = [];
 
-            for (const [index, guildId] of targetGuildIds.entries()) {
-                const targetCount = getGuildTargetCount(guildId);
+            for (const [index, guildId] of guildIds.entries()) {
+                const targetCount = getGuildMemberCount(guildId);
+                const guildLabel = GuildStore.getGuild(guildId)?.name ?? guildId;
+
                 const result = await hydrateGuildMemberCache(guildId, {
                     ownerId,
                     forceRefresh: true,
-                    maxWaitMs: targetCount != null ? 0 : clampNumber(Number(config.warmupTimeoutMs) || 4000, 500, 20000),
+                    maxWaitMs: targetCount != null ? 0 : timeoutMs,
                     memberBudget,
                     targetCount,
                     continueUntilTarget: targetCount != null,
                     controller,
                     onProgress: progress => {
-                        const guildLabel = GuildStore.getGuild(progress.guildId)?.name ?? progress.guildId;
-                        const remainingCount = targetCount != null ? Math.max(targetCount - progress.finalCount, 0) : null;
-                        const nextProgress: MutualScannerWarmupProgressState = {
-                            guildId: progress.guildId,
-                            guildLabel,
-                            guildIndex: index + 1,
-                            totalGuilds: targetGuildIds.length,
-                            indexedCount: progress.finalCount,
-                            targetCount,
-                            remainingCount,
-                            delta: progress.delta,
-                            chunksSeen: progress.chunksSeen,
-                            state: progress.state,
-                        };
+                        if (warmupController !== controller) return;
 
-                        updateState(current => ({
-                            ...current,
-                            warmup: {
-                                ...current.warmup,
-                                status: targetCount != null
-                                    ? `${guildLabel} / ${progress.finalCount}/${targetCount} indexed`
-                                    : `${guildLabel} / ${progress.finalCount} indexed`,
-                                progress: nextProgress,
+                        patchWarmup({
+                            status: `${guildLabel} / ${progress.finalCount}${targetCount != null ? `/${targetCount}` : ""} indexed`,
+                            progress: {
+                                guildId: progress.guildId,
+                                guildLabel,
+                                guildIndex: index + 1,
+                                totalGuilds: guildIds.length,
+                                indexedCount: progress.finalCount,
+                                targetCount,
+                                remainingCount: targetCount != null ? Math.max(targetCount - progress.finalCount, 0) : null,
+                                delta: progress.delta,
+                                chunksSeen: progress.chunksSeen,
+                                state: progress.state,
                             },
-                        }));
+                        });
                         syncWarmupTask();
                     },
                 });
 
                 results.push(result);
-                if (controller.cancelled) {
-                    break;
-                }
+                if (controller.cancelled) break;
             }
 
+            if (warmupController !== controller) return;
+
             if (controller.cancelled) {
-                updateState(current => ({
-                    ...current,
-                    warmup: {
-                        ...current.warmup,
-                        status: "Manual cache warmup cancelled.",
-                        progress: current.warmup.progress ? { ...current.warmup.progress, state: "cancelled" } : current.warmup.progress,
-                    },
+                patchWarmup(warmup => ({
+                    status: "Manual cache warmup cancelled.",
+                    progress: warmup.progress ? { ...warmup.progress, state: "cancelled" } : null,
                 }));
                 showToast("Manual cache warmup cancelled.", "default");
                 return;
@@ -500,59 +376,50 @@ export function startMutualScannerWarmup(
 
             const completedGuilds = results.filter(result => !result.cancelled).length;
             const hydratedMembers = results.reduce((total, result) => total + Math.max(0, result.delta), 0);
-            const meaningfulHydration = results.some(result => result.delta > 0 || result.chunksSeen > 0);
-            const lastResult = results.at(-1);
+            const meaningful = hydratedMembers > 0;
+            const last = results.at(-1);
 
-            if (lastResult) {
-                const targetCount = getGuildTargetCount(lastResult.guildId);
-                updateState(current => ({
-                    ...current,
-                    warmup: {
-                        ...current.warmup,
-                        progress: {
-                            guildId: lastResult.guildId,
-                            guildLabel: GuildStore.getGuild(lastResult.guildId)?.name ?? lastResult.guildId,
-                            guildIndex: completedGuilds,
-                            totalGuilds: targetGuildIds.length,
-                            indexedCount: lastResult.finalCount,
-                            targetCount,
-                            remainingCount: targetCount != null ? Math.max(targetCount - lastResult.finalCount, 0) : null,
-                            delta: lastResult.delta,
-                            chunksSeen: lastResult.chunksSeen,
-                            state: meaningfulHydration ? "completed" : "failed",
-                        },
-                        status: meaningfulHydration
-                            ? `Hydrated ${hydratedMembers} additional member${hydratedMembers === 1 ? "" : "s"} across ${completedGuilds} server${completedGuilds === 1 ? "" : "s"}.`
-                            : "Discord did not return any additional member chunks for the selected servers.",
+            if (last) {
+                const targetCount = getGuildMemberCount(last.guildId);
+
+                patchWarmup({
+                    status: meaningful
+                        ? `Hydrated ${plural(hydratedMembers, "additional member")} across ${plural(completedGuilds, "server")}.`
+                        : "Discord did not add any members to the local cache for the selected servers.",
+                    progress: {
+                        guildId: last.guildId,
+                        guildLabel: GuildStore.getGuild(last.guildId)?.name ?? last.guildId,
+                        guildIndex: completedGuilds,
+                        totalGuilds: guildIds.length,
+                        indexedCount: last.finalCount,
+                        targetCount,
+                        remainingCount: targetCount != null ? Math.max(targetCount - last.finalCount, 0) : null,
+                        delta: last.delta,
+                        chunksSeen: last.chunksSeen,
+                        state: meaningful ? "completed" : "failed",
                     },
-                }));
+                });
             }
 
-            if (!meaningfulHydration) {
-                showToast(
-                    "Manual cache warmup finished without receiving any additional member chunks from Discord.",
-                    "critical",
-                );
+            if (meaningful) {
+                showToast(`Cache warmup finished for ${plural(completedGuilds, "server")} with ${plural(hydratedMembers, "additional member")} hydrated.`, "success");
             } else {
-                showToast(
-                    `Cache warmup finished for ${completedGuilds} server${completedGuilds === 1 ? "" : "s"} with ${hydratedMembers} additional member${hydratedMembers === 1 ? "" : "s"} hydrated.`,
-                    "success",
-                );
+                showToast("Manual cache warmup finished without adding any members to the local cache.", "critical");
             }
         } catch (error) {
+            if (warmupController !== controller) return;
+
             const message = error instanceof Error ? error.message : "Manual cache warmup failed.";
-            updateState(current => ({
-                ...current,
-                warmup: {
-                    ...current.warmup,
-                    status: message,
-                    progress: current.warmup.progress ? { ...current.warmup.progress, state: "failed" } : current.warmup.progress,
-                },
+            patchWarmup(warmup => ({
+                status: message,
+                progress: warmup.progress ? { ...warmup.progress, state: "failed" } : null,
             }));
             showToast(message, "critical");
         } finally {
-            finishWarmup();
-            warmupController = null;
+            if (warmupController === controller) {
+                warmupController = null;
+                finishWarmup();
+            }
         }
     })();
 

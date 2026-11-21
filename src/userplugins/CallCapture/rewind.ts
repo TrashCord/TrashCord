@@ -40,6 +40,26 @@ interface Source {
 const MAX_VIDEO_BYTES = 536870912;
 const KEEP_US = 3000000;
 
+const AVC_LEVELS: Array<[string, number, number, number]> = [
+    ["1f", 3600, 108000, 17500],
+    ["20", 5120, 216000, 25000],
+    ["28", 8192, 245760, 25000],
+    ["2a", 8704, 522240, 62500],
+    ["32", 22080, 589824, 168750],
+    ["33", 36864, 983040, 300000],
+    ["34", 36864, 2073600, 300000]
+];
+
+const VP9_LEVELS: Array<[string, number, number]> = [
+    ["31", 983040, 36864000],
+    ["40", 2228224, 83558400],
+    ["41", 2228224, 160432128],
+    ["50", 8912896, 311951360],
+    ["51", 8912896, 588251136],
+    ["52", 8912896, 1176502272],
+    ["60", 35651584, 1176502272]
+];
+
 class Ring {
     buf = new Uint8Array(0);
     used = 0;
@@ -133,7 +153,8 @@ let vReader: ReadableStreamDefaultReader<any> | null = null;
 let vEncoder: VideoEncoder | null = null;
 let head: Uint8Array | undefined;
 let vDesc: Uint8Array | undefined;
-let vCodec: "avc" | "vp8" = "vp8";
+let vCodec: "avc" | "vp8" | "vp9" = "vp8";
+let vLevel = 0;
 let vFormat = "mp4";
 let vWidth = 0;
 let vHeight = 0;
@@ -166,10 +187,16 @@ function toBytes(desc: AllowSharedBufferSource): Uint8Array {
     return view.slice();
 }
 
-function avcCodec(width: number, height: number, fps: number): string {
-    const rate = width * height * fps;
-    const level = rate <= 27648000 ? "1f" : rate <= 62668800 ? "28" : rate <= 124416000 ? "2a" : "33";
-    return `avc1.6400${level}`;
+function avcLevel(width: number, height: number, fps: number, kbps: number): string {
+    const mbs = Math.ceil(width / 16) * Math.ceil(height / 16);
+    const rate = mbs * fps;
+    return (AVC_LEVELS.find(l => mbs <= l[1] && rate <= l[2] && kbps <= l[3]) ?? AVC_LEVELS[AVC_LEVELS.length - 1])[0];
+}
+
+function vp9Level(width: number, height: number, fps: number): string {
+    const px = width * height;
+    const rate = px * fps;
+    return (VP9_LEVELS.find(l => px <= l[1] && rate <= l[2]) ?? VP9_LEVELS[VP9_LEVELS.length - 1])[0];
 }
 
 function onAudioPacket(chunk: EncodedAudioChunk, meta?: EncodedAudioChunkMetadata) {
@@ -215,12 +242,25 @@ function createAudioEncoder(my: number, rate: number, count: number, bitrate: nu
 async function createVideoEncoder(my: number, frame: VideoFrame, cfg: ReplayConfig): Promise<VideoEncoder | null> {
     const width = frame.displayWidth & ~1;
     const height = frame.displayHeight & ~1;
-    const base = { width, height, bitrate: cfg.videoKbps * 1000, framerate: cfg.fps, latencyMode: "realtime", bitrateMode: "constant" };
-    const avc = { ...base, codec: avcCodec(width, height, cfg.fps), avc: { format: "avc" } };
+    const base = { width, height, bitrate: cfg.videoKbps * 1000, framerate: cfg.fps, latencyMode: "realtime" };
+    const level = avcLevel(width, height, cfg.fps, cfg.videoKbps);
+    const avc: any[] = ["6400", "4d00", "4200"].flatMap(profile =>
+        ["prefer-hardware", "no-preference"].flatMap(hw =>
+            ["constant", "variable"].map(mode => ({
+                ...base,
+                bitrateMode: mode,
+                codec: `avc1.${profile}${level}`,
+                avc: { format: "avc" },
+                hardwareAcceleration: hw
+            }))
+        )
+    );
+    const vp9 = { ...base, bitrateMode: "constant", codec: `vp09.00.${vp9Level(width, height, cfg.fps)}.08` };
+    const vp8 = { ...base, bitrateMode: "constant", codec: "vp8" };
 
     const candidates: any[] = cfg.format === "webm"
-        ? [{ ...base, codec: "vp8" }]
-        : [{ ...avc, hardwareAcceleration: "prefer-hardware" }, avc, { ...base, codec: "vp8" }];
+        ? [vp8]
+        : cfg.format === "mp4" ? [...avc, vp9, vp8] : [...avc, vp8];
 
     for (const config of candidates) {
         try {
@@ -234,7 +274,8 @@ async function createVideoEncoder(my: number, frame: VideoFrame, cfg: ReplayConf
             });
             enc.configure(config);
 
-            vCodec = config.codec === "vp8" ? "vp8" : "avc";
+            vCodec = config.codec.startsWith("avc") ? "avc" : config.codec.startsWith("vp09") ? "vp9" : "vp8";
+            vLevel = vCodec === "vp9" ? Number(config.codec.split(".")[2]) : 0;
             vWidth = width;
             vHeight = height;
             return enc;
@@ -415,8 +456,8 @@ function buildVideoClip(): ClipResult | null {
     const videoPackets: MuxPacket[] = vs.slice(start).map(e => ({ data: e.data, time: e.time, key: e.key }));
     const audioPackets: MuxPacket[] = as.filter(e => e.time + e.dur > startUs).map(e => ({ data: e.data, time: e.time, key: true, dur: e.dur }));
 
-    const mp4 = vCodec === "avc" && vFormat === "mp4";
-    const info = { codec: vCodec, width: vWidth, height: vHeight, description: vDesc };
+    const mp4 = vFormat === "mp4" && vCodec !== "vp8";
+    const info = { codec: vCodec, width: vWidth, height: vHeight, description: vDesc, level: vLevel };
 
     if (mp4) {
         return { blob: muxMp4(info, videoPackets, audioPackets, head, channels, startUs, wanted), ext: "mp4", seconds: (end - Math.max(startUs, wanted)) / 1000000 };

@@ -61,17 +61,10 @@ export interface MutualScannerData {
     runs: MutualScannerRun[];
 }
 
-export interface MutualScannerFriendOption {
-    id: string;
-    label: string;
-    details: string;
-    avatarUrl: string;
-}
-
 export interface MutualScannerGuildOption {
     id: string;
     label: string;
-    memberCount: number;
+    memberCount: number | null;
     iconUrl?: string;
 }
 
@@ -90,6 +83,7 @@ export interface MutualScannerProgress {
 
 export interface MutualScannerController {
     cancelled: boolean;
+    onCancel?: () => void;
     cancel(): void;
 }
 
