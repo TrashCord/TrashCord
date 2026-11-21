@@ -8,7 +8,7 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { HeaderBarButton } from "@api/HeaderBar";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
 import { Button } from "@components/Button";
@@ -50,7 +50,7 @@ function Separator(title: string) {
     return (
         <>
             <hr style={{ width: "100%" }} />
-            <HeadingSecondary>{title}</HeadingSecondary>
+            <Heading tag="h3">{title}</Heading>
             <hr style={{ width: "100%" }} />
         </>
     );

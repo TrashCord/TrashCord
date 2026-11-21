@@ -8,7 +8,7 @@ import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessa
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
-import { HeadingTertiary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { getCurrentChannel, sendMessage } from "@utils/discord";
 import { Logger } from "@utils/Logger";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
@@ -345,7 +345,7 @@ function GifSpamModal(props: ModalProps) {
     return (
         <ModalRoot {...props}>
             <ModalHeader>
-                <HeadingTertiary>GifSpammer</HeadingTertiary>
+                <Heading tag="h4">GifSpammer</Heading>
                 <span style={{ marginLeft: "auto", fontSize: 11, color: isRunning ? "#43b581" : "#6b6f7e", fontWeight: 700 }}>
                     {isRunning ? "▶ Running" : "⏹ Stopped"}
                     {gifCount !== null && <span style={{ marginLeft: 8, color: "#8a8e9a", fontWeight: 400 }}>🎞️ {gifCount} saved GIFs</span>}

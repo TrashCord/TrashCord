@@ -10,7 +10,7 @@ import { showNotification } from "@api/Notifications";
 import { definePluginSettings } from "@api/Settings";
 import { UserAreaButton } from "@api/UserArea";
 import ErrorBoundary from "@components/ErrorBoundary";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { openPluginModal } from "@components/settings";
 import definePlugin, { OptionType, PluginSettingComponentProps } from "@utils/types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
@@ -62,7 +62,7 @@ function SectionSeparator(title: string, hint: string) {
     return (
         <>
             <hr style={{ width: "100%" }} />
-            <HeadingSecondary>{title}</HeadingSecondary>
+            <Heading tag="h3">{title}</Heading>
             {hint && <div style={{ ...hintStyle, marginBottom: 8 }}>{hint}</div>}
             <hr style={{ width: "100%" }} />
         </>

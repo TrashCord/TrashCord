@@ -6,7 +6,7 @@
 
 import { Button } from "@components/Button";
 import { Divider } from "@components/Divider";
-import { HeadingPrimary, HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { Margins } from "@utils/margins";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot } from "@utils/modal";
 import { RestAPI, SearchableSelect, useEffect, useMemo, useRef, useState } from "@webpack/common";
@@ -145,14 +145,14 @@ export function FloodModal({ channel, rootProps, onRunningChange }: Props) {
     return (
         <ModalRoot {...rootProps}>
             <ModalHeader className="vc-flood-modal-header">
-                <HeadingPrimary className="vc-flood-modal-title">Flood Panel</HeadingPrimary>
+                <Heading tag="h2" className="vc-flood-modal-title">Flood Panel</Heading>
                 <ModalCloseButton onClick={rootProps.onClose} />
             </ModalHeader>
 
             <ModalContent className="vc-flood-modal-content">
 
                 {/* Messages source */}
-                <HeadingSecondary className={Margins.bottom8}>Messages source</HeadingSecondary>
+                <Heading tag="h3" className={Margins.bottom8}>Messages source</Heading>
                 <div className="vc-flood-file-info">
                     {fileName ?? `Default (${messages.length} phrases)`}
                 </div>
@@ -168,7 +168,7 @@ export function FloodModal({ channel, rootProps, onRunningChange }: Props) {
                 <Divider className={Margins.bottom16} />
 
                 {/* Delay */}
-                <HeadingSecondary className={Margins.bottom8}>Delay between messages</HeadingSecondary>
+                <Heading tag="h3" className={Margins.bottom8}>Delay between messages</Heading>
                 <div className={Margins.bottom16}>
                     <SearchableSelect
                         options={delayOptions}

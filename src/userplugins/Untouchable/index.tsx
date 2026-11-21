@@ -6,7 +6,7 @@
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import {
@@ -155,7 +155,7 @@ function SectionSeparator(title: string) {
     return (
         <>
             <hr style={{ width: "100%" }} />
-            <HeadingSecondary>{title}</HeadingSecondary>
+            <Heading tag="h3">{title}</Heading>
             <hr style={{ width: "100%" }} />
         </>
     );

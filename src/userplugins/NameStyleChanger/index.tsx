@@ -12,7 +12,6 @@ import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
 import { Button } from "@components/Button";
-import { HeadingSecondary } from "@components/LegacyHeading";
 import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import showMeYourName from "@plugins/showMeYourName";
@@ -704,7 +703,7 @@ function SettingsAboutComponent() {
 
     return (
         <section>
-            <HeadingSecondary>Name Style Preview & Bio Generator</HeadingSecondary>
+            <Heading tag="h3">Name Style Preview & Bio Generator</Heading>
             <Paragraph>
                 Customize your display name font, effects, and colors. Generate an invisible 3y3 tag to display your custom name style to other Testcord users.
             </Paragraph>
@@ -842,7 +841,7 @@ function SettingsAboutComponent() {
 
             <Divider className={classes(Margins.top16, Margins.bottom16)} />
 
-            <HeadingSecondary>Usage</HeadingSecondary>
+            <Heading tag="h3">Usage</Heading>
             <Paragraph className={Margins.top8}>
                 Paste the copied string into your Discord profile bio (User Settings &rarr; Profiles &rarr; About Me).
             </Paragraph>

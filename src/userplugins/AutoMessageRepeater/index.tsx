@@ -9,7 +9,7 @@ import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import { definePluginSettings } from "@api/Settings";
-import { HeadingTertiary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { Devs } from "@utils/constants";
 import { getCurrentChannel, sendMessage } from "@utils/discord";
 import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
@@ -787,7 +787,7 @@ function RepeaterModal(props: ModalProps) {
     return (
         <ModalRoot {...props}>
             <ModalHeader>
-                <HeadingTertiary>Auto Message Repeater</HeadingTertiary>
+                <Heading tag="h4">Auto Message Repeater</Heading>
                 <span style={{ marginLeft: "auto", fontSize: 11, color: isRepeating ? "#43b581" : "#6b6f7e", fontWeight: 700 }}>
                     {isRepeating ? "▶ Running" : "⏹ Stopped"}
                     <span style={{ margin: "0 6px", color: "#2e2f34" }}>·</span>

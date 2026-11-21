@@ -8,7 +8,7 @@ import managedStyle from "./styles.css?managed";
 
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { classNameFactory } from "@utils/css";
 import { Logger } from "@utils/Logger";
@@ -118,7 +118,7 @@ function EmojiSlotsEditor({ slots }: { slots: EmojiSlot[]; }) {
     return (
         <>
             <div>
-                <HeadingSecondary>Reaction Emojis</HeadingSecondary>
+                <Heading tag="h3">Reaction Emojis</Heading>
                 <Paragraph>
                     Up to {MAX_EMOJIS} emojis added (in order) when you click "Auto React" on a message.
                     Paste custom emoji markdown (<code>{"<:name:id>"}</code> / <code>{"<a:name:id>"}</code>)

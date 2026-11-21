@@ -5,7 +5,7 @@
  */
 
 import { Button } from "@components/Button";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 
 import { DownloadProgressState } from "../types";
@@ -28,7 +28,7 @@ export function DownloadProgress({
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "12px 0" }}>
-            <HeadingSecondary>
+            <Heading tag="h3">
                 {progress.inProgress
                     ? "Downloading Selected Media..."
                     : isCancelled
@@ -38,7 +38,7 @@ export function DownloadProgress({
                             : progress.requested > 0
                                 ? "Download Requested"
                             : "Download Complete"}
-            </HeadingSecondary>
+            </Heading>
 
             <div className="vc-mg-progress-bar-wrap">
                 <div

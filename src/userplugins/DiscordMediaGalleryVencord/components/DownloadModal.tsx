@@ -5,7 +5,7 @@
  */
 
 import { Button } from "@components/Button";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 
 import { formatBytes } from "../mediaUtils";
@@ -48,7 +48,7 @@ export function DownloadModal({
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "12px 0" }}>
-            <HeadingSecondary>Confirm Bulk Download</HeadingSecondary>
+            <Heading tag="h3">Confirm Bulk Download</Heading>
             <Paragraph>
                 You are about to download <strong>{totalCount}</strong> selected media items from <strong>{channelName}</strong>.
             </Paragraph>

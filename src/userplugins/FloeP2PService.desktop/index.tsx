@@ -8,7 +8,7 @@ import { ApplicationCommandInputType, ApplicationCommandOptionType, findOption, 
 import type { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { CloudDownloadIcon, CloudIcon, CloudUploadIcon, FolderIcon, UpdaterIcon } from "@components/Icons";
 import { Paragraph } from "@components/Paragraph";
 import { insertTextIntoChatInputBox } from "@utils/discord";
@@ -30,7 +30,7 @@ type FloeAction<T> = (native: FloeNative) => Promise<NativeResult<T>>;
 function FloeP2PSettingsAbout() {
     return (
         <>
-            <HeadingSecondary>About Floe P2P Service</HeadingSecondary>
+            <Heading tag="h3">About Floe P2P Service</Heading>
             <Paragraph>
                 Floe was created by <MaskedLink href="https://github.com/jannskiee">https://github.com/jannskiee</MaskedLink>.
             </Paragraph>
@@ -220,7 +220,7 @@ function ReceiveModal({ modalProps }: { modalProps: RenderModalProps; }) {
             ]}
         >
             <section className={Margins.bottom16}>
-                <HeadingSecondary>Code or link</HeadingSecondary>
+                <Heading tag="h3">Code or link</Heading>
                 <TextInput
                     value={locator}
                     onChange={setLocator}
@@ -229,7 +229,7 @@ function ReceiveModal({ modalProps }: { modalProps: RenderModalProps; }) {
             </section>
 
             <section className={Margins.bottom16}>
-                <HeadingSecondary>Download folder</HeadingSecondary>
+                <Heading tag="h3">Download folder</Heading>
                 <Paragraph>{outputDir || "Downloads will be used."}</Paragraph>
                 <Button variant="secondary" onClick={() => void chooseFolder()} disabled={busy}>
                     Choose folder

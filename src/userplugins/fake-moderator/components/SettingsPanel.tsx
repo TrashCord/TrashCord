@@ -9,7 +9,7 @@ import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { DeleteIcon } from "@components/Icons";
 import { Margins } from "@components/margins";
 import { Paragraph } from "@components/Paragraph";
@@ -130,13 +130,13 @@ export function SettingsPanel() {
         <section className={Margins.top16}>
             <Divider className={Margins.bottom16} />
 
-            <HeadingSecondary>Notification colour</HeadingSecondary>
+            <Heading tag="h3">Notification colour</Heading>
             <Paragraph style={{ color: "var(--text-muted)" }}>
                 Colour used for the confirmation notification shown after each fake action.
             </Paragraph>
             <ColorPicker />
 
-            <HeadingSecondary className={Margins.top16}>Fake action history</HeadingSecondary>
+            <Heading tag="h3" className={Margins.top16}>Fake action history</Heading>
             <Paragraph style={{ color: "var(--text-muted)" }}>
                 Every fake action is logged locally only. Nothing here was ever sent to Discord.
             </Paragraph>

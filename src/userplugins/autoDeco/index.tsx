@@ -10,7 +10,7 @@ import { ChannelToolbarButton } from "@api/HeaderBar";
 import { popNotice, showNotice } from "@api/Notices";
 import { showNotification } from "@api/Notifications";
 import { definePluginSettings, useSettings } from "@api/Settings";
-import { HeadingSecondary } from "@components/LegacyHeading";
+import { Heading } from "@components/Heading";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { classes } from "@utils/misc";
 import definePlugin, { makeRange, OptionType } from "@utils/types";
@@ -71,7 +71,7 @@ function SectionSeparator(title: string) {
     return (
         <>
             <hr style={{ width: "100%" }} />
-            <HeadingSecondary>{title}</HeadingSecondary>
+            <Heading tag="h3">{title}</Heading>
             <hr style={{ width: "100%" }} />
         </>
     );
