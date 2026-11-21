@@ -1,9 +1,3 @@
-/*
- * Vencord, a Discord client mod
- * Copyright (c) 2026 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 .vc-osint-club-root {
     --oc-base: var(--background-base-lowest, var(--background-primary));
     --oc-panel: var(--background-base-low, var(--background-secondary));
